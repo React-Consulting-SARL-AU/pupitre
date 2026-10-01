@@ -35,7 +35,7 @@ async function against(
 }
 
 describe("reachSsh", () => {
-  it("lit la bannière que le serveur annonce de lui-même", async () => {
+  it("reads the banner the server announces by itself", async () => {
     const reach = await against((socket) => {
       socket.write("SSH-2.0-OpenSSH_9.6p1 Ubuntu-3\r\n");
     });
@@ -45,7 +45,7 @@ describe("reachSsh", () => {
     expect(reach.reached && reach.ms).toBeGreaterThanOrEqual(0);
   });
 
-  it("n'écrit rien sur le serveur", async () => {
+  it("writes nothing on the server", async () => {
     let received = "";
 
     await against((socket) => {
@@ -58,7 +58,7 @@ describe("reachSsh", () => {
     expect(received).toBe("");
   });
 
-  it("dit qu'une adresse qui parle autre chose n'est pas un serveur SSH", async () => {
+  it("says an address speaking something else is not an SSH server", async () => {
     const reach = await against((socket) => {
       socket.write("HTTP/1.1 400 Bad Request\r\n");
     });
@@ -70,13 +70,13 @@ describe("reachSsh", () => {
     );
   });
 
-  it("dit qu'une adresse muette n'a pas répondu à temps", async () => {
+  it("says a silent address did not respond in time", async () => {
     const reach = await against(() => undefined, 60);
 
     expect(reach.reached === false && reach.code).toBe("timeout");
   });
 
-  it("dit que rien n'écoute quand le port est fermé", async () => {
+  it("says nothing is listening when the port is closed", async () => {
     const server = await listening(() => undefined);
     const port = portOf(server);
 
@@ -89,7 +89,7 @@ describe("reachSsh", () => {
     expect(reach.reached === false && reach.phrase.values?.port).toBe(port);
   });
 
-  it("refuse un port hors bornes sans ouvrir de connexion", async () => {
+  it("refuses an out-of-range port without opening a connection", async () => {
     let dialled = false;
 
     const reach = await reachSsh("127.0.0.1", Number.NaN, {

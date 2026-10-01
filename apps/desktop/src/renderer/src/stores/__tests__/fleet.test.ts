@@ -79,8 +79,8 @@ beforeEach(() => {
   useServers.setState({ config: null, status: "idle" });
 });
 
-describe("la lecture des serveurs attribués", () => {
-  it("garde la fusion telle que le processus principal l'a rendue", async () => {
+describe("reading the assigned servers", () => {
+  it("keeps the merge as the main process returned it", async () => {
     stub({ fleet: { ok: true, result: view() } });
 
     await useFleet.getState().read();
@@ -91,7 +91,7 @@ describe("la lecture des serveurs attribués", () => {
     });
   });
 
-  it("garde le message et le remède d'un refus, mot pour mot", async () => {
+  it("keeps the message and fix of a refusal, word for word", async () => {
     stub({
       fleet: {
         ok: false,
@@ -111,7 +111,7 @@ describe("la lecture des serveurs attribués", () => {
     });
   });
 
-  it("recharge la liste locale quand la fusion l'a changée", async () => {
+  it("reloads the local list when the merge changed it", async () => {
     const changed = { ...view(), changed: true };
 
     stub({ fleet: { ok: true, result: changed } });
@@ -121,7 +121,7 @@ describe("la lecture des serveurs attribués", () => {
     expect(useServers.getState().status).toBe("ready");
   });
 
-  it("ne recharge pas la liste locale quand rien n'a changé", async () => {
+  it("does not reload the local list when nothing changed", async () => {
     stub({ fleet: { ok: true, result: view() } });
 
     await useFleet.getState().read();
@@ -130,8 +130,8 @@ describe("la lecture des serveurs attribués", () => {
   });
 });
 
-describe("la première ouverture d'un serveur attribué", () => {
-  it("le pilote, et n'ouvre aucun assistant : il est déjà installé", async () => {
+describe("the first opening of an assigned server", () => {
+  it("drives it, and opens no wizard: it is already installed", async () => {
     stub({ fleet: { ok: true, result: view() } });
 
     await useFleet.getState().read();
@@ -144,7 +144,7 @@ describe("la première ouverture d'un serveur attribué", () => {
     expect(useOnboarding.getState().step).toBe("closed");
   });
 
-  it("n'ouvre plus la personnalisation la seconde fois", async () => {
+  it("no longer opens the customisation the second time", async () => {
     stub({
       fleet: {
         ok: true,
@@ -158,7 +158,7 @@ describe("la première ouverture d'un serveur attribué", () => {
     expect(useOnboarding.getState().step).toBe("closed");
   });
 
-  it("attend sans rien demander tant que la clé n'est pas posée", async () => {
+  it("waits without asking anything until the key is placed", async () => {
     stub({
       fleet: {
         ok: true,
@@ -176,7 +176,7 @@ describe("la première ouverture d'un serveur attribué", () => {
     expect(useOnboarding.getState().step).toBe("closed");
   });
 
-  it("reprend l'ouverture d'elle-même dès que la clé est posée", async () => {
+  it("resumes opening by itself as soon as the key is placed", async () => {
     stub({
       fleet: {
         ok: true,
@@ -194,7 +194,7 @@ describe("la première ouverture d'un serveur attribué", () => {
     expect(useFleet.getState().opening).toMatchObject({ status: "opened" });
   });
 
-  it("affiche le remède du refus sans le reformuler", async () => {
+  it("shows the fix of the refusal without rewording it", async () => {
     stub({
       fleet: { ok: true, result: view() },
       open: {
@@ -218,7 +218,7 @@ describe("la première ouverture d'un serveur attribué", () => {
     });
   });
 
-  it("ignore un serveur que la fusion ne connaît pas", async () => {
+  it("ignores a server the merge does not know", async () => {
     stub({ fleet: { ok: true, result: view() } });
 
     await useFleet.getState().read();
@@ -228,8 +228,8 @@ describe("la première ouverture d'un serveur attribué", () => {
   });
 });
 
-describe("les serveurs attribués de la liste", () => {
-  it("ne retient que ceux que la console a nommés", () => {
+describe("the assigned servers of the list", () => {
+  it("keeps only those the console named", () => {
     const typed: Server = {
       host: "vps.test",
       id: "srv-local",
@@ -250,7 +250,7 @@ describe("les serveurs attribués de la liste", () => {
     ).toEqual(["srv-platform-1"]);
   });
 
-  it("n'en retient aucun tant que rien n'a été lu", () => {
+  it("keeps none while nothing has been read", () => {
     expect(grantedServers({ status: "idle" })).toEqual([]);
   });
 });

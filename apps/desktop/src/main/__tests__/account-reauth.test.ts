@@ -14,8 +14,8 @@ afterEach(() => {
   }
 });
 
-describe("un appareil ajouté sur une connexion trop ancienne", () => {
-  it("demande de se reconnecter, et ne garde pas la session", async () => {
+describe("a device added on a sign-in that is too old", () => {
+  it("asks to sign in again, and does not keep the session", async () => {
     const dir = mkdtempSync(join(tmpdir(), "pupitre-reauth-"));
 
     dirs.push(dir);

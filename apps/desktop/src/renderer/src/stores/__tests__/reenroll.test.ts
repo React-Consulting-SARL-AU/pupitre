@@ -9,8 +9,8 @@ beforeEach(() => {
   useReenroll.getState().forget();
 });
 
-describe("la réparation d'un serveur restreint", () => {
-  it("garde le droit que l'agent a annoncé au retour de l'échange", async () => {
+describe("repairing a restricted server", () => {
+  it("keeps the licence the agent announced when the exchange returned", async () => {
     stubPupitre({
       reenrollServer: () =>
         Promise.resolve({
@@ -36,7 +36,7 @@ describe("la réparation d'un serveur restreint", () => {
     });
   });
 
-  it("dit que l'échange est en cours tant qu'il ne l'est plus", async () => {
+  it("says the exchange is in progress until it no longer is", async () => {
     let release: () => void = () => undefined;
 
     stubPupitre({
@@ -63,7 +63,7 @@ describe("la réparation d'un serveur restreint", () => {
     expect(useReenroll.getState().state.status).toBe("done");
   });
 
-  it("garde le refus et son remède tels quels", async () => {
+  it("keeps the refusal and its fix as they are", async () => {
     stubPupitre({
       reenrollServer: () =>
         Promise.resolve({

@@ -10,7 +10,7 @@ const SECRET = "whsec_pupitre"
 const PAYLOAD = '{"id":"evt_1","type":"customer.subscription.updated"}'
 
 describe("verifyStripeSignature", () => {
-  it("accepte une signature fraîche", async () => {
+  it("accepts a fresh signature", async () => {
     const now = new Date()
     const header = await signStripePayload(PAYLOAD, SECRET, now)
 
@@ -24,7 +24,7 @@ describe("verifyStripeSignature", () => {
     ).toEqual({ valid: true })
   })
 
-  it("accepte une des signatures d'un en-tête qui en porte plusieurs", async () => {
+  it("accepts one of the signatures of a header that carries several", async () => {
     const now = new Date()
     const header = await signStripePayload(PAYLOAD, SECRET, now)
     const doubled = `${header},v1=${"0".repeat(64)}`
@@ -41,7 +41,7 @@ describe("verifyStripeSignature", () => {
     ).toBe(true)
   })
 
-  it("refuse un corps modifié, un secret différent et un en-tête absent", async () => {
+  it("refuses a modified body, a different secret and a missing header", async () => {
     const now = new Date()
     const header = await signStripePayload(PAYLOAD, SECRET, now)
 
@@ -77,7 +77,7 @@ describe("verifyStripeSignature", () => {
     ).toEqual({ valid: false, refusal: "malformed" })
   })
 
-  it("borne la tolérance à cinq minutes, dans les deux sens", async () => {
+  it("bounds the tolerance to five minutes, in both directions", async () => {
     const now = new Date()
     const inside = await signStripePayload(
       PAYLOAD,

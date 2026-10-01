@@ -6,8 +6,8 @@ import { Tab, TabBar } from "../ui/tab-bar";
 
 const NOOP = () => undefined;
 
-describe("le cadre d'une page", () => {
-  it("pose l'en-tête sur un bandeau à part, et fait défiler le corps sous lui", () => {
+describe("a page frame", () => {
+  it("puts the header on its own band, and scrolls the body under it", () => {
     const html = renderToStaticMarkup(
       <Screen eyebrow="Serveur" title="Fichiers">
         <p>corps</p>
@@ -25,7 +25,7 @@ describe("le cadre d'une page", () => {
     );
   });
 
-  it("tient une étape sur sa colonne, et pose sa barre sous elle", () => {
+  it("holds a step on its column, and puts its bar under it", () => {
     const html = renderToStaticMarkup(
       <Screen
         column
@@ -49,7 +49,7 @@ describe("le cadre d'une page", () => {
   });
 
   // The onboarding rail already says where the reader is, so its steps carry no band.
-  it("lit l'en-tête d'une étape de l'onboarding sur la page, sans bandeau", () => {
+  it("reads an onboarding step header on the page, without a band", () => {
     const html = renderToStaticMarkup(
       <Screen column plain step="inspection" title="atelier">
         <p>corps</p>
@@ -61,7 +61,7 @@ describe("le cadre d'une page", () => {
     expect(html).toContain("pt-10");
   });
 
-  it("garde l'en-tête au-dessus d'un corps qui tient sa propre hauteur", () => {
+  it("keeps the header above a body that holds its own height", () => {
     const html = renderToStaticMarkup(
       <Screen fill title="Terminaux">
         <p>corps</p>
@@ -75,7 +75,7 @@ describe("le cadre d'une page", () => {
     );
   });
 
-  it("pose les onglets sous le titre, à la place de la bordure", () => {
+  it("puts the tabs under the title, in place of the border", () => {
     const html = renderToStaticMarkup(
       <Screen
         fill
@@ -99,8 +99,8 @@ describe("le cadre d'une page", () => {
   });
 });
 
-describe("l'en-tête d'une page", () => {
-  it("met ce qui accompagne le titre sur sa ligne, hors du h1", () => {
+describe("a page header", () => {
+  it("puts what accompanies the title on its line, outside the h1", () => {
     const html = renderToStaticMarkup(
       <PageHeader
         actions={<button type="button">Relire</button>}

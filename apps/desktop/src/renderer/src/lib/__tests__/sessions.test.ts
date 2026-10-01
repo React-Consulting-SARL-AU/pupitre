@@ -45,19 +45,19 @@ function session(patch: Partial<Session>): Session {
 }
 
 describe("attachedSessions", () => {
-  it("ne retient que les agents ouverts sur un projet", () => {
+  it("keeps only the agents open on a project", () => {
     expect(attachedSessions(TABS)).toEqual(["claude:flyleaf-api"]);
   });
 });
 
 describe("isAttached", () => {
-  it("reconnaît la session que l'onglet tient", () => {
+  it("recognises the session the tab holds", () => {
     expect(
       isAttached(["claude:flyleaf-api"], session({ project: "flyleaf-api" }))
     ).toBe(true);
   });
 
-  it("laisse traîner celle d'un autre projet ou d'un autre agent", () => {
+  it("ignores one from another project or another agent", () => {
     expect(
       isAttached(["claude:flyleaf-api"], session({ project: "atlas-web" }))
     ).toBe(false);
@@ -69,7 +69,7 @@ describe("isAttached", () => {
     ).toBe(false);
   });
 
-  it("ne parle jamais d'un shell ni d'un éditeur distant", () => {
+  it("never reports a shell or a remote editor", () => {
     expect(
       isAttached(
         ["claude:flyleaf-api"],

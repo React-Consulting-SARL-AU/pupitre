@@ -68,15 +68,15 @@ function setup(answer?: (sent: Sent) => AgentResponse<unknown>) {
   return { copied, deps, dir, opened, sent, vault };
 }
 
-describe("les clés d'accès", () => {
-  it("tire une clé au format du portier", () => {
+describe("access keys", () => {
+  it("draws a key in the gate's format", () => {
     const { id, key } = newKey();
 
     expect(key).toMatch(/^ppk_[a-z0-9]{12}_[a-z0-9]{32}$/);
     expect(accessKeyId(key)).toBe(id);
   });
 
-  it("n'envoie au serveur que l'empreinte, et garde la clé sur cet ordinateur", async () => {
+  it("sends the server only the fingerprint, and keeps the key on this computer", async () => {
     const { deps, sent, vault } = setup();
 
     const created = await createKey(
@@ -97,7 +97,7 @@ describe("les clés d'accès", () => {
     expect(params.hash).toBe(hashOf(kept ?? ""));
   });
 
-  it("refuse une clé sans nom ou sans projet, sans rien envoyer", async () => {
+  it("refuses a key without a name or without a project, sending nothing", async () => {
     const { deps, sent } = setup();
 
     expect((await createKey(SERVER, " ", null, deps)).ok).toBe(false);
@@ -106,7 +106,7 @@ describe("les clés d'accès", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("ne garde rien d'une clé que le serveur a refusée", async () => {
+  it("keeps nothing of a key the server refused", async () => {
     const { deps, vault } = setup(() => ({
       error: { code: "privilege_required", message: "no" },
       ok: false,
@@ -117,7 +117,7 @@ describe("les clés d'accès", () => {
     expect(vault.held(SERVER)).toEqual([]);
   });
 
-  it("copie un lien vers une adresse protégée seulement", async () => {
+  it("copies a link to a protected address only", async () => {
     const { copied, deps, sent } = setup();
 
     await createKey(SERVER, "recette", ["shop"], deps);
@@ -134,7 +134,7 @@ describe("les clés d'accès", () => {
     expect(copied[1]).toMatch(/^Pupitre-Key: ppk_/);
   });
 
-  it("ne copie pas une clé créée sur un autre ordinateur", () => {
+  it("does not copy a key created on another computer", () => {
     const { deps } = setup();
 
     const refused = copyKey(SERVER, "abcdef012345", "key", null, deps);
@@ -145,7 +145,7 @@ describe("les clés d'accès", () => {
     );
   });
 
-  it("ouvre une adresse protégée avec la clé de cet ordinateur, tirée une fois", async () => {
+  it("opens a protected address with this computer's key, drawn once", async () => {
     const { deps, opened, sent } = setup();
 
     await openAddress(SERVER, "https://shop.example.org/cart?ref=x#top", deps);
@@ -160,7 +160,7 @@ describe("les clés d'accès", () => {
     expect(opened[1]).toMatch(/^https:\/\/shop\.example\.org\/\?pupitre_key=/);
   });
 
-  it("ouvre telle quelle une adresse que rien ne protège", async () => {
+  it("opens as is an address nothing protects", async () => {
     const { deps, opened, sent } = setup();
 
     await openAddress(SERVER, "https://hooks.example.org/x?y=1", deps);
@@ -169,7 +169,7 @@ describe("les clés d'accès", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("n'ouvre qu'une adresse https", async () => {
+  it("opens only an https address", async () => {
     const { deps, opened } = setup();
 
     expect((await openAddress(SERVER, "file:///etc/passwd", deps)).ok).toBe(
@@ -178,7 +178,7 @@ describe("les clés d'accès", () => {
     expect(opened).toHaveLength(0);
   });
 
-  it("oublie une clé révoquée, ici ou depuis un autre ordinateur", async () => {
+  it("forgets a revoked key, here or from another computer", async () => {
     const { deps, sent, vault } = setup();
 
     await createKey(SERVER, "a", null, deps);
@@ -192,7 +192,7 @@ describe("les clés d'accès", () => {
     expect(held.ok ? held.result.held : null).toEqual([]);
   });
 
-  it("retrouve ses clés au lancement suivant, scellées sur le disque", async () => {
+  it("finds its keys again at the next launch, sealed on disk", async () => {
     const { deps, dir, sent } = setup();
 
     await openAddress(SERVER, "https://shop.example.org/", deps);

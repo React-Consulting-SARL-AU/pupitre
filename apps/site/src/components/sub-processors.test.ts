@@ -4,7 +4,7 @@ import { render } from "../test/render"
 import SubProcessors from "./SubProcessors.astro"
 
 describe("SubProcessors", () => {
-  it("liste chaque sous-traitant dans la langue de la page", async () => {
+  it("lists every sub-processor in the page's language", async () => {
     const html = await render(SubProcessors, { path: "/fr/legal/privacy/" })
 
     for (const processor of SUB_PROCESSORS) {

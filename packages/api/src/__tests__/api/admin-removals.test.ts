@@ -42,7 +42,7 @@ describe("DELETE /admin/servers/:id", () => {
     await resetDb()
   })
 
-  it("révoque d'abord, avec la raison au journal, puis efface la ligne au second appel", async () => {
+  it("revokes first, with the reason in the log, then erases the row on the second call", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -100,7 +100,7 @@ describe("DELETE /admin/servers/:id", () => {
     })
   })
 
-  it("rend not_found sans ligne, et exige une raison", async () => {
+  it("returns not_found without a row, and requires a reason", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -127,7 +127,7 @@ describe("DELETE /admin/servers/:id", () => {
     ).toMatchObject({ status: "active" })
   })
 
-  it("laisse la suppression par le propriétaire sans marque de la plateforme", async () => {
+  it("leaves the owner's own removal without a platform mark", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -157,7 +157,7 @@ describe("DELETE /admin/users/:id/devices/:deviceId", () => {
     await resetDb()
   })
 
-  it("retire l'appareil et signe la révocation de l'équipe", async () => {
+  it("removes the device and signs the team's revocation", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -196,7 +196,7 @@ describe("DELETE /admin/users/:id/devices/:deviceId", () => {
     expect(devices.json.data).toHaveLength(0)
   })
 
-  it("rend not_found quand l'appareil n'est pas à ce compte", async () => {
+  it("returns not_found when the device does not belong to this account", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })

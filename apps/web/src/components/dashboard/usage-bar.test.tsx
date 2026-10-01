@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 describe("UsageBar", () => {
-  it("dit la mesure dans la langue de la console", async () => {
+  it("states the measure in the console's language", async () => {
     const french = await render(bar("fr", "Disque", 42))
 
     mounted.push(french.unmount)
@@ -42,7 +42,7 @@ describe("UsageBar", () => {
     expect(reading(english.container)).toBe("Disk: 42%")
   })
 
-  it("dit aussi ce qu'elle ne sait pas", async () => {
+  it("also says what it does not know", async () => {
     const french = await render(bar("fr", "Disque", null))
 
     mounted.push(french.unmount)

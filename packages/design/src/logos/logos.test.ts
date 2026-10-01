@@ -132,7 +132,7 @@ describe("NOTICE.md", () => {
   })
 
   it("states the nominative use", () => {
-    expect(readFileSync(NOTICE, "utf8")).toContain("Usage nominatif")
+    expect(readFileSync(NOTICE, "utf8")).toContain("Nominative use")
   })
 })
 

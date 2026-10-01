@@ -53,8 +53,8 @@ function text(html: string): string {
     .trim();
 }
 
-describe("le fichier d'environnement d'un projet", () => {
-  it("liste les clés, jamais une valeur, et offre de régénérer", () => {
+describe("a project's environment file", () => {
+  it("lists the keys, never a value, and offers to regenerate", () => {
     const html = renderToStaticMarkup(
       <ProjectEnv
         onRead={NOOP}
@@ -78,7 +78,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(text(html)).not.toContain("écrit");
   });
 
-  it("résume un long fichier à ses premières clés et offre de tout afficher", () => {
+  it("summarizes a long file to its first keys and offers to show everything", () => {
     const keys = ["A_KEY", "B_KEY", "C_KEY", "D_KEY", "E_KEY", "F_KEY"];
     const html = renderToStaticMarkup(
       <ProjectEnv
@@ -105,7 +105,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(text(html)).toContain("Tout afficher");
   });
 
-  it("montre un court fichier en entier, sans rien à déplier", () => {
+  it("shows a short file in full, with nothing to unfold", () => {
     const html = renderToStaticMarkup(
       <ProjectEnv
         onRead={NOOP}
@@ -126,7 +126,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(text(html)).not.toContain("Tout afficher");
   });
 
-  it("dit le refus de l'agent avec son remède et un nouvel essai", () => {
+  it("states the agent's refusal with its fix and a retry", () => {
     const html = renderToStaticMarkup(
       <ProjectEnv
         onRead={NOOP}
@@ -148,7 +148,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(html).not.toContain("elevation-raised");
   });
 
-  it("dit calmement qu'un projet sans gabarit n'a pas d'environnement", () => {
+  it("calmly says that a project without a template has no environment", () => {
     const html = renderToStaticMarkup(
       <ProjectEnv
         onRead={NOOP}
@@ -175,7 +175,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(text(html)).not.toContain("aucune clé");
   });
 
-  it("lit un fichier écrit à la main sans offrir de le régénérer", () => {
+  it("reads a hand-written file without offering to regenerate it", () => {
     const html = renderToStaticMarkup(
       <ProjectEnv
         onRead={NOOP}
@@ -197,8 +197,8 @@ describe("le fichier d'environnement d'un projet", () => {
   });
 });
 
-describe("le changement de branche", () => {
-  it("ne change rien tant qu'un bouton n'a pas été pressé", () => {
+describe("the branch switch", () => {
+  it("changes nothing until a button has been pressed", () => {
     const html = renderToStaticMarkup(
       <ProjectBranches
         folder="/home/dev/projects/flyleaf"
@@ -213,7 +213,7 @@ describe("le changement de branche", () => {
     expect(text(html)).toContain("changer de branche sera refusé");
   });
 
-  it("sépare les branches locales des distantes pas encore prises, et offre d'en créer une", async () => {
+  it("separates local branches from remote ones not yet taken, and offers to create one", async () => {
     const view = await mount(
       <ProjectBranches
         folder="/home/dev/projects/flyleaf"
@@ -237,7 +237,7 @@ describe("le changement de branche", () => {
     view.unmount();
   });
 
-  it("refuse avant l'agent un nom que git refuserait, ou qui existe déjà", () => {
+  it("refuses, before the agent, a name git would refuse or that already exists", () => {
     expect(newBranchProblem("feat/tarifs", BRANCHES)).toBe("exists");
     expect(newBranchProblem("release", BRANCHES)).toBe("exists");
     expect(newBranchProblem("-force", BRANCHES)).toBe("invalid");
@@ -246,8 +246,8 @@ describe("le changement de branche", () => {
   });
 });
 
-describe("l'écart avec le dépôt distant", () => {
-  it("offre de tirer quand il y a des commits à récupérer, en disant ce que ça fait", () => {
+describe("the gap with the remote repository", () => {
+  it("offers to pull when there are commits to fetch, saying what it does", () => {
     const html = renderToStaticMarkup(
       <ProjectGitState
         onCheck={NOOP}
@@ -259,7 +259,7 @@ describe("l'écart avec le dépôt distant", () => {
     expect(text(html)).toContain("Pull et réinstaller");
   });
 
-  it("ne l'offre pas quand tout est à jour", () => {
+  it("does not offer it when everything is up to date", () => {
     const html = renderToStaticMarkup(
       <ProjectGitState
         onCheck={NOOP}
@@ -276,8 +276,8 @@ describe("l'écart avec le dépôt distant", () => {
   });
 });
 
-describe("la liste des fichiers du diff", () => {
-  it("se parcourt au clavier dans l'ordre dessiné", () => {
+describe("the diff file list", () => {
+  it("is walked by keyboard in the drawn order", () => {
     const order = drawnOrder(WORKING_TREE.files);
 
     expect(order.length).toBe(WORKING_TREE.files.length);
@@ -288,7 +288,7 @@ describe("la liste des fichiers du diff", () => {
     expect(pathAfterKey("Enter", order, order[0] ?? null)).toBeNull();
   });
 
-  it("se présente comme une liste, chaque fichier comme une option", () => {
+  it("presents itself as a list, each file as an option", () => {
     const html = renderToStaticMarkup(
       <ProjectDiffFiles
         files={WORKING_TREE.files}
@@ -303,8 +303,8 @@ describe("la liste des fichiers du diff", () => {
   });
 });
 
-describe("le formulaire d'ajout d'un serveur", () => {
-  it("est un vrai formulaire", () => {
+describe("the add-server form", () => {
+  it("is a real form", () => {
     const html = renderToStaticMarkup(
       <ServerAddForm busy={false} error={null} onSubmit={NOOP} />
     );
@@ -313,7 +313,7 @@ describe("le formulaire d'ajout d'un serveur", () => {
     expect(html).toContain("noValidate");
   });
 
-  it("demande un nom SSH à côté du nom", () => {
+  it("asks for an SSH name next to the name", () => {
     const html = renderToStaticMarkup(
       <ServerAddForm busy={false} error={null} onSubmit={NOOP} />
     );
@@ -321,7 +321,7 @@ describe("le formulaire d'ajout d'un serveur", () => {
     expect(text(html)).toContain("Nom SSH");
   });
 
-  it("ne lit un port que comme un nombre entier entre 1 et 65535", () => {
+  it("reads a port only as a whole number between 1 and 65535", () => {
     expect(portOf("22")).toBe(22);
     expect(portOf(" 2222 ")).toBe(2222);
     expect(portOf("22abc")).toBeNull();
@@ -332,14 +332,14 @@ describe("le formulaire d'ajout d'un serveur", () => {
   });
 });
 
-describe("un compte tiers connecté", () => {
+describe("a connected third-party account", () => {
   const github = CONNECTIONS.find((one) => one.kind === "github");
 
   if (!github) {
     throw new Error("the descriptors name no GitHub account");
   }
 
-  it("demande avant d'oublier, en nommant ce que ça emporte", () => {
+  it("asks before forgetting, naming what it takes away", () => {
     const html = renderToStaticMarkup(
       <ConnectionConnected
         busy={false}
@@ -362,13 +362,13 @@ describe("un compte tiers connecté", () => {
     expect(text(html)).toContain("Déconnecter");
   });
 
-  it("décrit chaque connexion que le contrat nomme, et aucune autre", () => {
+  it("describes each connection the contract names, and no other", () => {
     expect(CONNECTIONS.map((one) => one.kind).sort()).toEqual(
       [...CONNECTION_KINDS].sort()
     );
   });
 
-  it("sépare le jeton du tunnel, qui reste ici, de celui de Wrangler, qui part", () => {
+  it("separates the tunnel token, which stays here, from Wrangler's, which leaves", () => {
     const t = translator("fr");
     const [tunnel, wrangler] = CONNECTIONS.filter((one) =>
       ["cloudflare", "wrangler"].includes(one.kind)
@@ -388,7 +388,7 @@ describe("un compte tiers connecté", () => {
   });
 
   // Never default to the first account the provider lists.
-  it("fait choisir le compte quand le jeton en ouvre plusieurs", () => {
+  it("makes the reader choose the account when the token opens several", () => {
     const html = renderToStaticMarkup(
       <ConnectionAccountChoice
         accounts={[
@@ -411,7 +411,7 @@ describe("un compte tiers connecté", () => {
     );
   });
 
-  it("nomme ce que l'oubli emporte, ou dit qu'il ne le sait pas", () => {
+  it("names what forgetting takes away, or says it does not know", () => {
     const t = translator("fr");
 
     expect(
@@ -425,7 +425,7 @@ describe("un compte tiers connecté", () => {
     ).toContain("chaque serveur qui a besoin");
   });
 
-  it("dit ce que le fournisseur a répondu", () => {
+  it("says what the provider answered", () => {
     const answered = renderToStaticMarkup(
       <ConnectionHealthLine
         health={{ account: "ada", at: Date.now(), status: "answered" }}
@@ -453,8 +453,8 @@ describe("un compte tiers connecté", () => {
   });
 });
 
-describe("le rail de l'assistant", () => {
-  it("compte les étapes qu'on lui donne, pas les huit", () => {
+describe("the wizard rail", () => {
+  it("counts the steps it is given, not the eight", () => {
     const html = renderToStaticMarkup(
       <OnboardingRail
         serverName="atelier"
@@ -476,8 +476,8 @@ describe("le rail de l'assistant", () => {
   });
 });
 
-describe("un durcissement qui a échoué", () => {
-  it("dit que la machine reste utilisable, à côté du nouvel essai", () => {
+describe("a hardening that failed", () => {
+  it("says the machine remains usable, next to the retry", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenFailed
         error={{ code: "disconnected", message: "canal tombe" }}
@@ -490,7 +490,7 @@ describe("un durcissement qui a échoué", () => {
     expect(text(html)).toContain("root");
   });
 
-  it("ouvre la sortie sur la barre de l'étape, et seulement quand l'agent a fini", () => {
+  it("opens the output on the step bar, and only when the agent has finished", () => {
     expect(
       hardenAction({
         error: { code: "disconnected", message: "canal tombe" },
@@ -507,8 +507,8 @@ describe("un durcissement qui a échoué", () => {
   });
 });
 
-describe("l'état d'un serveur attribué", () => {
-  it("se dit dans la langue du lecteur, et tel quel quand il est inconnu", () => {
+describe("an assigned server's state", () => {
+  it("is stated in the reader's language, and as is when unknown", () => {
     const t = translator("fr");
 
     expect(grantStatusLabel(t, "active")).toBe("actif");
@@ -517,8 +517,8 @@ describe("l'état d'un serveur attribué", () => {
   });
 });
 
-describe("les processus", () => {
-  it("forcent l'arrêt d'un processus qui a survécu au premier", () => {
+describe("processes", () => {
+  it("force the stop of a process that survived the first one", () => {
     const first = PROCESSES[0];
     const html = renderToStaticMarkup(
       <ActivityProcesses
@@ -532,7 +532,7 @@ describe("les processus", () => {
     expect(text(html)).toContain("Arrêter");
   });
 
-  it("disent qu'une lecture a échoué plutôt que de figer la table", () => {
+  it("say a read failed rather than freezing the table", () => {
     const html = renderToStaticMarkup(
       <ActivityProcesses
         onRetry={NOOP}
@@ -548,8 +548,8 @@ describe("les processus", () => {
   });
 });
 
-describe("les sessions", () => {
-  it("offrent de rattacher un agent orphelin, pas un agent déjà ouvert", () => {
+describe("sessions", () => {
+  it("offer to reattach an orphaned agent, not an already open one", () => {
     const orphan = renderToStaticMarkup(
       <ActivitySessions
         attached={[]}
@@ -610,8 +610,8 @@ const SIGNED_IN: AccountState = {
   },
 };
 
-describe("le compte", () => {
-  it("rend le bouton vers la console sur un droit refusé", () => {
+describe("the account", () => {
+  it("renders the button to the console on a denied right", () => {
     const suspended = renderToStaticMarkup(
       <AccountUsageNotice
         checkedAt={null}
@@ -631,7 +631,7 @@ describe("le compte", () => {
     expect(text(granted)).not.toContain("console");
   });
 
-  it("demande avant de se déconnecter, en disant que les terminaux se ferment", () => {
+  it("asks before signing out, saying the terminals close", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={SIGNED_IN}
@@ -644,7 +644,7 @@ describe("le compte", () => {
     expect(html).not.toContain("terminal ouvert");
   });
 
-  it("liste les appareils, et ne laisse pas cet ordinateur se révoquer", () => {
+  it("lists the devices, and does not let this computer revoke itself", () => {
     const html = renderToStaticMarkup(
       <AccountDeviceList
         current={DEVICE}

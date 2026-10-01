@@ -20,8 +20,8 @@ function declaredFiles(): string[] {
   return [...stylesheet().matchAll(SOURCE_RE)].map((match) => match[1])
 }
 
-describe("la police d'affichage", () => {
-  it("est servie depuis le dépôt et jamais depuis Internet", () => {
+describe("the display font", () => {
+  it("is served from the repository and never from the Internet", () => {
     expect(stylesheet()).not.toContain("http")
 
     const files = declaredFiles()
@@ -32,7 +32,7 @@ describe("la police d'affichage", () => {
     }
   })
 
-  it("embarque un woff2 en sous-ensemble latin", () => {
+  it("ships a woff2 as a Latin subset", () => {
     for (const file of declaredFiles()) {
       const full = path.join(FONT_DIR, file)
 
@@ -44,7 +44,7 @@ describe("la police d'affichage", () => {
     }
   })
 
-  it("n'embarque que les graisses que les titres et les données demandent", () => {
+  it("ships only the weights that headings and data ask for", () => {
     const weights = [...stylesheet().matchAll(/font-weight:\s*([\d ]+);/g)].map(
       (match) => match[1]
     )
@@ -52,7 +52,7 @@ describe("la police d'affichage", () => {
     expect(weights).toEqual(["700", "100 800"])
   })
 
-  it("n'échange jamais la police sous les yeux du lecteur", () => {
+  it("never swaps the font before the reader's eyes", () => {
     const displays = [...stylesheet().matchAll(/font-display:\s*(\w+)/g)].map(
       (match) => match[1]
     )
@@ -63,7 +63,7 @@ describe("la police d'affichage", () => {
     }
   })
 
-  it("garde les licences et la provenance dans le dépôt", () => {
+  it("keeps the licences and provenance in the repository", () => {
     const notice = readFileSync(NOTICE, "utf8")
 
     for (const [file, authors] of LICENCES) {

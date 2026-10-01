@@ -20,8 +20,8 @@ function environment(
   };
 }
 
-describe("la mise à jour de l'app", () => {
-  it("lit le flux public du canal stable par défaut", () => {
+describe("the app update", () => {
+  it("reads the public feed of the stable channel by default", () => {
     const plan = updaterPlan(environment());
 
     expect(plan).toEqual({
@@ -31,7 +31,7 @@ describe("la mise à jour de l'app", () => {
     });
   });
 
-  it("suit le canal que le build lui a donné", () => {
+  it("follows the channel the build gave it", () => {
     const plan = updaterPlan(environment({ channel: "beta" }));
 
     expect(plan).toMatchObject({
@@ -40,7 +40,7 @@ describe("la mise à jour de l'app", () => {
     });
   });
 
-  it("lit le seau que le build lui a désigné", () => {
+  it("reads the bucket the build designated", () => {
     const plan = updaterPlan(
       environment({ downloads: "https://dl.exemple.test/" })
     );
@@ -50,25 +50,25 @@ describe("la mise à jour de l'app", () => {
     });
   });
 
-  it("garde le seau de production quand le build n'en nomme aucun", () => {
+  it("keeps the production bucket when the build names none", () => {
     expect(updaterPlan(environment({ downloads: "  " }))).toMatchObject({
       feed: { url: "https://dl.pupitre.studio/app/stable" },
     });
   });
 
-  it("ignore un canal qui n'en est pas un", () => {
+  it("ignores a channel that is not one", () => {
     expect(updaterPlan(environment({ channel: "nightly" }))).toMatchObject({
       channel: "stable",
     });
   });
 
-  it("ne cherche rien depuis un dossier de développement", () => {
+  it("looks for nothing from a development folder", () => {
     const plan = updaterPlan(environment({ packaged: false }));
 
     expect(plan).toEqual({ reason: "development", updates: false });
   });
 
-  it("met à jour un AppImage et laisse le .deb à apt", () => {
+  it("updates an AppImage and leaves the .deb to apt", () => {
     const appImage = updaterPlan(
       environment({ appImage: "/home/dev/Pupitre.AppImage", platform: "linux" })
     );
@@ -78,7 +78,7 @@ describe("la mise à jour de l'app", () => {
     expect(deb).toEqual({ reason: "unsupported", updates: false });
   });
 
-  it("met à jour Windows comme macOS", () => {
+  it("updates Windows like macOS", () => {
     expect(updaterPlan(environment({ platform: "win32" })).updates).toBe(true);
   });
 });

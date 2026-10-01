@@ -46,8 +46,8 @@ function harness(pending: string | null = CLAUDE): {
   };
 }
 
-describe("une connexion ouverte dans le navigateur", () => {
-  it("apporte d'abord le port sur lequel elle revient, puis ouvre le navigateur", async () => {
+describe("a login opened in the browser", () => {
+  it("first brings up the port it returns on, then opens the browser", async () => {
     const h = harness();
 
     expect(await openPendingLogin("t1", h.deps)).toBe(true);
@@ -58,7 +58,7 @@ describe("une connexion ouverte dans le navigateur", () => {
     expect(h.order).toEqual(["forward", "browser"]);
   });
 
-  it("ouvre sans tunnel un flux qui ne revient pas sur la machine", async () => {
+  it("opens without a tunnel a flow that does not return to the machine", async () => {
     const h = harness(DEVICE);
 
     expect(await openPendingLogin("t1", h.deps)).toBe(true);
@@ -66,7 +66,7 @@ describe("une connexion ouverte dans le navigateur", () => {
     expect(h.opened).toEqual([DEVICE]);
   });
 
-  it("n'ouvre rien pour une session sans adresse, ou inconnue", async () => {
+  it("opens nothing for a session with no address, or an unknown one", async () => {
     const h = harness(null);
 
     expect(await openPendingLogin("t1", h.deps)).toBe(false);
@@ -74,7 +74,7 @@ describe("une connexion ouverte dans le navigateur", () => {
     expect(h.opened).toEqual([]);
   });
 
-  it("traite une adresse cliquée dans la session de la même façon", async () => {
+  it("treats an address clicked in the session the same way", async () => {
     const h = harness();
 
     expect(await openFromTerminal("t2", NEON, h.deps)).toBe(true);
@@ -84,7 +84,7 @@ describe("une connexion ouverte dans le navigateur", () => {
     expect(h.opened).toEqual([NEON]);
   });
 
-  it("ouvre l'adresse entière quand celle cliquée n'en est que la première ligne", async () => {
+  it("opens the whole address when the clicked one is only its first line", async () => {
     const h = harness();
     const firstLine = CLAUDE.slice(0, 60);
 
@@ -95,7 +95,7 @@ describe("une connexion ouverte dans le navigateur", () => {
     ]);
   });
 
-  it("refuse une adresse que le navigateur ne doit pas recevoir", async () => {
+  it("refuses an address the browser must not receive", async () => {
     const h = harness();
 
     expect(await openFromTerminal("t2", "http://exemple.test", h.deps)).toBe(
@@ -106,8 +106,8 @@ describe("une connexion ouverte dans le navigateur", () => {
   });
 });
 
-describe("les tunnels d'une session", () => {
-  it("se ferment avec elle, et une seule fois", () => {
+describe("a session's tunnels", () => {
+  it("close with it, and only once", () => {
     const closed: string[] = [];
 
     rememberForward("t1", "f1");

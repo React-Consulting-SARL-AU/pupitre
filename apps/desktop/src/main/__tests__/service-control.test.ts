@@ -33,8 +33,8 @@ afterEach(() => {
   forgetShells();
 });
 
-describe("le journal d'un service", () => {
-  it("suit l'unité que le renderer a nommée, ligne par ligne", async () => {
+describe("a service's journal", () => {
+  it("follows the unit the renderer named, line by line", async () => {
     const lines: string[] = [];
 
     const answer = await serviceLogs(
@@ -51,7 +51,7 @@ describe("le journal d'un service", () => {
     expect(lines[0]).toContain("ready to accept connections");
   });
 
-  it("refuse un serveur inconnu et un module sans nom sans toucher au canal", async () => {
+  it("refuses an unknown server and a nameless module without touching the channel", async () => {
     const calls = deps("service-logs-work.jsonl");
 
     const unknown = await serviceLogs(
@@ -77,8 +77,8 @@ describe("le journal d'un service", () => {
   });
 });
 
-describe("le shell d'une base dans un onglet", () => {
-  it("prend la commande que l'agent rend et la tient sous l'identifiant de l'onglet", async () => {
+describe("a database shell in a tab", () => {
+  it("takes the command the agent returns and holds it under the tab id", async () => {
     const calls = deps("db-shell-control.jsonl");
 
     const opened = await reserveDatabaseShell(
@@ -103,7 +103,7 @@ describe("le shell d'une base dans un onglet", () => {
     );
   });
 
-  it("ne rend la commande qu'au serveur qui l'a demandée, et l'oublie avec l'onglet", async () => {
+  it("hands the command only to the server that asked for it, and forgets it with the tab", async () => {
     const calls = deps("db-shell-control.jsonl");
 
     const opened = await reserveDatabaseShell(
@@ -122,7 +122,7 @@ describe("le shell d'une base dans un onglet", () => {
     expect(reservedShell(id, SERVER)).toBeNull();
   });
 
-  it("refuse un module qui n'est pas une base et un nom qui ne peut pas en nommer une", async () => {
+  it("refuses a module that is not a database and a name that cannot name one", async () => {
     const calls = deps("db-shell-control.jsonl");
 
     const runtime = await reserveDatabaseShell(
@@ -147,7 +147,7 @@ describe("le shell d'une base dans un onglet", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("cite la ligne de l'agent en un seul argument, apostrophe comprise", () => {
+  it("quotes the agent's line as a single argument, apostrophe included", () => {
     expect(quoted("sudo -u postgres psql it's-shop")).toBe(
       "'sudo -u postgres psql it'\\''s-shop'"
     );

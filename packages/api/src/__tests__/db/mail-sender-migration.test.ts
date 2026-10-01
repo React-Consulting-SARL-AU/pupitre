@@ -62,7 +62,7 @@ async function seedMessage(
   })
 }
 
-describe("la migration 0017 sur une base déjà remplie", () => {
+describe("migration 0017 on an already populated database", () => {
   let dir: string
   let client: Client
 
@@ -123,7 +123,7 @@ describe("la migration 0017 sur une base déjà remplie", () => {
     rmSync(dir, { force: true, recursive: true })
   })
 
-  it("range chaque message sous l'adresse de son fil, et tient pour vérifié ce que nous avons envoyé", async () => {
+  it("files each message under its thread's address, and treats what we sent as verified", async () => {
     const rows = await client.execute(
       'SELECT "id", "address", "authenticated" FROM "MailMessage" ORDER BY "id"'
     )
@@ -141,7 +141,7 @@ describe("la migration 0017 sur une base déjà remplie", () => {
     ])
   })
 
-  it("porte sur le fil le dernier expéditeur entrant, ou notre destinataire, et le dernier extrait", async () => {
+  it("carries on the thread the last incoming sender, or our recipient, and the last snippet", async () => {
     const rows = await client.execute(
       'SELECT "id", "senderEmail", "senderName", "senderAuthenticated", "snippet" FROM "MailThread" ORDER BY "id"'
     )
@@ -161,7 +161,7 @@ describe("la migration 0017 sur une base déjà remplie", () => {
     ])
   })
 
-  it("vide le sujet que l'ingestion écrivait en français faute d'objet", async () => {
+  it("empties the subject that ingestion wrote in French for lack of one", async () => {
     const rows = await client.execute(
       'SELECT "subject", "normalizedSubject" FROM "MailThread" WHERE "id" = \'thr_sans_objet\''
     )
@@ -170,7 +170,7 @@ describe("la migration 0017 sur une base déjà remplie", () => {
     expect(rows.rows[0]?.normalizedSubject).toBe("")
   })
 
-  it("accepte le même Message-ID sur deux adresses, et le refuse deux fois sur la même", async () => {
+  it("accepts the same Message-ID on two addresses, and refuses it twice on the same one", async () => {
     const insert = (id: string, address: string) =>
       client.execute({
         sql: 'INSERT INTO "MailMessage" ("id", "threadId", "direction", "fromEmail", "toEmails", "ccEmails", "messageId", "address") VALUES (?, ?, ?, ?, ?, ?, ?, ?)',

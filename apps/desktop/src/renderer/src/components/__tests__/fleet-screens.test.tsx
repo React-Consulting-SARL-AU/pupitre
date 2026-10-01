@@ -82,8 +82,8 @@ function opener(
   );
 }
 
-describe("un serveur attribué", () => {
-  it("est une ligne de la liste, avec le mot de la console parmi ses faits", () => {
+describe("an assigned server", () => {
+  it("is a row of the list, with the console's alias among its facts", () => {
     const html = text(row());
 
     expect(html).toContain("dev@203.0.113.10:22");
@@ -94,14 +94,14 @@ describe("un serveur attribué", () => {
     expect(html).toContain("Ouvrir");
   });
 
-  it("ne dit rien de la console pour un serveur qu'elle ne nomme plus", () => {
+  it("says nothing of the console for a server it no longer names", () => {
     const html = text(row({ listed: false }));
 
     expect(html).not.toContain("Console");
     expect(html).not.toContain("Ouvrir");
   });
 
-  it("distingue les trois états d'une attribution par leur forme", () => {
+  it("tells the three states of an assignment apart by shape", () => {
     const shapes = [
       detail(),
       detail({ keyReady: false }),
@@ -112,14 +112,14 @@ describe("un serveur attribué", () => {
     expect(new Set(shapes).size).toBe(3);
   });
 
-  it("n'offre pas d'ouvrir un serveur suspendu, et dit pourquoi", () => {
+  it("does not offer to open a suspended server, and says why", () => {
     const html = opener({ status: "suspended" });
 
     expect(text(html)).toContain("La console a suspendu ce serveur");
     expect(html).not.toContain("<button");
   });
 
-  it("dit ce qui se passe pendant l'attente de la clé", () => {
+  it("says what is happening while waiting for the key", () => {
     const html = opener(
       { keyReady: false },
       { serverId: "srv-platform-1", status: "waiting" }
@@ -129,7 +129,7 @@ describe("un serveur attribué", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  it("affiche le remède d'un refus tel quel", () => {
+  it("shows the fix of a refusal as it comes", () => {
     const html = opener(
       {},
       {
@@ -147,14 +147,14 @@ describe("un serveur attribué", () => {
     expect(text(html)).toContain("Demande une nouvelle attribution.");
   });
 
-  it("n'offre l'ouverture qu'une fois : ensuite la ligne se pilote comme les autres", () => {
+  it("offers the opening only once: after that the row is driven like the others", () => {
     expect(text(opener())).toContain("Ouvrir");
     expect(opener({ opened: true })).toBe("");
     expect(text(row({ opened: true }))).not.toContain("Ouvrir");
   });
 });
 
-describe("les organisations", () => {
+describe("the organizations", () => {
   const identity: AccountIdentity = {
     email: "ada@pupitre.studio",
     license: "valid",
@@ -169,7 +169,7 @@ describe("les organisations", () => {
     servers: { limit: 3, used: 1 },
   };
 
-  it("marque l'organisation active par une forme pleine", () => {
+  it("marks the active organization with a filled shape", () => {
     const html = renderToStaticMarkup(
       <FleetOrganizations identity={identity} />
     );
@@ -181,7 +181,7 @@ describe("les organisations", () => {
     expect(text(html)).toContain("Propriétaire");
   });
 
-  it("n'offre la bascule qu'aux organisations qui ne sont pas actives", () => {
+  it("offers the switch only to organizations that are not active", () => {
     const html = renderToStaticMarkup(
       <FleetOrganizations identity={identity} />
     );
@@ -189,7 +189,7 @@ describe("les organisations", () => {
     expect(html.match(/Rendre active|Make active/g)).toHaveLength(1);
   });
 
-  it("ne montre rien quand il n'y a rien à choisir", () => {
+  it("shows nothing when there is nothing to choose", () => {
     for (const organizations of [[], identity.organizations.slice(0, 1)]) {
       expect(
         renderToStaticMarkup(

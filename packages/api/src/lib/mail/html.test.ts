@@ -14,11 +14,11 @@ function directives(policy: string): Map<string, string> {
 }
 
 describe("MAIL_HTML_CSP", () => {
-  it("interdit tout par défaut, donc les scripts d'un message hostile", () => {
+  it("forbids everything by default, so a hostile message's scripts", () => {
     expect(directives(MAIL_HTML_CSP).get("default-src")).toBe("'none'")
   })
 
-  it("ne rouvre rien pour les scripts ni les cadres", () => {
+  it("reopens nothing for scripts or frames", () => {
     const policy = directives(MAIL_HTML_CSP)
 
     expect(policy.has("script-src")).toBe(false)
@@ -27,11 +27,11 @@ describe("MAIL_HTML_CSP", () => {
     expect(policy.has("frame-src")).toBe(false)
   })
 
-  it("garde le cadre sur notre propre origine", () => {
+  it("keeps the frame on our own origin", () => {
     expect(directives(MAIL_HTML_CSP).get("frame-ancestors")).toBe("'self'")
   })
 
-  it("isole le corps même ouvert hors du cadre de la console", () => {
+  it("isolates the body even when opened outside the console frame", () => {
     const policy = directives(MAIL_HTML_CSP)
 
     expect(policy.get("sandbox")).toBe("")
@@ -39,14 +39,14 @@ describe("MAIL_HTML_CSP", () => {
     expect(policy.get("base-uri")).toBe("'none'")
   })
 
-  it("ne charge aucune image distante, pour qu'un pixel de suivi n'apprenne rien", () => {
+  it("loads no remote image, so a tracking pixel learns nothing", () => {
     expect(directives(MAIL_HTML_CSP).get("img-src")).toBe("data:")
     expect(directives(MAIL_HTML_CSP).get("font-src")).toBe("data:")
   })
 })
 
 describe("MAIL_NOSNIFF", () => {
-  it("dit au navigateur de ne pas deviner le type servi", () => {
+  it("tells the browser not to guess the served type", () => {
     expect(MAIL_NOSNIFF).toBe("nosniff")
   })
 })

@@ -84,8 +84,8 @@ const CATALOG: Manifest[] = [
   ]),
 ];
 
-describe("les valeurs de compte d'une installation", () => {
-  it("ne porte que les modules dont le manifeste déclare une connexion", () => {
+describe("an installation's account values", () => {
+  it("carries only the modules whose manifest declares a connection", () => {
     const answer = accountValues(
       ["runtime.node", "tool.github", "tool.neon"],
       CATALOG,
@@ -101,7 +101,7 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  it("remplit un champ texte géré avec l'identifiant du compte que le jeton ouvre", () => {
+  it("fills a managed text field with the identifier of the account the token opens", () => {
     const answer = accountValues(["tool.wrangler"], CATALOG, token);
 
     expect(answer.ok && answer.result).toEqual({
@@ -112,7 +112,7 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  it("laisse vide un champ texte géré quand le compte n'a pas de nom", () => {
+  it("leaves a managed text field empty when the account has no name", () => {
     const unnamed = [
       manifest("tool.wrangler", "wrangler", [
         {
@@ -133,20 +133,20 @@ describe("les valeurs de compte d'une installation", () => {
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
-  it("laisse un champ typé au formulaire, même sur un module qu'un compte pourrait servir", () => {
+  it("leaves a typed field to the form, even on a module an account could serve", () => {
     const answer = accountValues(["tool.1password"], CATALOG, token);
 
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
-  it("ne porte rien quand aucun module choisi n'en déclare", () => {
+  it("carries nothing when no chosen module declares one", () => {
     const answer = accountValues(["runtime.node"], CATALOG, token);
 
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
   // Refusing here leaves the machine untouched; refusing on it leaves half an install.
-  it("refuse avant la première étape quand le compte n'est pas connecté", () => {
+  it("refuses before the first step when the account is not connected", () => {
     const answer = accountValues(["tool.github"], CATALOG, () => null);
 
     expect(answer.ok).toBe(false);
@@ -156,7 +156,7 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  it("laisse au tunnel les valeurs que le tunnel dérive", () => {
+  it("leaves to the tunnel the values the tunnel derives", () => {
     const withTunnel = [
       ...CATALOG,
       manifest("exposure.cloudflare", "cloudflare", [

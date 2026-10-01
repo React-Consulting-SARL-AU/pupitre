@@ -58,7 +58,7 @@ async function deviceFor(userId: string, name: string) {
   })
 }
 
-describe("le cycle de vie d'un compte", () => {
+describe("the lifecycle of an account", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -68,7 +68,7 @@ describe("le cycle de vie d'un compte", () => {
     useFakeBilling()
   })
 
-  it("suspend un compte jusqu'à une date, et le rend actif quand elle est passée", async () => {
+  it("suspends an account until a date, and makes it active once that date has passed", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -109,7 +109,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(lapsed.json.data.state).toBe("active")
   })
 
-  it("désactive un compte : sessions, appareils et attributions tombent", async () => {
+  it("deactivates an account: sessions, devices and assignments are dropped", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -155,7 +155,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(again.json.error.message).toContain("déjà désactivé")
   })
 
-  it("réactive un compte et annule sa suppression programmée, sans rendre les appareils", async () => {
+  it("reactivates an account and cancels its scheduled deletion, without restoring the devices", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -194,7 +194,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(refused.json.error.code).toBe("conflict")
   })
 
-  it("programme la purge à sept jours, puis efface au second appel", async () => {
+  it("schedules the purge in seven days, then erases on the second call", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -234,7 +234,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toEqual([["user.purged", admin.session.userId, null]])
   })
 
-  it("refuse d'effacer le seul propriétaire d'une organisation qui porte un serveur", async () => {
+  it("refuses to erase the sole owner of an organization that holds a server", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -252,7 +252,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(refused.json.error.fix).toContain("transfer")
   })
 
-  it("protège un membre de l'organisation Pupitre de la désactivation et de la purge", async () => {
+  it("protects a member of the Pupitre organization from deactivation and purge", async () => {
     const { user } = await createUser({ email: "equipe@pupitre.studio" })
 
     await joinPlatformOrganization(harness.prisma, user.id, "member")
@@ -277,7 +277,7 @@ describe("le cycle de vie d'un compte", () => {
     }
   })
 
-  it("révoque toutes les sessions et garde la ligne au journal", async () => {
+  it("revokes all sessions and keeps the row in the log", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -302,7 +302,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toBe(1)
   })
 
-  it("renvoie la vérification d'adresse, et refuse sur une adresse déjà vérifiée", async () => {
+  it("resends the address verification, and refuses on an already verified address", async () => {
     const { user } = await createUser({ email: "aconfirmer@test.local" })
 
     await harness.prisma.user.update({
@@ -335,7 +335,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(refused.json.error.code).toBe("conflict")
   })
 
-  it("laisse effacer le seul propriétaire d'une organisation vide", async () => {
+  it("allows erasing the sole owner of an empty organization", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -360,7 +360,7 @@ describe("le cycle de vie d'un compte", () => {
     expect(scheduled.json.data.state).toBe("deleting")
   })
 
-  it("refuse un terme de suspension déjà passé", async () => {
+  it("refuses a suspension end date that has already passed", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -387,7 +387,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toMatchObject({ banned: false, banExpires: null })
   })
 
-  it("montre dans la fiche la raison de l'état courant et ce que la plateforme a fait au compte", async () => {
+  it("shows in the detail the reason for the current state and what the platform did to the account", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -413,7 +413,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toHaveLength(1)
   })
 
-  it("laisse un membre de l'organisation Pupitre gérer ses sessions et ses appareils", async () => {
+  it("lets a member of the Pupitre organization manage their sessions and devices", async () => {
     const { user } = await createUser({
       email: "equipe-sessions@pupitre.studio",
     })
@@ -446,7 +446,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toBe(1)
   })
 
-  it("refuse la purge immédiate d'un compte devenu seul propriétaire pendant sa grâce", async () => {
+  it("refuses the immediate purge of an account that became sole owner during its grace period", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -473,7 +473,7 @@ describe("le cycle de vie d'un compte", () => {
     ).toBe(1)
   })
 
-  it("refuse chacun de ces gestes à un simple membre de l'équipe", async () => {
+  it("refuses each of these actions to a plain team member", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })

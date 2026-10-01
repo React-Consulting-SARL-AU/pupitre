@@ -1,69 +1,68 @@
-# Modèle de références 1Password, résolu par `op inject` pendant `bun run dev:prepare`.
-# Aucune valeur ici, seulement des références : ce fichier est committé.
+# 1Password reference template, resolved by `op inject` during `bun run dev:prepare`.
+# No values here, only references: this file is committed.
 #
-# Le coffre et la note viennent de `environments.json` — celle de `local`, la
-# note du poste ; {{OP_VAULT}} et {{OP_ITEM}} sont remplacés à la lecture
-# (surcharge par poste avec OP_VAULT / OP_ITEM).
+# The vault and the note come from `environments.json` — the `local` entry, the
+# workstation's note; {{OP_VAULT}} and {{OP_ITEM}} are replaced on read
+# (per-workstation override with OP_VAULT / OP_ITEM).
 #
-# Modèle : un coffre partagé porte les secrets de tous les projets, et chaque
-# environnement de Pupitre est une note sécurisée dans ce coffre, avec un champ
-# par clé ci-dessous.
+# Model: a shared vault holds the secrets of all projects, and each Pupitre
+# environment is a secure note in that vault, with one field per key below.
 #
-# NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
-#   - La base n'a pas d'adresse : c'est la D1 liée au Worker, locale sous
+# ONLY PUT HERE WHAT CANNOT BE DERIVED.
+#   - The database has no address: it is the D1 bound to the Worker, local under
 #     apps/web/.wrangler/state.
-#   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard
-#     par poste.
-#   - `STRIPE_WEBHOOK_SECRET` vient du CLI Stripe.
-#   - `BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM` et `PUPITRE_DOWNLOADS_URL`
-#     viennent des `vars` de `apps/web/wrangler.jsonc`.
+#   - `BETTER_AUTH_SECRET` and `INTERNAL_WORKFLOW_SECRET` are drawn at random
+#     per workstation.
+#   - `STRIPE_WEBHOOK_SECRET` comes from the Stripe CLI.
+#   - `BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM` and `PUPITRE_DOWNLOADS_URL`
+#     come from the `vars` of `apps/web/wrangler.jsonc`.
 #
-# ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
-# Garde une clé en commentaire tant que son champ n'existe pas.
+# WARNING: `op inject` fails as a whole if a single field is missing from the note.
+# Keep a key commented out as long as its field does not exist.
 
-# --- Facturation, dormante en BILLING_MODE=off. La clé et les deux prix
-# suffisent pour un paiement de test en BILLING_MODE=stripe.
+# --- Billing, dormant in BILLING_MODE=off. The key and the two prices
+# are enough for a test payment in BILLING_MODE=stripe.
 STRIPE_SECRET_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_SECRET_KEY"
 STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
 STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"
 #
-# STRIPE_WEBHOOK_SECRET n'a pas sa place ici : `dev:prepare` le dérive par
-# `stripe listen --print-secret`, et il diffère de celui du tableau de bord.
-# Seule la production en a besoin, par secret Wrangler.
+# STRIPE_WEBHOOK_SECRET does not belong here: `dev:prepare` derives it with
+# `stripe listen --print-secret`, and it differs from the dashboard's.
+# Only production needs it, as a Wrangler secret.
 
-# --- Connexion par GitHub et par Google. Chaque fournisseur exige ses deux
-# variables ; sans aucune, la clé d'accès et le lien magique restent les chemins.
-# Les quatre sont déclarées dans la liste `secrets.required` racine de
-# apps/web/wrangler.jsonc, sans quoi Cloudflare ne les chargerait pas dans le
-# Worker local — et nulle part dans la liste de production, pour qu'un
-# déploiement reste possible sans elles.
+# --- Sign-in with GitHub and Google. Each provider requires both of its
+# variables; with none, the passkey and the magic link remain the ways in.
+# All four are declared in the root `secrets.required` list of
+# apps/web/wrangler.jsonc, otherwise Cloudflare would not load them into the
+# local Worker — and not in the production list, so that a deployment stays
+# possible without them.
 GITHUB_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_ID"
 GITHUB_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_SECRET"
 GOOGLE_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_ID"
 GOOGLE_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_SECRET"
 
-# --- Binaires de l'agent sur le bucket privé `ppt-agent`. Absentes, la
-# plateforme rend une URL locale et l'app dit qu'il n'y a rien à télécharger.
+# --- Agent binaries on the private `ppt-agent` bucket. When absent, the
+# platform returns a local URL and the app says there is nothing to download.
 R2_ACCOUNT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCOUNT_ID"
 R2_ACCESS_KEY_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCESS_KEY_ID"
 R2_SECRET_ACCESS_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_SECRET_ACCESS_KEY"
 R2_BUCKET_NAME="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_BUCKET_NAME"
 
-# --- Le jeton du pipeline de release. La même valeur ici, sur le Worker de
-# chaque environnement, et dans les secrets GitHub : c'est leur accord qui ouvre
-# les routes de version. Préfixé `pupitre_pub_`, sans quoi la plateforme le prend
-# pour une session et le refuse. `bun run secrets:draw` le tire et le dépose
-# dans chaque note.
+# --- The release pipeline token. The same value here, on each environment's
+# Worker, and in the GitHub secrets: their agreement is what opens the release
+# routes. Prefixed `pupitre_pub_`, otherwise the platform mistakes it for a
+# session and refuses it. `bun run secrets:draw` draws it and drops it into
+# each note.
 PUPITRE_PUBLISH_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_PUBLISH_TOKEN"
 
-# --- Le tunnel qui rend la console locale joignable d'un VPS. Le jeton d'un
-# tunnel géré depuis le tableau de bord Cloudflare (Zero Trust → Networks →
-# Tunnels → ppt-dev) : un jeton par tunnel, aucun `cloudflared tunnel login`
-# qui lierait tout le poste à un seul compte. Absent, `dev:tunnel` le dit et
-# s'arrête seul.
+# --- The tunnel that makes the local console reachable from a VPS. The token of
+# a tunnel managed from the Cloudflare dashboard (Zero Trust → Networks →
+# Tunnels → ppt-dev): one token per tunnel, no `cloudflared tunnel login`
+# that would bind the whole workstation to a single account. When absent,
+# `dev:tunnel` says so and stops on its own.
 PUPITRE_TUNNEL_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_TUNNEL_TOKEN"
 
-# --- Site. Absentes, le site se construit sans mesure d'audience.
+# --- Site. When absent, the site builds without audience measurement.
 # PUBLIC_RELEASES_URL="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_RELEASES_URL"
 # PUBLIC_POSTHOG_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_POSTHOG_KEY"
 # PUBLIC_POSTHOG_HOST="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_POSTHOG_HOST"

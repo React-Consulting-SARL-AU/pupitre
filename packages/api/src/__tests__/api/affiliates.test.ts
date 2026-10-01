@@ -132,7 +132,7 @@ function signUp(
   })
 }
 
-describe("les liens d'affiliation", () => {
+describe("affiliate links", () => {
   let harness: ApiTestServer
 
   beforeAll(async () => {
@@ -145,7 +145,7 @@ describe("les liens d'affiliation", () => {
     useFakeBilling()
   })
 
-  it("refuse un anonyme et un propriétaire sur chaque route", async () => {
+  it("refuses an anonymous user and an owner on every route", async () => {
     const { owner } = await ownerOfNewOrganization()
     const calls = [
       apiRequest<ErrorBody>("/admin/affiliate-links"),
@@ -171,7 +171,7 @@ describe("les liens d'affiliation", () => {
     }
   })
 
-  it("crée un lien avec un code tiré, sans offre, et le liste avec son adresse", async () => {
+  it("creates a link with a generated code, without an offer, and lists it with its address", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Newsletter" })
 
@@ -214,7 +214,7 @@ describe("les liens d'affiliation", () => {
     })
   })
 
-  it("accepte un code choisi, refuse un code pris ou mal formé", async () => {
+  it("accepts a chosen code, refuses a code that is taken or malformed", async () => {
     const admin = await platformAdmin()
     const chosen = await createLink(admin, {
       name: "Podcast",
@@ -238,7 +238,7 @@ describe("les liens d'affiliation", () => {
     expect(malformed.status).toBe(422)
   })
 
-  it("pose le partenaire et la note dès la création, et refuse un partenaire illisible", async () => {
+  it("sets the partner and the note at creation, and refuses an unreadable partner", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, {
       name: "Salon",
@@ -274,7 +274,7 @@ describe("les liens d'affiliation", () => {
     expect(unreadable.status).toBe(422)
   })
 
-  it("désactive puis réactive un lien, et ne connaît pas les autres", async () => {
+  it("deactivates then reactivates a link, and does not know the others", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog" })
     const disabled = await apiRequest<{ data: AffiliateLink }>(
@@ -303,7 +303,7 @@ describe("les liens d'affiliation", () => {
     ).toBe(2)
   })
 
-  it("reste hors du document OpenAPI", async () => {
+  it("stays out of the OpenAPI document", async () => {
     const document = await apiRequest<{ paths: Record<string, unknown> }>(
       "/openapi/json"
     )
@@ -316,7 +316,7 @@ describe("les liens d'affiliation", () => {
   })
 })
 
-describe("la provenance d'une organisation", () => {
+describe("an organization's origin", () => {
   let harness: ApiTestServer
   let billing: FakeBilling
 
@@ -330,7 +330,7 @@ describe("la provenance d'une organisation", () => {
     billing = useFakeBilling()
   })
 
-  it("lit le code du cookie du site, et rien d'autre", () => {
+  it("reads the code from the site cookie, and nothing else", () => {
     expect(affiliateCodeFromCookie(`a=b; ${AFFILIATE_COOKIE}=blog-1`)).toBe(
       "blog-1"
     )
@@ -339,7 +339,7 @@ describe("la provenance d'une organisation", () => {
     expect(affiliateCodeFromCookie(null)).toBeNull()
   })
 
-  it("se note une fois à l'inscription, et jamais deux", async () => {
+  it("is recorded once at sign-up, and never twice", async () => {
     const admin = await platformAdmin()
     const first = await createLink(admin, { name: "Blog" })
     const second = await createLink(admin, { name: "Forum" })
@@ -375,7 +375,7 @@ describe("la provenance d'une organisation", () => {
     ])
   })
 
-  it("se note quand un compte s'inscrit par lien magique avec le cookie du site", async () => {
+  it("is recorded when an account signs up by magic link with the site cookie", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
     const email = "arrivee@test.local"
@@ -408,7 +408,7 @@ describe("la provenance d'une organisation", () => {
     expect(referral.linkId).toBe(link.json.data.id)
   })
 
-  it("n'écrit rien à l'inscription sans cookie de provenance", async () => {
+  it("writes nothing at sign-up without an origin cookie", async () => {
     const { organizationId, owner } = await ownerOfNewOrganization()
 
     await signUp(organizationId, owner.user.id, null)
@@ -416,7 +416,7 @@ describe("la provenance d'une organisation", () => {
     expect(await harness.prisma.referral.count()).toBe(0)
   })
 
-  it("se note aussi au checkout quand Stripe vend", async () => {
+  it("is also recorded at checkout when Stripe sells", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
     const { organizationId, owner } = await ownerOfNewOrganization()
@@ -434,7 +434,7 @@ describe("la provenance d'une organisation", () => {
     expect(billing.checkouts[0]).toMatchObject({ organizationId, quantity: 5 })
   })
 
-  it("n'écrit qu'une provenance quand deux inscriptions partent ensemble", async () => {
+  it("writes only one origin when two sign-ups start together", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
     const { organizationId, owner } = await ownerOfNewOrganization()
@@ -455,7 +455,7 @@ describe("la provenance d'une organisation", () => {
     ).toBe(1)
   })
 
-  it("refuse le second de deux liens créés ensemble sur le même code", async () => {
+  it("refuses the second of two links created together on the same code", async () => {
     const { user } = await createUser({ email: "equipe@pupitre.studio" })
     const input = { name: "Blog", code: "atelier" }
     const outcomes = await Promise.allSettled([
@@ -479,7 +479,7 @@ describe("la provenance d'une organisation", () => {
     ).toBe(1)
   })
 
-  it("ignore en silence un code inconnu, désactivé ou mal formé", async () => {
+  it("silently ignores an unknown, deactivated or malformed code", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
 
@@ -499,7 +499,7 @@ describe("la provenance d'une organisation", () => {
   })
 })
 
-describe("la fiche d'un lien d'affiliation", () => {
+describe("an affiliate link's detail", () => {
   let harness: ApiTestServer
 
   beforeAll(async () => {
@@ -512,7 +512,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     useFakeBilling()
   })
 
-  it("modifie chaque champ, efface un champ facultatif, et n'écrit que ce qui change", async () => {
+  it("edits each field, clears an optional field, and writes only what changes", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog" })
     const { id, code } = created.json.data
@@ -571,7 +571,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(payloads).toContainEqual({ code, partner_email: null, notes: null })
   })
 
-  it("désactive et réactive sans toucher au reste", async () => {
+  it("deactivates and reactivates without touching the rest", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, {
       name: "Blog",
@@ -594,7 +594,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(enabled.json.data.disabled).toBe(false)
   })
 
-  it("laisse la date de modification où elle est quand rien ne change", async () => {
+  it("leaves the modification date where it is when nothing changes", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog" })
     const { id } = created.json.data
@@ -619,7 +619,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     ).toBe(0)
   })
 
-  it("refuse un partenaire illisible, une note trop longue et un nom vide", async () => {
+  it("refuses an unreadable partner, a note that is too long and an empty name", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog" })
     const { id } = created.json.data
@@ -643,7 +643,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     ).toBe(0)
   })
 
-  it("efface un lien que personne n'a suivi, refuse celui qui a amené une organisation", async () => {
+  it("erases a link nobody followed, refuses the one that brought an organization", async () => {
     const admin = await platformAdmin()
     const unused = await createLink(admin, { name: "Essai" })
     const used = await createLink(admin, { name: "Blog" })
@@ -694,7 +694,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     })
   })
 
-  it("compte les serveurs enrôlés par les organisations venues du lien", async () => {
+  it("counts the servers enrolled by the organizations that came through the link", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
     const other = await createLink(admin, { name: "Forum" })
@@ -754,7 +754,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(servers.get("Forum")).toBe(1)
   })
 
-  it("compte les visites du jour et celles des trente derniers jours", async () => {
+  it("counts today's visits and those of the last thirty days", async () => {
     const admin = await platformAdmin()
     const link = await createLink(admin, { name: "Blog" })
     const other = await createLink(admin, { name: "Forum" })
@@ -798,7 +798,7 @@ describe("la fiche d'un lien d'affiliation", () => {
   })
 })
 
-describe("le compteur public de visites", () => {
+describe("the public visit counter", () => {
   let harness: ApiTestServer
 
   beforeAll(async () => {
@@ -811,7 +811,7 @@ describe("le compteur public de visites", () => {
     useFakeBilling()
   })
 
-  it("répond 204 sans session, et ne compte que le lien activé", async () => {
+  it("answers 204 without a session, and counts only the active link", async () => {
     const admin = await platformAdmin()
     const live = await createLink(admin, { name: "Blog" })
     const off = await createLink(admin, { name: "Forum" })
@@ -837,7 +837,7 @@ describe("le compteur public de visites", () => {
     expect(rows[0].count).toBe(1)
   })
 
-  it("ouvre la route au site et à un poste local, à personne d'autre", async () => {
+  it("opens the route to the site and a local machine, to nobody else", async () => {
     const fromSite = await hit("inconnu9", { origin: PUPITRE_ORIGINS.site })
     const fromLocal = await hit("inconnu9", { origin: "http://localhost:4321" })
     const fromElsewhere = await hit("inconnu9", {
@@ -859,7 +859,7 @@ describe("le compteur public de visites", () => {
     expect(health.raw.headers.get("access-control-allow-origin")).toBeNull()
   })
 
-  it("coupe une adresse qui martèle le compteur, et laisse les autres passer", async () => {
+  it("cuts off an address hammering the counter, and lets the others through", async () => {
     const flooding = { [CLIENT_IP_HEADER]: "203.0.113.7" }
     const statuses = new Set<number>()
 

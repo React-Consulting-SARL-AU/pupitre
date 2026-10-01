@@ -18,27 +18,27 @@ test.describe("onboarding", () => {
     await running.app.close();
   });
 
-  test("mène une machine nue du vide jusqu'à Prêt", async () => {
+  test("takes a bare machine from nothing to Ready", async () => {
     const { page } = running;
 
     await reachConfig(page, { pick: ["PostgreSQL"] });
 
-    await test.step("la coque reste, seul le corps change", async () => {
+    await test.step("the shell stays, only the body changes", async () => {
       await expect(page.locator("[data-step-heading]")).toBeVisible();
       await expect(page.getByText("atelier").first()).toBeVisible();
     });
 
-    await test.step("le rail dit où l'on en est", async () => {
+    await test.step("the rail says where you are", async () => {
       await expect(
         page.locator('[data-step="config"] [data-current]')
       ).toHaveCount(1);
     });
 
-    await test.step("l'accessibilité de l'étape tient", async () => {
+    await test.step("the step passes the accessibility check", async () => {
       await assertAccessible(page, "onboarding/config");
     });
 
-    await test.step("le socle demande l'identité, range le reste", async () => {
+    await test.step("the base asks for the identity, tucks away the rest", async () => {
       await page.locator("#core\\.system\\.git_name").fill("Ada Lovelace");
       await page
         .locator("#core\\.system\\.git_email")
@@ -49,7 +49,7 @@ test.describe("onboarding", () => {
       await page.locator("#core\\.system\\.timezone").fill("Europe/Paris");
     });
 
-    await test.step("le service suivant n'a rien à demander qu'un secret généré", async () => {
+    await test.step("the next service asks for nothing but a generated secret", async () => {
       await page
         .locator("[data-actions='config']")
         .getByRole("button", { name: "Suivant" })
@@ -59,7 +59,7 @@ test.describe("onboarding", () => {
       await expect(page.getByText("Généré pour ce serveur")).toBeVisible();
     });
 
-    await test.step("la configuration mène à l'installation", async () => {
+    await test.step("the configuration leads to the installation", async () => {
       await page
         .locator("[data-actions='config']")
         .getByRole("button", { name: INSTALL })
@@ -70,7 +70,7 @@ test.describe("onboarding", () => {
       ).toHaveCount(1);
     });
 
-    await test.step("l'installation dit qu'elle est finie, en clair", async () => {
+    await test.step("the installation says it is finished, in plain words", async () => {
       await expect(page.getByText("Tout est installé.")).toBeVisible();
       await page.getByRole("button", { name: "Continuer" }).click();
 
@@ -79,12 +79,12 @@ test.describe("onboarding", () => {
       ).toHaveCount(1);
     });
 
-    await test.step("la sécurité ferme root et nomme le compte", async () => {
+    await test.step("hardening closes root and names the account", async () => {
       await expect(page.getByText("L'accès root est fermé.")).toBeVisible();
       await expect(page.getByText("dev").first()).toBeVisible();
     });
 
-    await test.step("dev reçoit un mot de passe sudo, masqué jusqu'à ce qu'on le demande", async () => {
+    await test.step("dev receives a sudo password, hidden until asked for", async () => {
       await expect(
         page.getByText("Sudo demande un mot de passe à dev")
       ).toBeVisible();
@@ -107,7 +107,7 @@ test.describe("onboarding", () => {
       ).toHaveCount(1);
     });
 
-    await test.step("le serveur est prêt, sans projet imposé", async () => {
+    await test.step("the server is ready, with no project imposed", async () => {
       await expect(page.getByRole("banner").getByText("Prêt")).toBeVisible();
       await expect(page.getByText("Connecté en tant que dev")).toBeVisible();
       await expect(page.getByText("L'accès root est fermé")).toBeVisible();

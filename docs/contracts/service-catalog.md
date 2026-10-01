@@ -1,241 +1,241 @@
-# Catalogue de services
+# Service catalogue
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente-huit modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+The catalogue is a **library of the most widely used stacks**, chosen because they install and run cleanly. It is complete: thirty-eight modules, all shipped. It does not aim at exhaustiveness: what is not in it, the customer installs by hand on their machine, and Pupitre does not stand in the way. The probe reports what it finds, the modules only touch what they installed.
 
-Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
+A service is a **module** of the agent: a Go unit that knows how to install itself, check itself, configure itself, upgrade itself, uninstall itself and report its state, on Ubuntu 22.04 and 24.04, amd64 and arm64. The app knows no service by name: it displays the manifests the agent declares.
 
-## Manifeste
+## Manifest
 
-Types dans `packages/shared/src/catalog/`, exportés en JSON Schema pour Go.
+Types in `packages/shared/src/catalog/`, exported as JSON Schema for Go.
 
 ```ts
 type Manifest = {
   id: string                     // "db.postgres"
   category: "core" | "runtime" | "database" | "ai" | "editor" | "exposure" | "tool"
   name: string                   // "PostgreSQL 17"
-  summary: string                // une phrase, pour la carte
-  requires: string[]             // ids de modules
-  conflicts: string[]            // ids de modules
+  summary: string                // one sentence, for the card
+  requires: string[]             // module ids
+  conflicts: string[]            // module ids
   resources: { ram_mb: number; disk_mb: number }
   arch: ("amd64" | "arm64")[]
-  fields: Field[]                // ce que l'écran de configuration demande
-  connection?: ConnectionKind    // le compte tiers que ce module exige de l'app : `CONNECTION_KINDS` de `packages/shared` — cloudflare, wrangler, github, 1password, neon, vercel, supabase, stripe, backup
-  runs: boolean                  // le module tient un processus, ou en lance un à tout moment
-  mandatory: boolean             // true pour core.system et core.hardening
-  since: string                  // version de l'agent
+  fields: Field[]                // what the configuration screen asks for
+  connection?: ConnectionKind    // the third-party account this module requires from the app: `CONNECTION_KINDS` of `packages/shared` — cloudflare, wrangler, github, 1password, neon, vercel, supabase, stripe, backup
+  runs: boolean                  // the module holds a process, or launches one at any time
+  mandatory: boolean             // true for core.system and core.hardening
+  since: string                  // agent version
 }
 
-// Champs communs à tous les genres, en plus de `key`, `kind` et `label` :
-//   help?      la phrase courte sous le contrôle, celle qui décide
-//   hint?      { text, url? } — la forme longue, derrière une bulle
+// Fields common to all kinds, in addition to `key`, `kind` and `label`:
+//   help?      the short sentence under the control, the one that decides
+//   hint?      { text, url? } — the long form, behind a bubble
 //   format?    "port" | "hostname" | "domain" | "email" | "identifier" | "path" | "timezone" | "size" | "url"
-//   pattern?   une expression, quand aucun format ne convient
+//   pattern?   an expression, when no format fits
 //   min_length? max_length?
-//   managed?   dérivé d'une connexion par l'app : jamais saisi, jamais affiché
+//   managed?   derived from a connection by the app: never typed, never displayed
 type Field =
-  | { kind: "text" | "number" | "select"; required: boolean; default?: unknown; options?: string[]; min?: number; max?: number }  // min et max bornent un nombre, un port par exemple
-  | { kind: "secret"; required: boolean; generate?: boolean }  // generate: proposé généré, jamais affiché
+  | { kind: "text" | "number" | "select"; required: boolean; default?: unknown; options?: string[]; min?: number; max?: number }  // min and max bound a number, a port for instance
+  | { kind: "secret"; required: boolean; generate?: boolean }  // generate: offered generated, never displayed
   | { kind: "version"; options: string[]; default: string }
-  | { kind: "versions"; options: string[]; default: string[] }  // plusieurs majeures à la fois ; options de la plus récente à la plus ancienne, la plus récente cochée est le défaut de la machine
-  | { kind: "boolean"; required: false; default: boolean }  // une case à cocher, jamais requise
-  | { kind: "list"; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // une liste de valeurs du même genre
+  | { kind: "versions"; options: string[]; default: string[] }  // several majors at once; options from newest to oldest, the newest ticked is the machine default
+  | { kind: "boolean"; required: false; default: boolean }  // a checkbox, never required
+  | { kind: "list"; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // a list of values of the same kind
 ```
 
-**`runs` dit ce qui a un état à regarder.** Une base, un tunnel, un serveur d'éditeur, un agent de code tiennent un processus ou en lancent un à tout moment ; un langage, un CLI et la passe de durcissement ne laissent rien derrière eux. Le tableau de bord ne montre que les premiers — les autres vivent sur l'écran des services, où on les configure et les met à niveau. Une unité systemd n'est pas la règle : le durcissement en tient une et n'a rien à montrer. Un module antérieur au champ ne le rend pas, et l'app le tient alors pour un module qui tourne, ce que le tableau de bord faisait avant que le champ existe.
+**`runs` says what has a state to watch.** A database, a tunnel, an editor server, a coding agent hold a process or launch one at any time; a language, a CLI and the hardening pass leave nothing behind. The dashboard shows only the former — the others live on the services screen, where they are configured and upgraded. A systemd unit is not the rule: hardening holds one and has nothing to show. A module that predates the field does not return it, and the app then treats it as a module that runs, which is what the dashboard did before the field existed.
 
-## Connexions
+## Connections
 
-Une **connexion** est un compte tiers que l'app détient pour le client, sur son poste, et qui vaut pour tous ses serveurs. Un **module** est une unité que l'agent installe sur un serveur. Un module qui exige une connexion le déclare, et l'écran de configuration la demande au-dessus de ses propres questions plutôt que trois écrans plus loin.
+A **connection** is a third-party account the app holds for the customer, on their workstation, valid for all their servers. A **module** is a unit the agent installs on a server. A module that requires a connection declares it, and the configuration screen asks for it above its own questions rather than three screens later.
 
-Neuf connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password**, **Neon**, **Vercel**, **Supabase**, **Stripe** et **Sauvegardes** (`backup`, un seau S3). L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque. La connexion `backup` tient en plus la clé publique des sauvegardes et son sel, qui ne sont pas des secrets ; la phrase de passe dont ils viennent n'est gardée nulle part ([backups.md](./backups.md#le-chiffrement)).
+Nine connections exist: **Cloudflare**, **Wrangler**, **GitHub**, **1Password**, **Neon**, **Vercel**, **Supabase**, **Stripe** and **Backups** (`backup`, an S3 bucket). The app keeps each one's token in the system keychain, one file per connection, and only the ciphertext touches the disk. The `backup` connection additionally holds the backups' public key and its salt, which are not secrets; the passphrase they come from is kept nowhere ([backups.md](./backups.md#encryption)).
 
-Un jeton Cloudflare peut ouvrir plusieurs comptes. L'app n'agit que sur un — ses zones sont celles proposées pour un domaine, son tunnel celui qu'elle crée, son identifiant celui sur lequel Wrangler déploie — et ce compte est **choisi par le client** à la connexion quand il y en a plusieurs, jamais le premier que Cloudflare liste. `connections:connect` répond alors `{ status: "choose", accounts }` et rien n'est retenu tant que le jeton n'est pas renvoyé avec le compte choisi ; « Vérifier » pèse ensuite le jeton sur ce compte-là, et refuse un jeton qui ne l'ouvre plus.
+A Cloudflare token can open several accounts. The app acts on only one — its zones are the ones offered for a domain, its tunnel the one it creates, its identifier the one Wrangler deploys on — and that account is **chosen by the customer** at connection time when there are several, never the first one Cloudflare lists. `connections:connect` then answers `{ status: "choose", accounts }` and nothing is retained until the token is sent again with the chosen account; "Verify" then weighs the token against that account, and refuses a token that no longer opens it.
 
-Cloudflare et Wrangler ouvrent le même compte avec deux jetons, parce qu'ils ne vivent pas au même endroit : le premier crée le tunnel et écrit le DNS depuis le poste et n'atteint jamais le serveur ; le second est exporté dans le shell de `dev` pour Wrangler, là où tournent les agents et les projets du client. Un seul jeton pour les deux déposerait les droits sur le domaine du client là où il les expose le plus. Chacun ne porte que ses permissions : Tunnel et DNS pour l'un, Workers et ce que le serveur déploie pour l'autre.
+Cloudflare and Wrangler open the same account with two tokens, because they do not live in the same place: the first creates the tunnel and writes the DNS from the workstation and never reaches the server; the second is exported into the `dev` shell for Wrangler, where the customer's agents and projects run. A single token for both would leave the rights on the customer's domain where they are most exposed. Each carries only its own permissions: Tunnel and DNS for one, Workers and whatever the server deploys for the other.
 
-| Connexion | Vérifiée à la saisie | Ce qu'elle remplit |
+| Connection | Verified on entry | What it fills |
 | --- | --- | --- |
-| `cloudflare` | `GET /accounts` : le compte qu'ouvre le jeton, et les zones qu'il porte. Un jeton sans `Account Settings · Read` est accepté mais ne liste aucun compte : le refus nomme cette permission | les trois champs `managed` d'`exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` |
-| `wrangler` | `GET /accounts` : le compte qu'ouvre le jeton, même exigence | les deux champs `managed` de `tool.wrangler` — `api_token`, `account_id` |
-| `github` | `GET /user` : le compte qu'ouvre le jeton | le champ `managed` `token` de `tool.github` |
-| `1password` | rien : un jeton de compte de service ne répond à aucun appel depuis le poste. Il est retenu sans nom, et le serveur dit à l'installation s'il ouvre un coffre | le champ `managed` `service_account_token` de `tool.1password` |
-| `neon` | `GET /users/me` : le compte qu'ouvre la clé | le champ `managed` `api_key` de `tool.neon` |
-| `backup` | le seau, depuis le poste ([backups.md](./backups.md#lapp)) ; le serveur le sonde à son tour à l'installation (`verify-bucket`) | les neuf champs `managed` de `core.backup` — `endpoint`, `region`, `bucket`, `prefix`, `path_style`, `access_key_id`, `secret_access_key`, `recipient`, `kdf_salt` |
+| `cloudflare` | `GET /accounts`: the account the token opens, and the zones it carries. A token without `Account Settings · Read` is accepted but lists no account: the refusal names this permission | the three `managed` fields of `exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` |
+| `wrangler` | `GET /accounts`: the account the token opens, same requirement | the two `managed` fields of `tool.wrangler` — `api_token`, `account_id` |
+| `github` | `GET /user`: the account the token opens | the `managed` field `token` of `tool.github` |
+| `1password` | nothing: a service account token answers no call from the workstation. It is retained without a name, and the server says at install time whether it opens a vault | the `managed` field `service_account_token` of `tool.1password` |
+| `neon` | `GET /users/me`: the account the key opens | the `managed` field `api_key` of `tool.neon` |
+| `backup` | the bucket, from the workstation ([backups.md](./backups.md#the-app)); the server probes it in turn at install time (`verify-bucket`) | the nine `managed` fields of `core.backup` — `endpoint`, `region`, `bucket`, `prefix`, `path_style`, `access_key_id`, `secret_access_key`, `recipient`, `kdf_salt` |
 
-**Rien ne change sur le fil** pour un jeton passé d'un formulaire à une connexion. Il atteint la machine sur la ligne de secrets de l'`install`, groupé par identifiant de module comme les autres, écrit par le processus principal de l'app, et se range dans `/etc/pupitre/env` sous root seul. Un jeton qu'un CLI lit lui-même dans son environnement (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`, `CLOUDFLARE_API_TOKEN`) est aussi exporté dans `/home/dev/.config/pupitre/env`, 0600 sous `dev`, que `~/.zshenv` lit : sans quoi `neon me`, `op whoami` ou `wrangler whoami` dans un terminal ne voient aucun compte. Ce qui change est d'où l'app le tient : un compte connecté une fois, au lieu d'un champ retapé pour chaque serveur. Un module dont le compte n'est pas connecté est refusé **avant la première étape**, avec le problème `connection`.
+**Nothing changes on the wire** for a token moved from a form to a connection. It reaches the machine on the `install` secrets line, grouped by module id like the others, written by the app's main process, and is stored in `/etc/pupitre/env` readable by root alone. A token that a CLI reads itself from its environment (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`, `CLOUDFLARE_API_TOKEN`) is also exported into `/home/dev/.config/pupitre/env`, 0600 under `dev`, which `~/.zshenv` reads: without it, `neon me`, `op whoami` or `wrangler whoami` in a terminal would see no account. What changes is where the app holds it: an account connected once, instead of a field retyped for each server. A module whose account is not connected is refused **before the first step**, with the `connection` problem.
 
-- **Un champ `managed` est dérivé d'une connexion par l'app, jamais par la plateforme.** L'agent refuse d'enregistrer un manifeste qui en porte un sans déclarer de connexion. Un champ `managed` de genre `secret` reçoit le jeton de la connexion ; un champ `managed` de genre `text` reçoit l'identifiant du compte que ce jeton ouvre — `account_id` de `tool.wrangler`, comme `account_tag` d'`exposure.cloudflare`, que le tunnel dérive lui-même.
-- **Le tunnel appartient au serveur.** L'app le crée une fois sur le compte du client, en pousse l'identifiant et le secret, puis n'en garde rien : `module.config` le lui rend quand elle en a besoin. Un poste réinstallé, ou un serveur confié à un collègue, retrouve le tunnel avec le seul jeton du compte.
-- **Le domaine est un champ ordinaire**, requis, de format `domain`, choisi par serveur. La zone se déduit du domaine ; l'écran propose les zones du compte pour le préremplir.
+- **A `managed` field is derived from a connection by the app, never by the platform.** The agent refuses to register a manifest that carries one without declaring a connection. A `managed` field of kind `secret` receives the connection's token; a `managed` field of kind `text` receives the identifier of the account that token opens — `account_id` of `tool.wrangler`, like `account_tag` of `exposure.cloudflare`, which the tunnel derives itself.
+- **The tunnel belongs to the server.** The app creates it once on the customer's account, pushes its identifier and secret, then keeps nothing: `module.config` hands it back when needed. A reinstalled workstation, or a server entrusted to a colleague, finds the tunnel again with just the account's token.
+- **The domain is an ordinary field**, required, of format `domain`, chosen per server. The zone is deduced from the domain; the screen offers the account's zones to prefill it.
 
 ## Validation
 
-Les contraintes vivent dans le manifeste, et les deux côtés les appliquent avec le même code. `packages/shared/src/catalog/validate.ts` et `apps/agent/internal/contract/fields.go` sont vérifiés contre un même jeu de cas, `validate.fixtures.json`, exporté vers l'agent par `contracts:export`.
+The constraints live in the manifest, and both sides apply them with the same code. `packages/shared/src/catalog/validate.ts` and `apps/agent/internal/contract/fields.go` are checked against a single set of cases, `validate.fixtures.json`, exported to the agent by `contracts:export`.
 
-Une valeur hors contrainte est **refusée**, jamais remplacée par le défaut. Un champ absent prend le défaut du manifeste, exactement comme le module le lira.
+A value outside its constraint is **refused**, never replaced by the default. An absent field takes the manifest default, exactly as the module will read it.
 
 ```ts
 type FieldProblem = {
   module: string
-  field: string        // vide quand le problème est celui du module : une connexion manquante
+  field: string        // empty when the problem is the module's: a missing connection
   code: "required" | "type" | "min" | "max" | "min_length" | "max_length"
       | "options" | "format" | "pattern" | "connection"
-  expected?: string    // les bornes, la liste des options, le nom du format
-  message?: string     // rempli par l'agent, dans la langue de la session
+  expected?: string    // the bounds, the list of options, the name of the format
+  message?: string     // filled by the agent, in the session's language
 }
 ```
 
-`install` valide tout **avant sa première étape** : un refus est `invalid_config`, avec la liste complète dans son remède `invalid_fields`, et rien n'est touché sur la machine. Un module ne vérifie donc plus ses propres champs.
+`install` validates everything **before its first step**: a refusal is `invalid_config`, with the complete list in its `invalid_fields` remedy, and nothing is touched on the machine. A module therefore no longer checks its own fields.
 
-Un secret — un champ `secret`, ou chaque élément d'une liste de secrets — ne porte ni retour chariot, ni saut de ligne, ni octet nul : il est écrit dans une ligne de configuration (`requirepass`, `/etc/pupitre/env`, une instruction SQL), qu'un saut de ligne terminerait pour en commencer une autre. Le refus est `pattern`, avec `SECRET_PATTERN` (`^[^\r\n\x00]*$`) pour `expected`. L'app l'applique avant l'envoi (`validateField` de `@pupitre/shared/catalog/validate`), l'agent à la réception (`fields.go`) : les cas `secret/*` de `validate.fixtures.json` tiennent les deux côtés. Les espaces, les guillemets et les tabulations passent.
+A secret — a `secret` field, or each element of a list of secrets — carries no carriage return, no line feed, no null byte: it is written into a configuration line (`requirepass`, `/etc/pupitre/env`, a SQL statement), which a line feed would end to start another. The refusal is `pattern`, with `SECRET_PATTERN` (`^[^\r\n\x00]*$`) as `expected`. The app applies it before sending (`validateField` of `@pupitre/shared/catalog/validate`), the agent on receipt (`fields.go`): the `secret/*` cases of `validate.fixtures.json` hold both sides. Spaces, quotes and tabs pass.
 
-`install.check` rejoue cette validation sans rien installer, et y ajoute ce que seule la machine sait : un port déjà écouté, un dossier qui est un fichier, un fuseau que ce noyau ignore. Elle ne juge jamais un secret — l'app tient son coffre et l'écrira au moment de l'installation.
+`install.check` replays this validation without installing anything, and adds what only the machine knows: a port already listened on, a folder that is a file, a time zone this kernel does not know. It never judges a secret — the app holds its vault and will write it at install time.
 
-Un `preset` porte un `id`, un `name` affichable et sa liste de modules : l'app montre le nom que l'agent donne, sans table de traduction. Son `choose_one` optionnel nomme des modules exclusifs entre lesquels l'écran fait choisir avant d'appliquer le préréglage.
+A `preset` carries an `id`, a displayable `name` and its list of modules: the app shows the name the agent gives, with no translation table. Its optional `choose_one` names exclusive modules between which the screen has the user choose before applying the preset.
 
-## Étapes
+## Steps
 
-Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall`, `Status`. Chaque étape est idempotente : elle vérifie avant d'agir, et l'installation entière peut être rejouée sans dégât. Une étape émet des événements `step` avec sa durée ; une étape qui échoue n'arrête pas les autres modules, elle est notée avec sa commande de rejeu.
+Each module implements `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall`, `Status`. Each step is idempotent: it checks before acting, and the whole installation can be replayed without damage. A step emits `step` events with its duration; a step that fails does not stop the other modules, it is noted with its replay command.
 
-## Compte d'un CLI
+## A CLI's account
 
-Un module dont le CLI se connecte à un compte implémente en plus `Login` : il pose au CLI sa propre question — `gh auth status`, `claude auth status`, `codex login status`, `cursor-agent status`, `opencode auth list`, `neonctl me`, `op whoami`, `wrangler whoami`, `code tunnel user show` — et rend un `login` d'après [agent-protocol.md](./agent-protocol.md#compte-dun-cli). Le CLI est le seul juge : l'agent ne lit jamais un fichier d'identifiants pour deviner. Un CLI qui prend sa clé dans l'environnement n'est interrogé qu'avec elle — sans clé, `neonctl` ouvrirait une connexion par navigateur que personne ne regarde, et attendrait — et un CLI qui n'a rien à ouvrir sur cette machine, le tunnel de `editor.vscode` qu'on n'a pas demandé, ne rend rien.
+A module whose CLI connects to an account also implements `Login`: it asks the CLI its own question — `gh auth status`, `claude auth status`, `codex login status`, `cursor-agent status`, `opencode auth list`, `neonctl me`, `op whoami`, `wrangler whoami`, `code tunnel user show` — and returns a `login` according to [agent-protocol.md](./agent-protocol.md#a-clis-account). The CLI is the only judge: the agent never reads a credentials file to guess. A CLI that takes its key from the environment is only queried with it — without a key, `neonctl` would open a browser login that nobody is watching, and wait — and a CLI that has nothing to open on this machine, the `editor.vscode` tunnel that was not requested, returns nothing.
 
-| Module | Commande | Compte rendu |
+| Module | Command | Report |
 | --- | --- | --- |
-| `ai.claude` | `claude auth status` | l'email, sinon le nom de l'organisation |
-| `ai.codex` | `codex login status` | l'email du jeton d'identité que la connexion ChatGPT a laissé ; vide pour une clé d'API |
-| `ai.cursor` | `cursor-agent status --format json` | l'email que Cursor rend ; vide quand il ne le donne pas |
-| `ai.gemini` | — | Gemini CLI n'a pas de commande qui réponde sans dépenser une requête : rien n'est rendu |
-| `ai.copilot` | — | même chose pour le CLI de Copilot |
-| `ai.opencode` | `opencode auth list` | les fournisseurs qui tiennent une clé ou un jeton, séparés par des virgules ; déconnecté quand il n'y en a aucun — OpenCode marche alors sur ses modèles gratuits |
-| `tool.github` | `gh auth status --active --json hosts` | le login |
-| `tool.1password` | `op whoami --format=json` | l'email, sinon l'adresse du compte — un compte de service n'en a pas |
-| `tool.neon` | `neonctl me -o json` | l'email, sinon le login |
-| `tool.wrangler` | `wrangler whoami --json` | l'email, sinon le nom du compte de la connexion |
-| `tool.vercel` | `vercel whoami` | le nom d'utilisateur que le jeton ouvre |
-| `tool.supabase` | `supabase orgs list -o json` | les organisations que le jeton ouvre, séparées par des virgules — le CLI ne nomme pas la personne |
-| `tool.stripe` | `stripe get /v1/account` | le nom que le tableau de bord affiche, sinon l'identifiant du compte |
-| `exposure.tailscale` | `tailscale status --json` | le login qui possède le nœud, sinon son nom DNS sur le tailnet ; déconnecté quand le nœud n'est sur aucun tailnet |
-| `editor.vscode` | `code tunnel user show`, quand le tunnel est demandé | le fournisseur — `github`, `microsoft` — le CLI ne nomme pas le compte |
+| `ai.claude` | `claude auth status` | the email, otherwise the organization name |
+| `ai.codex` | `codex login status` | the email from the identity token the ChatGPT login left; empty for an API key |
+| `ai.cursor` | `cursor-agent status --format json` | the email Cursor returns; empty when it does not give it |
+| `ai.gemini` | — | Gemini CLI has no command that answers without spending a request: nothing is returned |
+| `ai.copilot` | — | same for the Copilot CLI |
+| `ai.opencode` | `opencode auth list` | the providers that hold a key or a token, comma-separated; disconnected when there are none — OpenCode then runs on its free models |
+| `tool.github` | `gh auth status --active --json hosts` | the login |
+| `tool.1password` | `op whoami --format=json` | the email, otherwise the account address — a service account has none |
+| `tool.neon` | `neonctl me -o json` | the email, otherwise the login |
+| `tool.wrangler` | `wrangler whoami --json` | the email, otherwise the connection's account name |
+| `tool.vercel` | `vercel whoami` | the user name the token opens |
+| `tool.supabase` | `supabase orgs list -o json` | the organizations the token opens, comma-separated — the CLI does not name the person |
+| `tool.stripe` | `stripe get /v1/account` | the name the dashboard displays, otherwise the account identifier |
+| `exposure.tailscale` | `tailscale status --json` | the login that owns the node, otherwise its DNS name on the tailnet; disconnected when the node is on no tailnet |
+| `editor.vscode` | `code tunnel user show`, when the tunnel is requested | the provider — `github`, `microsoft` — the CLI does not name the account |
 
 ## Modules
 
-### Socle
+### Base
 
-`core.system` et `core.hardening` sont obligatoires ; `core.backup` est facultatif.
+`core.system` and `core.hardening` are mandatory; `core.backup` is optional.
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `core.system` | paquets de base — dont `rsync`, que l'app emploie pour transférer des fichiers avec reprise ; une machine installée avant lui le reçoit à la mise à niveau suivante des modules — fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo — sans mot de passe jusqu'à ce que `harden.sudo` lui en donne un et ne laisse plus que `pupitred` sans, règle que ni `install` ni `upgrade` ne rouvrent ensuite —, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh et bash avec les marqueurs de prompt (OSC 133) lus par l'app, commande `dev` liée au binaire, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
-| `core.hardening` | ufw sur SSH seul : chaque port où sshd écoute, lu par `sshd -T` (`port`, `listenaddress`) et, sur un sshd activé par socket, par l'écoute de `ssh.socket`, ouvert avant que le pare-feu ne se lève — un port illisible laisse le pare-feu tel quel et l'étape échoue —, plus 22 et 443 avec `ssh_443` ; fail2ban sur les mêmes ports, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive`. Avec `keep_root`, root garde sa place dans `AllowUsers` et passe en `PermitRootLogin prohibit-password` : par clé, jamais par mot de passe | `ssh_443` (boolean), `keep_root` (boolean) |
-| `core.backup` | rien sur la machine hormis ses valeurs dans `install.json` : l'installation sonde le seau (`verify-bucket`), le daemon sauvegarde à l'échéance, chiffré pour la clé publique du client ; désinstallé, il ne planifie plus rien et laisse le seau tel qu'il est. Tout part par défaut : les réglages nomment ce qui reste dehors, projet par projet et base par base, et `backup.contents` rend la liste à cocher. Voir [backups.md](./backups.md) | `endpoint` (text, HTTPS seulement, motif `BACKUP_ENDPOINT_PATTERN`), `region`, `bucket` (motifs S3), `prefix`, `path_style` (boolean), `access_key_id`, `secret_access_key` (secret), `recipient`, `kdf_salt` — tous `managed` par la connexion `backup` — ; `interval_hours` (0–720), `hour` (0–23), `keep` (1–365), `databases`, `home`, `projects`, `projects_env_only` (boolean), `extra_paths` (list de text), `exclude_projects` (list de text, motif `BACKUP_PROJECT_ITEM_PATTERN`), `exclude_databases` (list de text, motif `BACKUP_DATABASE_ITEM_PATTERN` : `postgres:shop`, `redis:*`) |
+| `core.system` | base packages — including `rsync`, which the app uses to transfer files with resume; a machine installed before it receives it at the next module upgrade — time zone, automatic security updates without reboot, sized swap, memory safeguard (`systemd-oomd` or `earlyoom`), `dev` user with sudo — passwordless until `harden.sudo` gives it a password and leaves only `pupitred` without one, a rule that neither `install` nor `upgrade` reopens afterwards —, whose `authorized_keys` receives root's unrestricted keys so a key opens it before hardening, tmux, zsh and bash with the prompt markers (OSC 133) read by the app, `dev` command linked to the binary, git identity | `timezone`, `git_name`, `git_email`, `projects_dir` |
+| `core.hardening` | ufw on SSH only: every port where sshd listens, read by `sshd -T` (`port`, `listenaddress`) and, on a socket-activated sshd, by the `ssh.socket` listener, opened before the firewall is raised — an unreadable port leaves the firewall as is and the step fails —, plus 22 and 443 with `ssh_443`; fail2ban on the same ports, root closed and passwords disabled **after** verifying that a key opens `dev`, `AllowUsers dev`, `ClientAlive`. With `keep_root`, root keeps its place in `AllowUsers` and goes to `PermitRootLogin prohibit-password`: by key, never by password | `ssh_443` (boolean), `keep_root` (boolean) |
+| `core.backup` | nothing on the machine apart from its values in `install.json`: the installation probes the bucket (`verify-bucket`), the daemon backs up when due, encrypted for the customer's public key; uninstalled, it schedules nothing and leaves the bucket as it is. Everything goes by default: the settings name what stays out, project by project and database by database, and `backup.contents` returns the list to tick. See [backups.md](./backups.md) | `endpoint` (text, HTTPS only, pattern `BACKUP_ENDPOINT_PATTERN`), `region`, `bucket` (S3 patterns), `prefix`, `path_style` (boolean), `access_key_id`, `secret_access_key` (secret), `recipient`, `kdf_salt` — all `managed` by the `backup` connection —; `interval_hours` (0–720), `hour` (0–23), `keep` (1–365), `databases`, `home`, `projects`, `projects_env_only` (boolean), `extra_paths` (list of text), `exclude_projects` (list of text, pattern `BACKUP_PROJECT_ITEM_PATTERN`), `exclude_databases` (list of text, pattern `BACKUP_DATABASE_ITEM_PATTERN`: `postgres:shop`, `redis:*`) |
 
 ### Runtimes
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `runtime.node` | mise ; Node aux majeures cochées (24 par défaut, la LTS active), Bun, pnpm, Yarn ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_versions` (versions), `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
-| `runtime.java` | Temurin via mise aux majeures cochées, `JAVA_HOME` résolu par mise à l'ouverture de chaque shell — donc celui du projet quand il en épingle une —, daemon Gradle dimensionné pour la RAM | `java_versions` (versions) |
-| `runtime.python` | uv et Python aux versions cochées ; base des agents en Python | `python_versions` (versions) |
-| `runtime.go` | Go via mise aux versions cochées, `GOPATH` et son `bin` sur le `PATH` | `go_versions` (versions), `gopath` |
-| `runtime.php` | dépendances de compilation, PHP compilé par mise aux versions cochées, Composer en option, un `php.ini` lu après celui de la compilation | `php_versions` (versions), `composer` (boolean), `memory_limit` |
-| `runtime.ruby` | dépendances de compilation, Ruby compilé par mise aux versions cochées, Bundler rafraîchi sous chaque interpréteur qui vient d'être posé | `ruby_versions` (versions), `bundler` (boolean) |
-| `runtime.docker` | Docker Engine et Compose depuis le dépôt de Docker, `dev` dans le groupe `docker`, rotation des logs de conteneurs, `live-restore` pour qu'un redémarrage du démon ne coupe aucun conteneur, et un port publié sans adresse lié à la seule boucle locale : les règles NAT de Docker passent avant celles d'ufw, et `-p 5432:5432` serait sinon ouvert à Internet, en IPv4 comme en IPv6. `"ip": "127.0.0.1"` ne tient que le pont par défaut ; `default-network-opts` pose `com.docker.network.bridge.host_binding_ipv4: 127.0.0.1` sur chaque réseau que `docker network create` ou Compose crée ensuite. Une adresse IPv4 par défaut ne publie rien sur `[::]` — seul `0.0.0.0` vaut les deux familles —, si bien qu'aucun réglage IPv6 n'est à ajouter. Publier exprès, c'est nommer l'adresse (`-p 0.0.0.0:8080:80`), qu'ufw ne filtre pas. Un serveur d'avant reçoit le réglage à son `upgrade`, qui réécrit `daemon.json` et redémarre le démon. Ce que ce redémarrage ne change pas, `check-published-ports` le lit dans le démon et le nomme : dockerd ne reconstruit son pont par défaut qu'en redémarrant sans conteneur lancé — l'étape le redémarre alors elle-même —, un réseau garde les options de sa création et un conteneur ses ports ; l'avertissement cite les conteneurs publiés sur toutes les adresses sans l'avoir demandé et les réseaux restés ouverts, et les gestes qui les ferment (arrêter les conteneurs, `systemctl restart docker`, `docker compose down && docker compose up -d`, `docker network rm` puis `create`). Les services Swarm n'en tiennent pas compte | `compose` (boolean), `data_root`, `log_max_size` |
-| `runtime.rust` | Rust via mise, qui pose rustup et les toolchains cochées ; `~/.cargo/bin` sur le PATH de tous les shells | `rust_versions` (versions) |
+| `runtime.node` | mise; Node at the ticked majors (24 by default, the active LTS), Bun, pnpm, Yarn; pnpm and Yarn through corepack; enabled in all shells including non-interactive ones by a marked block of `.zshenv` | `node_versions` (versions), `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, unticked) |
+| `runtime.java` | Temurin through mise at the ticked majors, `JAVA_HOME` resolved by mise when each shell opens — hence the project's when it pins one —, Gradle daemon sized for the RAM | `java_versions` (versions) |
+| `runtime.python` | uv and Python at the ticked versions; base of the Python agents | `python_versions` (versions) |
+| `runtime.go` | Go through mise at the ticked versions, `GOPATH` and its `bin` on the `PATH` | `go_versions` (versions), `gopath` |
+| `runtime.php` | build dependencies, PHP compiled by mise at the ticked versions, Composer optional, a `php.ini` read after the build one | `php_versions` (versions), `composer` (boolean), `memory_limit` |
+| `runtime.ruby` | build dependencies, Ruby compiled by mise at the ticked versions, Bundler refreshed under each interpreter just installed | `ruby_versions` (versions), `bundler` (boolean) |
+| `runtime.docker` | Docker Engine and Compose from Docker's repository, `dev` in the `docker` group, container log rotation, `live-restore` so a daemon restart cuts no container, and a port published without an address bound to the loopback only: Docker's NAT rules come before ufw's, and `-p 5432:5432` would otherwise be open to the Internet, in IPv4 and in IPv6. `"ip": "127.0.0.1"` holds only the default bridge; `default-network-opts` sets `com.docker.network.bridge.host_binding_ipv4: 127.0.0.1` on every network that `docker network create` or Compose creates afterwards. A default IPv4 address publishes nothing on `[::]` — only `0.0.0.0` covers both families —, so no IPv6 setting needs adding. Publishing on purpose means naming the address (`-p 0.0.0.0:8080:80`), which ufw does not filter. A server from before receives the setting at its `upgrade`, which rewrites `daemon.json` and restarts the daemon. What this restart does not change, `check-published-ports` reads in the daemon and names: dockerd only rebuilds its default bridge when restarting with no container running — the step then restarts it itself —, a network keeps the options of its creation and a container its ports; the warning cites the containers published on all addresses without having asked for it and the networks left open, and the gestures that close them (stop the containers, `systemctl restart docker`, `docker compose down && docker compose up -d`, `docker network rm` then `create`). Swarm services ignore it | `compose` (boolean), `data_root`, `log_max_size` |
+| `runtime.rust` | Rust through mise, which installs rustup and the ticked toolchains; `~/.cargo/bin` on the PATH of all shells | `rust_versions` (versions) |
 
-### Bases de données
+### Databases
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `db.mysql` | MySQL 8 ou MariaDB, lié à `127.0.0.1` sur le port choisi, root sur socket, compte applicatif, compte distant pour le laptop à travers SSH, buffer pool dimensionné, import automatique des dumps déposés dans `~/dumps/` | `engine: mysql \| mariadb`, `port`, `app_user`, `remote_user`, `app_password` (généré), `remote_password` (généré), `buffer_pool` |
-| `db.postgres` | PostgreSQL à la version majeure choisie depuis le dépôt du projet, local seulement, rôles applicatif et distant, mémoire partagée dimensionnée, extensions courantes, import de dumps | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password`, `shared_buffers` |
-| `db.mongodb` | MongoDB à la version majeure choisie, local seulement, utilisateur applicatif, cache WiredTiger dimensionné, import de `mongodump`. Une majeure que MongoDB ne publie pas pour la version d'Ubuntu du serveur — la 7.0 sur noble — est refusée par `install.check` sur le champ, et par `add-repository` avant d'écrire quoi que ce soit ; la table des publications vit à côté du manifeste. La désinstallation retire tous les paquets que le dépôt a posés (`mongodb-org-*`, `mongodb-mongosh`, `mongodb-database-tools`), sa liste et sa clé | `version`, `port`, `app_user`, `app_password`, `cache_mb` |
-| `db.redis` | local seulement, mot de passe exigé, persistance, plafond mémoire et politique d'éviction au choix ; un rejeu qui change tout sauf le port passe par `CONFIG SET` sur le serveur qui tourne, sans redémarrage — un cache sans persistance garde ce qu'il tient | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
-| `db.mailpit` | Mailpit, binaire de la release GitHub vérifié par le digest que GitHub publie, en service systemd `pupitre-mailpit` sous `dev` : SMTP et interface sur la boucle locale, messages dans `~/.local/share/mailpit` ; aucune commande `db.*`, ce n'est pas un moteur | `smtp_port`, `http_port` |
+| `db.mysql` | MySQL 8 or MariaDB, bound to `127.0.0.1` on the chosen port, root on socket, application account, remote account for the laptop through SSH, sized buffer pool, automatic import of the dumps dropped in `~/dumps/` | `engine: mysql \| mariadb`, `port`, `app_user`, `remote_user`, `app_password` (generated), `remote_password` (generated), `buffer_pool` |
+| `db.postgres` | PostgreSQL at the chosen major version from the project's repository, local only, application and remote roles, sized shared memory, common extensions, dump import | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password`, `shared_buffers` |
+| `db.mongodb` | MongoDB at the chosen major version, local only, application user, sized WiredTiger cache, `mongodump` import. A major that MongoDB does not publish for the server's Ubuntu version — 7.0 on noble — is refused by `install.check` on the field, and by `add-repository` before anything is written; the table of releases lives next to the manifest. Uninstalling removes all the packages the repository installed (`mongodb-org-*`, `mongodb-mongosh`, `mongodb-database-tools`), its list and its key | `version`, `port`, `app_user`, `app_password`, `cache_mb` |
+| `db.redis` | local only, password required, persistence, memory ceiling and eviction policy of choice; a replay that changes everything except the port goes through `CONFIG SET` on the running server, without a restart — a cache without persistence keeps what it holds | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
+| `db.mailpit` | Mailpit, binary of the GitHub release verified by the digest GitHub publishes, as the `pupitre-mailpit` systemd service under `dev`: SMTP and interface on the loopback, messages in `~/.local/share/mailpit`; no `db.*` command, it is not an engine | `smtp_port`, `http_port` |
 
-### Agents IA
+### AI agents
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `ai.claude` | Claude Code, connexion par l'URL affichée dans le terminal de l'app, contexte du projet, skills Pupitre (capture, branche, PR, ship) | — |
-| `ai.codex` | Codex, idem | — |
-| `ai.cursor` | Cursor CLI (`cursor-agent`), archive de Cursor sous `~/.local/share/cursor-agent/versions`, liens `agent` et `cursor-agent` dans `~/.local/bin`, skills Pupitre dans `~/.cursor/skills` ; pas de contexte machine, Cursor n'a pas de fichier de règles global | — |
-| `ai.gemini` | Gemini CLI via mise, contexte machine dans `~/.gemini/GEMINI.md`, skills Pupitre dans `~/.gemini/skills` | — |
-| `ai.copilot` | GitHub Copilot CLI via mise, contexte machine dans `~/.copilot/copilot-instructions.md`, skills Pupitre dans `~/.copilot/skills` | — |
-| `ai.opencode` | OpenCode, binaire de la release GitHub vérifié par la somme que GitHub publie, `~/.local/bin/opencode`, contexte machine dans `~/.config/opencode/AGENTS.md`, skills Pupitre | — |
-| `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif, redémarré quand une clé change | `providers` (list de secrets), `always_on` (boolean) |
-| `ai.openclaw` | OpenClaw via mise sur le Node de `runtime.node` (24.16 ou plus, vérifié avant l'installation), fournisseurs de modèles dans `~/.openclaw/providers.env` sous les noms que la passerelle lit, passerelle `openclaw gateway` en service systemd `pupitre-openclaw` sur 127.0.0.1:18789 si toujours active — redémarrée quand une clé change —, skills Pupitre ; les canaux se branchent par `openclaw onboard` dans un terminal | `providers` (list de secrets), `always_on` (boolean) |
-| `ai.browser` | Chrome headless, dépendances Playwright, commande `shot` qui range les images par projet dans la galerie (`~/shots/<projet>/<jour>/`, `~/shots/_unfiled/<jour>/` hors projet), galerie `pupitre-shots` sur 127.0.0.1:8099 ; avec un sous-domaine, la galerie est publiée par l'exposition installée sous `https://<sous-domaine>.<domaine>/<jeton>/`, le jeton tiré par l'agent dans `/etc/pupitre/shots.env` (0600, lu par systemd) | `subdomain` (text, une étiquette DNS, vide = galerie locale) |
+| `ai.claude` | Claude Code, login through the URL displayed in the app's terminal, project context, Pupitre skills (capture, branch, PR, ship) | — |
+| `ai.codex` | Codex, same | — |
+| `ai.cursor` | Cursor CLI (`cursor-agent`), Cursor's archive under `~/.local/share/cursor-agent/versions`, `agent` and `cursor-agent` links in `~/.local/bin`, Pupitre skills in `~/.cursor/skills`; no machine context, Cursor has no global rules file | — |
+| `ai.gemini` | Gemini CLI through mise, machine context in `~/.gemini/GEMINI.md`, Pupitre skills in `~/.gemini/skills` | — |
+| `ai.copilot` | GitHub Copilot CLI through mise, machine context in `~/.copilot/copilot-instructions.md`, Pupitre skills in `~/.copilot/skills` | — |
+| `ai.opencode` | OpenCode, binary of the GitHub release verified by the sum GitHub publishes, `~/.local/bin/opencode`, machine context in `~/.config/opencode/AGENTS.md`, Pupitre skills | — |
+| `ai.hermes` | Hermes Agent (Nous Research) through Python, model provider configuration, systemd service if always on, restarted when a key changes | `providers` (list of secrets), `always_on` (boolean) |
+| `ai.openclaw` | OpenClaw through mise on the Node of `runtime.node` (24.16 or later, checked before installation), model providers in `~/.openclaw/providers.env` under the names the gateway reads, `openclaw gateway` gateway as the `pupitre-openclaw` systemd service on 127.0.0.1:18789 if always on — restarted when a key changes —, Pupitre skills; channels are plugged in through `openclaw onboard` in a terminal | `providers` (list of secrets), `always_on` (boolean) |
+| `ai.browser` | headless Chrome, Playwright dependencies, `shot` command that files images by project in the gallery (`~/shots/<project>/<day>/`, `~/shots/_unfiled/<day>/` outside a project), `pupitre-shots` gallery on 127.0.0.1:8099; with a subdomain, the gallery is published by the installed exposure under `https://<subdomain>.<domain>/<token>/`, the token drawn by the agent in `/etc/pupitre/shots.env` (0600, read by systemd) | `subdomain` (text, a DNS label, empty = local gallery) |
 
-### Éditeurs distants
+### Remote editors
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `editor.jetbrains` | backend de développement distant préinstallé dans le cache attendu par JetBrains Gateway, JVM et mémoire dimensionnées ; le service rend son dossier dans `path` et l'app ouvre par le lien Gateway (`idePath`, `deploy=false`) ; licence du client | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` |
-| `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; un rejeu garde le serveur enregistré, seul `upgrade` prend la version suivante ; même mécanisme pour Cursor et Windsurf | `extensions` (list de text), `tunnel` (boolean) |
-| `editor.zed` | serveur distant Zed préinstallé pour la version du client ; en `latest`, un rejeu garde la version posée et seul `upgrade` prend la suivante ; ouverture par `zed://ssh` | `version` |
+| `editor.jetbrains` | remote development backend preinstalled in the cache JetBrains Gateway expects, JVM and memory sized; the service returns its folder in `path` and the app opens through the Gateway link (`idePath`, `deploy=false`); customer's licence | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` |
+| `editor.vscode` | `code` CLI and remote server preinstalled so the first Remote SSH connection is immediate, base extensions, Remote Tunnel optional; a replay keeps the registered server, only `upgrade` takes the next version; same mechanism for Cursor and Windsurf | `extensions` (list of text), `tunnel` (boolean) |
+| `editor.zed` | Zed remote server preinstalled for the customer's version; on `latest`, a replay keeps the installed version and only `upgrade` takes the next; opened through `zed://ssh` | `version` |
 
-Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vscode`.
+Visual Studio has no Linux backend: the app says so and points to `editor.vscode`.
 
-### Exposition
+### Exposure
 
-Caddy et le tunnel sont exclusifs : chacun déclare l'autre en `conflicts`. Tailscale est une exposition aussi, mais privée — le tailnet du client, rien de publié — et cohabite avec l'un ou l'autre. Ne cocher ni Caddy ni le tunnel est le troisième état, et il ne porte pas de module : la machine répond par la session SSH que l'app tient déjà, et rien n'est publié. Les commandes `tunnel.status`, `tunnel.sync` et `tunnel.restart` s'adressent à celui qui est installé, jamais à un fournisseur nommé — `/etc/pupitre/exposure` dit lequel tient la machine, et le rapport le nomme dans `provider`. Une machine que rien n'expose répond `absent` avec `provider: null` ; `tunnel.sync` et `tunnel.restart` y refusent en `service_not_found` plutôt que de répondre pour un module absent.
+Caddy and the tunnel are exclusive: each declares the other in `conflicts`. Tailscale is an exposure too, but a private one — the customer's tailnet, nothing published — and coexists with either. Ticking neither Caddy nor the tunnel is the third state, and it carries no module: the machine answers through the SSH session the app already holds, and nothing is published. The `tunnel.status`, `tunnel.sync` and `tunnel.restart` commands address whichever is installed, never a named provider — `/etc/pupitre/exposure` says which one holds the machine, and the report names it in `provider`. A machine that nothing exposes answers `absent` with `provider: null`; `tunnel.sync` and `tunnel.restart` refuse there with `service_not_found` rather than answering for an absent module.
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `exposure.cloudflare` | un tunnel, une route par projet, DNS et certificat gérés, sous-domaines depuis le registre, sur le compte Cloudflare du client. **L'app tient le jeton** : elle crée le tunnel et écrit le DNS depuis le laptop, le serveur ne reçoit que de quoi le faire tourner, et le garde | `domain`, choisi par serveur ; trois champs `managed` dérivés de la connexion : `account_tag` (32 chiffres hexadécimaux), `tunnel_id` (un UUID), tenus à ce motif parce qu'ils sont écrits tels quels dans le YAML de cloudflared, et `tunnel_secret` |
-| `exposure.caddy` | reverse proxy avec certificats Let's Encrypt automatiques pour un domaine sans Cloudflare, une route par projet qui déclare un sous-domaine, ses deux ports ouverts dans ufw sous la forme `<port>/tcp` avec le commentaire `caddy`, lus par `ufw show added` (le pare-feu peut ne pas être levé encore) ; un port déplacé ferme l'ancienne règle sur le même passage. Un Caddyfile n'est posé qu'après `caddy validate` sur une copie à côté, et un Caddyfile trouvé identique est revalidé : un refus laisse en place celui que Caddy fait tourner | `domain`, `email`, `http_port`, `https_port` |
-| `exposure.tailscale` | Tailscale depuis le dépôt de l'éditeur, le nœud joint au tailnet par `tailscale up --auth-key` (la clé masquée dans le journal), `ufw allow in on tailscale0` ; sur un nœud déjà joint, `hostname` et `ssh` changés passent par `tailscale set`, sans seconde clé ; `ssh` est désactivé par défaut, car Tailscale SSH répond avant sshd : ni `AllowUsers`, ni `PermitRootLogin`, ni fail2ban ne s'y appliquent, seule la politique d'accès du tailnet ; ne contredit ni Caddy ni le tunnel, le preset « tout » l'inclut ; la désinstallation fait `tailscale logout` avant de reprendre le paquet | `auth_key` (secret, tapé : une clé de la console Tailscale, pas une connexion), `hostname`, `ssh` (boolean) |
+| `exposure.cloudflare` | a tunnel, one route per project, managed DNS and certificate, subdomains from the registry, on the customer's Cloudflare account. **The app holds the token**: it creates the tunnel and writes the DNS from the laptop, the server receives only what it needs to run it, and keeps it | `domain`, chosen per server; three `managed` fields derived from the connection: `account_tag` (32 hexadecimal digits), `tunnel_id` (a UUID), held to that pattern because they are written as is into cloudflared's YAML, and `tunnel_secret` |
+| `exposure.caddy` | reverse proxy with automatic Let's Encrypt certificates for a domain without Cloudflare, one route per project that declares a subdomain, its two ports opened in ufw in the form `<port>/tcp` with the comment `caddy`, read by `ufw show added` (the firewall may not be raised yet); a moved port closes the old rule in the same pass. A Caddyfile is only put in place after `caddy validate` on a copy beside it, and a Caddyfile found identical is revalidated: a refusal leaves in place the one Caddy is running | `domain`, `email`, `http_port`, `https_port` |
+| `exposure.tailscale` | Tailscale from the vendor's repository, the node joined to the tailnet by `tailscale up --auth-key` (the key masked in the journal), `ufw allow in on tailscale0`; on an already joined node, `hostname` and `ssh` changes go through `tailscale set`, without a second key; `ssh` is disabled by default, because Tailscale SSH answers before sshd: neither `AllowUsers`, nor `PermitRootLogin`, nor fail2ban apply to it, only the tailnet's access policy; contradicts neither Caddy nor the tunnel, the "everything" preset includes it; uninstalling does `tailscale logout` before removing the package | `auth_key` (secret, typed: a key from the Tailscale console, not a connection), `hostname`, `ssh` (boolean) |
 
-Désinstaller une exposition qui ne tient pas la machine — le marqueur `/etc/pupitre/exposure` en nomme une autre — laisse ce marqueur et `PUPITRE_DOMAIN` à celle qui la tient : retirer un tunnel resté d'une installation manquée ne prive pas Caddy de son domaine, ni `project.add` des sous-domaines. Un Caddyfile que `caddy validate` refuse sur `tunnel.sync` répond `bad_request`, avec le remède, et non `internal`.
+Uninstalling an exposure that does not hold the machine — the `/etc/pupitre/exposure` marker names another — leaves that marker and `PUPITRE_DOMAIN` to the one that holds it: removing a tunnel left over from a failed installation does not deprive Caddy of its domain, nor `project.add` of subdomains. A Caddyfile that `caddy validate` refuses on `tunnel.sync` answers `bad_request`, with the remedy, and not `internal`.
 
-Un dépôt apt ajouté par un module, dont le premier `apt-get update` échoue, est retiré avec sa clé avant que l'étape n'échoue (`apt.RefreshAdded`) : une liste illisible ferait échouer toute installation suivante, quel que soit le module.
+An apt repository added by a module, whose first `apt-get update` fails, is removed with its key before the step fails (`apt.RefreshAdded`): an unreadable list would make every following installation fail, whatever the module.
 
-`core.hardening` gouverne les règles nues `22` et `443` — SSH — et n'y touche jamais autrement ; `exposure.caddy` écrit les siennes en `<port>/tcp`. Les deux ne se marchent pas dessus.
+`core.hardening` governs the bare `22` and `443` rules — SSH — and never touches them otherwise; `exposure.caddy` writes its own as `<port>/tcp`. The two do not step on each other.
 
-Le `domain` des deux modules se choisit parmi les zones du compte connecté quand c'est Cloudflare, et se change après coup depuis l'écran du service : la première étape de `Configure`, `move-routes`, porte alors chaque nom du registre de l'ancien domaine au nouveau avant que le domaine soit enregistré et l'ingress ou le Caddyfile réécrit ([agent-protocol.md](./agent-protocol.md#un-projet-une-commande-plusieurs-ports)). Les enregistrements DNS suivent depuis l'app, qui ne retire que ceux qu'elle a écrits.
+The `domain` of both modules is chosen among the connected account's zones when it is Cloudflare, and changed afterwards from the service screen: the first step of `Configure`, `move-routes`, then carries every registry name from the old domain to the new one before the domain is saved and the ingress or the Caddyfile rewritten ([agent-protocol.md](./agent-protocol.md#one-process-one-command-several-ports)). The DNS records follow from the app, which removes only those it wrote.
 
-### Outils
+### Tools
 
-| Id | Fait | Champs |
+| Id | Does | Fields |
 | --- | --- | --- |
-| `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte ; un jeton tourné reconnecte `gh` | `token` (secret, `managed` par la connexion `github`) |
-| `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, coffres vérifiés à chaque jeton nouveau seulement, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
-| `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, `neonctl` en lien vers lui (c'est le nom que son aide imprime), et la clé rangée dans `/etc/pupitre/env` puis exportée dans le shell de `dev` — `neonctl` n'a pas de connexion par jeton, il la prend par `NEON_API_KEY`, et sans elle il lance une connexion par navigateur ; les projets et les bases restent la décision du client | `api_key` (secret, `managed` par la connexion `neon`) |
-| `tool.vercel` | le CLI Vercel posé par mise (`npm:vercel`) sur le Node de `runtime.node` ; le jeton rangé dans `/etc/pupitre/env` puis exporté dans le shell de `dev` en `VERCEL_TOKEN`, que le CLI lit lui-même | `token` (secret, `managed` par la connexion `vercel`) |
-| `tool.supabase` | le CLI Supabase dans `/usr/local/bin/supabase`, binaire de la release GitHub vérifié par `checksums.txt`, version enregistrée sous `/var/lib/pupitre/versions` ; le jeton rangé puis exporté en `SUPABASE_ACCESS_TOKEN` | `access_token` (secret, `managed` par la connexion `supabase`) |
-| `tool.stripe` | le CLI Stripe dans `/usr/local/bin/stripe`, binaire de la release GitHub vérifié par `stripe-linux-checksums.txt` ; la clé rangée puis exportée en `STRIPE_API_KEY` — une clé restreinte de test, jamais la clé secrète de production | `api_key` (secret, `managed` par la connexion `stripe`) |
-| `tool.wrangler` | Wrangler, le CLI de Cloudflare, posé par mise (`npm:wrangler`) sur le Node de `runtime.node` ; le jeton et l'identifiant du compte rangés dans `/etc/pupitre/env` puis exportés dans le shell de `dev` en `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID`, que Wrangler lit lui-même — pas de `wrangler login`, et un jeton qui ouvre plusieurs comptes déploie sur celui de la connexion ; les Workers, les bases D1 et les Pages restent la décision du client | `api_token` (secret, `managed` par la connexion `wrangler`), `account_id` (text, `managed` par la même connexion) |
+| `tool.github` | `gh`, HTTPS clone without a key, server key registered on the account; a rotated token reconnects `gh` | `token` (secret, `managed` by the `github` connection) |
+| `tool.1password` | CLI and service account, `OP_SERVICE_ACCOUNT_TOKEN` exported in the `dev` shell, vaults checked only on each new token, generation of `.env.local` files from the repositories' templates | `service_account_token` (secret, `managed` by the `1password` connection) |
+| `tool.neon` | the Neon CLI in `/usr/local/bin/neon`, `neonctl` linked to it (it is the name its help prints), and the key stored in `/etc/pupitre/env` then exported in the `dev` shell — `neonctl` has no token login, it takes it from `NEON_API_KEY`, and without it it launches a browser login; projects and databases remain the customer's decision | `api_key` (secret, `managed` by the `neon` connection) |
+| `tool.vercel` | the Vercel CLI installed by mise (`npm:vercel`) on the Node of `runtime.node`; the token stored in `/etc/pupitre/env` then exported in the `dev` shell as `VERCEL_TOKEN`, which the CLI reads itself | `token` (secret, `managed` by the `vercel` connection) |
+| `tool.supabase` | the Supabase CLI in `/usr/local/bin/supabase`, binary of the GitHub release verified by `checksums.txt`, version recorded under `/var/lib/pupitre/versions`; the token stored then exported as `SUPABASE_ACCESS_TOKEN` | `access_token` (secret, `managed` by the `supabase` connection) |
+| `tool.stripe` | the Stripe CLI in `/usr/local/bin/stripe`, binary of the GitHub release verified by `stripe-linux-checksums.txt`; the key stored then exported as `STRIPE_API_KEY` — a restricted test key, never the production secret key | `api_key` (secret, `managed` by the `stripe` connection) |
+| `tool.wrangler` | Wrangler, Cloudflare's CLI, installed by mise (`npm:wrangler`) on the Node of `runtime.node`; the token and the account identifier stored in `/etc/pupitre/env` then exported in the `dev` shell as `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, which Wrangler reads itself — no `wrangler login`, and a token that opens several accounts deploys on the connection's one; Workers, D1 databases and Pages remain the customer's decision | `api_token` (secret, `managed` by the `wrangler` connection), `account_id` (text, `managed` by the same connection) |
 
-## Préréglages
+## Presets
 
-| Preset | Nom | Modules |
+| Preset | Name | Modules |
 | --- | --- | --- |
-| `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode` — aucune exposition, qui est l'état par défaut |
-| `full` | Tout le catalogue | tout le catalogue moins Caddy et le tunnel, qui se contredisent : le préréglage porte les deux en `choose_one` et l'écran demande laquelle ; Tailscale, qui ne contredit rien, en fait partie |
-| `minimal` | Minimal | `core.*`, un agent au choix |
+| `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode` — no exposure, which is the default state |
+| `full` | Whole catalogue | the whole catalogue minus Caddy and the tunnel, which contradict each other: the preset carries both in `choose_one` and the screen asks which one; Tailscale, which contradicts nothing, is part of it |
+| `minimal` | Minimal | `core.*`, one agent of choice |
 
-Les identifiants de modules d'un préréglage suivent la même forme ouverte que celui d'un manifeste : un module que l'agent gagne avant que `packages/shared` ne le connaisse peut entrer dans un préréglage sans version de ce paquet.
+A preset's module identifiers follow the same open form as a manifest's: a module the agent gains before `packages/shared` knows it can enter a preset without a version of that package.
 
-## Source des étapes
+## Source of the steps
 
-Les modules livrés sous `apps/agent/internal/modules/` sont la référence de ce qu'un module fait : ordre des étapes, options apt (`DPkg::Lock::Timeout`), fermeture de root en dernier, rapport de fin. Un module nouveau se lit contre son voisin le plus proche ; le skill `agent-modules` dit lequel.
+The modules shipped under `apps/agent/internal/modules/` are the reference for what a module does: order of steps, apt options (`DPkg::Lock::Timeout`), closing root last, closing report. A new module is read against its nearest neighbour; the `agent-modules` skill says which.
 
-### Ce que le client choisit
+### What the customer chooses
 
-Un module demande au client tout ce qu'il pourrait vouloir décider, et rien de plus : la **version** quand plusieurs sont posables — un runtime par mise, une base dont le dépôt en publie plusieurs ; le **port** quand un service écoute ; les **noms des comptes** que le module crée pour lui. Chaque champ porte un `default` qui vaut le choix par défaut, si bien qu'un client qui ne touche à rien obtient la même machine qu'avant.
+A module asks the customer for everything they might want to decide, and nothing more: the **version** when several can be installed — a runtime through mise, a database whose repository publishes several; the **port** when a service listens; the **names of the accounts** the module creates for it. Each field carries a `default` that is the default choice, so a customer who touches nothing gets the same machine as before.
 
-Un nom de compte et une version traversent un fichier de configuration ou une requête SQL : le manifeste les tient à un `format`, et une valeur qui n'y répond pas est **refusée avant la première étape**, avec le champ nommé. Rien ne retombe en silence sur le défaut : un client qui tape `my-app` obtiendrait `app` sans jamais l'apprendre.
+An account name and a version cross a configuration file or a SQL query: the manifest holds them to a `format`, and a value that does not match is **refused before the first step**, with the field named. Nothing silently falls back to the default: a customer who types `my-app` would get `app` without ever learning it.
 
-Redis fait exception à la version : le module pose le paquet d'Ubuntu, et n'ajoute pas un dépôt de plus pour un choix que personne n'a demandé.
+Redis is an exception for the version: the module installs Ubuntu's package, and does not add one more repository for a choice nobody asked for.
 
-### Un runtime tient plusieurs versions à la fois
+### A runtime holds several versions at once
 
-Un langage se choisit en `versions`, pas en `version` : plusieurs projets d'une même machine ne tournent pas tous sur le même Java ni le même Node. Le champ est une liste fermée à plusieurs cases, `options` de la plus récente à la plus ancienne, une cochée au moins. L'agent pose chaque majeure cochée (`install-<outil>-<majeure>`, par `mise install`), fait de **la plus récente cochée le défaut de la machine** (`use-<outil>`, par `mise use -g`) — ce que rend un shell hors de tout projet, et ce qu'obtient un projet qui ne dit rien — et retire ce qui n'est plus coché (`prune-<outil>`). `upgrade` porte chaque majeure à son dernier patch et retire celui qu'il remplace. Le service rend `versions[]`, les majeures que la machine tient réellement, de la plus récente à la plus ancienne : c'est là qu'un projet choisit. Les outils partagés — mise, `~/.config/mise/config.toml` — restent quand un runtime part ; les autres s'en servent.
+A language is chosen as `versions`, not `version`: several projects on the same machine do not all run the same Java or the same Node. The field is a closed multi-checkbox list, `options` from newest to oldest, at least one ticked. The agent installs each ticked major (`install-<tool>-<major>`, through `mise install`), makes **the newest ticked the machine default** (`use-<tool>`, through `mise use -g`) — what a shell outside any project returns, and what a project that says nothing gets — and removes what is no longer ticked (`prune-<tool>`). `upgrade` brings each major to its latest patch and removes the one it replaces. The service returns `versions[]`, the majors the machine actually holds, from newest to oldest: that is where a project chooses. Shared tools — mise, `~/.config/mise/config.toml` — remain when a runtime leaves; the others use them.
 
-Le choix d'un projet est l'affaire du protocole (`runtimes` sur `project.add` et `project.update`) : l'agent écrit un `mise.local.toml` à la racine du projet, que mise lit avant tout ce que le dépôt déclare, pour ses processus comme pour les terminaux ouverts dedans. Ce que le client tape à la main dans son propre `mise.toml` ou `.tool-versions` vaut pour les projets qui n'épinglent rien, tant que la version demandée est posée.
+A project's choice is the protocol's business (`runtimes` on `project.add` and `project.update`): the agent writes a `mise.local.toml` at the project root, which mise reads before anything the repository declares, for its processes as for the terminals opened inside it. What the customer types by hand in their own `mise.toml` or `.tool-versions` holds for projects that pin nothing, as long as the requested version is installed.
 
-### Le champ `version` des éditeurs reste du texte libre
+### The editors' `version` field stays free text
 
-Les modules d'éditeurs distants exposent `version` en `text`, avec `latest` par défaut, et non le genre `version` à liste fermée. Aucune liste ne tiendrait : le serveur distant de Zed doit correspondre exactement à la version du client installé sur le laptop, et un backend JetBrains à celle du Gateway. Une liste d'options serait fausse le jour de la première mise à jour de l'éditeur, côté client, sans que nous en sachions rien.
+Remote editor modules expose `version` as `text`, with `latest` by default, and not the closed-list `version` kind. No list would hold: Zed's remote server must match exactly the version of the client installed on the laptop, and a JetBrains backend that of the Gateway. A list of options would be wrong the day the editor first updates, client side, without our knowing.

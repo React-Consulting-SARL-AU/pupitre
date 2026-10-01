@@ -33,8 +33,8 @@ beforeEach(() => {
   useTunnel.setState({ forwards: [] });
 });
 
-describe("le tunnel de l'agent", () => {
-  it("montre les routes que l'agent déclare", async () => {
+describe("the agent's tunnel", () => {
+  it("shows the routes the agent declares", async () => {
     stubPupitre({
       agentCall: () =>
         Promise.resolve({
@@ -50,7 +50,7 @@ describe("le tunnel de l'agent", () => {
     expect(tunnel.status === "ready" && tunnel.tunnel.routes).toHaveLength(1);
   });
 
-  it("redemande son état après la synchronisation, et écrit les noms des routes", async () => {
+  it("asks for its state again after syncing, and writes the route names", async () => {
     const sent: string[] = [];
     const named: string[] = [];
 
@@ -78,7 +78,7 @@ describe("le tunnel de l'agent", () => {
     expect(useTunnel.getState().problem).toBeNull();
   });
 
-  it("garde le refus de l'écriture des noms", async () => {
+  it("keeps the refusal of the name write", async () => {
     stubPupitre({
       agentCall: () =>
         Promise.resolve({ ok: true, result: TUNNEL } as AgentResponse<unknown>),
@@ -95,7 +95,7 @@ describe("le tunnel de l'agent", () => {
     expect(useTunnel.getState().tunnel.status).toBe("ready");
   });
 
-  it("garde le refus de l'agent avec son remède", async () => {
+  it("keeps the agent's refusal with its fix", async () => {
     stubPupitre({
       agentCall: () =>
         Promise.resolve({
@@ -116,8 +116,8 @@ describe("le tunnel de l'agent", () => {
   });
 });
 
-describe("le tunnel de l'app", () => {
-  it("ouvre un port du serveur sur cette machine", async () => {
+describe("the app's tunnel", () => {
+  it("opens a server port on this machine", async () => {
     const asked: number[] = [];
 
     stubPupitre({
@@ -135,7 +135,7 @@ describe("le tunnel de l'app", () => {
     expect(useTunnel.getState().forwards[0]?.localPort).toBe(55_001);
   });
 
-  it("dit pourquoi il n'a pas pu s'ouvrir", async () => {
+  it("says why it could not open", async () => {
     stubPupitre({
       openPortForward: () =>
         Promise.resolve({
@@ -151,7 +151,7 @@ describe("le tunnel de l'app", () => {
     expect(useTunnel.getState().forwards).toEqual([]);
   });
 
-  it("se referme sur demande", async () => {
+  it("closes on request", async () => {
     stubPupitre({
       closePortForward: () => Promise.resolve([]),
       openPortForward: () => Promise.resolve({ ok: true, result: FORWARD }),
@@ -165,8 +165,8 @@ describe("le tunnel de l'app", () => {
   });
 });
 
-describe("la liste des redirections de cet ordinateur", () => {
-  it("suit ce que le processus principal dit, serveur par serveur", async () => {
+describe("this computer's forward list", () => {
+  it("follows what the main process says, server by server", async () => {
     const held: { push: ((forwards: PortForward[]) => void) | null } = {
       push: null,
     };
@@ -201,7 +201,7 @@ describe("la liste des redirections de cet ordinateur", () => {
     expect(held.push).toBeNull();
   });
 
-  it("oublie le tunnel et son refus d'une machine quittée, pas les redirections de cet ordinateur", async () => {
+  it("forgets the tunnel and its refusal from a machine that was left, not this computer's forwards", async () => {
     stubPupitre({
       agentCall: () =>
         Promise.resolve({

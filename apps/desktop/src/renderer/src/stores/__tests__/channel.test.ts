@@ -27,8 +27,8 @@ beforeEach(() => {
   useAnnouncements.getState().clear();
 });
 
-describe("la liaison à un serveur", () => {
-  it("annonce la perte et le retour par le nom du serveur, jamais par son identifiant", () => {
+describe("the link to a server", () => {
+  it("announces the loss and the return by the server's name, never by its identifier", () => {
     knownServers({ "srv-1": "atelier" });
 
     useChannel.getState().note("srv-1", "open");
@@ -42,7 +42,7 @@ describe("la liaison à un serveur", () => {
     expect(useAnnouncements.getState().polite.text).toContain("atelier");
   });
 
-  it("se rabat sur l'identifiant d'un serveur que la liste ne connaît pas", () => {
+  it("falls back to the identifier of a server the list does not know", () => {
     knownServers({});
 
     useChannel.getState().note("srv-9", "open");
@@ -51,7 +51,7 @@ describe("la liaison à un serveur", () => {
     expect(useAnnouncements.getState().assertive.text).toContain("srv-9");
   });
 
-  it("ne dit rien d'un serveur dont on n'avait jamais entendu parler", () => {
+  it("says nothing about a server never heard of before", () => {
     knownServers({ "srv-1": "atelier" });
 
     useChannel.getState().note("srv-1", "lost");

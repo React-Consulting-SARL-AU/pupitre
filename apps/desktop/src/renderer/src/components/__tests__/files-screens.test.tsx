@@ -131,8 +131,8 @@ function names(html: string): string[] {
   return [...html.matchAll(/data-entry="([^"]+)"/g)].map((found) => found[1]);
 }
 
-describe("le nouveau fichier et le nouveau dossier", () => {
-  it("se demandent depuis l'en-tête, sans champ dans la liste tant qu'on ne les ouvre pas", () => {
+describe("the new file and the new folder", () => {
+  it("are requested from the header, with no field in the list until they are opened", () => {
     const html = list(READ);
 
     expect(html).toContain("Nouveau fichier");
@@ -142,7 +142,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
     expect(html).not.toContain('id="files.newFolder"');
   });
 
-  it("attendent un dossier à l'écran avant d'être offerts", () => {
+  it("wait for a folder on screen before being offered", () => {
     const html = renderToStaticMarkup(
       <EntryCreate
         disabled
@@ -155,7 +155,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
     expect(html).toContain("disabled");
   });
 
-  it("s'ouvre en dialogue avec le nom à taper et le bouton Créer", async () => {
+  it("opens as a dialog with the name to type and the Create button", async () => {
     const view = await mount(
       <EntryCreateDialog
         kind="dir"
@@ -178,7 +178,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
     view.unmount();
   });
 
-  it("nomme le fichier, sans jamais prendre un chemin", async () => {
+  it("names the file, never taking a path", async () => {
     const view = await mount(
       <EntryCreateDialog
         kind="file"
@@ -197,7 +197,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
     view.unmount();
   });
 
-  it("reste ouvert sur un refus, et le dit sous le champ", async () => {
+  it("stays open on a refusal, and says so under the field", async () => {
     const closed: string[] = [];
     const view = await mount(
       <EntryCreateDialog
@@ -228,8 +228,8 @@ describe("le nouveau fichier et le nouveau dossier", () => {
   });
 });
 
-describe("quitter un fichier modifié", () => {
-  it("demande dans une alerte qui nomme le fichier, et Échap y reste", async () => {
+describe("leaving a modified file", () => {
+  it("asks in an alert that names the file, and Escape stays in it", async () => {
     const said: string[] = [];
     const view = await mount(
       <FilePreview
@@ -264,8 +264,8 @@ describe("quitter un fichier modifié", () => {
   });
 });
 
-describe("la liste d'un dossier", () => {
-  it("met les dossiers d'abord et masque les entrées cachées", () => {
+describe("a folder's list", () => {
+  it("puts folders first and hides the hidden entries", () => {
     const html = list(READ);
 
     expect(names(html)).toEqual(["src", "alpha.ts", "zeta.ts"]);
@@ -273,7 +273,7 @@ describe("la liste d'un dossier", () => {
     expect(html).toContain('data-kind="dir"');
   });
 
-  it("montre les entrées cachées quand on les demande", () => {
+  it("shows the hidden entries when asked", () => {
     expect(names(list(READ, true))).toEqual([
       "src",
       ".env",
@@ -282,7 +282,7 @@ describe("la liste d'un dossier", () => {
     ]);
   });
 
-  it("porte le fil d'Ariane cliquable, la taille et la date en données", () => {
+  it("carries the clickable breadcrumb, the size and the date as data", () => {
     const html = list(READ);
 
     expect(html).toContain("atlas");
@@ -292,18 +292,18 @@ describe("la liste d'un dossier", () => {
     expect(html).toContain("tabular-nums");
   });
 
-  it("marque le fichier ouvert à droite", () => {
+  it("marks the file open on the right", () => {
     const html = list(READ, false, "projects/atlas/alpha.ts");
 
     expect(html).toContain('data-selected="true"');
     expect(html).toContain('aria-current="true"');
   });
 
-  it("dit qu'un listing est tronqué", () => {
+  it("says a listing is truncated", () => {
     expect(list({ ...READ, truncated: true })).toContain("2000 premières");
   });
 
-  it("attend avec des lignes fantômes, et dit le refus avec son remède", () => {
+  it("waits with ghost rows, and states the refusal with its fix", () => {
     expect(list({ path: "projects", status: "reading" })).toContain(
       'data-skeleton="rows"'
     );
@@ -323,13 +323,13 @@ describe("la liste d'un dossier", () => {
     expect(failed).toContain("Réessayer");
   });
 
-  it("dit qu'un dossier est vide", () => {
+  it("says a folder is empty", () => {
     expect(list({ ...READ, entries: [] })).toContain("Ce dossier est vide");
   });
 });
 
-describe("le menu d'une entrée", () => {
-  it("s'ouvre depuis un bouton nommé, au clavier comme à la souris", () => {
+describe("an entry's menu", () => {
+  it("opens from a named button, by keyboard as by mouse", () => {
     const html = renderToStaticMarkup(
       <FileEntryMenu
         actions={[{ id: "open" }, { id: "rename" }]}
@@ -346,7 +346,7 @@ describe("le menu d'une entrée", () => {
     expect(html).toContain('data-tooltip="Actions sur src"');
   });
 
-  it("demande confirmation dans une alerte qu'Échap ferme, et dit le refus d'un dossier plein tel qu'il vient", async () => {
+  it("asks for confirmation in an alert that Escape closes, and states the refusal of a non-empty folder as it comes", async () => {
     const cancelled: string[] = [];
 
     const asked = await mount(
@@ -406,7 +406,7 @@ describe("le menu d'une entrée", () => {
     held.unmount();
   });
 
-  it("garde le champ de renommage ouvert sur un refus, et le dit sous lui", async () => {
+  it("keeps the rename field open on a refusal, and says so under it", async () => {
     const view = await mount(
       <FileRow
         editors={[]}
@@ -442,7 +442,7 @@ describe("le menu d'une entrée", () => {
     view.unmount();
   });
 
-  it("n'ouvre aucun aperçu d'un tube ou d'une socket : un clic sur le nom ouvre son menu", async () => {
+  it("opens no preview of a pipe or a socket: a click on the name opens its menu", async () => {
     const opened: string[] = [];
     const view = await mount(
       <FileRow
@@ -476,7 +476,7 @@ describe("le menu d'une entrée", () => {
     view.unmount();
   });
 
-  it("renomme en place, avec un champ nommé d'après l'entrée", () => {
+  it("renames in place, with a field named after the entry", () => {
     const html = renderToStaticMarkup(
       <FileRow
         editors={[]}
@@ -497,12 +497,12 @@ describe("le menu d'une entrée", () => {
   });
 });
 
-describe("l'aperçu d'un fichier", () => {
-  it("n'a rien à montrer tant qu'aucun fichier n'est choisi", () => {
+describe("a file's preview", () => {
+  it("has nothing to show until a file is chosen", () => {
     expect(preview({ status: "idle" })).toContain("Aucun fichier ouvert");
   });
 
-  it("ouvre un texte dans l'éditeur, avec Enregistrer inactif tant que rien n'a changé", () => {
+  it("opens a text in the editor, with Save inactive until something has changed", () => {
     const html = preview({
       path: "projects/atlas/.env",
       sha256: "a".repeat(64),
@@ -518,7 +518,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).not.toContain("Rendu");
   });
 
-  it("ouvre un Markdown rendu, sans HTML brut, et offre le code", () => {
+  it("opens a rendered Markdown, without raw HTML, and offers the code", () => {
     const html = preview(
       textOf(
         "projects/atlas/README.md",
@@ -537,7 +537,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).toContain("Enregistrer");
   });
 
-  it("montre le code d'un Markdown quand on le demande, et rend le tampon modifié", () => {
+  it("shows a Markdown's code when asked, and renders the modified buffer", () => {
     const source = preview(
       textOf("projects/atlas/README.md", "# Atlas\n"),
       null,
@@ -556,7 +556,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(edited).toContain("Modifié, non enregistré");
   });
 
-  it("dessine un SVG depuis son texte, avec sa fiche, et l'édite en code", async () => {
+  it("draws an SVG from its text, with its details, and edits it as code", async () => {
     const view = await mount(
       <FileSvgView
         path="projects/atlas/logo.svg"
@@ -582,7 +582,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(source).toContain("Rendu");
   });
 
-  it("marque un tampon modifié d'un point et arme Enregistrer", () => {
+  it("marks a modified buffer with a dot and arms Save", () => {
     const html = preview(
       {
         path: "projects/atlas/.env",
@@ -598,7 +598,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).not.toContain('disabled=""');
   });
 
-  it("montre la fiche d'un fichier trop lourd et dit qu'il se télécharge, sans geste factice", () => {
+  it("shows the details of a file that is too large and says it is downloaded, with no fake gesture", () => {
     const html = preview({
       error: {
         code: "bad_request",
@@ -624,7 +624,7 @@ describe("l'aperçu d'un fichier", () => {
     );
   });
 
-  it("montre la fiche d'un type que l'app n'affiche pas", () => {
+  it("shows the details of a type the app does not display", () => {
     const html = preview({
       error: null,
       path: "projects/atlas/site.zip",
@@ -636,7 +636,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).toContain("Ce fichier ne s&#x27;affiche pas ici");
   });
 
-  it("affiche une image avec son nom pour texte de remplacement", () => {
+  it("displays an image with its name as alt text", () => {
     const html = preview({
       mediaType: "image/png",
       path: "projects/atlas/logo.png",

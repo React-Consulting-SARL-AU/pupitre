@@ -22,8 +22,8 @@ import { appSshPaths } from "../ssh-config";
 const PINNED = "SHA256:5ZmC0Tn0eYxJ0nR1cLcQK1a7q0mCq0k9YkGqiJ2b3Xk";
 const OTHER = "SHA256:t9bB1v2n3M4c5X6z7A8s9D0f1G2h3J4k5L6m7N8o9P0";
 
-describe("la décision sur la clé d'hôte", () => {
-  it("appelle premier contact ce qui n'a jamais été épinglé", () => {
+describe("the host key decision", () => {
+  it("calls first contact whatever was never pinned", () => {
     expect(hostKeyDecision(undefined, null)).toEqual({
       status: "first_contact",
     });
@@ -32,14 +32,14 @@ describe("la décision sur la clé d'hôte", () => {
     });
   });
 
-  it("fait confiance à l'empreinte qui n'a pas bougé", () => {
+  it("trusts the fingerprint that has not moved", () => {
     expect(hostKeyDecision(PINNED, PINNED)).toEqual({
       fingerprint: PINNED,
       status: "trusted",
     });
   });
 
-  it("refuse la connexion quand l'empreinte a changé, en disant laquelle", () => {
+  it("refuses the connection when the fingerprint changed, saying which one", () => {
     const decision = hostKeyDecision(PINNED, OTHER);
 
     expect(decision.status).toBe("changed");
@@ -53,7 +53,7 @@ describe("la décision sur la clé d'hôte", () => {
     expect(decision.phrase.id).toBe("refusal.hostKey.changed");
   });
 
-  it("refuse aussi quand l'empreinte épinglée a disparu du fichier de l'app", () => {
+  it("also refuses when the pinned fingerprint has disappeared from the app's file", () => {
     const decision = hostKeyDecision(PINNED, null);
 
     expect(decision.status).toBe("changed");
@@ -62,7 +62,7 @@ describe("la décision sur la clé d'hôte", () => {
     }
   });
 
-  it("croit la machine telle qu'elle répond aujourd'hui plutôt que le fichier de l'app", () => {
+  it("believes the machine as it answers today rather than the app's file", () => {
     expect(hostKeyDecision(PINNED, PINNED, [OTHER])).toMatchObject({
       expected: PINNED,
       observed: OTHER,
@@ -78,7 +78,7 @@ describe("la décision sur la clé d'hôte", () => {
     });
   });
 
-  it("propose de remplacer l'empreinte, et rien d'autre", () => {
+  it("offers to replace the fingerprint, and nothing else", () => {
     const decision = hostKeyDecision(PINNED, OTHER);
 
     if (decision.status !== "changed") {
@@ -89,8 +89,8 @@ describe("la décision sur la clé d'hôte", () => {
   });
 });
 
-describe("l'empreinte Ed25519 que l'enrôlement épingle", () => {
-  it("prend la ligne Ed25519 de known_hosts, quelle que soit sa place", () => {
+describe("the Ed25519 fingerprint that enrolment pins", () => {
+  it("takes the Ed25519 line from known_hosts, wherever it sits", () => {
     expect(
       ed25519Of(
         [
@@ -103,22 +103,22 @@ describe("l'empreinte Ed25519 que l'enrôlement épingle", () => {
     ).toBe(PINNED);
   });
 
-  it("ne rend rien quand ssh s'est entendu sur un autre type", () => {
+  it("returns nothing when ssh agreed on another type", () => {
     expect(ed25519Of(`vps.test ECDSA ${OTHER}\n`)).toBeNull();
   });
 });
 
-describe("la clé que la machine présente", () => {
+describe("the key the machine presents", () => {
   const ED25519 =
     "203.0.113.10 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPb/g4KaAWwmJ+dUR3ZBxx6lMSo4i0mR7vaMD2qkuRGH";
 
-  it("garde les lignes de clé, pas les commentaires de ssh-keyscan", () => {
+  it("keeps the key lines, not ssh-keyscan's comments", () => {
     expect(
       keyLines(`# 203.0.113.10:22 SSH-2.0-OpenSSH_9.6\n${ED25519}\n\n`)
     ).toEqual([ED25519]);
   });
 
-  it("apparie chaque ligne à son empreinte", async () => {
+  it("pairs each line with its fingerprint", async () => {
     const keys = await liveKeys(
       { host: "203.0.113.10", port: 22 },
       async () => `# banner\n${ED25519}\n`
@@ -129,7 +129,7 @@ describe("la clé que la machine présente", () => {
     expect(keys[0]?.fingerprint).toMatch(/^SHA256:/);
   });
 
-  it("ne présente rien quand la machine ne répond pas", async () => {
+  it("presents nothing when the machine does not answer", async () => {
     const keys = await liveKeys(
       { host: "203.0.113.10", port: 22 },
       async () => {
@@ -140,7 +140,7 @@ describe("la clé que la machine présente", () => {
     expect(keys).toEqual([]);
   });
 
-  it("s'écrit dans le fichier de l'app, à la suite de ce qu'il tient", () => {
+  it("is written to the app's file, after what it already holds", () => {
     const dir = mkdtempSync(join(tmpdir(), "pupitre-known-"));
     const paths = appSshPaths(dir, join(dir, "home"));
 

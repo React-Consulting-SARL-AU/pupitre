@@ -84,7 +84,7 @@ describe("StartChecklist", () => {
     }
   })
 
-  it("part d'un pas fait sur trois, et demande l'app", async () => {
+  it("starts at one step done out of three, and asks for the app", async () => {
     const { container, unmount } = await render(list({}))
 
     mounted.push(unmount)
@@ -104,7 +104,7 @@ describe("StartChecklist", () => {
     expect(links).toContain("/dashboard/download")
   })
 
-  it("donne le même chemin à un membre qu'au propriétaire", async () => {
+  it("gives a member the same path as the owner", async () => {
     const { container, unmount } = await render(list({ role: "member" }))
 
     mounted.push(unmount)
@@ -116,7 +116,7 @@ describe("StartChecklist", () => {
     )
   })
 
-  it("passe au serveur dès qu'un appareil est lié, et dit où louer", async () => {
+  it("moves on to the server as soon as a device is linked, and says where to rent", async () => {
     await linkDevice()
 
     const { container, unmount } = await render(list({}))
@@ -136,7 +136,7 @@ describe("StartChecklist", () => {
     expect(guide?.getAttribute("target")).toBe("_blank")
   })
 
-  it("dit l'enrôlement en cours tant que le serveur n'a pas parlé", async () => {
+  it("says enrolment is in progress until the server has spoken", async () => {
     await linkDevice()
     await seedServer("enrolling")
 
@@ -152,7 +152,7 @@ describe("StartChecklist", () => {
     expect(doneSteps(container)).toBe(2)
   })
 
-  it("ne garde que ce qui reste quand la place manque", async () => {
+  it("keeps only what remains when space runs short", async () => {
     await linkDevice()
 
     const { container, unmount } = await render(list({ compact: true }))

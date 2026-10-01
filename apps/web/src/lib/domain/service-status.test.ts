@@ -16,14 +16,14 @@ const NOW = new Date("2026-09-04T12:00:00.000Z")
 
 const STALE_AT = new Date(NOW.getTime() - STATUS_STALE_AFTER_MS - 3_600_000)
 
-describe("les lignes de la page d'état", () => {
-  it("dit d'un service qu'il répond ou non, et tient un état inconnu pour une panne", () => {
+describe("the status page rows", () => {
+  it("says whether a service responds, and treats an unknown state as an outage", () => {
     expect(healthLook("ok").label).toBe("service.responds")
     expect(healthLook("down").label).toBe("service.doesNotRespond")
     expect(healthLook("brouillé").tone).toBe("danger")
   })
 
-  it("dit d'une version qu'elle est publiée, pas qu'elle répond", () => {
+  it("says a version is published, not that it responds", () => {
     expect(releaseLook(true).label).toBe("statusPage.releasePublished")
     expect(releaseLook(false).label).toBe("statusPage.noRelease")
     expect(releaseLook(false).tone).toBe("muted")
@@ -31,7 +31,7 @@ describe("les lignes de la page d'état", () => {
 })
 
 describe("freshnessNotice", () => {
-  it("ne dit rien quand l'observation est fraîche", () => {
+  it("says nothing when the observation is fresh", () => {
     expect(
       freshnessNotice(
         "fresh",
@@ -42,7 +42,7 @@ describe("freshnessNotice", () => {
     ).toBeNull()
   })
 
-  it("dit depuis quand la plateforme n'a plus de nouvelles", () => {
+  it("says since when the platform has had no news", () => {
     const notice = freshnessNotice("stale", STALE_AT.toISOString(), t, NOW)
 
     expect(notice?.headline).toBe("Dernière observation il y a 1 h")
@@ -50,7 +50,7 @@ describe("freshnessNotice", () => {
     expect(notice?.look.tone).toBe("warn")
   })
 
-  it("distingue l'absence d'observation d'un état rassurant", () => {
+  it("tells the absence of an observation from a reassuring state", () => {
     const notice = freshnessNotice("unknown", null, t, NOW)
 
     expect(notice?.headline).toBe("Aucune observation à afficher")
@@ -59,33 +59,33 @@ describe("freshnessNotice", () => {
 })
 
 describe("observationLabel", () => {
-  it("date l'observation quand elle existe", () => {
+  it("dates the observation when there is one", () => {
     expect(observationLabel("stale", STALE_AT.toISOString(), t, NOW)).toBe(
       "Dernière observation il y a 1 h."
     )
   })
 
-  it("avoue l'absence d'observation", () => {
+  it("admits the absence of an observation", () => {
     expect(observationLabel("unknown", null, t, NOW)).toBe(
       "Aucune observation reçue."
     )
   })
 })
 
-describe("le compteur de serveurs actifs", () => {
-  it("se présente tel quel quand l'observation est fraîche", () => {
+describe("the active server counter", () => {
+  it("presents itself as is when the observation is fresh", () => {
     expect(activeServersLabel("fresh", t)).toBe("Serveurs actifs")
     expect(activeServersValue("fresh", 12, t)).toBe("12")
   })
 
-  it("se date quand l'observation est périmée", () => {
+  it("dates itself when the observation is stale", () => {
     expect(activeServersLabel("stale", t)).toBe(
       "Serveurs actifs à la dernière observation"
     )
     expect(activeServersValue("stale", 12, t)).toBe("12")
   })
 
-  it("ne montre aucun chiffre sans observation", () => {
+  it("shows no figure without an observation", () => {
     expect(activeServersValue("unknown", 12, t)).toBe("—")
   })
 })

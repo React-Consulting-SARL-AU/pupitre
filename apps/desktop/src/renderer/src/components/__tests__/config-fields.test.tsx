@@ -98,37 +98,37 @@ function text(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-describe("un groupe par module choisi", () => {
+describe("one group per chosen module", () => {
   const html = form();
 
-  it("suit l'ordre du catalogue et nomme chaque module", () => {
+  it("follows the catalogue order and names each module", () => {
     expect(
       [...html.matchAll(/data-group="([^"]+)"/g)].map((m) => m[1])
     ).toEqual(ALL);
     expect(text(html)).toContain("PostgreSQL 17");
   });
 
-  it("ne montre que les modules choisis", () => {
+  it("shows only the chosen modules", () => {
     expect(form(CATALOG.modules, ["core.system"])).not.toContain(
       'data-group="db.postgres"'
     );
   });
 });
 
-describe("chaque genre de champ a son contrôle", () => {
+describe("each kind of field has its control", () => {
   const html = form();
 
-  it("text : une entrée de texte", () => {
+  it("text: a text input", () => {
     expect(field(html, "core.system.git_name")).toContain('data-kind="text"');
     expect(control(html, "core.system.git_name")).toContain('type="text"');
   });
 
-  it("number : une entrée numérique", () => {
+  it("number: a numeric input", () => {
     expect(field(html, "db.mysql.buffer_pool")).toContain('data-kind="number"');
     expect(control(html, "db.mysql.buffer_pool")).toContain('type="number"');
   });
 
-  it("select : une liste des options du manifeste", async () => {
+  it("select: a list of the manifest's options", async () => {
     expect(field(html, "db.mysql.engine")).toContain('data-kind="select"');
     expect(tag(html, "id", "db.mysql.engine")).toContain('role="combobox"');
     expect(await listed("db.mysql", "db.mysql.engine")).toEqual([
@@ -137,7 +137,7 @@ describe("chaque genre de champ a son contrôle", () => {
     ]);
   });
 
-  it("version : une liste des versions, la valeur par défaut choisie", async () => {
+  it("version: a list of versions, the default value chosen", async () => {
     expect(field(html, "editor.jetbrains.version")).toContain(
       'data-kind="version"'
     );
@@ -149,7 +149,7 @@ describe("chaque genre de champ a son contrôle", () => {
     ).toEqual(["2026.2", "2026.1"]);
   });
 
-  it("versions : une case par version, la plus récente cochée dite par défaut", () => {
+  it("versions: a checkbox per version, the most recent ticked and called the default", () => {
     const posed = form(CATALOG.modules, ALL, {
       values: { "runtime.java": { java_versions: ["17", "21"] } },
     });
@@ -186,7 +186,7 @@ describe("chaque genre de champ a son contrôle", () => {
     );
   });
 
-  it("boolean : une case à cocher, jamais requise", () => {
+  it("boolean: a checkbox, never required", () => {
     const wrapper = field(html, "core.hardening.ssh_443");
 
     expect(wrapper).toContain('data-kind="boolean"');
@@ -196,7 +196,7 @@ describe("chaque genre de champ a son contrôle", () => {
     );
   });
 
-  it("boolean : la valeur par défaut du manifeste est déjà posée", () => {
+  it("boolean: the manifest's default value is already set", () => {
     const posed = form(CATALOG.modules, ALL, {
       values: { "runtime.node": { bun: true } },
     });
@@ -205,7 +205,7 @@ describe("chaque genre de champ a son contrôle", () => {
     expect(control(html, "runtime.node.bun")).not.toContain('checked=""');
   });
 
-  it("list de text : une entrée par élément, avec de quoi en ajouter", () => {
+  it("list of text: one input per item, with a way to add more", () => {
     expect(field(html, "editor.vscode.extensions")).toContain(
       'data-kind="list"'
     );
@@ -216,18 +216,18 @@ describe("chaque genre de champ a son contrôle", () => {
     expect(text(html)).toContain("Ajouter");
   });
 
-  it("list : les bornes du manifeste sont dites", () => {
+  it("list: the manifest's bounds are stated", () => {
     expect(text(html)).toContain("de 1 à 3 valeurs");
     expect(text(html)).toContain("jusqu'à 8 valeurs");
   });
 
-  it("list de secret : chaque élément est un champ secret", () => {
+  it("list of secret: each item is a secret field", () => {
     expect(field(html, "ai.hermes.providers")).toContain('data-items="secret"');
     expect(html).toContain('data-item="ai.hermes.providers.0"');
     expect(control(html, "ai.hermes.providers.0")).toContain('type="password"');
   });
 
-  it("secret : masqué, jamais rempli depuis une valeur", () => {
+  it("secret: masked, never filled from a value", () => {
     const wrapper = field(html, "db.postgres.app_password");
     const input = control(html, "db.postgres.app_password");
 
@@ -236,7 +236,7 @@ describe("chaque genre de champ a son contrôle", () => {
     expect(input).not.toContain("value=");
   });
 
-  it("ne demande jamais un champ que l'app remplit elle-même", () => {
+  it("never asks for a field the app fills in itself", () => {
     expect(html).toContain('data-field="exposure.cloudflare.domain"');
     expect(html).not.toContain('data-field="exposure.cloudflare.tunnel_id"');
     expect(html).not.toContain(
@@ -245,7 +245,7 @@ describe("chaque genre de champ a son contrôle", () => {
   });
 });
 
-describe("un secret généré", () => {
+describe("a generated secret", () => {
   const marks: SecretMarks = {
     "db.postgres": {
       app_password: { filled: true, generated: true, revealed: false },
@@ -254,7 +254,7 @@ describe("un secret généré", () => {
   };
   const html = form(CATALOG.modules, ALL, { secrets: marks });
 
-  it("dit qu'il est généré et propose de le montrer une fois", () => {
+  it("says it is generated and offers to show it once", () => {
     expect(field(html, "db.postgres.app_password")).toContain(
       'data-generated="true"'
     );
@@ -262,7 +262,7 @@ describe("un secret généré", () => {
     expect(text(html)).toContain("Montrer une fois");
   });
 
-  it("ne le repropose plus une fois montré", () => {
+  it("no longer offers it once shown", () => {
     expect(field(html, "db.postgres.remote_password")).toContain(
       'data-revealed="true"'
     );
@@ -271,7 +271,7 @@ describe("un secret généré", () => {
     );
   });
 
-  it("ne porte la valeur d'aucun secret dans le document", () => {
+  it("carries the value of no secret in the document", () => {
     const withValues = form(CATALOG.modules, ALL, {
       secrets: marks,
       values: { "db.postgres": { app_password: "ne-doit-pas-passer" } },
@@ -281,22 +281,22 @@ describe("un secret généré", () => {
   });
 });
 
-describe("les champs du socle", () => {
+describe("the base fields", () => {
   const html = form();
 
-  it("laisse le fuseau, l'identité git et le dossier des projets au manifeste", () => {
+  it("leaves the timezone, the git identity and the projects folder to the manifest", () => {
     for (const key of ["timezone", "git_name", "git_email", "projects_dir"]) {
       expect(html).toContain(`data-field="core.system.${key}"`);
     }
   });
 
   // The machine is named when it is added and in the server list, never in a module form.
-  it("ne demande pas le nom de la machine", () => {
+  it("does not ask for the machine's name", () => {
     expect(html).not.toContain('data-field="machine.name"');
   });
 });
 
-describe("ce qu'un champ refusé montre", () => {
+describe("what a refused field shows", () => {
   const problems = [
     {
       code: "format" as const,
@@ -311,11 +311,11 @@ describe("ce qu'un champ refusé montre", () => {
 
   const html = form(CATALOG.modules, ALL, { problems });
 
-  it("porte la phrase du refus sous le champ, et pas ailleurs", () => {
+  it("carries the refusal sentence under the field, and nowhere else", () => {
     expect(text(html)).toContain("Une adresse électronique est attendue.");
   });
 
-  it("le dit aussi à qui ne voit pas l'écran", () => {
+  it("also says it to someone who cannot see the screen", () => {
     expect(control(html, "core.system.git_email")).toContain(
       'aria-invalid="true"'
     );
@@ -324,26 +324,26 @@ describe("ce qu'un champ refusé montre", () => {
     );
   });
 
-  it("ne marque que le champ nommé", () => {
+  it("marks only the named field", () => {
     expect(control(html, "core.system.git_name")).not.toContain("aria-invalid");
   });
 });
 
-describe("l'aide d'un champ", () => {
+describe("a field's help", () => {
   const html = form();
 
-  it("met la phrase courte sous le contrôle et le reste dans une bulle", () => {
+  it("puts the short sentence under the control and the rest in a bubble", () => {
     expect(text(html)).toContain("Ce que les commits porteront comme auteur.");
     expect(html).toContain('data-hint="Dossier des projets"');
   });
 
-  it("nomme l'icône dans une infobulle, seule elle ne dit rien", () => {
+  it("names the icon in a tooltip, since alone it says nothing", () => {
     expect(html).toContain('data-tooltip="À propos de Dossier des projets"');
   });
 });
 
-describe("un module que l'agent vient d'ajouter", () => {
-  it("est configurable sans une ligne de code de plus", () => {
+describe("a module the agent has just added", () => {
+  it("is configurable without another line of code", () => {
     const html = form(CATALOG_NEXT.modules, [
       ...select(CATALOG_NEXT.modules, [], "db.clickhouse"),
     ]);
@@ -355,12 +355,12 @@ describe("un module que l'agent vient d'ajouter", () => {
   });
 });
 
-describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
+describe("what is asked first, and what waits behind", () => {
   const withDefaults = Object.fromEntries(
     CATALOG.modules.map((module) => [module.id, defaultsOf(module)])
   );
 
-  it("pose les questions du socle et range ses réglages derrière un pli fermé", () => {
+  it("asks the base questions and tucks its settings behind a closed fold", () => {
     const html = form(CATALOG.modules, ["core.system"], {
       values: withDefaults,
     });
@@ -381,7 +381,7 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
     expect(text(html)).toContain("Réglages avancés (2)");
   });
 
-  it("dit d'un service dont tout a un défaut qu'il n'y a rien à décider", () => {
+  it("says of a service where everything has a default that there is nothing to decide", () => {
     const html = form(CATALOG.modules, ["runtime.node"], {
       values: withDefaults,
     });
@@ -391,7 +391,7 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
     expect(html).not.toContain('data-asked="true"');
   });
 
-  it("ouvre le pli de lui-même quand un réglage rangé est refusé", () => {
+  it("opens the fold by itself when a tucked-away setting is refused", () => {
     const problems = [
       {
         code: "format" as const,
@@ -411,7 +411,7 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
     expect(html).toMatch(/data-open=""[^>]*data-details="advanced"/);
   });
 
-  it("dit où le service se trouve dans la suite", () => {
+  it("says where the service stands in the sequence", () => {
     const group = fieldsOf(CATALOG.modules, ["core.system"])[0];
     const html = renderToStaticMarkup(
       <ConfigModuleGroup
@@ -427,12 +427,12 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
   });
 });
 
-describe("la légende des champs obligatoires", () => {
+describe("the legend of required fields", () => {
   const withDefaults = Object.fromEntries(
     CATALOG.modules.map((module) => [module.id, defaultsOf(module)])
   );
 
-  it("suit un champ obligatoire posé à l'écran", () => {
+  it("follows a required field placed on the screen", () => {
     const html = form(CATALOG.modules, ["core.system"], {
       values: withDefaults,
     });
@@ -440,7 +440,7 @@ describe("la légende des champs obligatoires", () => {
     expect(text(html).match(/Champ obligatoire/g)).toHaveLength(1);
   });
 
-  it("reste absente d'un service dont aucun champ montré n'est obligatoire", () => {
+  it("stays absent from a service where no shown field is required", () => {
     const html = form(CATALOG.modules, ["runtime.node"], {
       values: withDefaults,
     });
@@ -448,7 +448,7 @@ describe("la légende des champs obligatoires", () => {
     expect(text(html)).not.toContain("Champ obligatoire");
   });
 
-  it("apparaît quand le pli ouvert montre un champ obligatoire", async () => {
+  it("appears when the open fold shows a required field", async () => {
     const view = await mount(
       <div>
         {groups(CATALOG.modules, ["runtime.node"], { values: withDefaults })}

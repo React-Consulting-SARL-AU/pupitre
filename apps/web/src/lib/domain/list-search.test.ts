@@ -20,7 +20,7 @@ const parse = listSearch({
 })
 
 describe("listSearch", () => {
-  it("garde ce que le lecteur a choisi", () => {
+  it("keeps what the reader chose", () => {
     expect(
       parse({
         q: " ada ",
@@ -42,7 +42,7 @@ describe("listSearch", () => {
     })
   })
 
-  it("omet les valeurs par défaut", () => {
+  it("omits default values", () => {
     expect(
       parse({
         q: "",
@@ -54,7 +54,7 @@ describe("listSearch", () => {
     ).toEqual({})
   })
 
-  it("ignore un tri, un sens, un filtre et un décalage que la page ne connaît pas", () => {
+  it("ignores a sort, a direction, a filter and an offset the page does not know", () => {
     expect(
       parse({
         sort: "couleur",
@@ -66,11 +66,11 @@ describe("listSearch", () => {
     ).toEqual({})
   })
 
-  it("ne lit aucun tri quand la page n'en déclare pas", () => {
+  it("reads no sort when the page declares none", () => {
     expect(listSearch()({ sort: "name" })).toEqual({})
   })
 
-  it("lit un drapeau que le routeur a déjà rendu booléen comme celui écrit en toutes lettres", () => {
+  it("reads a flag the router already made boolean the same as one spelled out", () => {
     expect(parse({ unread: true })).toEqual({ unread: true })
     expect(parse({ unread: "false" })).toEqual({ unread: false })
   })
@@ -79,15 +79,15 @@ describe("listSearch", () => {
 describe("listSort", () => {
   const sorts = ["created_at", "name"] as const
 
-  it("garde un tri déclaré et retombe sur celui de la page sinon", () => {
+  it("keeps a declared sort and otherwise falls back to the page's", () => {
     expect(listSort("name", sorts, "created_at")).toBe("name")
     expect(listSort("couleur", sorts, "created_at")).toBe("created_at")
     expect(listSort(undefined, sorts, "created_at")).toBe("created_at")
   })
 })
 
-describe("flagValue et readFlag", () => {
-  it("font l'aller-retour entre le drapeau et ce que le select porte", () => {
+describe("flagValue and readFlag", () => {
+  it("round-trip between the flag and what the select carries", () => {
     expect(flagValue(undefined)).toBe(FILTER_ALL)
     expect(flagValue(true)).toBe("true")
     expect(flagValue(false)).toBe("false")
@@ -100,18 +100,18 @@ describe("flagValue et readFlag", () => {
 describe("nextListSearch", () => {
   const previous: { q?: string; offset?: number } = { q: "ada", offset: 50 }
 
-  it("garde le décalage quand seule la page tourne", () => {
+  it("keeps the offset when only the page turns", () => {
     expect(nextListSearch(previous, { offset: 100 })).toEqual({
       q: "ada",
       offset: 100,
     })
   })
 
-  it("revient à la première page dès qu'un filtre ou la recherche change", () => {
+  it("returns to the first page as soon as a filter or the search changes", () => {
     expect(nextListSearch(previous, { q: "leo" })).toEqual({ q: "leo" })
   })
 
-  it("tourne la page d'une seconde liste sans ramener la première au début", () => {
+  it("turns a second list's page without sending the first back to the start", () => {
     const two: { offset?: number; app_offset?: number } = { offset: 50 }
 
     expect(nextListSearch(two, { app_offset: 25 })).toEqual({
@@ -121,10 +121,10 @@ describe("nextListSearch", () => {
   })
 })
 
-describe("un décalage nommé", () => {
+describe("a named offset", () => {
   const pages = listSearch({ filters: { app_offset: { kind: "offset" } } })
 
-  it("porte la page d'une seconde liste, et la quitte à la première", () => {
+  it("carries a second list's page, and leaves it at the first", () => {
     expect(pages({ app_offset: "25" })).toEqual({ app_offset: 25 })
     expect(pages({ app_offset: 0 })).toEqual({})
     expect(pages({ app_offset: -3 })).toEqual({})

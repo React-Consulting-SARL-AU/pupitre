@@ -81,7 +81,7 @@ const VENDOR_DIR = path.join(PACKAGE_ROOT, "scripts/vendor")
 const FORMATTER = path.join(PACKAGE_ROOT, "../../node_modules/.bin/biome")
 const RETRIEVED_ON = "2026-09-04"
 const LICENSE = "CC0-1.0"
-const TRADEMARK = "marque déposée, usage nominatif"
+const TRADEMARK = "trademark, nominative use"
 const RANGE_PREFIX_RE = /^\D*/
 
 function simpleIconsVersion(): string {
@@ -215,48 +215,48 @@ function vendorSvg(
 }
 
 function noticeOf(rows: string[], markRows: string[]): string {
-  return `# Logos de services
+  return `# Service logos
 
-Un fichier par module du catalogue qui nomme un produit de marque. La plupart des
-tracés viennent de [Simple Icons](https://simpleicons.org) ${simpleIconsVersion()},
-publié sous ${LICENSE} ; la couleur de chaque fichier est la couleur de marque que
-Simple Icons tient de la source citée.
+One file per catalogue module that names a branded product. Most of the
+paths come from [Simple Icons](https://simpleicons.org) ${simpleIconsVersion()},
+published under ${LICENSE}; the colour of each file is the brand colour that
+Simple Icons holds from the cited source.
 
-Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel qu'un
-collecteur le republie — [svgl.app](https://svgl.app),
-[lobehub](https://lobehub.com/icons) — la colonne Source disant lequel pour
-chaque fichier. L'original est committé sous
-\`scripts/vendor\`, le générateur le réduit à ce que l'app inline — une racine, un
-\`viewBox\`, un titre, des identifiants préfixés pour que deux logos posés côte à
-côte ne se peignent pas l'un l'autre. Ces tracés-là sont en \`${TRADEMARK}\`, pas
-sous ${LICENSE}.
+The brands that Simple Icons does not publish come from the holder's SVG as an
+aggregator republishes it — [svgl.app](https://svgl.app),
+[lobehub](https://lobehub.com/icons) — the Source column saying which one for
+each file. The original is committed under
+\`scripts/vendor\`, and the generator reduces it to what the app inlines — a root, a
+\`viewBox\`, a title, prefixed identifiers so that two logos placed side by
+side do not paint over each other. Those paths are under \`${TRADEMARK}\`, not
+under ${LICENSE}.
 
-Les fichiers sont committés ; \`bun scripts/generate-logos.ts\` les régénère.
+The files are committed; \`bun scripts/generate-logos.ts\` regenerates them.
 
-**Usage nominatif.** Ces marques appartiennent à leurs titulaires. Pupitre les
-affiche pour nommer un logiciel que le client installe sur son propre serveur,
-ce que le droit des marques autorise. Pupitre ne s'en sert jamais pour suggérer
-un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en
-filigrane derrière du texte.
+**Nominative use.** These brands belong to their holders. Pupitre displays
+them to name software that the customer installs on their own server, which
+trademark law allows. Pupitre never uses them to suggest a partnership, an
+affiliation or an endorsement, nor as an action icon, nor as a watermark
+behind text.
 
-| Fichier | Module | Marque | Source | Licence du tracé | Récupéré le |
+| File | Module | Brand | Source | Path licence | Retrieved on |
 | --- | --- | --- | --- | --- | --- |
 ${rows.join("\n")}
 
-## Marques hors catalogue
+## Brands outside the catalogue
 
-Un produit que le site nomme sans qu'il porte le nom de son module : \`runtime.node\`
-installe aussi Bun.
+A product that the site names without it carrying the name of its module: \`runtime.node\`
+also installs Bun.
 
-| Fichier | Marque | Source | Licence du tracé | Récupéré le |
+| File | Brand | Source | Path licence | Retrieved on |
 | --- | --- | --- | --- | --- |
 ${markRows.join("\n")}
 
-## Modules sans logo
+## Modules without a logo
 
-Le catalogue retombe sur une icône Lucide.
+The catalogue falls back to a Lucide icon.
 
-| Module | Raison |
+| Module | Reason |
 | --- | --- |
 ${Object.entries(EXEMPTIONS)
   .map(([id, reason]) => `| \`${id}\` | ${reason} |`)

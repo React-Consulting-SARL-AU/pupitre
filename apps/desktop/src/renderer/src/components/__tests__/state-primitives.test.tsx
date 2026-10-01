@@ -9,8 +9,8 @@ import { WaitingLine } from "../ui/waiting-line";
 
 const NOOP = () => undefined;
 
-describe("un squelette", () => {
-  it("dessine autant de lignes qu'annoncé et le dit à voix haute", () => {
+describe("a skeleton", () => {
+  it("draws as many lines as announced and says so aloud", () => {
     const html = renderToStaticMarkup(<SkeletonRows rows={4} />);
 
     expect(html).toContain('role="status"');
@@ -19,21 +19,21 @@ describe("un squelette", () => {
     expect(html.match(/animate-breathe/g)?.length).toBe(12);
   });
 
-  it("garde ses blocs hors de l'arbre d'accessibilité", () => {
+  it("keeps its blocks out of the accessibility tree", () => {
     const html = renderToStaticMarkup(<SkeletonCards cards={1} />);
 
     expect(html.match(/aria-hidden="true"/g)?.length).toBe(4);
   });
 
-  it("se passe de cadre quand le panneau a déjà le sien", () => {
+  it("drops its frame when the panel already has one", () => {
     const html = renderToStaticMarkup(<SkeletonRows framed={false} />);
 
     expect(html).not.toContain("elevation-raised");
   });
 });
 
-describe("une ligne d'attente", () => {
-  it("respire à côté de ce qu'elle attend", () => {
+describe("a waiting line", () => {
+  it("breathes next to what it waits for", () => {
     const html = renderToStaticMarkup(<WaitingLine>lecture…</WaitingLine>);
 
     expect(html).toContain('data-shape="breathing"');
@@ -42,8 +42,8 @@ describe("une ligne d'attente", () => {
   });
 });
 
-describe("un avis", () => {
-  it("porte la couleur sur son glyphe, jamais sur le texte", () => {
+describe("a notice", () => {
+  it("puts the colour on its glyph, never on the text", () => {
     const html = renderToStaticMarkup(
       <Callout tone="danger">Le serveur a refusé.</Callout>
     );
@@ -54,7 +54,7 @@ describe("un avis", () => {
     expect(html).not.toContain("bg-danger");
   });
 
-  it("montre une commande comme une ligne à taper", () => {
+  it("shows a command as a line to type", () => {
     const html = renderToStaticMarkup(
       <Callout fix="sudo systemctl restart pupitred" tone="danger">
         L'agent ne répond pas.
@@ -65,7 +65,7 @@ describe("un avis", () => {
     expect(html).toContain("sudo systemctl restart pupitred");
   });
 
-  it("montre une phrase comme une phrase", () => {
+  it("shows a sentence as a sentence", () => {
     const html = renderToStaticMarkup(
       <Callout fix="Vérifiez le port 22." tone="danger">
         Connexion refusée.
@@ -76,7 +76,7 @@ describe("un avis", () => {
     expect(html).toContain("Vérifiez le port 22.");
   });
 
-  it("se laisse ranger quand on lui donne le geste", () => {
+  it("can be dismissed when given the gesture", () => {
     const html = renderToStaticMarkup(
       <Callout onDismiss={NOOP} tone="ok">
         CLÉ enregistrée.
@@ -87,7 +87,7 @@ describe("un avis", () => {
     expect(html).toContain('data-tone="ok"');
   });
 
-  it("posé dans un panneau, il perd son cadre et garde son glyphe", () => {
+  it("placed in a panel, it loses its frame and keeps its glyph", () => {
     const html = renderToStaticMarkup(
       <Callout bare tone="danger">
         Le serveur a refusé.
@@ -101,8 +101,8 @@ describe("un avis", () => {
   });
 });
 
-describe("un refus de l'agent", () => {
-  it("dit le message, le remède tel quel et le geste qui rejoue", () => {
+describe("an agent refusal", () => {
+  it("states the message, the fix as it is and the gesture that replays", () => {
     const html = renderToStaticMarkup(
       <ErrorNotice
         error={{
@@ -121,8 +121,8 @@ describe("un refus de l'agent", () => {
   });
 });
 
-describe("une confirmation", () => {
-  it("pose sa question dans un dialogue, sans toucher au bouton", async () => {
+describe("a confirmation", () => {
+  it("asks its question in a dialog, without touching the button", async () => {
     const closed = renderToStaticMarkup(
       <ConfirmButton
         confirmLabel="Retirer"

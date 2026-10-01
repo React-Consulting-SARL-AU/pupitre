@@ -105,7 +105,7 @@ async function organizationWithServers() {
   return { organization, owner, admin, member, mine, other }
 }
 
-describe("GET /agent/state et le heartbeat", () => {
+describe("GET /agent/state and the heartbeat", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -114,7 +114,7 @@ describe("GET /agent/state et le heartbeat", () => {
     await resetDb()
   })
 
-  it("rend l'identifiant du serveur, qui nomme son préfixe dans le seau", async () => {
+  it("returns the server identifier, which names its prefix in the bucket", async () => {
     const { mine } = await organizationWithServers()
     const response = await apiRequest<{ server_id: string }>("/agent/state", {
       bearer: mine.token,
@@ -124,7 +124,7 @@ describe("GET /agent/state et le heartbeat", () => {
     expect(response.json.server_id).toBe(mine.server.id)
   })
 
-  it("garde le battement de sauvegarde, et le connu quand l'agent le tait", async () => {
+  it("keeps the backup beat, and the known one when the agent omits it", async () => {
     const { owner, mine } = await organizationWithServers()
 
     const telling = await apiRequest("/agent/heartbeat", {
@@ -158,7 +158,7 @@ describe("GET /agent/state et le heartbeat", () => {
     ).toBeNull()
   })
 
-  it("refuse un battement hors du contrat", async () => {
+  it("refuses a beat outside the contract", async () => {
     const { mine } = await organizationWithServers()
     const response = await apiRequest<ErrorBody>("/agent/heartbeat", {
       body: {
@@ -182,13 +182,13 @@ describe("POST /agent/backups", () => {
     await resetDb()
   })
 
-  it("refuse sans jeton de serveur", async () => {
+  it("refuses without a server token", async () => {
     const response = await declare("", declaration())
 
     expect(response.status).toBe(401)
   })
 
-  it("crée la référence, sans rien qui nomme un projet ou une base, et la journalise", async () => {
+  it("creates the reference, with nothing naming a project or a database, and logs it", async () => {
     const { organization, mine } = await organizationWithServers()
     const body = declaration()
     const response = await declare(mine.token, body)
@@ -218,7 +218,7 @@ describe("POST /agent/backups", () => {
     expect(event.targetId).toBe(body.id)
   })
 
-  it("garde le nom donné à une sauvegarde manuelle et le rend avec elle", async () => {
+  it("keeps the name given to a manual backup and returns it with it", async () => {
     const { owner, mine } = await organizationWithServers()
     const body = declaration({ trigger: "manual", name: "Avant la migration" })
 
@@ -230,7 +230,7 @@ describe("POST /agent/backups", () => {
     expect(listed.json.data[0]?.name).toBe("Avant la migration")
   })
 
-  it("refuse un nom hors du contrat", async () => {
+  it("refuses a name outside the contract", async () => {
     const { mine } = await organizationWithServers()
 
     for (const name of [" avant ", "a\nb", "x".repeat(81)]) {
@@ -240,7 +240,7 @@ describe("POST /agent/backups", () => {
     }
   })
 
-  it("rend 200 et la même ligne quand le même serveur redéclare", async () => {
+  it("returns 200 and the same row when the same server declares again", async () => {
     const { mine } = await organizationWithServers()
     const body = declaration()
 
@@ -256,7 +256,7 @@ describe("POST /agent/backups", () => {
     ).toBe(1)
   })
 
-  it("refuse l'identifiant qu'un autre serveur de l'organisation porte", async () => {
+  it("refuses the identifier that another server of the organization holds", async () => {
     const { mine, other } = await organizationWithServers()
     const body = declaration()
 
@@ -270,7 +270,7 @@ describe("POST /agent/backups", () => {
     expect(response.json.error.fix).toBeDefined()
   })
 
-  it("laisse le même identifiant à une autre organisation", async () => {
+  it("allows the same identifier in another organization", async () => {
     const { mine } = await organizationWithServers()
     const elsewhere = await organizationWithServers()
     const body = declaration()
@@ -279,7 +279,7 @@ describe("POST /agent/backups", () => {
     expect((await declare(elsewhere.mine.token, body)).status).toBe(201)
   })
 
-  it("refuse une déclaration hors du contrat", async () => {
+  it("refuses a declaration outside the contract", async () => {
     const { mine } = await organizationWithServers()
     const badId = await declare(mine.token, declaration({ id: "backup-1" }))
     const noDigest = await declare(mine.token, {
@@ -306,7 +306,7 @@ describe("DELETE /agent/backups/:id", () => {
     await resetDb()
   })
 
-  it("retire la référence d'une sauvegarde de ce serveur et la journalise", async () => {
+  it("removes the reference of a backup of this server and logs it", async () => {
     const { mine } = await organizationWithServers()
     const body = declaration()
 
@@ -324,7 +324,7 @@ describe("DELETE /agent/backups/:id", () => {
     ).toBe(1)
   })
 
-  it("rend 404 pour la sauvegarde d'un autre serveur, sans la toucher", async () => {
+  it("returns 404 for another server's backup, without touching it", async () => {
     const { mine, other } = await organizationWithServers()
     const body = declaration()
 
@@ -341,7 +341,7 @@ describe("DELETE /agent/backups/:id", () => {
   })
 })
 
-describe("GET /backups et GET /servers/:id/backups", () => {
+describe("GET /backups and GET /servers/:id/backups", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -350,7 +350,7 @@ describe("GET /backups et GET /servers/:id/backups", () => {
     await resetDb()
   })
 
-  it("rend les sauvegardes les plus récentes d'abord, celles des serveurs effacés comprises", async () => {
+  it("returns the most recent backups first, including those of erased servers", async () => {
     const { owner, mine, other } = await organizationWithServers()
     const older = declaration({ created_at: "2026-09-18T03:00:00Z" })
     const newer = declaration({ created_at: "2026-09-19T03:00:00Z" })
@@ -375,7 +375,7 @@ describe("GET /backups et GET /servers/:id/backups", () => {
     })
   })
 
-  it("ne montre à un member que les sauvegardes des serveurs qui lui sont attribués", async () => {
+  it("shows a member only the backups of the servers assigned to them", async () => {
     const { admin, member, mine, other } = await organizationWithServers()
     const own = declaration()
     const foreign = declaration()
@@ -405,7 +405,7 @@ describe("GET /backups et GET /servers/:id/backups", () => {
     expect(foreignServer.status).toBe(404)
   })
 
-  it("ne montre rien d'une autre organisation", async () => {
+  it("shows nothing from another organization", async () => {
     const { mine } = await organizationWithServers()
     const elsewhere = await organizationWithServers()
 
@@ -423,7 +423,7 @@ describe("GET /backups et GET /servers/:id/backups", () => {
     expect(server.status).toBe(404)
   })
 
-  it("refuse sans session", async () => {
+  it("refuses without a session", async () => {
     const response = await apiRequest<ErrorBody>("/backups")
 
     expect(response.status).toBe(401)
@@ -439,7 +439,7 @@ describe("POST /backups/:id/forget", () => {
     await resetDb()
   })
 
-  it("efface la référence pour un admin et la journalise", async () => {
+  it("erases the reference for an admin and logs it", async () => {
     const { admin, other } = await organizationWithServers()
     const body = declaration()
 
@@ -467,7 +467,7 @@ describe("POST /backups/:id/forget", () => {
     expect(event.targetId).toBe(body.id)
   })
 
-  it("refuse un member", async () => {
+  it("refuses a member", async () => {
     const { member, mine } = await organizationWithServers()
     const body = declaration()
 
@@ -481,7 +481,7 @@ describe("POST /backups/:id/forget", () => {
     expect(response.status).toBe(403)
   })
 
-  it("rend 404 pour une sauvegarde inconnue ou déjà oubliée", async () => {
+  it("returns 404 for an unknown or already forgotten backup", async () => {
     const { owner, mine } = await organizationWithServers()
     const body = declaration()
 
@@ -509,7 +509,7 @@ describe("POST /backups/:id/restored", () => {
     await resetDb()
   })
 
-  it("note la restauration au journal, sur la sauvegarde", async () => {
+  it("notes the restore in the log, on the backup", async () => {
     const { owner, mine, other } = await organizationWithServers()
     const body = declaration()
 
@@ -532,7 +532,7 @@ describe("POST /backups/:id/restored", () => {
     expect(event.payload).toMatchObject({ server_id: mine.server.id })
   })
 
-  it("rend 404 quand la sauvegarde ou le serveur échappe à l'appelant", async () => {
+  it("returns 404 when the backup or the server is out of the caller's reach", async () => {
     const { member, mine, other } = await organizationWithServers()
     const foreign = declaration()
     const own = declaration()

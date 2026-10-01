@@ -222,12 +222,12 @@ function lostChildren(chain: Migration[]): string[] {
   return lost.sort()
 }
 
-describe("les migrations qui reconstruisent une table", () => {
-  it("gardent les lignes qui pointent vers elle, clés étrangères actives comme sur D1", () => {
+describe("migrations that rebuild a table", () => {
+  it("keep the rows that point to it, foreign keys enabled as on D1", () => {
     expect(lostChildren(migrations())).toEqual([])
   })
 
-  it("seraient prises en défaut par une reconstruction naïve d'une table référencée", () => {
+  it("would be caught out by a naive rebuild of a referenced table", () => {
     expect(
       lostChildren([
         ...migrations(),

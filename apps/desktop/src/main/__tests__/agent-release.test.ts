@@ -39,16 +39,16 @@ function releaseOf(bytes: Uint8Array, privateKey: Parameters<typeof sign>[2]) {
   };
 }
 
-describe("le message signé", () => {
-  it("est celui que apps/agent/internal/release écrit, à la ligne près", () => {
+describe("the signed message", () => {
+  it("is the one apps/agent/internal/release writes, line for line", () => {
     expect(signedMessage("1.4.0", "amd64", "abc").toString("utf8")).toBe(
       "pupitred\n1.4.0\namd64\nabc\n"
     );
   });
 });
 
-describe("la vérification d'une release de l'agent", () => {
-  it("accepte un binaire signé dont la somme correspond", () => {
+describe("verifying an agent release", () => {
+  it("accepts a signed binary whose checksum matches", () => {
     const { privateKey, publicKey } = keyPair();
 
     expect(
@@ -56,7 +56,7 @@ describe("la vérification d'une release de l'agent", () => {
     ).toMatchObject({ ok: true });
   });
 
-  it("refuse un binaire tronqué avant même de regarder la signature", () => {
+  it("refuses a truncated binary before even looking at the signature", () => {
     const { privateKey, publicKey } = keyPair();
     const release = releaseOf(BINARY, privateKey);
 
@@ -74,7 +74,7 @@ describe("la vérification d'une release de l'agent", () => {
     });
   });
 
-  it("refuse un binaire signé pour une autre architecture", () => {
+  it("refuses a binary signed for another architecture", () => {
     const { privateKey, publicKey } = keyPair();
 
     expect(
@@ -89,7 +89,7 @@ describe("la vérification d'une release de l'agent", () => {
     });
   });
 
-  it("refuse une signature qui ne tient pas", () => {
+  it("refuses a signature that does not hold", () => {
     const { privateKey } = keyPair();
     const other = keyPair();
 
@@ -101,7 +101,7 @@ describe("la vérification d'une release de l'agent", () => {
     });
   });
 
-  it("refuse une release non signée", () => {
+  it("refuses an unsigned release", () => {
     const { publicKey } = keyPair();
 
     expect(
@@ -116,7 +116,7 @@ describe("la vérification d'une release de l'agent", () => {
     });
   });
 
-  it("refuse de valider quoi que ce soit sans clé publique embarquée", () => {
+  it("refuses to validate anything without an embedded public key", () => {
     const { privateKey } = keyPair();
 
     expect(

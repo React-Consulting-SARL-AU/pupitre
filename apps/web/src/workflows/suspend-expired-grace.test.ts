@@ -54,7 +54,7 @@ async function endedGrant(organizationId: string) {
   })
 }
 
-describe("le workflow SuspendExpiredGrace", () => {
+describe("the SuspendExpiredGrace workflow", () => {
   let mail: ReturnType<typeof useFakeMail>
 
   beforeAll(async () => {
@@ -73,7 +73,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     resetFakeMail()
   })
 
-  it("ferme les octrois échus, suspend, puis purge les dépôts, chacun dans une étape nommée", async () => {
+  it("closes the due grants, suspends, then purges the deposits, each in a named step", async () => {
     const serverId = await serverWithExpiredGrace()
     const recorder = recordSteps()
 
@@ -99,7 +99,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toMatchObject({ status: "suspended" })
   })
 
-  it("laisse une tolérance encore ouverte intacte", async () => {
+  it("leaves a still-open grace period untouched", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -122,7 +122,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toMatchObject({ status: "grace" })
   })
 
-  it("ferme un octroi échu sans rien couper tant que l'organisation tient dans ses serveurs gratuits", async () => {
+  it("closes a due grant without cutting anything while the organization fits within its free servers", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -147,7 +147,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toMatchObject({ status: "active" })
   })
 
-  it("ouvre la tolérance des serveurs d'un octroi échu au-delà des serveurs gratuits", async () => {
+  it("opens the grace period for the servers of a due grant beyond the free servers", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -169,7 +169,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toBe(FREE_SERVERS + 1)
   })
 
-  it("purge les dépôts de mail vieux d'un jour et laisse les autres", async () => {
+  it("purges mail deposits a day old and leaves the others", async () => {
     const stale = "mail/uploads/user_1/old/rapport.pdf"
     const fresh = "mail/uploads/user_1/new/rapport.pdf"
 

@@ -35,8 +35,8 @@ afterEach(() => {
   useKeyApprovals.getState().forget();
 });
 
-describe("les appareils à autoriser", () => {
-  it("nomme l'appareil, la personne et le serveur, avec le geste qui signe", () => {
+describe("the devices to authorize", () => {
+  it("names the device, the person and the server, with the gesture that signs", () => {
     const html = renderToStaticMarkup(
       <AccountKeyApprovalRow
         approval={APPROVAL}
@@ -50,7 +50,7 @@ describe("les appareils à autoriser", () => {
     expect(html).toContain(APPROVAL.device.fingerprint);
   });
 
-  it("remplace le geste par ce qu'il a fait, une fois l'autorisation acceptée", () => {
+  it("replaces the gesture with what it did, once the authorization is accepted", () => {
     const html = renderToStaticMarkup(
       <AccountKeyApprovalRow
         approval={APPROVAL}
@@ -65,7 +65,7 @@ describe("les appareils à autoriser", () => {
     );
   });
 
-  it("pose le refus et son remède sous la ligne", () => {
+  it("puts the refusal and its fix under the row", () => {
     const html = text(
       renderToStaticMarkup(
         <AccountKeyApprovalRow
@@ -87,7 +87,7 @@ describe("les appareils à autoriser", () => {
     expect(html).toContain("Installez OpenSSH");
   });
 
-  it("ne montre rien à un ordinateur que personne n'attend", async () => {
+  it("shows nothing to a computer nobody is waiting for", async () => {
     stubPupitre({
       keyApprovals: () => Promise.resolve({ ok: true, result: [] }),
     });
@@ -112,7 +112,7 @@ describe("les appareils à autoriser", () => {
     expect(failedHtml).toBe("");
   });
 
-  it("lit les demandes à l'ouverture et signe sur un clic", async () => {
+  it("reads the requests on open and signs on a click", async () => {
     const named: string[][] = [];
 
     stubPupitre({

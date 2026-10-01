@@ -9,8 +9,8 @@ import { TerminalTab } from "../terminals/terminal-tab";
 
 const NOOP = () => undefined;
 
-describe("un onglet de session", () => {
-  it("est un onglet au sens du clavier, et dit ce que fait sa session", () => {
+describe("a session tab", () => {
+  it("is a tab in the keyboard sense, and says what its session does", () => {
     const html = renderToStaticMarkup(
       <TerminalTab
         active
@@ -39,7 +39,7 @@ describe("un onglet de session", () => {
     expect(html).toContain("Fermer l&#x27;onglet et arrêter la session (⌘W)");
   });
 
-  it("cache le bouton de fermeture d'un onglet qui n'est pas devant", () => {
+  it("hides the close button of a tab that is not in front", () => {
     const html = renderToStaticMarkup(
       <TerminalTab
         active={false}
@@ -65,8 +65,8 @@ describe("un onglet de session", () => {
   });
 });
 
-describe("le bouton d'une nouvelle session", () => {
-  it("ouvre un shell sans rien demander quand c'est tout ce que la machine offre", () => {
+describe("the new session button", () => {
+  it("opens a shell without asking when that is all the machine offers", () => {
     const html = renderToStaticMarkup(
       <TerminalNewButton chord="⌘" kinds={["shell"]} onNew={NOOP} />
     );
@@ -75,7 +75,7 @@ describe("le bouton d'une nouvelle session", () => {
     expect(html).not.toContain("aria-haspopup");
   });
 
-  it("ouvre la liste des agents installés quand il y en a", () => {
+  it("opens the list of installed agents when there are any", () => {
     const html = renderToStaticMarkup(
       <TerminalNewButton
         chord="⌘"
@@ -89,8 +89,8 @@ describe("le bouton d'une nouvelle session", () => {
   });
 });
 
-describe("la fin d'une session", () => {
-  it("dit le code de sortie et offre de rouvrir ou de fermer", () => {
+describe("the end of a session", () => {
+  it("states the exit code and offers to reopen or close", () => {
     const html = renderToStaticMarkup(
       <TerminalEndedBar code={130} onClose={NOOP} onReopen={NOOP} />
     );
@@ -103,7 +103,7 @@ describe("la fin d'une session", () => {
     expect(html).toContain('data-tone="danger"');
   });
 
-  it("reste neutre quand le processus est sorti proprement", () => {
+  it("stays neutral when the process exited cleanly", () => {
     const html = renderToStaticMarkup(
       <TerminalEndedBar code={0} onClose={NOOP} onReopen={NOOP} />
     );
@@ -112,8 +112,8 @@ describe("la fin d'une session", () => {
   });
 });
 
-describe("la barre de statut", () => {
-  it("dit où est la session, son dossier et sa taille", () => {
+describe("the status bar", () => {
+  it("says where the session is, its folder and its size", () => {
     noteStatus("t-status", { cols: 132, dir: "/home/dev/app", rows: 43 });
 
     const html = renderToStaticMarkup(
@@ -131,7 +131,7 @@ describe("la barre de statut", () => {
     expect(html).toContain("au repos");
   });
 
-  it("nomme le serveur quand la session n'a pas de projet", () => {
+  it("names the server when the session has no project", () => {
     const html = renderToStaticMarkup(
       <TerminalStatusBar
         id="t-bare"
@@ -146,8 +146,8 @@ describe("la barre de statut", () => {
   });
 });
 
-describe("la recherche", () => {
-  it("s'ouvre sur un champ et ses trois boutons", () => {
+describe("the search", () => {
+  it("opens on a field and its three buttons", () => {
     const html = renderToStaticMarkup(
       <TerminalSearchBar id="t-search" onClose={NOOP} />
     );

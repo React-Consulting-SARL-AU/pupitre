@@ -33,8 +33,8 @@ afterEach(() => {
   forgetProjects();
 });
 
-describe("le fichier d'environnement d'un projet", () => {
-  it("refuse un projet que l'agent n'a jamais déclaré", async () => {
+describe("a project's environment file", () => {
+  it("refuses a project the agent never declared", async () => {
     const answer = await projectEnv(SERVER, "inconnu", false, null, deps());
 
     expect(answer).toMatchObject({
@@ -43,7 +43,7 @@ describe("le fichier d'environnement d'un projet", () => {
     });
   });
 
-  it("lit les clés telles quelles, puis réécrit le fichier quand on force", async () => {
+  it("reads the keys as they are, then rewrites the file when forced", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);

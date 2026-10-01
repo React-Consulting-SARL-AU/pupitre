@@ -172,8 +172,8 @@ function deps({
   };
 }
 
-describe("la préparation de l'agent", () => {
-  it("refuse un build de production sans droit d'usage, avec le lien vers la console", async () => {
+describe("agent preparation", () => {
+  it("refuses a production build without a right of use, with the link to the console", async () => {
     const answer = await prepareAgent(
       SERVER,
       "amd64",
@@ -192,7 +192,7 @@ describe("la préparation de l'agent", () => {
     });
   });
 
-  it("ne nomme à la plateforme que l'empreinte Ed25519, que l'agent déclarera à l'échange", async () => {
+  it("names only the Ed25519 fingerprint to the platform, which the agent will declare at the exchange", async () => {
     const signed = signedRelease(BINARY);
     const ready = deps({
       release: signed.release,
@@ -207,7 +207,7 @@ describe("la préparation de l'agent", () => {
     expect(ready.enrolled[0]).not.toHaveProperty("fingerprint");
   });
 
-  it("enrôle le serveur avant d'envoyer quoi que ce soit", async () => {
+  it("enrols the server before sending anything", async () => {
     const signed = signedRelease(BINARY);
     const ready = deps({
       release: signed.release,
@@ -242,7 +242,7 @@ describe("la préparation de l'agent", () => {
   });
 
   // Once the token has left for the agent, a new attempt enrols anew.
-  it("réutilise l'enrôlement que le serveur tient encore plutôt que d'en acheter un autre", async () => {
+  it("reuses the enrolment the server still holds rather than buying another", async () => {
     const ready = deps();
     const granted: Server = {
       ...SERVER,
@@ -272,7 +272,7 @@ describe("la préparation de l'agent", () => {
     expect(ready.enrolled).toHaveLength(2);
   });
 
-  it("enrôle un serveur dont l'identité ne tient plus d'enrôlement", async () => {
+  it("enrols a server whose identity no longer holds an enrolment", async () => {
     const ready = deps();
     const granted: Server = {
       ...SERVER,
@@ -291,7 +291,7 @@ describe("la préparation de l'agent", () => {
     expect(ready.enrolled).toHaveLength(1);
   });
 
-  it("écrit sur le serveur local l'identité que la plateforme lui donne", async () => {
+  it("writes to the local server the identity the platform gives it", async () => {
     const ready = deps();
 
     await prepareAgent(SERVER, "amd64", ready);
@@ -301,7 +301,7 @@ describe("la préparation de l'agent", () => {
     ]);
   });
 
-  it("refuse un binaire dont la signature ne tient pas", async () => {
+  it("refuses a binary whose signature does not hold", async () => {
     const signed = signedRelease(BINARY);
     const other = keyPair();
 
@@ -317,7 +317,7 @@ describe("la préparation de l'agent", () => {
     });
   });
 
-  it("garde le binaire du build local quand aucune version n'est publiée", async () => {
+  it("keeps the local build's binary when no version is published", async () => {
     const answer = await prepareAgent(SERVER, "amd64", deps());
 
     expect(answer).toMatchObject({
@@ -329,7 +329,7 @@ describe("la préparation de l'agent", () => {
     });
   });
 
-  it("n'a rien à envoyer en production quand aucune version n'est publiée", async () => {
+  it("has nothing to send in production when no version is published", async () => {
     const answer = await prepareAgent(
       SERVER,
       "amd64",
@@ -342,7 +342,7 @@ describe("la préparation de l'agent", () => {
     });
   });
 
-  it("laisse un build de développement sans compte pousser son propre binaire", async () => {
+  it("lets a development build without an account push its own binary", async () => {
     const answer = await prepareAgent(SERVER, "amd64", deps({ device: null }));
 
     expect(answer).toMatchObject({

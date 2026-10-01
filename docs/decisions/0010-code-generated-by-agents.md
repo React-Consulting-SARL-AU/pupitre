@@ -1,7 +1,7 @@
-# 0010 — Tout le code est produit par des agents
+# 0010 — All the code is produced by agents
 
-Date : 2026-09-04 · Statut : acceptée
+Date: 2026-09-04 · Status: accepted
 
-Le code est écrit par Claude Code (Opus 5 pour le volume, Fable 5.1 pour les specs et la revue). Le propriétaire spécifie, relit les tests et les démos, valide, tient les comptes et l'argent. Il n'écrit pas de code.
+The code is written by Claude Code (Opus 5 for volume, Fable 5.1 for specs and review). The owner specifies, reviews the tests and demos, validates, and handles the accounts and the money. They do not write code.
 
-Conséquences : le dépôt porte le cahier des charges (CLAUDE.md, docs/contracts, docs/decisions) ; les tests précèdent le code ; les contrats se modifient délibérément, jamais au fil de l'eau.
+Consequences: the repository carries the specification (CLAUDE.md, docs/contracts, docs/decisions); tests come before code; contracts are changed deliberately, never on the fly.

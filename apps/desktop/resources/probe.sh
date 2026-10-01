@@ -1,11 +1,11 @@
-# pupitred probe — décrit une machine avant toute installation.
+# pupitred probe — describes a machine before any installation.
 #
-# Envoyée en mémoire, jamais déposée sur le disque :
-#   ssh <hôte> 'sh -s' < probe.sh
+# Sent in memory, never written to disk:
+#   ssh <host> 'sh -s' < probe.sh
 #
-# sh POSIX, sans jq, sans bash-isme. Ne lit que : aucune écriture, aucune modification.
-# Écrit sur la sortie standard un JSON conforme au schéma Probe du protocole. La sonde Go
-# de internal/probe lit les mêmes fichiers, lance les mêmes commandes et produit le même JSON.
+# POSIX sh, no jq, no bashisms. Read-only: no writes, no modifications.
+# Writes to standard output JSON that conforms to the protocol's Probe schema. The Go probe
+# in internal/probe reads the same files, runs the same commands and produces the same JSON.
 
 set -u
 
@@ -95,7 +95,7 @@ available_bytes() {
   printf '%s' "$bytes"
 }
 
-# Le dossier des projets vit souvent sur son propre volume : c'est le plus petit des deux qui manquera.
+# The projects folder often lives on its own volume: the smaller of the two is the one that will run out.
 free_gigabytes() {
   awk -v first="$1" -v second="$2" 'BEGIN {
     smallest = (first == 0 ? second : (second == 0 ? first : (first < second ? first : second)))
@@ -138,7 +138,7 @@ listening_ports() {
     }' | merge_ports
 }
 
-# Le même port apparaît une fois par famille d'adresses ; on garde le nom de processus là où il était lisible.
+# The same port appears once per address family; keep the process name wherever it was readable.
 merge_ports() {
   awk -F'\t' '
     {

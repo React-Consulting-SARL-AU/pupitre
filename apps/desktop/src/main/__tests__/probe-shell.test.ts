@@ -100,8 +100,8 @@ function recorder(
   return { calls, spawn };
 }
 
-describe("la sonde envoyée par SSH", () => {
-  it("n'exécute que `sh -s`, avec le script sur l'entrée standard", async () => {
+describe("the probe sent over SSH", () => {
+  it("only runs `sh -s`, with the script on standard input", async () => {
     const script = readFileSync(EMBEDDED_PROBE, "utf8");
     const { calls, spawn } = recorder(() => ({
       out: `${JSON.stringify(BARE)}\n`,
@@ -128,7 +128,7 @@ describe("la sonde envoyée par SSH", () => {
     expect(call.ended).toBe(true);
   });
 
-  it("n'écrit rien sur le serveur : aucune copie, aucune redirection, aucun fichier", async () => {
+  it("writes nothing on the server: no copy, no redirection, no file", async () => {
     const { calls, spawn } = recorder(() => ({
       out: `${JSON.stringify(BARE)}\n`,
     }));
@@ -153,7 +153,7 @@ describe("la sonde envoyée par SSH", () => {
     }
   });
 
-  it("garde le rapport tel quel, bannière de connexion comprise", async () => {
+  it("keeps the report as is, login banner included", async () => {
     const { spawn } = recorder(() => ({
       out: `Welcome to Ubuntu 24.04 LTS\n{"not":"a probe"}\n${JSON.stringify(BARE)}\n`,
     }));
@@ -167,7 +167,7 @@ describe("la sonde envoyée par SSH", () => {
     expect(answer).toEqual({ ok: true, result: BARE as never });
   });
 
-  it("rend l'erreur de ssh et son remède quand la connexion échoue", async () => {
+  it("returns the ssh error and its fix when the connection fails", async () => {
     const { spawn } = recorder(() => ({
       code: 255,
       err: "ssh: connect to host 10.0.0.9 port 22: Connection refused\n",
@@ -188,7 +188,7 @@ describe("la sonde envoyée par SSH", () => {
     ).toContain("Connection refused");
   });
 
-  it("le dit quand la sortie n'est pas un rapport", async () => {
+  it("says so when the output is not a report", async () => {
     const { spawn } = recorder(() => ({ out: "sh: 1: awk: not found\n" }));
 
     const answer = await runShellProbe({
@@ -206,7 +206,7 @@ describe("la sonde envoyée par SSH", () => {
     );
   });
 
-  it("abandonne après le délai, sans laisser le processus derrière", async () => {
+  it("gives up after the timeout, without leaving the process behind", async () => {
     let killed = false;
     const spawn: ShellSpawn = () => {
       const child = new EventEmitter() as EventEmitter & {
@@ -238,14 +238,14 @@ describe("la sonde envoyée par SSH", () => {
   });
 });
 
-describe("la sonde embarquée", () => {
-  it("est le fichier de l'agent, octet pour octet", () => {
+describe("the embedded probe", () => {
+  it("is the agent's file, byte for byte", () => {
     expect(readFileSync(EMBEDDED_PROBE, "utf8")).toBe(
       readFileSync(AGENT_PROBE, "utf8")
     );
   });
 
-  it("part sur `sh -s` et nulle part ailleurs", () => {
+  it("goes through `sh -s` and nowhere else", () => {
     expect(probeSshArgs(["staging"])).toEqual([
       "-o",
       "BatchMode=yes",

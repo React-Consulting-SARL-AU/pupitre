@@ -15,8 +15,8 @@ beforeEach(() => {
   forgetSecrets(SERVER);
 });
 
-describe("ce que l'écran sait d'un secret", () => {
-  it("ne rend qu'une marque : rempli, généré, révélé", () => {
+describe("what the screen knows about a secret", () => {
+  it("returns only a mark: filled, generated, revealed", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_saisi_a_la_main");
 
     const state = marks(SERVER);
@@ -29,7 +29,7 @@ describe("ce que l'écran sait d'un secret", () => {
     expect(JSON.stringify(state)).not.toContain("ghp_saisi_a_la_main");
   });
 
-  it("oublie un secret qu'on vide", () => {
+  it("forgets a secret that is cleared", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_x");
     clearSecret(SERVER, "tool.github", "token");
 
@@ -38,8 +38,8 @@ describe("ce que l'écran sait d'un secret", () => {
   });
 });
 
-describe("un secret généré", () => {
-  it("se génère sans passer par l'écran", () => {
+describe("a generated secret", () => {
+  it("is generated without going through the screen", () => {
     generateSecret(SERVER, "db.postgres", "app_password");
 
     expect(marks(SERVER)["db.postgres"]?.app_password).toEqual({
@@ -49,7 +49,7 @@ describe("un secret généré", () => {
     });
   });
 
-  it("se montre une fois, puis plus jamais", () => {
+  it("is shown once, then never again", () => {
     generateSecret(SERVER, "db.postgres", "app_password");
 
     const first = revealSecret(SERVER, "db.postgres", "app_password");
@@ -60,7 +60,7 @@ describe("un secret généré", () => {
     expect(marks(SERVER)["db.postgres"]?.app_password?.revealed).toBe(true);
   });
 
-  it("garde la valeur révélée pour l'installation", () => {
+  it("keeps the revealed value for the installation", () => {
     generateSecret(SERVER, "db.postgres", "app_password");
 
     const shown = revealSecret(SERVER, "db.postgres", "app_password");
@@ -71,8 +71,8 @@ describe("un secret généré", () => {
   });
 });
 
-describe("la ligne du flux secret", () => {
-  it("a la forme du contrat : un objet par module", () => {
+describe("the secret stream line", () => {
+  it("has the contract's shape: one object per module", () => {
     setSecret(SERVER, "db.postgres", "app_password", "pg-app");
     setSecret(SERVER, "db.postgres", "remote_password", "pg-remote");
     setSecret(SERVER, "tool.github", "token", "ghp_x");
@@ -83,7 +83,7 @@ describe("la ligne du flux secret", () => {
     });
   });
 
-  it("numérote les éléments d'une liste de secrets", () => {
+  it("numbers the items of a list of secrets", () => {
     setSecret(SERVER, "ai.hermes", "providers.0", "clé-a");
     setSecret(SERVER, "ai.hermes", "providers.1", "clé-b");
 
@@ -92,14 +92,14 @@ describe("la ligne du flux secret", () => {
     });
   });
 
-  it("se relit telle quelle tant que l'agent ne l'a pas prise", () => {
+  it("is reread as is until the agent has taken it", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_x");
 
     expect(readSecrets(SERVER)).toEqual(readSecrets(SERVER));
     expect(marks(SERVER)).not.toEqual({});
   });
 
-  it("ne survit pas à l'oubli : rien ne reste après l'installation", () => {
+  it("does not survive forgetting: nothing remains after the installation", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_x");
     forgetSecrets(SERVER);
 
@@ -107,7 +107,7 @@ describe("la ligne du flux secret", () => {
     expect(marks(SERVER)).toEqual({});
   });
 
-  it("ne mélange pas deux serveurs", () => {
+  it("does not mix two servers", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_un");
     setSecret("srv-2", "tool.github", "token", "ghp_deux");
 
@@ -118,8 +118,8 @@ describe("la ligne du flux secret", () => {
   });
 });
 
-describe("aucun secret dans un journal", () => {
-  it("ne passe par aucune console, ni en écriture ni en lecture", () => {
+describe("no secret in a log", () => {
+  it("goes through no console, neither on write nor on read", () => {
     const watched = ["log", "info", "warn", "error", "debug", "trace"] as const;
     const spies = watched.map((level) =>
       spyOn(console, level).mockImplementation(() => undefined)
@@ -142,7 +142,7 @@ describe("aucun secret dans un journal", () => {
     }
   });
 
-  it("ne laisse rien dans ce que la marque sérialise", () => {
+  it("leaves nothing in what the mark serializes", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_jamais_journalise");
     generateSecret(SERVER, "db.postgres", "app_password");
 

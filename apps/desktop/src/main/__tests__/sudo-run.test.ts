@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe("setSudoPassword", () => {
-  it("envoie l'empreinte sur la ligne secrète, jamais le mot de passe, et le garde une fois posé", async () => {
+  it("sends the hash on the secret line, never the password, and keeps it once set", async () => {
     const client = agent(["hello-then-ping.jsonl", "harden-sudo-ok.jsonl"]);
     const held = vault();
     const events: Event[] = [];
@@ -71,7 +71,7 @@ describe("setSudoPassword", () => {
     expect(written.join("\n")).not.toContain(PASSWORD);
   });
 
-  it("dit quand l'ordinateur n'a pas de trousseau pour le garder", async () => {
+  it("says so when the computer has no keychain to keep it", async () => {
     const client = agent(["hello-then-ping.jsonl", "harden-sudo-ok.jsonl"]);
 
     await client.request(SERVER, "ping");
@@ -86,7 +86,7 @@ describe("setSudoPassword", () => {
     expect(outcome).toEqual({ kept: false, ok: true });
   });
 
-  it("ne garde rien quand l'agent refuse avant d'y toucher", async () => {
+  it("keeps nothing when the agent refuses before touching it", async () => {
     const client = agent("harden-sudo-refused.jsonl");
     const held = vault();
 
@@ -104,7 +104,7 @@ describe("setSudoPassword", () => {
     expect(held.held.size).toBe(0);
   });
 
-  it("passe par la session privilégiée, jamais par celle que sudo ouvre sans mot de passe", async () => {
+  it("goes through the privileged session, never the one sudo opens without a password", async () => {
     const client = agent(["hello-then-ping.jsonl", "harden-sudo-ok.jsonl"]);
 
     await client.request(SERVER, "ping");
@@ -118,7 +118,7 @@ describe("setSudoPassword", () => {
     expect(fake?.purposes()).toEqual(["control", "privileged"]);
   });
 
-  it("garde le mot de passe que l'agent a posé, même quand la règle a échoué ensuite", async () => {
+  it("keeps the password the agent set, even when the rule failed afterwards", async () => {
     const client = agent("harden-sudo-restrict-failed.jsonl");
     const held = vault();
 
@@ -181,7 +181,7 @@ describe("enterSudoPassword", () => {
     };
   }
 
-  it("garde le mot de passe que sudo accepte", async () => {
+  it("keeps the password sudo accepts", async () => {
     const machine = server();
     const held = vault();
 
@@ -197,7 +197,7 @@ describe("enterSudoPassword", () => {
     expect(machine.offered()).toBeNull();
   });
 
-  it("ne garde pas un mot de passe que sudo refuse, et rend la session à celui d'avant", async () => {
+  it("does not keep a password sudo refuses, and returns the session to the previous one", async () => {
     const machine = server();
     const held = vault();
 
@@ -221,7 +221,7 @@ describe("enterSudoPassword", () => {
     expect(machine.offered()).toBeNull();
   });
 
-  it("ne garde rien sur un serveur qui ne demande pas encore de mot de passe", async () => {
+  it("keeps nothing on a server that does not yet ask for a password", async () => {
     const machine = server("nopasswd_all");
     const held = vault();
 

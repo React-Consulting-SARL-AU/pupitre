@@ -78,8 +78,8 @@ function list(listing: ListingState): string {
   );
 }
 
-describe("une ligne de transfert", () => {
-  it("respire en cours, avec les octets, le débit et le temps restant", () => {
+describe("a transfer row", () => {
+  it("breathes while running, with the bytes, the rate and the time left", () => {
     const html = row();
 
     expect(shapeOf(html)).toBe("breathing");
@@ -94,7 +94,7 @@ describe("une ligne de transfert", () => {
     expect(html).not.toContain("Reprendre");
   });
 
-  it("attend son tour, cerclé", () => {
+  it("waits its turn, ringed", () => {
     const html = row({
       done: 0,
       rate: null,
@@ -106,7 +106,7 @@ describe("une ligne de transfert", () => {
     expect(html).toContain("En attente de son tour");
   });
 
-  it("en pause, vide, et offre de reprendre", () => {
+  it("paused, empty, and offers to resume", () => {
     const html = row({ rate: null, remaining: null, status: "paused" });
 
     expect(shapeOf(html)).toBe("empty");
@@ -116,7 +116,7 @@ describe("une ligne de transfert", () => {
     expect(html).not.toContain("Mettre shop.sql en pause");
   });
 
-  it("terminé, plein, ne garde que le retrait", () => {
+  it("done, full, keeps only the removal", () => {
     const html = row({ done: 209_715_200, endedAt: 1, status: "done" });
 
     expect(shapeOf(html)).toBe("filled");
@@ -126,7 +126,7 @@ describe("une ligne de transfert", () => {
     expect(html).not.toContain("Annuler shop.sql");
   });
 
-  it("arrêté, barré, avec le remède du main", () => {
+  it("stopped, struck through, with the main process's fix", () => {
     const html = row({
       endedAt: 1,
       error: {
@@ -143,7 +143,7 @@ describe("une ligne de transfert", () => {
     expect(html).toContain("ce qui est arrivé est gardé");
   });
 
-  it("dit qu'un transfert par scp ne reprend pas, et avance sans chiffre quand il n'en a pas", () => {
+  it("says an scp transfer does not resume, and advances without a figure when it has none", () => {
     const html = row({
       direction: "download",
       rate: null,
@@ -160,7 +160,7 @@ describe("une ligne de transfert", () => {
   });
 });
 
-describe("le volet des transferts", () => {
+describe("the transfers pane", () => {
   function panel(transfers: Transfer[]): string {
     return renderToStaticMarkup(
       <TransfersList
@@ -175,11 +175,11 @@ describe("le volet des transferts", () => {
     );
   }
 
-  it("ne dessine rien quand la file est vide", () => {
+  it("draws nothing when the queue is empty", () => {
     expect(panel([])).toBe("");
   });
 
-  it("compte ce qui bouge et liste chaque transfert", () => {
+  it("counts what is moving and lists each transfer", () => {
     const html = panel([
       transfer(),
       transfer({ id: "t2", name: "site", status: "queued" }),
@@ -196,8 +196,8 @@ describe("le volet des transferts", () => {
   });
 });
 
-describe("la zone de dépôt du navigateur de fichiers", () => {
-  it("offre d'envoyer dans le dossier affiché et nomme sa zone", () => {
+describe("the file browser's drop zone", () => {
+  it("offers to upload into the displayed folder and names its zone", () => {
     const html = list({
       entries: [],
       path: "projects/atlas",
@@ -211,14 +211,14 @@ describe("la zone de dépôt du navigateur de fichiers", () => {
     expect(html).not.toContain("data-dropping");
   });
 
-  it("n'offre pas d'envoyer tant que le dossier n'est pas lu", () => {
+  it("does not offer to upload until the folder is read", () => {
     const html = list({ path: "projects/atlas", status: "reading" });
 
     expect(html).toMatch(/<button[^>]*aria-label="Envoyer…"[^>]*disabled/);
   });
 });
 
-describe("le panneau base de données", () => {
+describe("the database panel", () => {
   function panel(
     outcome: {
       kind: "dump" | "import";
@@ -250,7 +250,7 @@ describe("le panneau base de données", () => {
     );
   }
 
-  it("offre de télécharger le dump que l'agent vient d'écrire", () => {
+  it("offers to download the dump the agent has just written", () => {
     const html = panel({
       bytes: 5_000_000,
       kind: "dump",
@@ -261,7 +261,7 @@ describe("le panneau base de données", () => {
     expect(html).toContain("Importer un dump depuis mon ordinateur");
   });
 
-  it("dit qu'un dump envoyé attend d'arriver avant l'import", () => {
+  it("says an uploaded dump waits to arrive before the import", () => {
     const html = panel(null, [
       {
         moduleId: "db.postgres",

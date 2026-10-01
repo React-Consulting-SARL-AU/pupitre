@@ -4,8 +4,8 @@ import { backupLabel } from "../backups";
 
 const t = translator("fr");
 
-describe("une sauvegarde dans une phrase", () => {
-  it("se dit par son nom quand elle en a un, toujours avec sa date", () => {
+describe("a backup in a sentence", () => {
+  it("is called by its name when it has one, always with its date", () => {
     const named = backupLabel(t, {
       created_at: "2026-09-24T10:15:00Z",
       name: "Avant la migration",

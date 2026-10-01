@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { looksLikeCommand } from "../remedy";
 
-describe("un remède", () => {
-  it("est une commande quand il commence comme une ligne à taper", () => {
+describe("a remedy", () => {
+  it("is a command when it starts like a line to type", () => {
     expect(looksLikeCommand("sudo systemctl restart pupitred")).toBe(true);
     expect(
       looksLikeCommand("ssh-copy-id -i ~/.ssh/id_ed25519.pub dev@host")
@@ -10,7 +10,7 @@ describe("un remède", () => {
     expect(looksLikeCommand("/usr/local/bin/pupitred enroll")).toBe(true);
   });
 
-  it("est une phrase quand il commence par une majuscule ou finit par un point", () => {
+  it("is a sentence when it starts with a capital letter or ends with a period", () => {
     expect(looksLikeCommand("Vérifiez le port 22.")).toBe(false);
     expect(
       looksLikeCommand(

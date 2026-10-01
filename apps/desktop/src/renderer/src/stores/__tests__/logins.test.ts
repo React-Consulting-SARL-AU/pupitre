@@ -20,8 +20,8 @@ beforeEach(() => {
   useLogins.getState().forget();
 });
 
-describe("les comptes des services en marche", () => {
-  it("garde ce que chaque CLI dit de son compte, et rien pour un module sans compte", async () => {
+describe("the accounts of running services", () => {
+  it("keeps what each CLI says about its account, and nothing for a module without an account", async () => {
     stubPupitre({
       serviceDetail: (_server, moduleId) =>
         Promise.resolve({
@@ -50,7 +50,7 @@ describe("les comptes des services en marche", () => {
     });
   });
 
-  it("garde le refus de l'agent tel quel", async () => {
+  it("keeps the agent's refusal as is", async () => {
     stubPupitre({
       serviceDetail: () =>
         Promise.resolve({
@@ -71,7 +71,7 @@ describe("les comptes des services en marche", () => {
     });
   });
 
-  it("montre la réponse précédente pendant qu'il redemande, sauf sur un autre serveur", async () => {
+  it("shows the previous response while it asks again, except on another server", async () => {
     let asked = 0;
 
     stubPupitre({
@@ -109,7 +109,7 @@ describe("les comptes des services en marche", () => {
     expect(useLogins.getState().serverId).toBe("srv-2");
   });
 
-  it("jette une réponse arrivée après le passage à un autre serveur", async () => {
+  it("discards a response that arrived after switching to another server", async () => {
     stubPupitre({
       serviceDetail: (_server, moduleId) =>
         new Promise((resolve) => {
@@ -137,7 +137,7 @@ describe("les comptes des services en marche", () => {
     });
   });
 
-  it("cède la place à une lecture plus récente de la même machine", async () => {
+  it("yields to a more recent read of the same machine", async () => {
     const asked: string[] = [];
     const waiting: (() => void)[] = [];
 

@@ -141,7 +141,7 @@ export function wranglerVars(path = WRANGLER_FILE): Record<string, string> {
     parsed = JSON.parse(stripJsonComments(readFileSync(path, "utf8")))
   } catch {
     process.stdout.write(
-      `Valeurs locales ignorées : ${path} n'est pas lisible comme du JSONC.\n`
+      `Local values skipped: ${path} is not readable as JSONC.\n`
     )
 
     return {}
@@ -183,7 +183,7 @@ export function stripeWebhookSecret(
 ): Record<string, string> {
   if (run(["--version"]).status !== 0) {
     process.stdout.write(
-      "Stripe ignoré : le CLI `stripe` est absent. Installe-le, ou renseigne STRIPE_WEBHOOK_SECRET à la main.\n"
+      "Stripe skipped: the `stripe` CLI is missing. Install it, or set STRIPE_WEBHOOK_SECRET by hand.\n"
     )
 
     return {}
@@ -193,7 +193,7 @@ export function stripeWebhookSecret(
 
   if (printed.status !== 0) {
     process.stdout.write(
-      "Stripe ignoré : le CLI n'a pas de session. Lance `stripe login`.\n"
+      "Stripe skipped: the CLI has no session. Run `stripe login`.\n"
     )
 
     return {}
@@ -206,7 +206,7 @@ export function stripeWebhookSecret(
 
   if (!secret) {
     process.stdout.write(
-      "Stripe ignoré : `stripe listen --print-secret` n'a rendu aucun secret.\n"
+      "Stripe skipped: `stripe listen --print-secret` returned no secret.\n"
     )
 
     return {}
@@ -225,7 +225,7 @@ function migrateLocalDatabase(): void {
 
   if (applied.status !== 0) {
     process.stdout.write(
-      `Base locale ignorée : les migrations n'ont pas pu s'appliquer.\n${applied.stderr}`
+      `Local database skipped: the migrations could not be applied.\n${applied.stderr}`
     )
   }
 }
@@ -276,18 +276,18 @@ function main(): void {
   migrateLocalDatabase()
 
   const counts = [
-    shared ? `${Object.keys(shared).length} depuis 1Password` : null,
+    shared ? `${Object.keys(shared).length} from 1Password` : null,
     GENERATED.filter((key) => key in values).length > 0
-      ? `${GENERATED.filter((key) => key in values).length} tirés au hasard`
+      ? `${GENERATED.filter((key) => key in values).length} drawn at random`
       : null,
     Object.keys(local).length > 0
-      ? `${Object.keys(local).length} depuis wrangler.jsonc`
+      ? `${Object.keys(local).length} from wrangler.jsonc`
       : null,
-    "STRIPE_WEBHOOK_SECRET" in values ? "webhook depuis Stripe" : null,
+    "STRIPE_WEBHOOK_SECRET" in values ? "webhook from Stripe" : null,
   ].filter(Boolean)
 
   process.stdout.write(
-    `.env.local prêt${counts.length > 0 ? ` : ${counts.join(", ")}` : " : rien à changer"}\n`
+    `.env.local ready${counts.length > 0 ? `: ${counts.join(", ")}` : ": nothing to change"}\n`
   )
 }
 

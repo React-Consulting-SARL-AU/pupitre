@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { useGestureFailure } from "../../stores/gesture-failure";
 import { awaited, reportFailure } from "../use-pending";
 
-describe("le travail qu'un geste a lancé", () => {
-  it("n'attend rien d'un geste qui a déjà tout fait", () => {
+describe("the work a gesture started", () => {
+  it("waits for nothing from a gesture that has already done everything", () => {
     const seen: boolean[] = [];
 
     expect(awaited(undefined, (pending) => seen.push(pending))).toBeNull();
@@ -11,7 +11,7 @@ describe("le travail qu'un geste a lancé", () => {
     expect(seen).toEqual([]);
   });
 
-  it("attend une promesse jusqu'à sa réponse", async () => {
+  it("waits for a promise until it settles", async () => {
     const seen: boolean[] = [];
 
     await awaited(Promise.resolve("ok"), (pending) => seen.push(pending));
@@ -19,7 +19,7 @@ describe("le travail qu'un geste a lancé", () => {
     expect(seen).toEqual([true, false]);
   });
 
-  it("libère le bouton sur un échec, et rend l'échec plutôt que de l'avaler", async () => {
+  it("releases the button on a failure, and returns the failure instead of swallowing it", async () => {
     const seen: boolean[] = [];
     const failure = new Error("the bridge did not answer");
 
@@ -31,7 +31,7 @@ describe("le travail qu'un geste a lancé", () => {
     expect(seen).toEqual([true, false]);
   });
 
-  it("montre l'échec qu'aucun écran n'a rattrapé, au lieu de le laisser au seul lecteur d'écran", () => {
+  it("shows the failure no screen caught, instead of leaving it to the screen reader alone", () => {
     useGestureFailure.getState().dismiss();
 
     reportFailure(new Error("the bridge did not answer"));

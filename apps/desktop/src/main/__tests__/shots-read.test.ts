@@ -9,8 +9,8 @@ const SERVER = "staging";
 
 const PATH = "2026-09-04/login.png";
 
-describe("le contenu d'une capture", () => {
-  it("remonte sur des événements shot, suivis de l'accusé qui les prouve", async () => {
+describe("a capture's content", () => {
+  it("comes up on shot events, followed by the acknowledgement that proves them", async () => {
     const fake = fakeAgent("shots-read.jsonl");
     const agent = createAgentClient({
       appVersion: "0.1.0",
@@ -44,7 +44,7 @@ describe("le contenu d'une capture", () => {
     agent.closeAll();
   });
 
-  it("ouvre un second canal, la galerie ne bloque pas le tableau de bord", async () => {
+  it("opens a second channel, the gallery does not block the dashboard", async () => {
     const fake = fakeAgent(["shots-list.jsonl", "shots-read.jsonl"]);
     const agent = createAgentClient({
       appVersion: "0.1.0",
@@ -62,7 +62,7 @@ describe("le contenu d'une capture", () => {
     agent.closeAll();
   });
 
-  it("passe par le pont générique : rien de ce qu'elle rend n'est un identifiant", () => {
+  it("goes through the generic bridge: nothing it returns is a credential", () => {
     expect(carriesCredential("shots.read")).toBe(false);
   });
 });

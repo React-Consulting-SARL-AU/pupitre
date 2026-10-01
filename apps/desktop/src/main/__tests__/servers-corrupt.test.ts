@@ -27,22 +27,22 @@ const TYPED: Server = {
   user: "root",
 };
 
-describe("un fichier des serveurs illisible", () => {
-  it("se lit comme aucun serveur, et sa copie reste à côté", () => {
+describe("an unreadable servers file", () => {
+  it("reads as no servers, and its copy stays alongside", () => {
     expect(read().servers).toEqual([]);
     expect(existsSync(corruptPath())).toBe(true);
     expect(readFileSync(corruptPath(), "utf8")).toContain('"srv-1"');
     expect(readFileSync(FILE, "utf8")).toContain('"srv-1"');
   });
 
-  it("refuse toute écriture tant qu'il n'a pas été relu", () => {
+  it("refuses any write until it has been read again", () => {
     expect(() =>
       write((current) => ({ ...current, servers: [TYPED] }))
     ).toThrow(/unreadable/);
     expect(readFileSync(FILE, "utf8")).toContain('"srv-1"');
   });
 
-  it("écrit de nouveau une fois le fichier réparé", () => {
+  it("writes again once the file is repaired", () => {
     writeFileSync(
       FILE,
       JSON.stringify({ active: null, dismissed: [], servers: [], version: 3 })

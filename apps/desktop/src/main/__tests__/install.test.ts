@@ -149,8 +149,8 @@ afterEach(() => {
   forgetSecrets(SERVER);
 });
 
-describe("un préréglage installé de bout en bout", () => {
-  it("rend les étapes de chaque module puis un rapport sans échec", async () => {
+describe("a preset installed end to end", () => {
+  it("returns each module's steps then a report with no failure", async () => {
     const client = agent("install-preset.jsonl");
     const { note, updates } = collector();
 
@@ -186,7 +186,7 @@ describe("un préréglage installé de bout en bout", () => {
     client.closeAll();
   });
 
-  it("n'annonce pas de flux secret quand le coffre est vide", async () => {
+  it("announces no secret stream when the vault is empty", async () => {
     const client = agent("install-no-secrets.jsonl");
     const { note } = collector();
 
@@ -203,7 +203,7 @@ describe("un préréglage installé de bout en bout", () => {
     client.closeAll();
   });
 
-  it("refuse une installation sans module", async () => {
+  it("refuses an installation without a module", async () => {
     const client = agent("install-preset.jsonl");
 
     const answer = await runInstall(
@@ -220,8 +220,8 @@ describe("un préréglage installé de bout en bout", () => {
   });
 });
 
-describe("le flux secret", () => {
-  it("part sur l'entrée standard et vide le coffre une fois l'installation acceptée", async () => {
+describe("the secret stream", () => {
+  it("goes out on standard input and empties the vault once the installation is accepted", async () => {
     const client = agent("install-preset.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -250,7 +250,7 @@ describe("le flux secret", () => {
     expect(seen).not.toContain("app_password");
   });
 
-  it("ne met aucun secret dans les paramètres de la requête", async () => {
+  it("puts no secret in the request parameters", async () => {
     const client = agent("install-preset.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
 
@@ -269,7 +269,7 @@ describe("le flux secret", () => {
   });
 
   // The agent validates the whole configuration before reading the secrets: a refusal consumed nothing.
-  it("garde le coffre quand l'agent refuse la configuration", async () => {
+  it("keeps the vault when the agent refuses the configuration", async () => {
     const client = agent("install-refused-config.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -296,7 +296,7 @@ describe("le flux secret", () => {
     client.closeAll();
   });
 
-  it("garde le coffre quand la machine est occupée", async () => {
+  it("keeps the vault when the machine is busy", async () => {
     const client = agent("install-busy.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -318,7 +318,7 @@ describe("le flux secret", () => {
     client.closeAll();
   });
 
-  it("garde le coffre quand le canal coupe avant la première étape", async () => {
+  it("keeps the vault when the channel drops before the first step", async () => {
     const client = agent([
       "install-cut-early.jsonl",
       "install-resume-none.jsonl",
@@ -347,7 +347,7 @@ describe("le flux secret", () => {
     client.closeAll();
   });
 
-  it("vide le coffre dès qu'une étape a été vue, même si le canal coupe ensuite", async () => {
+  it("empties the vault as soon as a step has been seen, even if the channel drops afterwards", async () => {
     const client = agent(["install-cut.jsonl", "install-resume-none.jsonl"]);
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -374,7 +374,7 @@ describe("le flux secret", () => {
     client.closeAll();
   });
 
-  it("le second Apply repart avec les mêmes secrets", async () => {
+  it("the second Apply restarts with the same secrets", async () => {
     const client = agent(["install-busy.jsonl", "install-preset.jsonl"]);
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
 
@@ -408,7 +408,7 @@ describe("le flux secret", () => {
   });
 });
 
-describe("l'enrôlement", () => {
+describe("enrolment", () => {
   const GRANT = {
     platformUrl: "https://app.pupitre.studio/api/v1",
     token: "enr-jeton-de-test",
@@ -438,7 +438,7 @@ describe("l'enrôlement", () => {
       } satisfies AgentResponse<AgentDelivery>);
   }
 
-  it("remet le jeton sur le flux secret, jamais dans params", async () => {
+  it("puts the token on the secret stream, never in params", async () => {
     const client = agent(["enroll-then-install.jsonl"]);
 
     const answer = await runInstall(
@@ -464,7 +464,7 @@ describe("l'enrôlement", () => {
     client.closeAll();
   });
 
-  it("arrête l'installation quand la plateforme refuse le jeton", async () => {
+  it("stops the installation when the platform refuses the token", async () => {
     const client = agent("enroll-refused.jsonl");
 
     const answer = await runInstall(
@@ -488,7 +488,7 @@ describe("l'enrôlement", () => {
     client.closeAll();
   });
 
-  it("n'enrôle rien quand la plateforme n'a rien accordé", async () => {
+  it("enrols nothing when the platform granted nothing", async () => {
     const client = agent("install-no-secrets.jsonl");
 
     const answer = await runInstall(
@@ -510,8 +510,8 @@ describe("l'enrôlement", () => {
   });
 });
 
-describe("un module en échec", () => {
-  it("laisse les autres continuer et revient dans failed", async () => {
+describe("a failed module", () => {
+  it("lets the others continue and comes back in failed", async () => {
     const client = agent("install-one-fails.jsonl");
     const { note, updates } = collector();
 
@@ -539,7 +539,7 @@ describe("un module en échec", () => {
     client.closeAll();
   });
 
-  it("se rejoue seul, avec sa seule configuration", async () => {
+  it("replays alone, with only its own configuration", async () => {
     const client = agent("install-one-fails.jsonl");
     const config = {
       "core.system": {},
@@ -571,8 +571,8 @@ describe("un module en échec", () => {
   });
 });
 
-describe("l'envoi de l'agent avant la première installation", () => {
-  it("choisit l'architecture que la sonde a rapportée, sur une machine nue", async () => {
+describe("sending the agent before the first installation", () => {
+  it("picks the architecture the probe reported, on a bare machine", async () => {
     const client = agent("install-no-secrets.jsonl");
     const asked: string[] = [];
     const { note, updates } = collector();
@@ -621,7 +621,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
   });
 
   // The session that answered the probe still runs the binary the rename replaced.
-  it("rouvre les canaux et migre la configuration après avoir remplacé l'agent d'un serveur géré", async () => {
+  it("reopens the channels and migrates the configuration after replacing the agent of a managed server", async () => {
     const client = agent([
       "hello-then-ping.jsonl",
       "agent-migrate-ok.jsonl",
@@ -667,7 +667,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("remplace par le binaire embarqué un agent 1.x qui refuse le hello du protocole 3, puis migre sur le neuf", async () => {
+  it("replaces with the embedded binary a 1.x agent that refuses the protocol 3 hello, then migrates on the new one", async () => {
     const client = agent([
       "protocol-mismatch.jsonl",
       "agent-migrate-ok.jsonl",
@@ -722,7 +722,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("ne migre rien sur une machine qui n'avait pas d'agent", async () => {
+  it("migrates nothing on a machine that had no agent", async () => {
     const client = agent("install-no-secrets.jsonl");
 
     const answer = await runInstall(
@@ -748,7 +748,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("ne renvoie rien à un serveur déjà géré et à jour", async () => {
+  it("sends nothing to a server that is already managed and up to date", async () => {
     const client = agent("install-no-secrets.jsonl");
     let sent = 0;
     const { note, updates } = collector();
@@ -783,7 +783,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("dit clairement qu'aucun binaire n'est disponible, sans rien installer", async () => {
+  it("says plainly that no binary is available, without installing anything", async () => {
     const client = agent("install-no-secrets.jsonl");
 
     const answer = await runInstall(
@@ -821,7 +821,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("ne demande le catalogue qu'une fois le binaire posé", async () => {
+  it("requests the catalogue only once the binary is in place", async () => {
     const client = agent("install-no-secrets.jsonl");
     const order: string[] = [];
 
@@ -865,7 +865,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("refuse un module que le catalogue de ce serveur ne déclare pas", async () => {
+  it("refuses a module that this server's catalogue does not declare", async () => {
     const client = agent("install-no-secrets.jsonl");
 
     const answer = await runInstall(
@@ -887,7 +887,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  it("remonte l'échec de la sonde plutôt que d'installer à l'aveugle", async () => {
+  it("surfaces the probe's failure rather than installing blind", async () => {
     const client = agent("install-no-secrets.jsonl");
 
     const answer = await runInstall(
@@ -917,8 +917,8 @@ describe("l'envoi de l'agent avant la première installation", () => {
   });
 });
 
-describe("une coupure pendant l'installation", () => {
-  it("se reconnecte et relit le rapport au lieu de repartir de zéro", async () => {
+describe("a drop during the installation", () => {
+  it("reconnects and rereads the report instead of starting over", async () => {
     const client = agent(["install-cut.jsonl", "install-resume.jsonl"]);
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -952,9 +952,9 @@ describe("une coupure pendant l'installation", () => {
   });
 });
 
-describe("un enrôlement repris", () => {
+describe("a resumed enrolment", () => {
   // A cut between the exchange and its answer leaves the token burnt: the server already carries its identity.
-  it("ne réenrôle pas un agent qui porte déjà son identité", async () => {
+  it("does not re-enrol an agent that already carries its identity", async () => {
     const calls: string[] = [];
 
     const answer = await enrolAgent(
@@ -985,7 +985,7 @@ describe("un enrôlement repris", () => {
   });
 
   // The agent answers a burnt token and a revoked one with the same code: only the identity tells them apart.
-  it("rapporte un refus tel quel quand le serveur ne porte aucune identité", async () => {
+  it("reports a refusal as is when the server carries no identity", async () => {
     const answer = await enrolAgent(
       "srv-1",
       {
@@ -1021,7 +1021,7 @@ describe("un enrôlement repris", () => {
   const instant = { attempts: 3, delayMs: 0, sleep: () => Promise.resolve() };
 
   // The probe that watches for an enrolment that already landed reads as a ping.
-  it("renvoie l'enrôlement quand le canal tombe, jusqu'à ce qu'il passe", async () => {
+  it("resends the enrolment when the channel drops, until it goes through", async () => {
     const codes = ["disconnected", "disconnected"];
 
     const answer = await enrolAgent(
@@ -1070,7 +1070,7 @@ describe("un enrôlement repris", () => {
   });
 
   // A spent token cannot be replayed: the probe must see the enrolment before another one is sent.
-  it("voit un échange tombé après la remise comme l'enrôlement réussi qu'il fut", async () => {
+  it("sees an exchange dropped after delivery as the successful enrolment it was", async () => {
     let enrolled = false;
     const commands: string[] = [];
 
@@ -1114,7 +1114,7 @@ describe("un enrôlement repris", () => {
     expect(commands).toEqual(["enroll", "ping"]);
   });
 
-  it("ne réessaie pas un refus qui n'est pas une coupure", async () => {
+  it("does not retry a refusal that is not a drop", async () => {
     let calls = 0;
 
     const answer = await enrolAgent(
@@ -1148,7 +1148,7 @@ describe("un enrôlement repris", () => {
     expect(calls).toBe(1);
   });
 
-  it("renonce après un nombre borné de coupures", async () => {
+  it("gives up after a bounded number of drops", async () => {
     let enrolments = 0;
     let probes = 0;
 
@@ -1194,8 +1194,8 @@ describe("un enrôlement repris", () => {
   });
 });
 
-describe("la configuration pesée avant l'installation", () => {
-  it("porte ce que la machine seule sait, et aucun secret", async () => {
+describe("the configuration weighed before the installation", () => {
+  it("carries what only the machine knows, and no secret", async () => {
     const client = agent("install-check.jsonl");
 
     const answer = await runCheck(
@@ -1224,7 +1224,7 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
-  it("pèse le formulaire avec les valeurs que l'app remplira depuis le trousseau", async () => {
+  it("weighs the form with the values the app will fill in from the keychain", async () => {
     const client = agent("install-check-managed.jsonl");
 
     const answer = await runCheck(
@@ -1244,7 +1244,7 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
-  it("ne retient pas le verdict sur un seau jugé avec l'ancienne clé secrète", async () => {
+  it("does not keep the verdict on a bucket judged with the old secret key", async () => {
     const client = agent("install-check-old-secret.jsonl");
 
     const answer = await runCheck(
@@ -1272,7 +1272,7 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
-  it("refuse un module que l'agent ne déclare pas, sans toucher au canal", async () => {
+  it("refuses a module the agent does not declare, without touching the channel", async () => {
     const client = agent("install-check.jsonl");
 
     const answer = await runCheck(
@@ -1290,7 +1290,7 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
-  it("ne demande rien quand rien n'est choisi", async () => {
+  it("asks for nothing when nothing is chosen", async () => {
     const client = agent("install-check.jsonl");
 
     const answer = await runCheck(SERVER, [], {}, checkDeps(client));

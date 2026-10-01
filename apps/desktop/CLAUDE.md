@@ -1,60 +1,60 @@
 # apps/desktop — Guidelines
 
-L'app Electron. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · fonctionnement interne → [`docs/desktop.md`](../../docs/desktop.md) · protocole → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · migrations → [`docs/contracts/config-migrations.md`](../../docs/contracts/config-migrations.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md) · construire un écran → skill `desktop-screens`.
+The Electron app. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · internals → [`docs/desktop.md`](../../docs/desktop.md) · protocol → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · migrations → [`docs/contracts/config-migrations.md`](../../docs/contracts/config-migrations.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md) · building a screen → `desktop-screens` skill.
 
-> Le style est enforced par Ultracite (Biome). Ce fichier ne contient que ce que le linter ne dérive pas.
+> Style is enforced by Ultracite (Biome). This file only contains what the linter does not derive.
 
-## Stack imposée
+## Mandatory stack
 
-Electron 44 · electron-vite (bytecode sur le main seul, le preload reste du JavaScript) · React 19 · Tailwind 4 sur les tokens de `@pupitre/design` · Base UI + shadcn/ui, prop `render`, jamais `asChild` · Zustand · xterm + node-pty · `ssh` du système, jamais une bibliothèque SSH en JavaScript · Lucide uniquement.
+Electron 44 · electron-vite (bytecode on the main process only, the preload stays JavaScript) · React 19 · Tailwind 4 on the `@pupitre/design` tokens · Base UI + shadcn/ui, `render` prop, never `asChild` · Zustand · xterm + node-pty · the system's `ssh`, never a JavaScript SSH library · Lucide only.
 
-**Banned** : `@radix-ui/*`, `ssh2`, `node-ssh`, `axios`, toute couleur en dur.
+**Banned**: `@radix-ui/*`, `ssh2`, `node-ssh`, `axios`, any hard-coded colour.
 
-## Ce que l'app ne fait jamais
+## What the app never does
 
-- Elle n'a pas de second modèle : elle affiche ce que `snapshot` renvoie. Une information nouvelle apparaît dans l'agent d'abord.
-- Le renderer ne touche pas au système : `contextIsolation` on, `nodeIntegration` off, surface explicite dans `src/preload`. Il nomme un serveur, un projet, une action ; le main valide le nom contre ce que l'agent vient de donner.
-- Jamais un `ssh` par appel : un client par serveur (`agent-client.ts`), cinq canaux — contrôle, travail, battement (`agentPoll`), suivi (journaux) sur `sudo -n pupitred serve`, et privilégié, ouvert à la demande avec le mot de passe sudo pour ce que `requiresPrivilege` désigne. → [canaux](../../docs/desktop.md#les-canaux-vers-lagent)
-- Jamais `~/.ssh/config` réécrit : la config SSH est celle de l'app (`userData/ssh/config`, `-F`), partagée par une ligne `Include` sur geste explicite. → [SSH](../../docs/desktop.md#ssh--configuration-clés-partage)
-- Jamais un secret dans un store, un log, une commande ou une ligne de commande : flux secret du protocole, `SSH_ASKPASS` pour un mot de passe, oublié après l'envoi. → [clé](../../docs/desktop.md#poser-la-clé-sur-un-serveur)
-- Jamais le jeton bearer hors de `safeStorage` ni à travers le pont. Sans compte, seul un build de développement installe ; la sorte de build suit la plateforme, pas le dossier. → [compte](../../docs/desktop.md#le-compte-et-linstallation)
-- Jamais un fichier lourd sur le canal de l'agent : `rsync` ou `scp` sur la session SSH de l'app, chemin distant validé par le main, chemin local d'une boîte de dialogue. → [transferts](../../docs/desktop.md#les-transferts)
-- Jamais un fichier de l'app réécrit sans révision : `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json` et `access/<serveur>.json` passent par `versionedFile()` de `store-migrations.ts`, chacun avec son registre (`servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts`), une entrée numérotée par changement de forme. → [fichiers](../../docs/desktop.md#les-fichiers-que-lapp-garde)
-- Jamais `upgrade` des modules avant `agent.upgrade`, fermeture du canal, `agent.migrate`. → [mise à jour](../../docs/desktop.md#mettre-lagent-à-jour)
-- Jamais un écran de l'onboarding qui agit dans un `useEffect` : `stores/onboarding-machine.ts` décide, le store exécute. → [onboarding](../../docs/desktop.md#lonboarding)
-- Jamais une valeur qui sent le secret dans `trace.ts`. Rien de tracé dans un build empaqueté.
+- It has no second model: it displays what `snapshot` returns. New information appears in the agent first.
+- The renderer does not touch the system: `contextIsolation` on, `nodeIntegration` off, explicit surface in `src/preload`. It names a server, a project, an action; the main process validates the name against what the agent has just given.
+- Never one `ssh` per call: one client per server (`agent-client.ts`), five channels — control, work, beat (`agentPoll`), follow (journals) on `sudo -n pupitred serve`, and privileged, opened on demand with the sudo password for what `requiresPrivilege` designates. → [channels](../../docs/desktop.md#the-channels-to-the-agent)
+- Never `~/.ssh/config` rewritten: the SSH config is the app's own (`userData/ssh/config`, `-F`), shared through an `Include` line on an explicit gesture. → [SSH](../../docs/desktop.md#ssh-configuration-keys-sharing)
+- Never a secret in a store, a log, a command or a command line: the protocol's secret stream, `SSH_ASKPASS` for a password, forgotten after sending. → [key](../../docs/desktop.md#placing-the-key-on-a-server)
+- Never the bearer token outside `safeStorage` nor across the bridge. Without an account, only a development build installs; the build kind follows the platform, not the folder. → [account](../../docs/desktop.md#the-account-and-the-installation)
+- Never a heavy file on the agent's channel: `rsync` or `scp` on the app's SSH session, remote path validated by the main process, local path from a dialog box. → [transfers](../../docs/desktop.md#the-transfers)
+- Never an app file rewritten without a revision: `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<provider>.json` and `access/<server>.json` go through `versionedFile()` of `store-migrations.ts`, each with its registry (`servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts`), one numbered entry per change of shape. → [files](../../docs/desktop.md#the-files-the-app-keeps)
+- Never `upgrade` of the modules before `agent.upgrade`, channel closing, `agent.migrate`. → [update](../../docs/desktop.md#updating-the-agent)
+- Never an onboarding screen that acts in a `useEffect`: `stores/onboarding-machine.ts` decides, the store executes. → [onboarding](../../docs/desktop.md#the-onboarding)
+- Never a value that smells like a secret in `trace.ts`. Nothing traced in a packaged build.
 
-## Ce que chaque écran fait
+## What each screen does
 
-- `Screen` · `Section` · `Panel` · `Fact` ; `eyebrow` = le contexte, `title` = la chose ; jamais de carte, de libellé ou de bandeau posés à la main.
-- Tout contrôle vient de `components/ui/` sur Base UI : `Select`, `NumberField`, `CheckBox` / `CheckLine`, `Switch` / `SwitchLine`, `RadioGroup` / `Radio` / `RadioLine`, `ModeCards` / `ModeCard`, `Segmented`, `TabBar` / `Tab`, `Details`, `FoldingSection` (une section qui se plie sous son titre, pour une page lue par morceaux), `Dialog`, `ConfirmButton` / `ConfirmDialog`, `Menu`, `Tooltip`, `Hint`. Jamais un `<select>`, un `<details>`, un `<input type="checkbox">` ou un `role="dialog"` écrits à la main. Ce qui flotte passe par un portail : un test qui le lit monte le composant avec `__tests__/dom.tsx` (`mount`, `optionsOf`) plutôt que `renderToStaticMarkup`.
-- Un formulaire est une suite de `Section`, chacune sur un `Panel inset="lg"` ; les champs y respirent en `gap-6` ; les préférences sont des `SwitchLine` avec leur conséquence en `detail` ; les réglages tiennent en une colonne de `Tab` verticaux et une pane.
-- Chaque geste répond là où il a été fait : un gestionnaire asynchrone retourne sa promesse, `Button` / `IconButton` / `ConfirmButton` passent en `loading` seuls (`usePending`).
-- Chaque attente dit ce qui se passe ; chaque erreur dit le remède, `fix` de l'agent affiché tel quel ; un champ refusé porte sa phrase, `aria-invalid`, `aria-describedby`.
-- Un bouton qui n'a qu'une icône porte une infobulle (`IconButton` la pose, sur `ui/tooltip.tsx`) ; un bouton icône + libellé n'en porte aucune, une bulle qui répète le libellé est du bruit. Le `title` natif ne s'affiche pas sur macOS.
-- Un formulaire finit sur son bouton au pied, actif quand quelque chose a changé.
-- Aucune phrase hors de `i18n/strings`, `en` et `fr`.
-- Pas de description, d'intro ou de note qui raconte l'écran.
+- `Screen` · `Section` · `Panel` · `Fact`; `eyebrow` = the context, `title` = the thing; never a hand-placed card, label or banner.
+- Every control comes from `components/ui/` on Base UI: `Select`, `NumberField`, `CheckBox` / `CheckLine`, `Switch` / `SwitchLine`, `RadioGroup` / `Radio` / `RadioLine`, `ModeCards` / `ModeCard`, `Segmented`, `TabBar` / `Tab`, `Details`, `FoldingSection` (a section that folds under its title, for a page read in pieces), `Dialog`, `ConfirmButton` / `ConfirmDialog`, `Menu`, `Tooltip`, `Hint`. Never a hand-written `<select>`, `<details>`, `<input type="checkbox">` or `role="dialog"`. What floats goes through a portal: a test that reads it mounts the component with `__tests__/dom.tsx` (`mount`, `optionsOf`) rather than `renderToStaticMarkup`.
+- A form is a series of `Section`s, each on a `Panel inset="lg"`; the fields breathe at `gap-6` inside; preferences are `SwitchLine`s with their consequence in `detail`; settings fit in a column of vertical `Tab`s and a pane.
+- Every gesture answers where it was made: an async handler returns its promise, `Button` / `IconButton` / `ConfirmButton` switch to `loading` on their own (`usePending`).
+- Every wait says what is happening; every error says the remedy, the agent's `fix` displayed as is; a refused field carries its sentence, `aria-invalid`, `aria-describedby`.
+- A button that has only an icon carries a tooltip (`IconButton` sets it, on `ui/tooltip.tsx`); an icon + label button carries none, a bubble that repeats the label is noise. The native `title` is not displayed on macOS.
+- A form ends on its button at the foot, active when something has changed.
+- No sentence outside `i18n/strings`, `en` and `fr`.
+- No description, intro or note that narrates the screen.
 
-## Conventions de fichiers
+## File conventions
 
-- Fichiers `{feature}-{context}-{type}.tsx` ; un composant React par fichier hors `components/ui/` ; pas de barrel file ; points-virgules (`biome.jsonc`).
-- `src/main/<sujet>.ts` enregistre les handlers, `<sujet>-run.ts` tient le déroulé pur avec ses dépendances en paramètre.
-- Un store Zustand par sujet, l'état en union discriminée par `status`.
-- Arborescence complète → [docs/desktop.md](../../docs/desktop.md#arborescence).
+- Files `{feature}-{context}-{type}.tsx`; one React component per file outside `components/ui/`; no barrel file; semicolons (`biome.jsonc`).
+- `src/main/<subject>.ts` registers the handlers, `<subject>-run.ts` holds the pure flow with its dependencies as parameters.
+- One Zustand store per subject, state as a union discriminated by `status`.
+- Complete tree → [docs/desktop.md](../../docs/desktop.md#directory-tree).
 
 ## Tests
 
-`bun test` pour le main (agent factice, transcriptions dans `src/main/__tests__/fixtures/`) et les stores (`stubPupitre`) ; Playwright dans `e2e/` avec une passe axe sur chaque écran. Assertions dans `it()`, `async/await`, pas de `.only` committé. La suite ne montre jamais la fenêtre. Détails et captures → [docs/desktop.md](../../docs/desktop.md#tests).
+`bun test` for the main process (fake agent, transcripts in `src/main/__tests__/fixtures/`) and the stores (`stubPupitre`); Playwright in `e2e/` with an axe pass on every screen. Assertions in `it()`, `async/await`, no committed `.only`. The suite never shows the window. Details and screenshots → [docs/desktop.md](../../docs/desktop.md#tests).
 
-Les tests verts ne suffisent pas : un changement d'écran se vérifie dans l'app lancée (`bun run dev:desktop`) avant d'être annoncé.
+Green tests are not enough: a screen change is verified in the running app (`bun run dev:desktop`) before being announced.
 
-## Commandes
+## Commands
 
 ```bash
-bun run dev:web           # depuis la racine : la console que l'app appelle en développement
+bun run dev:web           # from the root: the console the app calls in development
 bun run dev
-bun run dev:desktop:prod  # depuis la racine : la même app, sur app.pupitre.studio
+bun run dev:desktop:prod  # from the root: the same app, on app.pupitre.studio
 bun run build             # typecheck + bundle
 bun run build:mac
 bun run test

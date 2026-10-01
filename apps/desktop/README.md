@@ -1,39 +1,39 @@
-# Pupitre — l'app desktop
+# Pupitre — the desktop app
 
-L'app Electron qui installe et pilote un serveur par SSH, en parlant à `pupitred`, l'agent qu'elle y pose. Ce qu'elle fait de l'intérieur est dans [`docs/desktop.md`](../../docs/desktop.md), ses règles dans [`CLAUDE.md`](./CLAUDE.md), le protocole dans [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md).
+The Electron app that installs and drives a server over SSH, talking to `pupitred`, the agent it places there. What it does on the inside is in [`docs/desktop.md`](../../docs/desktop.md), its rules in [`CLAUDE.md`](./CLAUDE.md), the protocol in [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md).
 
-## Lancer
+## Run
 
 ```bash
-bun install               # depuis la racine du monorepo
-bun run dev:desktop       # l'app, pointée sur la console locale
-bun run dev:desktop:prod  # la même app, pointée sur app.pupitre.studio : le vrai compte, les vrais serveurs
+bun install               # from the monorepo root
+bun run dev:desktop       # the app, pointed at the local console
+bun run dev:desktop:prod  # the same app, pointed at app.pupitre.studio: the real account, the real servers
 ```
 
-Les deux construisent d'abord l'agent (`apps/agent/dist`), que l'app pousse sur un serveur nu. Un compte est requis : l'app demande une connexion au premier lancement.
+Both build the agent first (`apps/agent/dist`), which the app pushes to a bare server. An account is required: the app asks for a sign-in on first launch.
 
-`node-pty` est un module natif : `postinstall` le recompile par `electron-rebuild`. Sans cette étape, l'app démarre et aucun terminal ne s'ouvre. `electron` et `node-pty` sont dans les `trustedDependencies` du `package.json` racine, sans quoi Bun ne lance pas leurs scripts d'installation. Une installation qui ne résout rien de neuf ne les rejoue pas : si `node_modules/electron/path.txt` est vide, le binaire manque, et il se remet par
+`node-pty` is a native module: `postinstall` recompiles it through `electron-rebuild`. Without this step, the app starts and no terminal opens. `electron` and `node-pty` are in the `trustedDependencies` of the root `package.json`, without which Bun does not run their install scripts. An install that resolves nothing new does not replay them: if `node_modules/electron/path.txt` is empty, the binary is missing, and it is put back with
 
 ```bash
 cd apps/desktop && node node_modules/electron/install.js
 ```
 
-## Construire
+## Build
 
 ```bash
-bun run build        # typecheck et bundle, sans empaquetage
-bun run build:mac    # .dmg arm64 et x64
-bun run build:linux  # AppImage et .deb
-bun run build:win    # installateur NSIS
+bun run build        # typecheck and bundle, no packaging
+bun run build:mac    # .dmg arm64 and x64
+bun run build:linux  # AppImage and .deb
+bun run build:win    # NSIS installer
 ```
 
-Chaque système se construit sur lui-même : `node-pty` ne se compile pas pour un autre. Une release construit les trois sur ses runners (`.github/workflows/release.yml`, voir [`docs/monorepo.md`](../../docs/monorepo.md#ce-que-fait-chaque-release)). Le processus principal est compilé en bytecode V8, ce qui demande le binaire Electron au moment du build. Sans identité de signature à portée, electron-builder le dit et produit un artefact non signé, ce que veut un build sur le poste.
+Each system is built on itself: `node-pty` does not compile for another. A release builds the three on its runners (`.github/workflows/release.yml`, see [`docs/monorepo.md`](../../docs/monorepo.md#what-each-release-does)). The main process is compiled to V8 bytecode, which requires the Electron binary at build time. Without a signing identity in reach, electron-builder says so and produces an unsigned artifact, which is what a build on the workstation wants.
 
-## Tester
+## Test
 
 ```bash
-bun run test      # main et stores, contre les transcriptions de l'agent factice
-bun run test:e2e  # construit, puis pilote la vraie fenêtre par Playwright, sans jamais la montrer
+bun run test      # main process and stores, against the fake agent's transcripts
+bun run test:e2e  # builds, then drives the real window through Playwright, never showing it
 ```
 
-Les captures du tableau de bord (`e2e/references/*-darwin.png`) ne se comparent que sur macOS et se régénèrent exprès, diff relu : `bunx playwright test e2e/themes.spec.ts --update-snapshots`. La tolérance (`threshold: 0.05`, `maxDiffPixelRatio: 0.0003`) absorbe le rendu des glyphes après une mise à niveau d'Electron, pas un changement d'écran. La CI ne lance pas la suite e2e : elle se passe sur la machine du propriétaire avant une pull request.
+The dashboard screenshots (`e2e/references/*-darwin.png`) are only compared on macOS and are regenerated on purpose, diff reviewed: `bunx playwright test e2e/themes.spec.ts --update-snapshots`. The tolerance (`threshold: 0.05`, `maxDiffPixelRatio: 0.0003`) absorbs glyph rendering after an Electron upgrade, not a screen change. CI does not run the e2e suite: it is run on the owner's machine before a pull request.

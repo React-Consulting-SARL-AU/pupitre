@@ -85,7 +85,7 @@ afterEach(() => {
 });
 
 describe("runHarden", () => {
-  it("ferme root, bascule la configuration sur dev et se reconnecte", async () => {
+  it("closes root, switches the configuration to dev and reconnects", async () => {
     const client = agent(["harden-ok.jsonl", "hello-then-ping.jsonl"]);
     const updates: HardenUpdate[] = [];
     let servers = [asRoot()];
@@ -126,7 +126,7 @@ describe("runHarden", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("bascule quand même sur dev quand root est gardé à la demande", async () => {
+  it("switches to dev anyway when root is kept on request", async () => {
     const client = agent(["harden-kept.jsonl", "hello-then-ping.jsonl"]);
     let servers = [asRoot()];
     let rendered = "";
@@ -162,7 +162,7 @@ describe("runHarden", () => {
     expect(rendered).toContain("User dev");
   });
 
-  it("garde root et rend la raison de l'agent telle quelle", async () => {
+  it("keeps root and returns the agent's reason as is", async () => {
     const client = agent("harden-refused.jsonl");
     let switched = 0;
 
@@ -194,7 +194,7 @@ describe("runHarden", () => {
     });
   });
 
-  it("dit pourquoi la reconnexion en dev n'a pas abouti", async () => {
+  it("says why the reconnection as dev did not succeed", async () => {
     const client = agent(["harden-ok.jsonl", "hello-only.jsonl"]);
 
     const answer = await runHarden(SERVER, () => undefined, {
@@ -211,7 +211,7 @@ describe("runHarden", () => {
     expect(answer.ok ? answer.result.error?.message : null).toBeTruthy();
   });
 
-  it("garde root quand l'app ne possède pas la configuration du serveur", async () => {
+  it("keeps root when the app does not own the server's configuration", async () => {
     const client = agent("harden-ok.jsonl");
 
     const answer = await runHarden(SERVER, () => undefined, {
@@ -229,7 +229,7 @@ describe("runHarden", () => {
 });
 
 // Hardening restarts sshd and writes no report, so the app probes which account opens the machine now.
-describe("un durcissement coupé en route", () => {
+describe("a hardening cut off midway", () => {
   function tracked(client: AgentClient) {
     const switched: string[] = [];
     let servers = [asRoot()];
@@ -257,7 +257,7 @@ describe("un durcissement coupé en route", () => {
     };
   }
 
-  it("passe sur dev quand root ne répond plus et que dev ouvre la machine", async () => {
+  it("switches to dev when root no longer answers and dev opens the machine", async () => {
     const client = probing([
       "harden-cut.jsonl",
       "dies-at-hello.jsonl",
@@ -288,7 +288,7 @@ describe("un durcissement coupé en route", () => {
     expect(fake?.started()).toBe(3);
   });
 
-  it("rend la coupure et reste sur root quand root ouvre encore la machine", async () => {
+  it("returns the cut and stays on root when root still opens the machine", async () => {
     const client = probing(["harden-cut.jsonl", "hello-then-ping.jsonl"]);
     const { deps, switched, user } = tracked(client);
 
@@ -303,7 +303,7 @@ describe("un durcissement coupé en route", () => {
     expect(fake?.started()).toBe(2);
   });
 
-  it("laisse à sshd le temps de revenir avant de conclure", async () => {
+  it("gives sshd time to come back before concluding", async () => {
     const client = probing([
       "harden-cut.jsonl",
       "dies-at-hello.jsonl",
@@ -333,7 +333,7 @@ describe("un durcissement coupé en route", () => {
     expect(slept).toBe(1);
   });
 
-  it("remet la configuration sur root quand personne ne répond", async () => {
+  it("puts the configuration back on root when nobody answers", async () => {
     const client = probing(["harden-cut.jsonl", "dies-at-hello.jsonl"]);
     const { deps, switched, user } = tracked(client);
 
@@ -347,7 +347,7 @@ describe("un durcissement coupé en route", () => {
     expect(user()).toBe("root");
   });
 
-  it("ne relit jamais le rapport d'une installation à la place", async () => {
+  it("never rereads an installation's report instead", async () => {
     const client = probing(["harden-cut.jsonl", "hello-then-ping.jsonl"]);
     const { deps } = tracked(client);
 
@@ -359,8 +359,8 @@ describe("un durcissement coupé en route", () => {
   });
 });
 
-describe("le parcours d'un serveur atteint en root", () => {
-  it("installe puis durcit, et finit connecté en dev sans intervention", async () => {
+describe("the journey of a server reached as root", () => {
+  it("installs then hardens, and ends up connected as dev without intervention", async () => {
     const client = agent(["parcours-root.jsonl", "hello-then-ping.jsonl"]);
     const delivered: string[] = [];
     let servers = [asRoot()];
@@ -432,9 +432,9 @@ describe("le parcours d'un serveur atteint en root", () => {
   });
 });
 
-describe("le socket de multiplexage", () => {
+describe("the multiplexing socket", () => {
   // `%C` hashes host, port and account, so root and dev sessions never share a master socket.
-  it("est nommé par ssh d'après le compte, pour ne pas réutiliser la session de root", () => {
+  it("is named by ssh after the account, so root's session is not reused", () => {
     const paths = appSshPaths("/data");
     const rendered = renderSshConfig(
       [asRoot()],
@@ -448,7 +448,7 @@ describe("le socket de multiplexage", () => {
 });
 
 describe("withAccount", () => {
-  it("ne touche qu'au serveur nommé", () => {
+  it("touches only the named server", () => {
     const other: Server = { ...asRoot(), id: "other", name: "Autre" };
     const next = withAccount([asRoot(), other], SERVER, "dev");
 
@@ -456,12 +456,12 @@ describe("withAccount", () => {
     expect(next?.[1].user).toBe("root");
   });
 
-  it("refuse un compte que l'app ne saurait pas écrire", () => {
+  it("refuses an account the app could not write", () => {
     expect(withAccount([asRoot()], SERVER, "dev; rm -rf /")).toBeNull();
     expect(withAccount([asRoot()], SERVER, "")).toBeNull();
   });
 
-  it("refuse un serveur pris dans la configuration du système", () => {
+  it("refuses a server taken from the system configuration", () => {
     const system: Server = {
       ...asRoot(),
       keyPath: undefined,

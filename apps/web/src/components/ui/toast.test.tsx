@@ -44,8 +44,8 @@ afterEach(() => {
   }
 })
 
-describe("les toasts", () => {
-  it("disent ce qui vient de se faire, et se ferment", async () => {
+describe("toasts", () => {
+  it("say what has just been done, and close", async () => {
     const view = await render(
       <ToastProvider>
         <Probe />
@@ -69,7 +69,7 @@ describe("les toasts", () => {
     await waitUntil(() => !stack().includes("Server revoked."))
   })
 
-  it("portent le remède d'un échec et le geste qui réessaie", async () => {
+  it("carry a failure's remedy and the action that retries", async () => {
     let retried = 0
     const view = await render(
       <ToastProvider>
@@ -93,7 +93,7 @@ describe("les toasts", () => {
     await waitUntil(() => retried === 1)
   })
 
-  it("se taisent hors de la coque, sans casser le geste", async () => {
+  it("stay silent outside the shell, without breaking the action", async () => {
     const view = await render(<Probe />)
 
     mounted.push(view.unmount)

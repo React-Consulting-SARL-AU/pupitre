@@ -31,7 +31,7 @@ afterEach(() => {
 })
 
 describe("SidebarAccountMenu", () => {
-  it("nomme son icône dans une infobulle", async () => {
+  it("names its icon in a tooltip", async () => {
     const { container, unmount } = await render(
       withRouter(
         <LocaleProvider initial="fr">

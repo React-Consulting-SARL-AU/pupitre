@@ -69,19 +69,19 @@ function offendingLines(
     .filter((entry): entry is string => entry !== null)
 }
 
-describe("les rayons de la console", () => {
+describe("the console radii", () => {
   const scale = radiusScale()
   const files = sources(SOURCE_ROOT)
 
-  it("lit la même échelle que @pupitre/design", () => {
+  it("reads the same scale as @pupitre/design", () => {
     expect([...scale].sort()).toEqual(["full", "lg", "md", "sm", "xl", "xs"])
   })
 
-  it("balaie toutes les sources", () => {
+  it("sweeps all the sources", () => {
     expect(files.length).toBeGreaterThan(SOURCES_AT_LEAST)
   })
 
-  it("n'écrit aucune durée ni aucune courbe à la main", () => {
+  it("writes no duration or curve by hand", () => {
     const offenders: string[] = []
 
     for (const file of files) {
@@ -98,7 +98,7 @@ describe("les rayons de la console", () => {
     expect(offenders).toEqual([])
   })
 
-  it("n'écrit aucun rayon à la main", () => {
+  it("writes no radius by hand", () => {
     const offenders: string[] = []
 
     for (const file of files) {
@@ -121,7 +121,7 @@ describe("les rayons de la console", () => {
     expect(offenders).toEqual([])
   })
 
-  it("ne prend aucune classe d'arrondi hors de l'échelle", () => {
+  it("takes no rounding class outside the scale", () => {
     const offenders: string[] = []
 
     for (const file of files) {
@@ -142,10 +142,10 @@ describe("les rayons de la console", () => {
   })
 })
 
-describe("les encres de la console", () => {
+describe("the console inks", () => {
   const files = sources(SOURCE_ROOT)
 
-  it("ne pose text-ink-4 que sur un placeholder ou un désactivé", () => {
+  it("sets text-ink-4 only on a placeholder or a disabled element", () => {
     const offenders: string[] = []
 
     for (const file of files) {

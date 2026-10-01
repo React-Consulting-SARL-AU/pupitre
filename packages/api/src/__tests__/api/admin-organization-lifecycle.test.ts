@@ -60,7 +60,7 @@ function grantSubscription(organizationId: string) {
   })
 }
 
-describe("le cycle de vie d'une organisation", () => {
+describe("the lifecycle of an organization", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -70,7 +70,7 @@ describe("le cycle de vie d'une organisation", () => {
     useFakeBilling()
   })
 
-  it("suspend l'organisation, ses machines, son droit d'usage, et écrit dans le journal du client", async () => {
+  it("suspends the organization, its machines and its licence, and writes to the customer's log", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -129,7 +129,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(again.json.error.code).toBe("conflict")
   })
 
-  it("ne rend au rétablissement que les machines que la suspension avait prises", async () => {
+  it("restores only the machines the suspension had taken", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -169,7 +169,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ status: "suspended", suspendedReason: "admin" })
   })
 
-  it("ferme l'organisation : entrée refusée, abonnement arrêté, machines suspendues", async () => {
+  it("closes the organization: entry refused, subscription stopped, machines suspended", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -220,7 +220,7 @@ describe("le cycle de vie d'une organisation", () => {
     })
   })
 
-  it("rouvre une organisation fermée et annule sa suppression programmée", async () => {
+  it("reopens a closed organization and cancels its scheduled deletion", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -254,7 +254,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(allowed.status).toBe(200)
   })
 
-  it("efface l'organisation et son journal au second appel, et n'en garde que l'identifiant", async () => {
+  it("erases the organization and its log on the second call, keeping only its identifier", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -301,7 +301,7 @@ describe("le cycle de vie d'une organisation", () => {
     ])
   })
 
-  it("renomme, refuse un slug déjà pris, et garde l'avant et l'après au journal", async () => {
+  it("renames, refuses a slug already taken, and keeps the before and after in the log", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -343,7 +343,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(taken.json.error.code).toBe("conflict")
   })
 
-  it("transfère la propriété, et refuse un compte qui n'est pas membre", async () => {
+  it("transfers ownership, and refuses an account that is not a member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -372,7 +372,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(refused.status).toBe(404)
   })
 
-  it("retire un membre, libère ses machines, et refuse de retirer le dernier propriétaire", async () => {
+  it("removes a member, frees their machines, and refuses to remove the last owner", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
     })
@@ -415,7 +415,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(refused.json.error.code).toBe("conflict")
   })
 
-  it("protège l'organisation Pupitre de la suspension, de la fermeture, de l'effacement, du renommage, du transfert et du retrait d'un membre", async () => {
+  it("protects the Pupitre organization from suspension, closure, erasure, renaming, transfer and member removal", async () => {
     const admin = await platformAdmin()
     const { user } = await createUser({ email: "equipe-org@pupitre.studio" })
 
@@ -481,7 +481,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ role: "admin" })
   })
 
-  it("refuse de lever une suspension qui n'existe pas, sans écrire ni prévenir personne", async () => {
+  it("refuses to lift a suspension that does not exist, without writing or notifying anyone", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -502,7 +502,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toBe(0)
   })
 
-  it("refuse de rouvrir une organisation qui n'est ni fermée ni en suppression", async () => {
+  it("refuses to reopen an organization that is neither closed nor being deleted", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -521,7 +521,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toBe(0)
   })
 
-  it("refuse de fermer une organisation déjà fermée", async () => {
+  it("refuses to close an already closed organization", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -546,7 +546,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ closedReason: "fin de la relation" })
   })
 
-  it("refuse un slug qui ne garde aucun caractère une fois normalisé", async () => {
+  it("refuses a slug that keeps no character once normalized", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -565,7 +565,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ slug: organization.slug })
   })
 
-  it("laisse un serveur en cours d'enrôlement où il est, et le rend tel quel", async () => {
+  it("leaves a server being enrolled where it is, and restores it as is", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -601,7 +601,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ status: "enrolling" })
   })
 
-  it("garde suspendu le serveur que l'équipe a pris pendant la suspension de l'organisation", async () => {
+  it("keeps suspended the server the team took during the organization's suspension", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -631,7 +631,7 @@ describe("le cycle de vie d'une organisation", () => {
     ).toMatchObject({ status: "suspended", suspendedReason: "admin" })
   })
 
-  it("porte sur la fiche la raison de l'état courant", async () => {
+  it("carries the reason for the current state on the detail", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })

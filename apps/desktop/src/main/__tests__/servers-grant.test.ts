@@ -21,12 +21,12 @@ const TYPED: Server = {
   user: "root",
 };
 
-describe("l'identité de plateforme d'un serveur", () => {
+describe("the platform identity of a server", () => {
   beforeEach(() => {
     write(() => ({ active: null, dismissed: [], servers: [TYPED] }));
   });
 
-  it("s'écrit au premier enrôlement", () => {
+  it("is written at the first enrolment", () => {
     noteGrant(TYPED.id, "srv-platform-1");
 
     expect(byId(TYPED.id)?.grant).toEqual({
@@ -39,7 +39,7 @@ describe("l'identité de plateforme d'un serveur", () => {
     });
   });
 
-  it("ne recouvre pas ce que la plateforme a dit depuis", () => {
+  it("does not overwrite what the platform has said since", () => {
     write(() => ({
       active: null,
       dismissed: [],
@@ -67,14 +67,14 @@ describe("l'identité de plateforme d'un serveur", () => {
     });
   });
 
-  it("suit le serveur quand un ré-enrôlement lui donne un autre identifiant", () => {
+  it("follows the server when a re-enrolment gives it another id", () => {
     noteGrant(TYPED.id, "srv-platform-1");
     noteGrant(TYPED.id, "srv-platform-2");
 
     expect(byId(TYPED.id)?.grant?.id).toBe("srv-platform-2");
   });
 
-  it("ne touche pas un serveur que la liste ne connaît pas", () => {
+  it("does not touch a server the list does not know", () => {
     expect(noteGrant("srv-absent", "srv-platform-9").servers).toHaveLength(1);
   });
 });

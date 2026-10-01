@@ -55,7 +55,7 @@ afterEach(() => {
 })
 
 describe("createCheckoutSession", () => {
-  it("exige une carte et n'offre aucun essai", async () => {
+  it("requires a card and offers no trial", async () => {
     const calls = stubStripe({
       id: "cs_test_second",
       url: "https://checkout.test/second",
@@ -77,7 +77,7 @@ describe("createCheckoutSession", () => {
     )
   })
 
-  it("vend en Managed Payments, sans devise ni taxe à nous", async () => {
+  it("sells through Managed Payments, with no currency or tax handling on our side", async () => {
     const calls = stubStripe({
       id: "cs_test_1",
       url: "https://checkout.test/1",
@@ -103,7 +103,7 @@ describe("createCheckoutSession", () => {
     )
   })
 
-  it("prend le prix de l'intervalle demandé", async () => {
+  it("takes the price of the requested interval", async () => {
     const calls = stubStripe({
       id: "cs_test_2",
       url: "https://checkout.test/2",
@@ -116,7 +116,7 @@ describe("createCheckoutSession", () => {
 })
 
 describe("cancelSubscription", () => {
-  it("résilie sur-le-champ par DELETE et rend ce que Stripe répond", async () => {
+  it("cancels immediately via DELETE and returns what Stripe answers", async () => {
     const calls = stubStripe({
       id: "sub_1",
       customer: "cus_1",

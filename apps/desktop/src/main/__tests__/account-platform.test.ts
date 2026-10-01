@@ -169,7 +169,7 @@ function asAgent(token: string, body: unknown, path: string) {
   });
 }
 
-describe("le compte contre l'API de la plateforme", () => {
+describe("the account against the platform API", () => {
   beforeAll(async () => {
     await bootApiTestServer();
   });
@@ -182,7 +182,7 @@ describe("le compte contre l'API de la plateforme", () => {
     }
   });
 
-  it("connecte l'appareil par le device flow et enregistre sa clé publique", async () => {
+  it("signs the device in through the device flow and registers its public key", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
 
@@ -207,7 +207,7 @@ describe("le compte contre l'API de la plateforme", () => {
     ]);
   });
 
-  it("enrôle un serveur qui paraît dans la console avec son heartbeat en moins d'une minute", async () => {
+  it("enrols a server that appears in the console with its heartbeat within a minute", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
 
@@ -295,7 +295,7 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(Date.now() - started).toBeLessThan(MINUTE_MS);
   });
 
-  it("refuse l'enrôlement au-delà des serveurs gratuits sans licence, avec le code et le remède de l'API", async () => {
+  it("refuses enrolment beyond the free servers without a licence, with the API's code and fix", async () => {
     const browser = await signedInConsole({ freeServersTaken: true });
     const { account, report } = await desktop(browser);
 
@@ -340,7 +340,7 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(body.data).toHaveLength(FREE_SERVERS);
   });
 
-  it("pousse la clé de l'appareil dans l'état que l'agent lit", async () => {
+  it("pushes the device's key into the state the agent reads", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
 
@@ -383,7 +383,7 @@ describe("le compte contre l'API de la plateforme", () => {
     );
   });
 
-  it("enrôle un serveur par le protocole, sans jamais montrer le jeton", async () => {
+  it("enrols a server through the protocol, never showing the token", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
 
@@ -497,7 +497,7 @@ describe("le compte contre l'API de la plateforme", () => {
     bridge.stop();
   });
 
-  it("brûle le jeton d'enrôlement : un second échange est refusé", async () => {
+  it("burns the enrolment token: a second exchange is refused", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
 

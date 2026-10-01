@@ -1,55 +1,55 @@
 # apps/web — Guidelines
 
-La plateforme : console, API et authentification. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · API → [`docs/contracts/platform-api.md`](../../docs/contracts/platform-api.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
+The platform: console, API and authentication. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · API → [`docs/contracts/platform-api.md`](../../docs/contracts/platform-api.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
 
-> Le style est enforced par Ultracite (Biome). Ce fichier ne contient que ce que le linter ne dérive pas : choix d'architecture, primitives, règles.
+> Style is enforced by Ultracite (Biome). This file only contains what the linter does not derive: architecture choices, primitives, rules.
 
-## Stack imposée
+## Mandatory stack
 
-TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict (`tsgo --noEmit`) · Elysia sur `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Cloudflare D1 + Prisma 7 (`@pupitre/db`) · R2 pour les binaires · Cloudflare Email · Workflows pour les tâches longues · Stripe Managed Payments par Checkout et Payment Links uniquement, en sommeil tant que `BILLING_MODE=off`.
+TanStack Start (React 19) on Cloudflare Workers via the Vite plugin · strict TS (`tsgo --noEmit`) · Elysia on `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Cloudflare D1 + Prisma 7 (`@pupitre/db`) · R2 for binaries · Cloudflare Email · Workflows for long tasks · Stripe Managed Payments through Checkout and Payment Links only, dormant as long as `BILLING_MODE=off`.
 
-**Ne pas dévier :**
-- UI : Tailwind 4 sur `@pupitre/design` + Base UI + shadcn/ui. Prop `render`, jamais `asChild`. Jamais Radix.
-- Forms : React Hook Form + Zod via `@/hooks/use-form`.
-- State serveur : TanStack Query natif. State client : React.
-- Icônes : Lucide uniquement.
-- Licence : Pupitre est gratuit jusqu'à `FREE_SERVERS` serveurs par organisation ; au-delà, une licence (`Subscription` vivante, produit `granted` ou Stripe) ajoute ses places. La console dit « licence », jamais « abonnement », « offre » ou « essai ». Aujourd'hui seule l'admin de la plateforme accorde une licence ; le code Stripe — Checkout, portail, `POST /orgs/:id/seats` — reste en place mais ne sert qu'en `BILLING_MODE=stripe`, et rien d'autre ne paierait.
+**Do not deviate:**
+- UI: Tailwind 4 on `@pupitre/design` + Base UI + shadcn/ui. `render` prop, never `asChild`. Never Radix.
+- Forms: React Hook Form + Zod via `@/hooks/use-form`.
+- Server state: native TanStack Query. Client state: React.
+- Icons: Lucide only.
+- Licence: Pupitre is free up to `FREE_SERVERS` servers per organization; beyond that, a licence (live `Subscription`, `granted` or Stripe product) adds its seats. The console says "licence", never "subscription", "plan" or "trial". Today only the platform admin grants a licence; the Stripe code — Checkout, portal, `POST /orgs/:id/seats` — stays in place but only serves under `BILLING_MODE=stripe`, and nothing else would pay.
 
-**Banned** : `@radix-ui/*`, `axios`, `react-query`, `@tanstack/react-table`, `express`, `@polar-sh/*`, Stripe Elements, toute couleur en dur.
+**Banned**: `@radix-ui/*`, `axios`, `react-query`, `@tanstack/react-table`, `express`, `@polar-sh/*`, Stripe Elements, any hard-coded colour.
 
 ## Architecture
 
 ```
-src/routes/      api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (membres de l'organisation plateforme) · download
-src/components/  ui/ (Base UI + shadcn, 1 composant/fichier) · dashboard/ · admin/ (pages plateforme, admin/inbox/ pour les mails) · auth/
-src/lib/         api/ (client Eden) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
-src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace · PurgeDeletions, cron triggers, déclencheur interne
-src/worker.ts    sert /api/v1, /internal/email et /internal/workflows, reçoit les mails d'Email Routing, porte les classes Workflow, les Durable Objects (InboxRealtime, RateLimit) et le handler cron, délègue le reste à Start
-packages/api/    app Elysia, client Eden, harnais de test — skill `elysia-api-routes`
-packages/auth/   createAuth, plugins, clients web et desktop
+src/routes/      api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (members of the platform organization) · download
+src/components/  ui/ (Base UI + shadcn, 1 component/file) · dashboard/ · admin/ (platform pages, admin/inbox/ for mail) · auth/
+src/lib/         api/ (Eden client) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
+src/workflows/   steps of ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace · PurgeDeletions, cron triggers, internal trigger
+src/worker.ts    serves /api/v1, /internal/email and /internal/workflows, receives Email Routing mail, carries the Workflow classes, the Durable Objects (InboxRealtime, RateLimit) and the cron handler, delegates the rest to Start
+packages/api/    Elysia app, Eden client, test harness — `elysia-api-routes` skill
+packages/auth/   createAuth, plugins, web and desktop clients
 ```
 
-## Règles
+## Rules
 
-- **La console n'a pas de logique métier.** Elle appelle l'API comme l'app desktop le fait. Une règle métier vit dans `packages/api/src/lib/`, jamais dans une route TanStack ni un composant.
-- **Multi-tenancy** : `const { user, activeOrganization, role } = useDashboardContext()`. Permissions via `usePermission(slug)`, slugs de `@pupitre/shared/permissions`. Gardes API : `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`.
-- **Les webhooks sont la seule entrée de la facturation Stripe.** La console ne crée rien à la fin d'un checkout ; elle attend l'événement Stripe. Idempotence par `event.id`. En `BILLING_MODE=off` — la production —, rien n'appelle Stripe : checkout et portail sont refusés, et une licence au-delà des serveurs gratuits ne naît que d'un octroi admin (`granted`).
-- **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit de projet, de secret ou de fichier client. Une PR qui ajoute un tel champ est refusée.
-- **Routes admin** : sous `/admin/**` et `{ detail: { hide: true } }` côté Elysia.
-- **Fichiers** `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `ui/`, pas de barrel files. Types inférés depuis Prisma et Eden, jamais redéclarés. Zod dans `src/lib/schemas/`.
-- **Anti-patterns → primitive** : `useForm` direct → `@/hooks/use-form` · `useState` loading/error → `useRequestCycle` · bloc vide inline → `<EmptyState>` · titre de page inline → `<PageHeader>` · tableau avec query manuelle → `<AsyncDataTable>` · dialogue de confirmation écrit à la main → `<ConfirmFormDialog>` · onglets écrits à la main → `<PageTabs>` · geste irréversible posé dans une carte quelconque → `<DangerZone>` · boutons empilés en fin de ligne → `<RowActionsMenu>` · filtre en `useState` perdu au rechargement → `useListSearch(Route)`.
-- **Ce que chaque primitive fait** (`components/ui/`, `lib/domain/list-search.ts`) : `<AsyncDataTable>` rend une liste à partir de l'état d'un `useQuery` — colonnes, squelette, refus avec réessai, liste vide, recherche débouncée, filtres, tri, pagination, sélection, ligne cliquable ; `<ConfirmFormDialog>` demande une raison, un mot-clé à retaper et une échéance, et reste ouvert avec la saisie quand le serveur refuse ; `<PageTabs>` porte l'onglet courant dans l'adresse ; `<DangerZone>` encadre le geste qui ne se reprend pas ; `<RowActionsMenu>` met les gestes d'une ligne derrière un bouton à icône ; `useListSearch(Route)` tient `q`, `offset`, `sort`, `direction` et les filtres nommés dans l'adresse, en omettant les valeurs par défaut.
-- **Breadcrumb** : toute page sous `/dashboard/**` et `/admin/**` a une entrée dans `src/lib/domain/page-titles.ts` avec sa hiérarchie.
-- **i18n** : fr et en dans la même passe, aucune chaîne utilisateur en dur. Les phrases vivent dans `src/lib/i18n/strings/<domaine>.ts` (`{ en, fr }`), fusionnées dans `en.ts` et `fr.ts` ; un composant lit `useTranslations()`, un module hors React reçoit le `Translate` en argument, et un module de domaine rend une **clé** (`DictionaryKey`), jamais une phrase. La langue vient du cookie `pupitre_locale`, lue au rendu serveur par `readLocale()` et posée dans le contexte de la route racine ; sans cookie, l'`Accept-Language` du navigateur tranche. Deux tests gardent la règle : parité des clés et des paramètres entre les langues, et aucune phrase française hors du dictionnaire.
-- **Thème, langue et pages légales sont partout**, y compris sur l'authentification. Hors de la console, c'est le pied de page global de la route racine qui les porte ; sous `/dashboard/**`, c'est le menu de compte en bas de la barre latérale, et le pied de page s'efface (`sidebarCarriesChrome`).
+- **The console has no business logic.** It calls the API the way the desktop app does. A business rule lives in `packages/api/src/lib/`, never in a TanStack route or a component.
+- **Multi-tenancy**: `const { user, activeOrganization, role } = useDashboardContext()`. Permissions via `usePermission(slug)`, slugs from `@pupitre/shared/permissions`. API guards: `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`.
+- **Webhooks are the only entry of Stripe billing.** The console creates nothing at the end of a checkout; it waits for the Stripe event. Idempotence by `event.id`. Under `BILLING_MODE=off` — production —, nothing calls Stripe: checkout and portal are refused, and a licence beyond the free servers only comes from an admin grant (`granted`).
+- **The platform does not know the content of a server.** No route receives a project, a secret or a customer file. A PR that adds such a field is refused.
+- **Admin routes**: under `/admin/**` and `{ detail: { hide: true } }` on the Elysia side.
+- **Files** `{feature}-{context}-{type}.tsx`, one React component per file outside `ui/`, no barrel files. Types inferred from Prisma and Eden, never redeclared. Zod in `src/lib/schemas/`.
+- **Anti-patterns → primitive**: direct `useForm` → `@/hooks/use-form` · loading/error `useState` → `useRequestCycle` · inline empty block → `<EmptyState>` · inline page title → `<PageHeader>` · table with a manual query → `<AsyncDataTable>` · hand-written confirmation dialog → `<ConfirmFormDialog>` · hand-written tabs → `<PageTabs>` · irreversible action dropped into any card → `<DangerZone>` · buttons stacked at the end of a row → `<RowActionsMenu>` · filter in a `useState` lost on reload → `useListSearch(Route)`.
+- **What each primitive does** (`components/ui/`, `lib/domain/list-search.ts`): `<AsyncDataTable>` renders a list from the state of a `useQuery` — columns, skeleton, refusal with retry, empty list, debounced search, filters, sort, pagination, selection, clickable row; `<ConfirmFormDialog>` asks for a reason, a keyword to retype and a deadline, and stays open with the input when the server refuses; `<PageTabs>` carries the current tab in the address; `<DangerZone>` frames the action that cannot be taken back; `<RowActionsMenu>` puts a row's actions behind an icon button; `useListSearch(Route)` keeps `q`, `offset`, `sort`, `direction` and the named filters in the address, omitting default values.
+- **Breadcrumb**: every page under `/dashboard/**` and `/admin/**` has an entry in `src/lib/domain/page-titles.ts` with its hierarchy.
+- **i18n**: fr and en in the same pass, no hard-coded user string. Sentences live in `src/lib/i18n/strings/<domain>.ts` (`{ en, fr }`), merged into `en.ts` and `fr.ts`; a component reads `useTranslations()`, a module outside React receives the `Translate` as an argument, and a domain module returns a **key** (`DictionaryKey`), never a sentence. The language comes from the `pupitre_locale` cookie, read at server render by `readLocale()` and set in the root route's context; without a cookie, the browser's `Accept-Language` decides. Two tests guard the rule: parity of keys and parameters between languages, and no French sentence outside the dictionary.
+- **Theme, language and legal pages are everywhere**, including on authentication. Outside the console, the global footer of the root route carries them; under `/dashboard/**`, it is the account menu at the bottom of the sidebar, and the footer disappears (`sidebarCarriesChrome`).
 
 ## Tests
 
-Intégration Elysia sur le harnais SQLite (`@pupitre/api/testing`, les mêmes migrations que D1) pour auth, guards, enrôlement, webhooks. Playwright dans `e2e/` pour connexion, device flow, serveurs, facturation en mode test. Assertions dans `it()`, pas de `.only` committé.
+Elysia integration on the SQLite harness (`@pupitre/api/testing`, the same migrations as D1) for auth, guards, enrolment, webhooks. Playwright in `e2e/` for sign-in, device flow, servers, billing in test mode. Assertions in `it()`, no committed `.only`.
 
-`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais SQLite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant. L'origine est `localhost:3000` ; quand un autre serveur de développement tient ce port, `PUPITRE_E2E_PORT=3300 bun run test:e2e` déplace le harnais et Vite (port + 100) ensemble.
+`test:e2e` serves everything from a single local origin: `e2e/harness/server.ts` answers `/api/v1` and `/api/auth` calls from the SQLite harness and proxies the rest to the Vite server. No database and no remote service. The origin is `localhost:3000`; when another development server holds that port, `PUPITRE_E2E_PORT=3300 bun run test:e2e` moves the harness and Vite (port + 100) together.
 
-## Commandes
+## Commands
 
 ```bash
 bun run dev
@@ -58,4 +58,4 @@ bun run test
 bun run test:e2e
 ```
 
-Depuis la racine, `bun run db:migrate local` applique les migrations à la D1 que miniflare tient sous `.wrangler/state`. Le document OpenAPI se lit sur `/api/v1/openapi/json`, servi par l'API elle-même.
+From the root, `bun run db:migrate local` applies the migrations to the D1 that miniflare keeps under `.wrangler/state`. The OpenAPI document is read at `/api/v1/openapi/json`, served by the API itself.

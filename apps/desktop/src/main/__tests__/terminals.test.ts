@@ -61,8 +61,8 @@ function shell(
   );
 }
 
-describe("le terminal d'un projet", () => {
-  it("démarre dans le dossier absolu que le projet porte, sous tmux", async () => {
+describe("a project's terminal", () => {
+  it("starts in the absolute folder the project carries, under tmux", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -80,7 +80,7 @@ describe("le terminal d'un projet", () => {
     });
   });
 
-  it("ouvre le shell de connexion quand aucun projet n'est nommé", async () => {
+  it("opens the login shell when no project is named", async () => {
     const calls = deps();
 
     const opened = await shell(null, "tabc2", null, calls.terminals);
@@ -96,7 +96,7 @@ describe("le terminal d'un projet", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("rattache la session que l'onglet remémoré porte, plutôt qu'une neuve", async () => {
+  it("attaches to the session the remembered tab carries, rather than a new one", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -118,7 +118,7 @@ describe("le terminal d'un projet", () => {
     });
   });
 
-  it("donne un nom que tmux accepte à un projet qui porte un point", async () => {
+  it("gives a name tmux accepts to a project whose name contains a dot", async () => {
     const calls = deps();
     const named = await shell(null, "tab.4:x", null, calls.terminals);
 
@@ -128,7 +128,7 @@ describe("le terminal d'un projet", () => {
     });
   });
 
-  it("refuse un nom de session que l'app n'aurait jamais écrit", async () => {
+  it("refuses a session name the app would never have written", async () => {
     const calls = deps();
 
     const refused = await shell(
@@ -148,7 +148,7 @@ describe("le terminal d'un projet", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("refuse un projet que l'agent n'a pas déclaré, même pour un simple shell", async () => {
+  it("refuses a project the agent has not declared, even for a plain shell", async () => {
     const calls = deps();
 
     const refused = await shell("jamais-vu", "tabc6", null, calls.terminals);
@@ -160,8 +160,8 @@ describe("le terminal d'un projet", () => {
   });
 });
 
-describe("le terminal ouvert dans un sous-dossier", () => {
-  it("recolle le dossier nommé sous celui du projet, jamais ailleurs", async () => {
+describe("a terminal opened in a subfolder", () => {
+  it("joins the named folder under the project's, never elsewhere", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -187,7 +187,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
     });
   });
 
-  it("recolle un dossier du serveur sous la racine que l'agent a nommée", async () => {
+  it("joins a server folder under the root the agent named", async () => {
     const calls = deps();
 
     const opened = await terminalCommand(
@@ -211,7 +211,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
     });
   });
 
-  it("refuse un dossier qui remonte, un absolu, ou une forme qu'un shell lirait", async () => {
+  it("refuses a folder that climbs up, an absolute one, or a form a shell would interpret", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -239,7 +239,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
     }
   });
 
-  it("refuse un dossier du serveur quand l'agent n'a pas nommé sa racine", async () => {
+  it("refuses a server folder when the agent did not name its root", async () => {
     const calls = deps();
 
     const refused = await terminalCommand(
@@ -261,8 +261,8 @@ describe("le terminal ouvert dans un sous-dossier", () => {
   });
 });
 
-describe("l'onglet d'un agent", () => {
-  it("attache la commande que l'agent a rendue, et retient sa session", async () => {
+describe("an agent's tab", () => {
+  it("attaches the command the agent returned, and remembers its session", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -289,7 +289,7 @@ describe("l'onglet d'un agent", () => {
     });
   });
 
-  it("transmet le refus de l'agent et son remède, sans les toucher", async () => {
+  it("relays the agent's refusal and its fix untouched", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
@@ -324,7 +324,7 @@ describe("l'onglet d'un agent", () => {
     });
   });
 
-  it("refuse un projet que l'agent n'a jamais déclaré, sans rien lui demander", async () => {
+  it("refuses a project the agent never declared, without asking it anything", async () => {
     const calls = deps();
 
     const refused = await terminalCommand(
@@ -345,7 +345,7 @@ describe("l'onglet d'un agent", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("refuse un genre que le protocole ne connaît pas", async () => {
+  it("refuses a kind the protocol does not know", async () => {
     const calls = deps();
 
     const refused = await terminalCommand(
@@ -366,7 +366,7 @@ describe("l'onglet d'un agent", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("refuse un serveur qui n'est plus dans la liste", async () => {
+  it("refuses a server that is no longer in the list", async () => {
     const calls = deps();
 
     const refused = await terminalCommand(

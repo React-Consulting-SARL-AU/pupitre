@@ -1,34 +1,34 @@
-# Migrations de configuration
+# Configuration migrations
 
-Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app se met à jour toute seule, et les fichiers que l'un et l'autre lisent restent là où ils sont. Quand une version change la **forme** d'un de ces fichiers — un champ renommé, un module scindé en deux, une valeur qui ne veut plus dire ce qu'elle voulait dire — le nouveau code lit l'ancienne forme et se trompe. Ce document dit comment on ferme cet écart, des deux côtés, et ce que ça coûte d'ajouter un changement de forme.
+An update reinstalls nothing. The agent binary is replaced, the app updates itself, and the files both of them read stay where they are. When a version changes the **shape** of one of those files — a renamed field, a module split in two, a value that no longer means what it used to — the new code reads the old shape and gets it wrong. This document says how that gap is closed, on both sides, and what it costs to add a shape change.
 
-**La règle, en une phrase : un binaire ne lit jamais une configuration qu'il n'a pas migrée.**
+**The rule, in one sentence: a binary never reads a configuration it has not migrated.**
 
-## Ce que le registre possède
+## What the registry owns
 
-| Côté | Fichiers | Registre | Sauvegardes |
+| Side | Files | Registry | Backups |
 | --- | --- | --- | --- |
-| Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, tout autre fichier de `/etc/pupitre` qu'une migration nomme, et le cache de licence `/var/lib/pupitre/license.json` (`PUPITRE_LICENSE_PATH`) avec son prédécesseur `entitlement.json` | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
-| App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json`, `access/<serveur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
+| Agent, on the VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, any other file of `/etc/pupitre` that a migration names, and the licence cache `/var/lib/pupitre/license.json` (`PUPITRE_LICENSE_PATH`) with its predecessor `entitlement.json` | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<timestamp>-r<revision>/`, the last five batches |
+| App, on the laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<provider>.json`, `access/<server>.json` in the data folder | the `version` field of the file itself | `<file>.r<revision>`, beside it; `<file>.corrupt` for a file that cannot be read |
 
-Ce que le registre **ne** possède pas :
+What the registry does **not** own:
 
-- **Les fichiers qu'un module écrit** — la configuration de Caddy, une unité systemd, un fichier de service. Ils appartiennent au module, et c'est son `Upgrade` qui les porte à la forme d'aujourd'hui. Le registre ne s'en mêle pas : un module réécrit les siens depuis ses valeurs à chaque montée de version, alors que le registre, lui, porte les valeurs.
-- **La règle sudo de `dev`** (`/etc/sudoers.d/90-dev`, [décision 0015](../decisions/0015-sudo-par-mot-de-passe.md)). Elle appartient à `core.system`, qui pose l'ancienne sur un serveur neuf et ne réécrit jamais la nouvelle ; et aucune migration ne passe de l'une à l'autre, parce que la nouvelle exige un mot de passe que seul le client peut accepter. C'est `harden.sudo`, appelé par l'app, qui la pose. Voir [le mot de passe sudo](./agent-protocol.md#le-mot-de-passe-sudo).
-- **La base de la plateforme.** D1 a ses migrations SQL (`packages/db/migrations`), qui n'ont rien à voir avec celles-ci et ne se croisent jamais.
-- **Le code du client.** Les projets, les dépôts, les données des bases installées ne sont pas de la configuration Pupitre.
+- **Files a module writes** — Caddy's configuration, a systemd unit, a service file. They belong to the module, and its `Upgrade` brings them to today's shape. The registry stays out of it: a module rewrites its own from its values at each version bump, whereas the registry carries the values.
+- **`dev`'s sudo rule** (`/etc/sudoers.d/90-dev`, [decision 0015](../decisions/0015-sudo-by-password.md)). It belongs to `core.system`, which installs the old one on a new server and never rewrites the new one; and no migration goes from one to the other, because the new one requires a password that only the customer can accept. It is `harden.sudo`, called by the app, that installs it. See [the sudo password](./agent-protocol.md#the-sudo-password).
+- **The platform database.** D1 has its SQL migrations (`packages/db/migrations`), which have nothing to do with these and never cross them.
+- **The customer's code.** Projects, repositories, the data of installed databases are not Pupitre configuration.
 
-## La révision est un compteur, pas une version
+## The revision is a counter, not a version
 
-Un entier qui ne fait que monter, tenu par l'agent, indépendant de `X.Y.Z`.
+An integer that only goes up, held by the agent, independent of `X.Y.Z`.
 
-Les formes ne changent pas une fois par release, et une pré-version ou un build de développement n'a pas sa place dans un ordre qui doit être exact. Comparer des numéros de version pour décider si une migration est due, c'est se donner `0.4.0-beta.2` à trancher un jour de panne. Un compteur ne se discute pas.
+Shapes do not change once per release, and a pre-release or a development build has no place in an order that must be exact. Comparing version numbers to decide whether a migration is due means giving yourself `0.4.0-beta.2` to rule on during an outage. A counter is not up for debate.
 
-La version de l'agent est **écrite à côté** de chaque entrée du registre, pour qui relit une machine dans deux ans. Rien n'en dépend.
+The agent version is **written beside** each registry entry, for whoever rereads a machine in two years. Nothing depends on it.
 
-## Ce que dit la machine
+## What the machine says
 
-`hello` porte un champ `config`, facultatif :
+`hello` carries an optional `config` field:
 
 ```jsonc
 { "id": 1, "ok": true, "result": {
@@ -40,68 +40,68 @@ La version de l'agent est **écrite à côté** de chaque entrée du registre, p
 } }
 ```
 
-| `state` | Ce que c'est |
+| `state` | What it is |
 | --- | --- |
-| `current` | la configuration est la forme que ce binaire lit |
-| `pending` | elle est en retard : les migrations n'ont pas encore tourné, parce qu'une installation tenait le verrou |
-| `failed` | une migration a refusé ; la configuration a été **remise en l'état** et rien n'est resté à moitié changé |
-| `ahead` | elle est en avance : cette machine a été configurée par un agent plus récent que celui qui tourne |
+| `current` | the configuration is the shape this binary reads |
+| `pending` | it is behind: the migrations have not run yet, because an installation held the lock |
+| `failed` | a migration refused; the configuration was **put back as it was** and nothing was left half changed |
+| `ahead` | it is ahead: this machine was configured by a newer agent than the one running |
 
-Un agent antérieur au registre ne rend pas le champ, et l'app tient sa configuration pour courante — ce qu'elle est, puisque rien n'avait encore changé de forme.
+An agent that predates the registry does not return the field, and the app treats its configuration as current — which it is, since nothing had yet changed shape.
 
 ## `agent.migrate`
 
-| Commande | Paramètres | Résultat |
+| Command | Parameters | Result |
 | --- | --- | --- |
 | `agent.migrate` | — | `{ revision, expected, state, applied[], pending[], backup?, failure?, restored }` |
 
-- `applied[]` est ce que **cet appel** a fait : `{ id, slug, ms }`, dans l'ordre. Vide quand l'agent avait déjà migré tout seul au démarrage, ce qui est le cas normal.
-- `pending[]` sont les identifiants encore dus, quand l'état n'est pas `current`.
-- `backup` nomme le dossier qui garde les fichiers d'avant le lot. Il est nommé même en cas de succès : c'est là qu'on va pour revenir en arrière.
-- `failure` nomme la migration qui a refusé, et `restored` dit si les fichiers d'avant ont pu être remis.
+- `applied[]` is what **this call** did: `{ id, slug, ms }`, in order. Empty when the agent had already migrated on its own at startup, which is the normal case.
+- `pending[]` are the identifiers still due, when the state is not `current`.
+- `backup` names the folder that keeps the files from before the batch. It is named even on success: that is where to go to roll back.
+- `failure` names the migration that refused, and `restored` says whether the earlier files could be put back.
 
-**`agent.migrate` répond toujours, même quand une migration a refusé.** Ce qui a refusé, ce qui a été gardé et ce qui reste dû sont exactement ce dont le lecteur a besoin ; une enveloppe d'erreur n'en porterait rien. Le refus, lui, appartient à toutes les autres commandes.
+**`agent.migrate` always answers, even when a migration refused.** What refused, what was kept and what remains due are exactly what the reader needs; an error envelope would carry none of it. The refusal, for its part, belongs to every other command.
 
-La commande est ouverte en [mode restreint](./agent-protocol.md#mode-restreint) : `agent.upgrade` l'est aussi, et un serveur dont la licence est en attente est exactement celui qu'on va vouloir remettre à jour.
+The command is open in [restricted mode](./agent-protocol.md#restricted-mode): `agent.upgrade` is too, and a server whose licence is pending is exactly the one we will want to update again.
 
-## Ce qu'un serveur en retard laisse ouvert
+## What a lagging server leaves open
 
-Une configuration que le binaire ne lit pas n'est pas une configuration à deviner : un module à qui l'on passe des valeurs qu'il comprend de travers les réécrit de travers. Toute commande qui lit ou écrit une configuration est donc refusée en **`migration_required`**, avec le `fix` qui nomme le geste.
+A configuration the binary does not read is not one to guess at: a module handed values it misreads rewrites them wrongly. Every command that reads or writes a configuration is therefore refused with **`migration_required`**, with the `fix` that names the gesture.
 
-Ce qui reste ouvert, c'est la vue de la machine et les portes de sortie : `hello`, `ping`, `snapshot`, `status`, `report`, `diag`, `doctor`, `agent.upgrade`, `agent.migrate`, `enroll`, `platform.sync`. La liste vit dans `packages/shared` sous `MIGRATION_COMMANDS`, voyage dans `schema.json`, et l'agent la lit de là — comme `RESTRICTED_COMMANDS`, et pour la même raison : un serveur qu'on ne peut pas regarder est un serveur qu'on ne peut pas réparer.
+What stays open is the view of the machine and the exit doors: `hello`, `ping`, `snapshot`, `status`, `report`, `diag`, `doctor`, `agent.upgrade`, `agent.migrate`, `enroll`, `platform.sync`. The list lives in `packages/shared` under `MIGRATION_COMMANDS`, travels in `schema.json`, and the agent reads it from there — like `RESTRICTED_COMMANDS`, and for the same reason: a server that cannot be looked at is a server that cannot be repaired.
 
-## L'ordre d'une mise à jour
+## The order of an update
 
-C'est l'app qui met l'agent à jour, donc c'est elle qui enchaîne. `runAgentUpgrade` fait, dans cet ordre :
+The app updates the agent, so it is the one that chains the steps. `runAgentUpgrade` does, in this order:
 
-1. **`agent.upgrade`** — le binaire est vérifié, remplacé, l'unité redémarrée. Une seule mise à jour à la fois (`busy` sinon), et jamais pendant une installation, une sauvegarde ou une restauration : le redémarrage la couperait. Si le nouveau binaire ne répond pas à `hello`, l'ancien revient, et avec lui la configuration : le lot que le nouveau binaire a sauvegardé avant de migrer est remis, révision comprise, avant que l'ancien ne redémarre — sinon il trouverait une configuration `ahead` et refuserait presque tout. C'est la seule restauration que l'agent fait de lui-même : ce lot a quelques secondes, rien n'a été configuré depuis.
-2. **Le canal est fermé.** Le `pupitred serve` qui nous répond tient encore le fichier qu'il a ouvert : le remplacement se fait par un `rename`, donc seule une nouvelle session atteint la version qui vient d'être installée. Sans cette fermeture, tout ce qui suit interroge l'ancien binaire.
-3. **`agent.migrate`** — sur le canal rouvert. Le nouveau binaire a déjà migré en démarrant ; l'appel confirme et rapporte. `unknown_command` est un agent antérieur au registre : il n'y avait rien à porter.
-4. **`upgrade { modules }`** — les modules déjà installés rejouent leurs étapes. Si la migration a échoué, l'agent refuse cette commande lui-même : l'app n'a pas de garde à écrire, elle a une phrase à afficher.
+1. **`agent.upgrade`** — the binary is verified, replaced, the unit restarted. One update at a time (`busy` otherwise), and never during an installation, a backup or a restore: the restart would cut it. If the new binary does not answer `hello`, the old one comes back, and with it the configuration: the batch the new binary saved before migrating is put back, revision included, before the old one restarts — otherwise it would find an `ahead` configuration and refuse almost everything. It is the only restore the agent does by itself: that batch is a few seconds old, nothing has been configured since.
+2. **The channel is closed.** The `pupitred serve` that answers us still holds the file it opened: the replacement is done by a `rename`, so only a new session reaches the version just installed. Without this closing, everything that follows queries the old binary.
+3. **`agent.migrate`** — on the reopened channel. The new binary has already migrated while starting; the call confirms and reports. `unknown_command` is an agent that predates the registry: there was nothing to carry.
+4. **`upgrade { modules }`** — the modules already installed replay their steps. If the migration failed, the agent refuses this command itself: the app has no guard to write, it has a sentence to display.
 
-L'agent **migre aussi tout seul**, au démarrage de `serve` et de `daemon`, avant de servir la première commande. C'est ce qui fait qu'une machine mise à jour par un autre chemin — un binaire poussé à la main, une mise à jour venue de la plateforme — converge sans que personne ne lui demande rien. Le chemin rapide ne prend aucun verrou : une machine déjà à la révision répond sur une lecture d'un petit fichier, ce que fait chaque second canal ouvert pendant une installation.
+The agent **also migrates on its own**, at the start of `serve` and `daemon`, before serving the first command. That is what makes a machine updated by another path — a binary pushed by hand, an update coming from the platform — converge without anyone asking it anything. The fast path takes no lock: a machine already at the revision answers on a read of a small file, which is what each second channel opened during an installation does.
 
-## Ce qu'une migration doit être
+## What a migration must be
 
-Cinq règles. Elles ne se négocient pas ; le reste est du goût.
+Five rules. They are not negotiable; the rest is taste.
 
-1. **Idempotente.** Rejouée sur une machine déjà migrée, elle ne change rien. C'est ce qui rend une reprise après coupure sûre.
-2. **Sans effet sur un fichier absent.** Une machine qui n'a jamais tenu ce fichier n'a rien à porter, et la migration la laisse tranquille.
-3. **Elle lit du JSON brut, jamais un type d'aujourd'hui.** `ctx.JSON()` rend une `map[string]any`, `ctx.Lines()` des lignes. Décoder dans la structure Go du moment ferait tomber, au passage, tout champ que cette structure ne nomme plus — c'est-à-dire précisément ce que la migration existe pour porter.
-4. **Son identifiant est fixé pour toujours.** C'est ce que la machine retient. Un numéro qui bouge est une migration qui tourne deux fois ou pas du tout. On n'en supprime pas, on n'en réordonne pas : on en ajoute.
-5. **Elle ne touche que ce qu'elle déclare.** `Touches` est ce qui est sauvegardé avant le lot, donc ce qui peut être remis. Un fichier écrit sans être déclaré ne revient pas.
+1. **Idempotent.** Replayed on an already migrated machine, it changes nothing. That is what makes a recovery after a cut safe.
+2. **No effect on an absent file.** A machine that never held this file has nothing to carry, and the migration leaves it alone.
+3. **It reads raw JSON, never today's type.** `ctx.JSON()` returns a `map[string]any`, `ctx.Lines()` lines. Decoding into the Go struct of the moment would drop, along the way, any field that struct no longer names — which is precisely what the migration exists to carry.
+4. **Its identifier is fixed forever.** It is what the machine remembers. A number that moves is a migration that runs twice or not at all. None is deleted, none is reordered: they are added.
+5. **It touches only what it declares.** `Touches` is what is saved before the batch, hence what can be put back. A file written without being declared does not come back.
 
-## Le lot est une transaction
+## The batch is a transaction
 
-Avant la première migration en attente, l'agent copie tous les fichiers déclarés par le lot **et le registre lui-même** dans un dossier de sauvegarde.
+Before the first pending migration, the agent copies every file declared by the batch **and the registry itself** into a backup folder.
 
-Le registre est réécrit **après chaque migration**, pas après le lot : une machine qui perd le courant au milieu revient d'accord avec elle-même et ne rejoue que ce qu'elle doit. Un refus, lui, remet tout le lot — les fichiers et le registre, qui sont dans la même sauvegarde — parce qu'un demi-lot est une forme qu'aucun binaire n'a jamais été écrit pour lire.
+The registry is rewritten **after each migration**, not after the batch: a machine that loses power in the middle comes back consistent with itself and replays only what it must. A refusal, for its part, puts the whole batch back — the files and the registry, which are in the same backup — because half a batch is a shape that no binary was ever written to read.
 
-Un registre absent vaut la révision zéro : une machine configurée avant qu'il existe doit toutes les migrations, et elles sont idempotentes. Un registre présent qui ne se lit pas est refusé en `migration_required`, l'état passe à `failed`, et rien n'est rejoué : il peut venir d'un agent plus récent, dont un rejeu depuis zéro prendrait les formes pour les plus anciennes. Le `fix` dit de le remettre par `--restore`, ou de le supprimer pour tout rejouer. De même, un fichier que la sauvegarde du lot n'a pas pu lire — autre chose qu'une absence — arrête le lot avant la première migration : noté absent, une remise en l'état le supprimerait.
+An absent registry is revision zero: a machine configured before it existed owes every migration, and they are idempotent. A present registry that cannot be read is refused with `migration_required`, the state becomes `failed`, and nothing is replayed: it may come from a newer agent, whose shapes a replay from zero would take for the oldest. The `fix` says to put it back with `--restore`, or to delete it to replay everything. Likewise, a file that the batch backup could not read — anything other than an absence — stops the batch before the first migration: noted as absent, a restore would delete it.
 
-## Revenir en arrière
+## Going back
 
-Une machine qui doit refaire tourner un agent plus ancien que celui qui l'a configurée est en `ahead` : l'agent refuse de toucher à une configuration qu'il ne lit pas, plutôt que de la deviner. Deux sorties, toutes deux explicites :
+A machine that must run again an agent older than the one that configured it is `ahead`: the agent refuses to touch a configuration it does not read, rather than guess at it. Two exits, both explicit:
 
 ```bash
 sudo pupitred migrate --status
@@ -111,11 +111,11 @@ sudo pupitred migrate --status
 sudo pupitred migrate --restore=20260911T100000Z-r3
 ```
 
-`--restore` remet les fichiers du lot et **laisse le registre à la révision qui leur correspond**, si bien qu'un agent récent rejouerait ce que ce lot avait fait. C'est un geste du propriétaire, pas une décision de l'app : ce qui a été configuré depuis part avec. C'est pour cette raison que la restauration n'est pas dans le protocole — l'app ne saurait pas montrer ce qui serait perdu, et le client a de toute façon un terminal sur ce serveur, dans l'app.
+`--restore` puts the batch's files back and **leaves the registry at the revision that corresponds to them**, so that a recent agent would replay what that batch had done. It is an owner's gesture, not a decision of the app: whatever was configured since goes with it. That is why the restore is not in the protocol — the app could not show what would be lost, and the customer has a terminal on that server anyway, in the app.
 
-## Ajouter une migration
+## Adding a migration
 
-Côté agent — `apps/agent/internal/migrate/migrations.go` :
+Agent side — `apps/agent/internal/migrate/migrations.go`:
 
 ```go
 func All() []Migration {
@@ -131,7 +131,7 @@ func All() []Migration {
 }
 ```
 
-Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts` ou `access-migrations.ts`, lus et écrits par `versionedFile()` de `store-migrations.ts` (écriture à côté puis renommée, fichier d'une version plus récente jamais réécrit) :
+App side — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts` or `access-migrations.ts`, read and written by `versionedFile()` of `store-migrations.ts` (written beside then renamed, a file of a newer version never rewritten):
 
 ```ts
 export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
@@ -139,29 +139,29 @@ export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
 ];
 ```
 
-Un test par migration : la forme d'avant en entrée, la forme d'après en sortie, et la preuve qu'un second passage ne change rien. Le [skill `config-migrations`](../../.claude/skills/config-migrations/SKILL.md) donne la marche à suivre complète.
+One test per migration: the earlier shape as input, the later shape as output, and the proof that a second pass changes nothing. The [`config-migrations` skill](../../.claude/skills/config-migrations/SKILL.md) gives the complete procedure.
 
-## Ce qui reste vrai quand rien ne change
+## What stays true when nothing changes
 
-Une machine neuve se voit **estampillée à la révision courante sans que rien ne tourne** — il n'y a pas de forme d'hier à porter, et le registre le dit à qui le lira plus tard.
+A new machine is **stamped at the current revision without anything running** — there is no yesterday's shape to carry, and the registry says so to whoever reads it later.
 
-## Le registre des connexions de l'app
+## The app's connections registry
 
-`connections-migrations.ts`, pour `connections/<fournisseur>.json`.
+`connections-migrations.ts`, for `connections/<provider>.json`.
 
-| N° | Slug | Ce qui change |
+| No. | Slug | What changes |
 | --- | --- | --- |
-| 1 | `account-id-name` | Cloudflare nommait son compte `accountId` et `accountName` avant qu'il y ait une seconde connexion ; toute connexion le nomme `id` et `name`. Les deux clés sont renommées quand elles sont là, sans écraser un `id` ou un `name` déjà présent ; une fiche sans compte n'est pas touchée. Le code ne lit plus que `id` et `name`. |
+| 1 | `account-id-name` | Cloudflare named its account `accountId` and `accountName` before there was a second connection; every connection names it `id` and `name`. Both keys are renamed when present, without overwriting an `id` or a `name` already there; a record without an account is not touched. The code now reads only `id` and `name`. |
 
-## Le registre de l'agent
+## The agent's registry
 
-| N° | Slug | Ce qui change |
+| No. | Slug | What changes |
 | --- | --- | --- |
-| 1 | `projects-local-json` | `/etc/pupitre/projects.local.conf`, le registre local des projets en colonnes séparées par `\|`, devient `/etc/pupitre/projects.local.json`. Chaque ligne à huit, neuf ou dix colonnes devient un projet ; son sous-domaine devient le `hostname` de son unique route, composé avec le `PUPITRE_DOMAIN` de la machine — sans domaine, la route garde son port et le sous-domaine est écrit au journal. L'ancien fichier est sauvegardé avec le lot, puis supprimé. |
-| 2 | `projects-processes` | Un projet tenait une commande, un port et un dossier ; il est un dépôt désormais, et tient des `processes[]`, chacun avec les siens. Chaque entrée de `projects.local.json` devient un projet d'un processus, dont l'`id` est le nom replié en étiquette DNS et le dossier `.`. Les entrées qui partageaient le premier segment de leur `dir` partageaient un dépôt — c'est ce que l'ancien format voulait dire, avec `-` pour le dépôt de toutes les lignes sauf la première — et deviennent **un** projet dont `dir` est ce segment, nommé d'après lui quand aucune ligne d'un autre dépôt ne tient ce nom, un processus par ligne dans son sous-dossier. Dans `/etc/pupitre/env`, chaque entrée `nom:port` de `PUPITRE_DEBUG_PORTS` devient `projet/processus:port`, la fenêtre tmux que le processus occupe. |
-| 3 | `projects-boot` | Chaque ligne de `projects.local.json` porte `boot`, vrai quand le projet démarre avec le serveur ; les lignes d'avant ne le demandaient pas et reçoivent `false`. Une ligne qui répond déjà est laissée telle quelle. |
-| 4 | `runtime-versions` | Un runtime demandait une version, `node_version: "22"` dans `install.json` ; il en demande plusieurs, `node_versions: ["22"]`. Pour `node`, `java`, `python`, `go`, `php`, `ruby` et `rust`, la valeur d'`<outil>_version` devient la liste d'un élément `<outil>_versions`, sauf si la liste est déjà là ; l'ancienne clé part dans tous les cas. Un module absent d'`install.json` n'est pas touché. |
-| 5 | `projects-runtimes` | Chaque ligne de `projects.local.json` porte `runtimes`, la version épinglée par outil ; les lignes d'avant n'en nomment aucune et reçoivent `{}`. Une ligne qui répond déjà est laissée telle quelle. |
-| 6 | `key-signers` | Les clés approuvées par un appareil ([décision 0014](../decisions/0014-cles-approuvees-par-un-appareil.md)) : l'agent ne pose plus une clé que si elle est déjà signataire ou qu'une approbation signée l'admet. Chaque clé du bloc géré de `/home/dev/.ssh/authorized_keys` qui peut signer — ed25519 ou ecdsa sur une courbe NIST, sans option — devient signataire dans `/etc/pupitre/signers.json`, `via: "migration"`, pour que la mise à jour n'enferme personne dehors. Une clé RSA ou tenue par des options n'est pas reprise. Un `signers.json` déjà là, un fichier absent, illisible ou lié hors de `.ssh`, un bloc vide : rien n'est écrit. |
-| 7 | `projects-protected` | Le portier d'accès ([décision 0017](../decisions/0017-portier-d-acces.md)) : chaque ligne de `projects.local.json` qui ne dit rien de `protected` reçoit `true`, pour qu'un projet publié avant la mise à jour ne réponde plus sans clé. Une ligne qui répond déjà, `false` compris, est laissée telle quelle ; un processus ne reçoit rien et suit son projet. |
-| 8 | `license-cache` | Le renommage `entitlement` → `license` ([décision 0018](../decisions/0018-source-disponible-et-gratuit.md)), depuis 2.0.0 : le cache `/var/lib/pupitre/entitlement.json` devient `/var/lib/pupitre/license.json`, recopié tel quel plutôt qu'attendu de la plateforme, pour qu'un serveur hors ligne garde ses sept jours de tolérance. Un `license.json` déjà là n'est pas écrasé ; l'ancien fichier part dans tous les cas. Sans ancien fichier, rien n'est fait. Cibles `TargetEntitlement` et `TargetLicense`. |
+| 1 | `projects-local-json` | `/etc/pupitre/projects.local.conf`, the local project registry in `\|`-separated columns, becomes `/etc/pupitre/projects.local.json`. Each line of eight, nine or ten columns becomes a project; its subdomain becomes the `hostname` of its single route, composed with the machine's `PUPITRE_DOMAIN` — without a domain, the route keeps its port and the subdomain is written to the journal. The old file is saved with the batch, then deleted. |
+| 2 | `projects-processes` | A project held one command, one port and one folder; it is now a repository, and holds `processes[]`, each with its own. Each entry of `projects.local.json` becomes a one-process project, whose `id` is the name folded into a DNS label and whose folder is `.`. Entries that shared the first segment of their `dir` shared a repository — that is what the old format meant, with `-` for the repository of every line but the first — and become **one** project whose `dir` is that segment, named after it when no line of another repository holds that name, one process per line in its subfolder. In `/etc/pupitre/env`, each `name:port` entry of `PUPITRE_DEBUG_PORTS` becomes `project/process:port`, the tmux window the process occupies. |
+| 3 | `projects-boot` | Each line of `projects.local.json` carries `boot`, true when the project starts with the server; earlier lines did not ask for it and receive `false`. A line that already answers is left as is. |
+| 4 | `runtime-versions` | A runtime asked for one version, `node_version: "22"` in `install.json`; it asks for several, `node_versions: ["22"]`. For `node`, `java`, `python`, `go`, `php`, `ruby` and `rust`, the value of `<tool>_version` becomes the one-element list `<tool>_versions`, unless the list is already there; the old key goes in every case. A module absent from `install.json` is not touched. |
+| 5 | `projects-runtimes` | Each line of `projects.local.json` carries `runtimes`, the version pinned per tool; earlier lines name none and receive `{}`. A line that already answers is left as is. |
+| 6 | `key-signers` | Keys approved by a device ([decision 0014](../decisions/0014-keys-approved-by-a-device.md)): the agent only installs a key if it is already a signer or a signed approval admits it. Each key of the managed block of `/home/dev/.ssh/authorized_keys` that can sign — ed25519 or ecdsa on a NIST curve, without options — becomes a signer in `/etc/pupitre/signers.json`, `via: "migration"`, so the update locks nobody out. An RSA key or one held by options is not carried over. A `signers.json` already there, a file that is absent, unreadable or linked outside `.ssh`, an empty block: nothing is written. |
+| 7 | `projects-protected` | The access gate ([decision 0017](../decisions/0017-access-gate.md)): each line of `projects.local.json` that says nothing about `protected` receives `true`, so that a project published before the update no longer answers without a key. A line that already answers, `false` included, is left as is; a process receives nothing and follows its project. |
+| 8 | `license-cache` | The `entitlement` → `license` rename ([decision 0018](../decisions/0018-source-available-and-free.md)), since 2.0.0: the cache `/var/lib/pupitre/entitlement.json` becomes `/var/lib/pupitre/license.json`, copied as is rather than awaited from the platform, so that an offline server keeps its seven days of tolerance. A `license.json` already there is not overwritten; the old file goes in every case. Without an old file, nothing is done. Targets `TargetEntitlement` and `TargetLicense`. |

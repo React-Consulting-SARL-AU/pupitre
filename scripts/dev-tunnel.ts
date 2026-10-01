@@ -26,19 +26,19 @@ function installed(): boolean {
 function main(): void {
   if (!installed()) {
     give(
-      "cloudflared est absent de cette machine.",
-      "Installe-le : brew install cloudflared"
+      "skipped: cloudflared is not installed on this machine.",
+      "Only needed to let a remote agent reach this console: brew install cloudflared"
     )
   }
 
   if (!TOKEN) {
     give(
-      "PUPITRE_TUNNEL_TOKEN est vide : le tunnel ne peut pas s'identifier.",
-      "Pose le jeton du tunnel dans la note 1Password du poste, puis relance bun run dev:prepare"
+      "skipped: PUPITRE_TUNNEL_TOKEN is empty, so the tunnel cannot identify itself.",
+      "Only needed to let a remote agent reach this console; maintainers get the token from 1Password through bun run dev:prepare."
     )
   }
 
-  say(`${HOSTNAME} → cette console, sur /api/v1/agent/ seulement`)
+  say(`${HOSTNAME} → this console, on /api/v1/agent/ only`)
 
   // The token goes through the environment: as an argument it would sit in every `ps`.
   const child = spawn("cloudflared", ["tunnel", "run"], {
@@ -52,5 +52,5 @@ function main(): void {
 try {
   main()
 } catch (error) {
-  give(`tunnel arrêté : ${error instanceof Error ? error.message : error}`)
+  give(`stopped: ${error instanceof Error ? error.message : error}`)
 }

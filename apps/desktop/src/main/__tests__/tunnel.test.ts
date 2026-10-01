@@ -142,8 +142,8 @@ const ROUTES: readonly TunnelRoute[] = [
   },
 ];
 
-describe("les valeurs que l'app calcule", () => {
-  it("ne dit rien quand le module n'est pas de la partie", async () => {
+describe("the values the app computes", () => {
+  it("says nothing when the module is not part of the install", async () => {
     const { deps } = harness();
 
     const values = await managedValues("srv-1", ["core.system"], deps);
@@ -151,7 +151,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(values).toEqual({ ok: true, result: { config: {}, secrets: {} } });
   });
 
-  it("refuse, et dit pourquoi, sans compte connecté", async () => {
+  it("refuses, and says why, without a connected account", async () => {
     const { deps } = harness({ connected: false });
 
     const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
@@ -160,7 +160,7 @@ describe("les valeurs que l'app calcule", () => {
   });
 
   // Read as "no tunnel", an unreachable server once had its live tunnel deleted by name and remade.
-  it("ne touche à rien quand le serveur n'a pas pu être interrogé", async () => {
+  it("touches nothing when the server could not be queried", async () => {
     const { deps, calls } = harness({ unreadable: true });
 
     const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
@@ -169,7 +169,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).toEqual([]);
   });
 
-  it("fait le tunnel du serveur qui n'en a pas, et livre son secret une fois", async () => {
+  it("creates the tunnel for a server that has none, and delivers its secret once", async () => {
     const { deps, calls } = harness();
 
     const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
@@ -192,7 +192,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).toContain("createTunnel pupitre-srv-1");
   });
 
-  it("ne décide pas du domaine", async () => {
+  it("does not decide the domain", async () => {
     const { deps } = harness();
 
     const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
@@ -202,7 +202,7 @@ describe("les valeurs que l'app calcule", () => {
     ).not.toHaveProperty("domain");
   });
 
-  it("garde le tunnel que le serveur dit déjà faire tourner", async () => {
+  it("keeps the tunnel the server says is already running", async () => {
     const { deps, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-kept" },
     });
@@ -225,7 +225,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).not.toContain("createTunnel pupitre-srv-1");
   });
 
-  it("refait le tunnel que le serveur nomme quand Cloudflare ne l'a plus", async () => {
+  it("recreates the tunnel the server names when Cloudflare no longer has it", async () => {
     const { deps, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-gone" },
       gone: ["t-gone"],
@@ -245,7 +245,7 @@ describe("les valeurs que l'app calcule", () => {
     });
   });
 
-  it("supprime un tunnel homonyme laissé derrière", async () => {
+  it("deletes a same-name tunnel left behind", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
 
     await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
@@ -254,7 +254,7 @@ describe("les valeurs que l'app calcule", () => {
   });
 
   // Cloudflare can refuse a name its own listing did not return yet.
-  it("reprend un nom que Cloudflare refuse encore après la recherche", async () => {
+  it("retries a name Cloudflare still refuses after the lookup", async () => {
     let refusals = 1;
     let looked = 0;
     const { deps, calls, api } = harness();
@@ -293,13 +293,13 @@ describe("les valeurs que l'app calcule", () => {
   });
 });
 
-describe("les routes que le renderer nomme", () => {
-  it("passent quand chacune a la forme du contrat", () => {
+describe("the routes the renderer names", () => {
+  it("pass when each has the shape of the contract", () => {
     expect(checkedRoutes([])).toEqual([]);
     expect(checkedRoutes(ROUTES)).toEqual([...ROUTES]);
   });
 
-  it("sont refusées en bloc dès qu'une n'a pas la forme", () => {
+  it("are all refused as soon as one does not have the shape", () => {
     expect(checkedRoutes(null)).toBeNull();
     expect(checkedRoutes("app.flyleaf.dev")).toBeNull();
     expect(checkedRoutes([{ hostname: "app.flyleaf.dev" }])).toBeNull();
@@ -307,8 +307,8 @@ describe("les routes que le renderer nomme", () => {
   });
 });
 
-describe("les enregistrements DNS", () => {
-  it("restent sous le domaine que le serveur publie", async () => {
+describe("the DNS records", () => {
+  it("stay under the domain the server publishes", async () => {
     const { deps, records, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-1" },
     });
@@ -339,7 +339,7 @@ describe("les enregistrements DNS", () => {
     expect(calls).toEqual([]);
   });
 
-  it("suivent la zone du domaine que le serveur publie", async () => {
+  it("follow the zone of the domain the server publishes", async () => {
     const { deps, records } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-1" },
     });
@@ -352,7 +352,7 @@ describe("les enregistrements DNS", () => {
     );
   });
 
-  it("trouvent la zone d'un sous-domaine du domaine des projets", async () => {
+  it("find the zone of a subdomain of the projects domain", async () => {
     const { deps, records } = harness({
       exposure: { domain: "dev.flyleaf.dev", tunnelId: "t-1" },
     });
@@ -368,7 +368,7 @@ describe("les enregistrements DNS", () => {
     );
   });
 
-  it("repointent un enregistrement resté sur un tunnel disparu", async () => {
+  it("repoint a record left on a vanished tunnel", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -388,7 +388,7 @@ describe("les enregistrements DNS", () => {
     );
   });
 
-  it("ne touchent à rien quand l'enregistrement est déjà juste", async () => {
+  it("touch nothing when the record is already correct", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -406,7 +406,7 @@ describe("les enregistrements DNS", () => {
     });
   });
 
-  it("refusent un nom déjà tenu par un enregistrement que Pupitre n'a pas écrit", async () => {
+  it("refuse a name already held by a record Pupitre did not write", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -428,7 +428,7 @@ describe("les enregistrements DNS", () => {
     expect(records.get("app.flyleaf.dev")?.content).toBe("203.0.113.10");
   });
 
-  it("refusent quand la zone du domaine n'est pas dans ce compte", async () => {
+  it("refuse when the domain's zone is not in this account", async () => {
     const { deps } = harness({
       exposure: { domain: "ailleurs.example", tunnelId: "t-1" },
     });
@@ -436,7 +436,7 @@ describe("les enregistrements DNS", () => {
     expect((await syncRecords("srv-1", ROUTES, deps)).ok).toBe(false);
   });
 
-  it("partent avec le nom que le projet ne porte plus", async () => {
+  it("go away with the name the project no longer carries", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -457,7 +457,7 @@ describe("les enregistrements DNS", () => {
     expect([...records.keys()]).toEqual(["app.flyleaf.dev"]);
   });
 
-  it("laissent en place un nom que Pupitre n'a pas écrit", async () => {
+  it("leave in place a name Pupitre did not write", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -475,7 +475,7 @@ describe("les enregistrements DNS", () => {
     expect([...records.keys()]).toEqual(["app.flyleaf.dev"]);
   });
 
-  it("retirent les noms d'avant un changement de domaine, ceux de Pupitre seulement", async () => {
+  it("remove the names from before a domain change, Pupitre's own only", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -511,7 +511,7 @@ describe("les enregistrements DNS", () => {
     expect(calls).not.toContain("deleteRecord zone-1234 r-3");
   });
 
-  it("ne cherchent rien hors du domaine que le serveur publie", async () => {
+  it("look up nothing outside the domain the server publishes", async () => {
     const records = new Map<string, DnsRecord>([
       [
         "app.flyleaf.dev",
@@ -530,8 +530,8 @@ describe("les enregistrements DNS", () => {
   });
 });
 
-describe("le tunnel d'un serveur qu'on relâche", () => {
-  it("est supprimé d'après ce que le serveur en dit", async () => {
+describe("the tunnel of a server being released", () => {
+  it("is deleted according to what the server says about it", async () => {
     const { deps, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-1" },
     });
@@ -541,7 +541,7 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
     expect(calls).toContain("deleteTunnel t-1");
   });
 
-  it("est retrouvé par son nom quand le serveur ne répond plus", async () => {
+  it("is found by its name when the server no longer answers", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
 
     await dropTunnel("srv-1", deps);
@@ -549,7 +549,7 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
     expect(calls).toContain("deleteTunnel t-orphan");
   });
 
-  it("est retrouvé par son nom quand le serveur ne peut plus être interrogé", async () => {
+  it("is found by its name when the server can no longer be queried", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan", unreadable: true });
 
     await dropTunnel("srv-1", deps);
@@ -557,7 +557,7 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
     expect(calls).toContain("deleteTunnel t-orphan");
   });
 
-  it("ne fait rien sans compte connecté", async () => {
+  it("does nothing without a connected account", async () => {
     const { deps, calls } = harness({ connected: false });
 
     await dropTunnel("srv-1", deps);

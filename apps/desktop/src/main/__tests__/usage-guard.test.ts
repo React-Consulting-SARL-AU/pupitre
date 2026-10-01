@@ -95,8 +95,8 @@ afterEach(() => {
   agent = null;
 });
 
-describe("ce que le droit d'usage laisse passer", () => {
-  it("ouvre la lecture d'une machine et rien d'autre", () => {
+describe("what the usage right lets through", () => {
+  it("opens reading a machine and nothing else", () => {
     expect([...READING_COMMANDS].sort()).toEqual(
       (
         [
@@ -139,7 +139,7 @@ describe("ce que le droit d'usage laisse passer", () => {
     );
   });
 
-  it("tient toute commande du contrat pour mutante tant qu'elle n'est pas déclarée lisible", () => {
+  it("treats every contract command as mutating until it is declared readable", () => {
     const unclassified = COMMAND_NAMES.filter(
       (cmd) => !(READING_COMMANDS.has(cmd) || mutates(cmd))
     );
@@ -156,7 +156,7 @@ describe("ce que le droit d'usage laisse passer", () => {
   });
 });
 
-describe("un droit d'usage absent ou expiré", () => {
+describe("a missing or expired usage right", () => {
   const refusals: [string, AccountResponse<UsageRight>][] = [
     ["absent", ABSENT],
     ["expiré", STALE],
@@ -164,7 +164,7 @@ describe("un droit d'usage absent ou expiré", () => {
   ];
 
   for (const [name, refused] of refusals) {
-    it(`rend le code et le remède du garde sur un droit d'usage ${name}`, async () => {
+    it(`returns the guard's code and fix on a ${name} usage right`, async () => {
       const answer = await client("restricted.jsonl", gateOf(refused)).request(
         "srv-1",
         "install",
@@ -181,7 +181,7 @@ describe("un droit d'usage absent ou expiré", () => {
     });
   }
 
-  it("n'envoie aucune commande d'arrêt à l'agent, qui n'est jamais lancé", async () => {
+  it("sends no stop command to the agent, which is never launched", async () => {
     const guarded = client("restricted.jsonl", gateOf(ABSENT));
 
     for (const [cmd, params] of STOPPING) {
@@ -202,7 +202,7 @@ describe("un droit d'usage absent ou expiré", () => {
     expect(agent?.written()).toEqual([]);
   });
 
-  it("laisse lire la machine : le tableau de bord reste devant les yeux", async () => {
+  it("lets the machine be read: the dashboard stays in view", async () => {
     const guarded = client("restricted.jsonl", gateOf(ABSENT));
 
     const snapshot = await guarded.request("srv-1", "snapshot");
@@ -216,8 +216,8 @@ describe("un droit d'usage absent ou expiré", () => {
   });
 });
 
-describe("un canal mutant ajouté demain", () => {
-  it("est refusé sur toute la surface du contrat, appel, flux et enveloppe", async () => {
+describe("a mutating channel added tomorrow", () => {
+  it("is refused across the whole contract surface, call, stream and envelope", async () => {
     const guarded = client("restricted.jsonl", gateOf(ABSENT));
     const acting = COMMAND_NAMES.filter(mutates);
 
@@ -244,7 +244,7 @@ describe("un canal mutant ajouté demain", () => {
     expect(agent?.written()).toEqual([]);
   });
 
-  it("laisse passer toute commande de lecture du contrat, elle, jusqu'à l'agent", async () => {
+  it("lets every read command of the contract through to the agent", async () => {
     const echo = echoAgent();
     const guarded = createAgentClient({
       appVersion: "0.1.0",
@@ -265,7 +265,7 @@ describe("un canal mutant ajouté demain", () => {
     echo.killAll();
   });
 
-  it("n'a qu'une porte vers l'agent : un seul client, et il porte le garde", async () => {
+  it("has a single door to the agent: one client, and it carries the guard", async () => {
     const files = (await readdir(MAIN_DIR)).filter((name) =>
       name.endsWith(".ts")
     );
@@ -294,8 +294,8 @@ describe("un canal mutant ajouté demain", () => {
   });
 });
 
-describe("les deux sources de refus restent distinctes", () => {
-  it("laisse l'agent refuser avec ses propres mots quand le compte, lui, est valide", async () => {
+describe("the two sources of refusal stay distinct", () => {
+  it("lets the agent refuse in its own words when the account is valid", async () => {
     const guarded = client("restricted.jsonl", gateOf(GRANTED));
 
     const snapshot = await guarded.request("srv-1", "snapshot");
@@ -322,7 +322,7 @@ describe("les deux sources de refus restent distinctes", () => {
     guarded.closeAll();
   });
 
-  it("laisse tout passer quand aucun garde n'est posé, comme sur un client de rejeu", async () => {
+  it("lets everything through when no guard is set, as on a replay client", async () => {
     const free = client("restricted.jsonl");
 
     const snapshot = await free.request("srv-1", "snapshot");

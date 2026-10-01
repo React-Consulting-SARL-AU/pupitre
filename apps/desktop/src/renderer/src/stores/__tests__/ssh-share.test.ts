@@ -24,8 +24,8 @@ beforeEach(() => {
   useSshShare.setState({ state: null });
 });
 
-describe("le partage du fichier SSH du système", () => {
-  it("ne dessine rien avant d'avoir lu, puis ce qui a été lu", async () => {
+describe("sharing the system SSH file", () => {
+  it("draws nothing before reading, then what was read", async () => {
     stubPupitre({ sshShareState: () => Promise.resolve(UNSHARED) });
 
     expect(useSshShare.getState().state).toBeNull();
@@ -35,7 +35,7 @@ describe("le partage du fichier SSH du système", () => {
     expect(useSshShare.getState().state).toEqual(UNSHARED);
   });
 
-  it("montre ce que le fichier dit après l'écriture, pas ce qui a été demandé", async () => {
+  it("shows what the file says after writing, not what was requested", async () => {
     const asked: boolean[] = [];
 
     stubPupitre({

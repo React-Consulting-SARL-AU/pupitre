@@ -58,7 +58,7 @@ const AUTOMATED_EML = [
 ]
 
 describe("parseEmail", () => {
-  it("lit l'expéditeur, les destinataires, les deux corps et la pièce jointe", async () => {
+  it("reads the sender, the recipients, both bodies and the attachment", async () => {
     const parsed = await parseEmail(raw(HUMAN_EML))
 
     expect(parsed).not.toBeNull()
@@ -72,7 +72,7 @@ describe("parseEmail", () => {
     expect(parsed?.automated).toBe(false)
   })
 
-  it("retire les chevrons des identifiants de message", async () => {
+  it("strips the angle brackets of message identifiers", async () => {
     const parsed = await parseEmail(raw(HUMAN_EML))
 
     expect(parsed?.messageId).toBe("camille-1@exemple.fr")
@@ -80,7 +80,7 @@ describe("parseEmail", () => {
     expect(parsed?.references).toBe("<pupitre-0@pupitre.studio>")
   })
 
-  it("rend les octets de la pièce jointe", async () => {
+  it("returns the attachment's bytes", async () => {
     const parsed = await parseEmail(raw(HUMAN_EML))
     const attachment = parsed?.attachments[0]
 
@@ -89,7 +89,7 @@ describe("parseEmail", () => {
     expect(new TextDecoder().decode(attachment?.content)).toBe("erreur 502")
   })
 
-  it("reconnaît un envoi automatique", async () => {
+  it("recognizes an automatic message", async () => {
     const parsed = await parseEmail(raw(AUTOMATED_EML))
 
     expect(parsed?.automated).toBe(true)
@@ -99,13 +99,13 @@ describe("parseEmail", () => {
 })
 
 describe("safeFilename", () => {
-  it("retire le chemin et les caractères qui n'en sont pas", () => {
+  it("strips the path and the characters that are not valid", () => {
     expect(safeFilename("../../etc/pas de chance.txt")).toBe(
       "pas_de_chance.txt"
     )
   })
 
-  it("nomme une pièce jointe anonyme", () => {
+  it("names an anonymous attachment", () => {
     expect(safeFilename(null)).toBe("attachment")
   })
 })

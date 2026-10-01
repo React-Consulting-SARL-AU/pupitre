@@ -9,7 +9,7 @@ const URLS = new Map([
 ])
 
 describe("rewriteInlineImages", () => {
-  it("remplace un cid connu, entre guillemets doubles, simples ou nus, en échappant l'adresse", () => {
+  it("replaces a known cid, in double quotes, single quotes or bare, escaping the address", () => {
     const html =
       "<img src=\"cid:logo@exemple.fr\"><img src='cid:logo@exemple.fr'><img src=cid:logo@exemple.fr>"
 
@@ -20,14 +20,14 @@ describe("rewriteInlineImages", () => {
     )
   })
 
-  it("laisse un cid inconnu et un src ordinaire tels quels", () => {
+  it("leaves an unknown cid and a regular src as they are", () => {
     const html =
       '<img src="cid:absent@exemple.fr"><img src="https://exemple.fr/a.png">'
 
     expect(rewriteInlineImages(html, URLS)).toBe(html)
   })
 
-  it("ignore la casse de l'attribut", () => {
+  it("ignores the case of the attribute", () => {
     expect(
       rewriteInlineImages('<IMG SRC="cid:logo@exemple.fr">', URLS)
     ).toContain('SRC="https://')
@@ -35,7 +35,7 @@ describe("rewriteInlineImages", () => {
 })
 
 describe("servedAttachmentType", () => {
-  it("garde un type de la liste et ramène le reste à des octets", () => {
+  it("keeps a type from the list and reduces the rest to bytes", () => {
     expect(servedAttachmentType("Application/PDF; name=x")).toBe(
       "application/pdf"
     )

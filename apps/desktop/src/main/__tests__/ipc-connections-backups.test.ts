@@ -13,21 +13,21 @@ registerBackups();
 registerTransfers({ root: () => Promise.resolve(null) });
 registerFleet(() => undefined);
 
-describe("les canaux des comptes tiers et du tunnel", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the third-party account and tunnel channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("connections:connect", OTHER_PAGE, "github", "t")).toBe(
       true
     );
     expect(refused("tunnel:release", OTHER_PAGE, "s1", [])).toBe(true);
   });
 
-  it("refusent un compte choisi qui n'est pas un texte", () => {
+  it("refuse a chosen account that is not a string", () => {
     expect(refused("connections:connect", OWN_PAGE, "github", "t", 42)).toBe(
       true
     );
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("connections:state", OWN_PAGE, "extra")).toBe(true);
     expect(
       refused("connections:connect", OWN_PAGE, "github", "t", "a", "extra")
@@ -44,13 +44,13 @@ describe("les canaux des comptes tiers et du tunnel", () => {
   });
 });
 
-describe("les canaux des sauvegardes", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the backup channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("backup:list", OTHER_PAGE, null)).toBe(true);
     expect(refused("backup:restore-abort", OTHER_PAGE, "s1")).toBe(true);
   });
 
-  it("refusent une restauration sans jeton de suivi", () => {
+  it("refuse a restore without a follow token", () => {
     expect(
       refused("backup:restore-setup", OWN_PAGE, 3, "s1", "b1", "p", {})
     ).toBe(true);
@@ -59,13 +59,13 @@ describe("les canaux des sauvegardes", () => {
     ).toBe(true);
   });
 
-  it("refusent une phrase secrète qui n'est ni un texte ni nulle", () => {
+  it("refuse a passphrase that is neither a string nor null", () => {
     expect(
       refused("backup:restore-data", OWN_PAGE, "t", "s1", "b1", [], 42)
     ).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("backup:connection", OWN_PAGE, "extra")).toBe(true);
     expect(refused("backup:identity", OWN_PAGE, "extra")).toBe(true);
     expect(refused("backup:probe", OWN_PAGE, {}, "extra")).toBe(true);
@@ -81,25 +81,25 @@ describe("les canaux des sauvegardes", () => {
   });
 });
 
-describe("les canaux des transferts", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the transfer channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("transfer:pause", OTHER_PAGE, "id")).toBe(true);
     expect(refused("transfer:pick-save", OTHER_PAGE, "a.txt")).toBe(true);
   });
 
-  it("refusent un identifiant de transfert qui n'est pas un texte", () => {
+  it("refuse a transfer identifier that is not a string", () => {
     expect(refused("transfer:pause", OWN_PAGE, 1)).toBe(true);
     expect(refused("transfer:resume", OWN_PAGE, 1)).toBe(true);
     expect(refused("transfer:cancel", OWN_PAGE, 1)).toBe(true);
     expect(refused("transfer:dismiss", OWN_PAGE, 1)).toBe(true);
   });
 
-  it("refusent un chemin déposé ou un nom de fichier qui n'est pas un texte", () => {
+  it("refuse a dropped path or a file name that is not a string", () => {
     expect(refused("transfer:dropped", OWN_PAGE, null)).toBe(true);
     expect(refused("transfer:pick-save", OWN_PAGE, 7)).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("transfer:list", OWN_PAGE, "extra")).toBe(true);
     expect(refused("transfer:upload", OWN_PAGE, "s1", "/", [], "extra")).toBe(
       true
@@ -117,12 +117,12 @@ describe("les canaux des transferts", () => {
   });
 });
 
-describe("les canaux de la flotte", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the fleet channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("fleet:open", OTHER_PAGE, "id")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("fleet:list", OWN_PAGE, "extra")).toBe(true);
     expect(refused("fleet:open", OWN_PAGE, "id", "extra")).toBe(true);
     expect(refused("fleet:restore", OWN_PAGE, "extra")).toBe(true);

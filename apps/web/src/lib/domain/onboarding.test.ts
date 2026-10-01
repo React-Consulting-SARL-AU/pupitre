@@ -13,19 +13,19 @@ function statesOf(input: Parameters<typeof onboardingSteps>[0]) {
   return onboardingSteps(input).map((step) => `${step.id}:${step.state}`)
 }
 
-describe("la page d'arrivée", () => {
-  it("ouvre les étapes tant que l'organisation n'a aucun serveur", () => {
+describe("the landing page", () => {
+  it("opens the steps while the organization has no server", () => {
     expect(landingRoute({ used: 0 })).toBe("/dashboard/start")
   })
 
-  it("ouvre la liste dès qu'un serveur occupe un siège, ou sans réponse", () => {
+  it("opens the list as soon as a server occupies a seat, or with no response", () => {
     expect(landingRoute({ used: 1 })).toBe("/dashboard/servers")
     expect(landingRoute(null)).toBe("/dashboard/servers")
   })
 })
 
-describe("les trois pas du démarrage", () => {
-  it("commence sur l'app : le compte est déjà là", () => {
+describe("the three getting-started steps", () => {
+  it("starts with the app: the account is already there", () => {
     expect(statesOf({ devices: 0, servers: [] })).toEqual([
       "account:done",
       "app:current",
@@ -33,7 +33,7 @@ describe("les trois pas du démarrage", () => {
     ])
   })
 
-  it("ne devine rien tant qu'une réponse manque", () => {
+  it("guesses nothing while a response is missing", () => {
     expect(statesOf(NOTHING)).toEqual([
       "account:done",
       "app:ahead",
@@ -41,7 +41,7 @@ describe("les trois pas du démarrage", () => {
     ])
   })
 
-  it("passe au serveur dès qu'un appareil est lié", () => {
+  it("moves on to the server as soon as a device is linked", () => {
     expect(statesOf({ devices: 1, servers: [] })).toEqual([
       "account:done",
       "app:done",
@@ -49,7 +49,7 @@ describe("les trois pas du démarrage", () => {
     ])
   })
 
-  it("dit le serveur en cours tant qu'il s'enrôle, et sans point qui respire ailleurs", () => {
+  it("says the server is in progress while it enrols, with no pulsing dot elsewhere", () => {
     const steps = onboardingSteps({
       devices: 1,
       servers: [{ status: "enrolling" }],
@@ -61,7 +61,7 @@ describe("les trois pas du démarrage", () => {
     ).toEqual(["server"])
   })
 
-  it("compte un serveur qui a été en ligne, jamais un serveur révoqué", () => {
+  it("counts a server that has been online, never a revoked one", () => {
     for (const status of ["active", "grace", "suspended"]) {
       expect(onboardingComplete([{ status }]), status).toBe(true)
     }
@@ -74,7 +74,7 @@ describe("les trois pas du démarrage", () => {
     expect(onboardingComplete(null)).toBe(false)
   })
 
-  it("termine la liste quand un serveur a été en ligne", () => {
+  it("completes the list when a server has been online", () => {
     const steps = onboardingSteps({
       devices: 1,
       servers: [{ status: "revoked" }, { status: "active" }],
@@ -85,13 +85,13 @@ describe("les trois pas du démarrage", () => {
     expect(onboardingProgress(steps)).toEqual({ done: 3, total: 3 })
   })
 
-  it("dit un pas fait même quand un pas plus tôt reste inconnu", () => {
+  it("says a step is done even when an earlier step stays unknown", () => {
     expect(
       statesOf({ devices: null, servers: [{ status: "active" }] })
     ).toEqual(["account:done", "app:ahead", "server:done"])
   })
 
-  it("compte les pas faits", () => {
+  it("counts the steps done", () => {
     expect(onboardingProgress(onboardingSteps(NOTHING))).toEqual({
       done: 1,
       total: 3,
@@ -101,7 +101,7 @@ describe("les trois pas du démarrage", () => {
     ).toEqual({ done: 2, total: 3 })
   })
 
-  it("porte un libellé et une phrase par pas", () => {
+  it("carries a label and a sentence per step", () => {
     for (const step of onboardingSteps(NOTHING)) {
       expect(step.title).toBe(`onboarding.${step.id}.title`)
       expect(step.lead).toBe(`onboarding.${step.id}.lead`)
@@ -109,14 +109,14 @@ describe("les trois pas du démarrage", () => {
   })
 })
 
-describe("la pastille de licence", () => {
-  it("ne dit rien quand tout est en règle, gratuité comprise", () => {
+describe("the licence badge", () => {
+  it("says nothing when everything is in order, being free included", () => {
     expect(
       licenseNotice({ license: "valid", canManageBilling: true })
     ).toBeNull()
   })
 
-  it("mène à la licence quand elle est requise et se gère", () => {
+  it("leads to the licence when it is required and manageable", () => {
     expect(
       licenseNotice({ license: "suspended", canManageBilling: true })
     ).toEqual({
@@ -130,13 +130,13 @@ describe("la pastille de licence", () => {
     ).toMatchObject({ label: "license.grace", to: "/dashboard/billing" })
   })
 
-  it("ne mène nulle part quand la licence n'est pas la sienne", () => {
+  it("leads nowhere when the licence is not theirs", () => {
     expect(
       licenseNotice({ license: "suspended", canManageBilling: false })
     ).toMatchObject({ label: "license.suspended", to: null })
   })
 
-  it("nomme l'absence d'organisation sans proposer de geste", () => {
+  it("names the absence of an organization without offering an action", () => {
     expect(
       licenseNotice({ license: "none", canManageBilling: true })
     ).toMatchObject({ label: "license.none", to: null })

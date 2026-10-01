@@ -52,8 +52,8 @@ function answering(body: unknown): typeof fetch {
     )) as unknown as typeof fetch;
 }
 
-describe("l'identité lue sur la plateforme", () => {
-  it("porte la licence et les serveurs tels que /me les rend", async () => {
+describe("the identity read from the platform", () => {
+  it("carries the licence and the servers as /me returns them", async () => {
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
       fetch: answering({
@@ -76,7 +76,7 @@ describe("l'identité lue sur la plateforme", () => {
     });
   });
 
-  it("garde de l'organisation active ce que le compte retient, sans son état ni les champs hérités", async () => {
+  it("keeps from the active organization what the account retains, without its state or the inherited fields", async () => {
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
       fetch: answering(ME),
@@ -101,7 +101,7 @@ describe("l'identité lue sur la plateforme", () => {
     });
   });
 
-  it("refuse un /me qu'elle ne sait pas lire plutôt que d'inventer une identité", async () => {
+  it("refuses a /me it cannot read rather than inventing an identity", async () => {
     const { license: _license, ...withoutLicense } = ME;
 
     for (const body of [

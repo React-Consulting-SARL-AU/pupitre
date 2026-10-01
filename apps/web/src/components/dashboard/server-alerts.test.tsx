@@ -21,7 +21,7 @@ async function mount(element: Parameters<typeof render>[0]) {
 }
 
 describe("ServerAlerts", () => {
-  it("porte chaque alerte active avec sa forme et son remède", async () => {
+  it("carries each active alert with its shape and remedy", async () => {
     const { container } = await mount(
       <ServerAlerts
         alerts={[
@@ -48,7 +48,7 @@ describe("ServerAlerts", () => {
     expect(shapes).toEqual(["barred", "barred"])
   })
 
-  it("dit la sérénité quand il n'y a rien", async () => {
+  it("says all is calm when there is nothing", async () => {
     const { container } = await mount(<ServerAlerts alerts={[]} />)
 
     expect(container.textContent).toContain("Nothing to report")
@@ -56,7 +56,7 @@ describe("ServerAlerts", () => {
 })
 
 describe("AlertBanner", () => {
-  it("compte les alertes de la liste", async () => {
+  it("counts the list's alerts", async () => {
     const { container } = await mount(
       <AlertBanner
         count={countAlerts([
@@ -69,7 +69,7 @@ describe("AlertBanner", () => {
     expect(container.textContent).toContain("2 active alerts on 1 server")
   })
 
-  it("disparaît quand rien ne va mal", async () => {
+  it("disappears when nothing is wrong", async () => {
     const { container } = await mount(
       <AlertBanner count={countAlerts([{ alerts: [] }])} />
     )

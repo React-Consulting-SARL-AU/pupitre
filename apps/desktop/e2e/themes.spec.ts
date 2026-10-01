@@ -30,7 +30,7 @@ async function dashboardIn(page: Page, theme: "light" | "dark"): Promise<void> {
   ).toBeVisible();
 }
 
-test.describe("thèmes", () => {
+test.describe("themes", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -50,14 +50,14 @@ test.describe("thèmes", () => {
     }
   }
 
-  test("le tableau de bord se rend en clair puis en sombre", async () => {
+  test("the dashboard renders in light then in dark", async () => {
     const { page } = running;
 
     await expect(
       page.getByRole("heading", { level: 1, name: HEADING })
     ).toBeVisible();
 
-    await test.step("les services portent leur marque", async () => {
+    await test.step("services carry their brand", async () => {
       for (const moduleId of BRANDED) {
         const logo = page.locator(`[data-logo="${moduleId}"] svg`).first();
 
@@ -65,20 +65,20 @@ test.describe("thèmes", () => {
       }
     });
 
-    await test.step("en clair", async () => {
+    await test.step("in light", async () => {
       await dashboardIn(page, "light");
       await looksLike(page, "tableau-de-bord-clair.png");
       await assertAccessible(page, "tableau-de-bord/clair");
     });
 
-    await test.step("en sombre", async () => {
+    await test.step("in dark", async () => {
       await dashboardIn(page, "dark");
       await looksLike(page, "tableau-de-bord-sombre.png");
       await assertAccessible(page, "tableau-de-bord/sombre");
     });
   });
 
-  test("une sélection dans un champ se voit dans les deux thèmes", async () => {
+  test("a selection in a field is visible in both themes", async () => {
     const { page } = running;
 
     for (const [theme, tokens] of [
@@ -108,7 +108,7 @@ test.describe("thèmes", () => {
     }
   });
 
-  test("le fond natif de la fenêtre suit le thème forcé", async () => {
+  test("the window's native background follows the forced theme", async () => {
     const { app, page } = running;
 
     for (const [theme, token] of [

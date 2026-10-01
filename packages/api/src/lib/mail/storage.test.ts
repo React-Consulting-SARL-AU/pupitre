@@ -13,7 +13,7 @@ const NOW = new Date("2026-09-18T10:20:30Z")
 const UPLOAD_KEY_RE = /^mail\/uploads\/user_1\/[0-9a-f-]{36}\/rapport_t_.pdf$/
 
 describe("createMailUrlSigner", () => {
-  it("signe une lecture sur le seau des mails, avec la disposition et le type demandés", async () => {
+  it("signs a read on the mail bucket, with the requested disposition and type", async () => {
     const url = new URL(
       await createMailUrlSigner(CONFIG, () => NOW)(
         "GET",
@@ -40,7 +40,7 @@ describe("createMailUrlSigner", () => {
     )
   })
 
-  it("signe un dépôt sans paramètre de réponse", async () => {
+  it("signs an upload without a response parameter", async () => {
     const url = new URL(
       await createMailUrlSigner(CONFIG, () => NOW)(
         "PUT",
@@ -54,7 +54,7 @@ describe("createMailUrlSigner", () => {
     expect(url.searchParams.get("X-Amz-Signature")).toBeString()
   })
 
-  it("rend une adresse locale sans configuration R2", async () => {
+  it("returns a local address without R2 configuration", async () => {
     const url = new URL(
       await createMailUrlSigner(null, () => NOW)(
         "GET",
@@ -78,14 +78,14 @@ describe("createMailUrlSigner", () => {
   })
 })
 
-describe("les clés", () => {
-  it("rangent un dépôt sous l'utilisateur qui l'a demandé, avec un nom assaini", () => {
+describe("the keys", () => {
+  it("file an upload under the user who requested it, with a sanitized name", () => {
     const key = mailUploadKey("user_1", "../../rapport été.pdf")
 
     expect(key).toMatch(UPLOAD_KEY_RE)
   })
 
-  it("rangent un sortant sous son fil et son identifiant", () => {
+  it("file an outgoing message under its thread and its identifier", () => {
     expect(rawKeyFor("thread_1", "id@pupitre.studio")).toBe(
       "mail/thread_1/id@pupitre.studio/raw.eml"
     )

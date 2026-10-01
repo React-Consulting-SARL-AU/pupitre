@@ -4,27 +4,27 @@ import { stepLabel } from "../step-label";
 
 const t = translator("fr");
 
-describe("une étape de l'agent, dite pour le lecteur", () => {
-  it("lit une étape connue dans sa phrase", () => {
+describe("an agent step, worded for the reader", () => {
+  it("reads a known step as its sentence", () => {
     expect(stepLabel(t, "install-package")).toBe("Installer le paquet");
     expect(stepLabel(t, "write-sshd-fragment")).toBe(
       "Écrire la configuration SSH"
     );
   });
 
-  it("lit une étape nommée d'après un outil par son verbe et l'outil", () => {
+  it("reads a step named after a tool by its verb and the tool", () => {
     expect(stepLabel(t, "install-node-22")).toBe("Installer node-22");
     expect(stepLabel(t, "use-python")).toBe("Utiliser python par défaut");
   });
 
-  it("lit une partie de sauvegarde comme la page Sauvegardes la nomme", () => {
+  it("reads a backup part the way the Backups page names it", () => {
     expect(stepLabel(t, "db:postgres:shop")).toBe("Base shop");
     expect(stepLabel(t, "db:postgres:*")).toBe("Base postgres");
     expect(stepLabel(t, "project:shop")).toBe("Projet shop");
     expect(stepLabel(t, "setup")).toBe("Configuration");
   });
 
-  it("garde l'identifiant de l'agent quand rien ne le traduit", () => {
+  it("keeps the agent's identifier when nothing translates it", () => {
     expect(stepLabel(t, "calibrate-flux")).toBe("calibrate-flux");
   });
 });

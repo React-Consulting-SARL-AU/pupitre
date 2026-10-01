@@ -200,7 +200,7 @@ describe("GET /me", () => {
     expect(beyond.json.entitlement).toBe("suspended")
   })
 
-  it("rend la licence de l'organisation active, ou null sans licence en cours", async () => {
+  it("returns the active organization's licence, or null without a running licence", async () => {
     const { user, organization } = await createUser({
       email: "ada@test.local",
     })
@@ -248,7 +248,7 @@ describe("GET /me", () => {
     expect(ended.json.license_grant).toBeNull()
   })
 
-  it("ne compte que les serveurs de l'organisation active", async () => {
+  it("counts only the active organization's servers", async () => {
     const own = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: { quantity: 3, status: "active" },
@@ -326,7 +326,7 @@ describe("GET /me", () => {
   })
 })
 
-describe("PATCH /me — l'organisation active", () => {
+describe("PATCH /me — the active organization", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -366,7 +366,7 @@ describe("PATCH /me — l'organisation active", () => {
     return { owner, first: first.organization, second }
   }
 
-  it("bascule, et rend aussitôt la nouvelle organisation et son rôle", async () => {
+  it("switches, and immediately returns the new organization and its role", async () => {
     const { owner, second } = await memberOfTwo()
 
     const moved = await apiRequest<MeBody>("/me", {
@@ -385,7 +385,7 @@ describe("PATCH /me — l'organisation active", () => {
     expect(read.json.role).toBe("member")
   })
 
-  it("refuse une organisation dont l'appelant n'est pas membre, sans dire si elle existe", async () => {
+  it("refuses an organization the caller is not a member of, without saying whether it exists", async () => {
     const { owner, first } = await memberOfTwo()
     const stranger = await createOrganizationWithMembers({ roles: ["owner"] })
 
@@ -411,7 +411,7 @@ describe("PATCH /me — l'organisation active", () => {
     expect(read.json.active_organization?.id).toBe(first.id)
   })
 
-  it("ne touche que la session qui demande", async () => {
+  it("touches only the requesting session", async () => {
     const { owner, second } = await memberOfTwo()
     const elsewhere = await createSession({ userId: owner.user.id })
 
@@ -431,7 +431,7 @@ describe("PATCH /me — l'organisation active", () => {
     expect(after.json.active_organization?.id).not.toBe(second.id)
   })
 
-  it("laisse la langue tranquille quand elle n'est pas dite", async () => {
+  it("leaves the language alone when none is given", async () => {
     const { owner, second } = await memberOfTwo()
 
     await apiRequest("/me", {

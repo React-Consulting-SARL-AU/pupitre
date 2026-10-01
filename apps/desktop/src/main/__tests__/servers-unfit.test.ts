@@ -42,8 +42,8 @@ function hold(servers: unknown[]): void {
   reload();
 }
 
-describe("un serveur enregistré qui porterait une directive SSH", () => {
-  it("est écarté à la lecture, sans faire tomber les autres", () => {
+describe("a saved server that would carry an SSH directive", () => {
+  it("is dropped on read, without taking the others down", () => {
     hold([
       TYPED,
       SYSTEM,
@@ -62,7 +62,7 @@ describe("un serveur enregistré qui porterait une directive SSH", () => {
     ]);
   });
 
-  it("n'atteint jamais la configuration SSH de l'app", () => {
+  it("never reaches the app's SSH configuration", () => {
     hold([TYPED, { ...TYPED, id: "srv-user", user: INJECTION }]);
 
     write((current) => current);
@@ -73,7 +73,7 @@ describe("un serveur enregistré qui porterait une directive SSH", () => {
     expect(config).not.toContain("ProxyCommand");
   });
 
-  it("n'entre pas par une écriture", () => {
+  it("does not get in through a write", () => {
     hold([TYPED]);
 
     const written = write((current) => ({

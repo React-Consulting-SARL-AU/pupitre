@@ -14,9 +14,9 @@ import {
 
 const WRANGLER = [
   "{",
-  "  // Valeurs locales du développement.",
+  "  // Local development values.",
   '  "name": "ppt-web",',
-  "  /* le Worker lit ces trois-là */",
+  "  /* the Worker reads these three */",
   '  "vars": {',
   '    "BETTER_AUTH_URL": "http://localhost:3000",',
   '    "VITE_APP_URL": "http://localhost:3000",',
@@ -39,13 +39,13 @@ function withWrangler<T>(content: string, run: (path: string) => T): T {
 }
 
 describe("stripJsonComments", () => {
-  test("garde les `//` qui sont dans une chaîne", () => {
+  test("keeps the `//` that are inside a string", () => {
     expect(
-      JSON.parse(stripJsonComments('{ "url": "http://localhost:3000" } // fin'))
+      JSON.parse(stripJsonComments('{ "url": "http://localhost:3000" } // end'))
     ).toEqual({ url: "http://localhost:3000" })
   })
 
-  test("retire les commentaires de bloc", () => {
+  test("strips block comments", () => {
     expect(JSON.parse(stripJsonComments('{ /* note */ "a": 1 }'))).toEqual({
       a: 1,
     })
@@ -53,7 +53,7 @@ describe("stripJsonComments", () => {
 })
 
 describe("wranglerVars", () => {
-  test("rend les vars non vides du fichier", () => {
+  test("returns the file's non-empty vars", () => {
     expect(withWrangler(WRANGLER, wranglerVars)).toEqual({
       BETTER_AUTH_URL: "http://localhost:3000",
       VITE_APP_URL: "http://localhost:3000",
@@ -61,7 +61,7 @@ describe("wranglerVars", () => {
     })
   })
 
-  test("rend un objet vide quand le fichier manque", () => {
+  test("returns an empty object when the file is missing", () => {
     expect(wranglerVars(join(tmpdir(), "absent-wrangler.jsonc"))).toEqual({})
   })
 })
@@ -72,18 +72,18 @@ describe("localValues", () => {
     EMAIL_FROM: "no-reply@pupitre.studio",
   }
 
-  test("remplit une clé déclarée mais vide", () => {
+  test("fills a key that is declared but empty", () => {
     expect(localValues({ BETTER_AUTH_URL: "" }, defaults)).toEqual(defaults)
   })
 
-  test("ne remplace jamais une valeur déjà écrite", () => {
+  test("never replaces a value that is already written", () => {
     expect(
       localValues({ BETTER_AUTH_URL: "http://127.0.0.1:3000" }, defaults)
     ).toEqual({ EMAIL_FROM: "no-reply@pupitre.studio" })
   })
 })
 
-test("un .env.local vide ressort avec les valeurs locales", () => {
+test("an empty .env.local comes out with the local values", () => {
   const base = ['BETTER_AUTH_URL=""', 'VITE_APP_URL=""'].join("\n")
   const written = apply(
     base,
@@ -105,7 +105,7 @@ describe("stripeWebhookSecret", () => {
     (args: string[]) =>
       replies[args[0]] ?? { status: 1 }
 
-  test("prend le secret que le CLI tient pour ce compte", () => {
+  test("takes the secret the CLI holds for this account", () => {
     const values = stripeWebhookSecret(
       runner({
         "--version": { status: 0 },
@@ -119,14 +119,14 @@ describe("stripeWebhookSecret", () => {
     expect(values).toEqual({ STRIPE_WEBHOOK_SECRET: "whsec_abc123" })
   })
 
-  test("ne bloque rien quand le CLI est absent ou sans session", () => {
+  test("blocks nothing when the CLI is missing or has no session", () => {
     expect(stripeWebhookSecret(runner({}))).toEqual({})
     expect(stripeWebhookSecret(runner({ "--version": { status: 0 } }))).toEqual(
       {}
     )
   })
 
-  test("n'invente pas un secret quand la sortie n'en porte aucun", () => {
+  test("does not invent a secret when the output carries none", () => {
     const values = stripeWebhookSecret(
       runner({
         "--version": { status: 0 },
@@ -141,13 +141,13 @@ describe("stripeWebhookSecret", () => {
   })
 })
 
-describe("les valeurs tirées au hasard", () => {
+describe("randomly drawn values", () => {
   const template = readFileSync(
     join(import.meta.dir, "..", "..", ".env.1password.tpl"),
     "utf8"
   )
 
-  test("ne sont jamais partagées par 1Password", () => {
+  test("are never shared through 1Password", () => {
     // The vault wins over the draw, or two machines would silently hold different secrets.
     for (const key of GENERATED) {
       expect(template).not.toContain(`${key}="op://`)

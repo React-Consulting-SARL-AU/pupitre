@@ -46,33 +46,33 @@ const DEVELOPMENT: UsageRight = {
 };
 
 describe("shellScreen", () => {
-  it("ouvre l'onboarding tant qu'il est en cours", () => {
+  it("opens onboarding while it is in progress", () => {
     expect(shellScreen({ ...READY, onboarding: "inspection" })).toBe(
       "onboarding"
     );
   });
 
-  it("ouvre le tableau de bord quand le serveur a répondu", () => {
+  it("opens the dashboard when the server has responded", () => {
     expect(shellScreen(READY)).toBe("server");
   });
 
-  it("ouvre l'écran d'installation tant qu'aucun serveur n'est déclaré", () => {
+  it("opens the install screen while no server is declared", () => {
     expect(shellScreen({ ...READY, answered: false, serverId: null })).toBe(
       "unready"
     );
   });
 
-  it("ouvre l'écran d'installation quand le serveur ne répond pas", () => {
+  it("opens the install screen when the server does not respond", () => {
     expect(shellScreen({ ...READY, answered: false })).toBe("unready");
   });
 
-  it("laisse les réglages joignables quand rien ne répond", () => {
+  it("keeps settings reachable when nothing responds", () => {
     expect(shellScreen({ ...READY, answered: false, view: "settings" })).toBe(
       "settings"
     );
   });
 
-  it("garde l'onboarding devant les réglages", () => {
+  it("keeps onboarding in front of settings", () => {
     expect(
       shellScreen({
         ...READY,
@@ -84,7 +84,7 @@ describe("shellScreen", () => {
   });
 });
 
-describe("la licence décide avant tout le reste", () => {
+describe("the licence decides before everything else", () => {
   const refused: [string, UsageRight][] = [
     ["absent", ABSENT],
     ["expiré", STALE],
@@ -92,32 +92,32 @@ describe("la licence décide avant tout le reste", () => {
   ];
 
   for (const [name, usage] of refused) {
-    it(`ouvre le compte devant l'onboarding quand la licence est ${name}`, () => {
+    it(`opens the account in front of onboarding when the licence is ${name}`, () => {
       expect(shellScreen({ ...READY, onboarding: "inspection", usage })).toBe(
         "account"
       );
     });
 
-    it(`ouvre le compte devant un serveur qui répond quand la licence est ${name}`, () => {
+    it(`opens the account in front of a responding server when the licence is ${name}`, () => {
       expect(shellScreen({ ...READY, usage })).toBe("account");
     });
 
-    it(`laisse les réglages joignables quand la licence est ${name}`, () => {
+    it(`keeps settings reachable when the licence is ${name}`, () => {
       expect(shellScreen({ ...READY, usage, view: "settings" })).toBe(
         "settings"
       );
     });
   }
 
-  it("ouvre le serveur quand la console vient de répondre", () => {
+  it("opens the server when the console has just responded", () => {
     expect(shellScreen({ ...READY, usage: GRANTED })).toBe("server");
   });
 
-  it("ouvre le serveur sur une session en cache de moins de sept jours", () => {
+  it("opens the server on a cached session less than seven days old", () => {
     expect(shellScreen({ ...READY, usage: CACHED })).toBe("server");
   });
 
-  it("ouvre l'onboarding d'un build de développement qu'on a laissé passer", () => {
+  it("opens onboarding for a development build that was let through", () => {
     expect(
       shellScreen({
         ...READY,
@@ -132,30 +132,30 @@ describe("la licence décide avant tout le reste", () => {
   });
 });
 
-describe("la connexion vient avant tout le reste", () => {
-  it("ouvre le compte tant que personne n'est connecté sur cet ordinateur", () => {
+describe("sign-in comes before everything else", () => {
+  it("opens the account while nobody is signed in on this computer", () => {
     expect(shellScreen({ ...READY, signedIn: false })).toBe("account");
   });
 
-  it("ouvre le compte d'un build de développement qui s'accorde la licence", () => {
+  it("opens the account of a development build that grants itself the licence", () => {
     expect(shellScreen({ ...READY, signedIn: false, usage: DEVELOPMENT })).toBe(
       "account"
     );
   });
 
-  it("garde le compte devant un onboarding en cours", () => {
+  it("keeps the account in front of an onboarding in progress", () => {
     expect(
       shellScreen({ ...READY, onboarding: "inspection", signedIn: false })
     ).toBe("account");
   });
 
-  it("laisse les réglages joignables avant la connexion", () => {
+  it("keeps settings reachable before sign-in", () => {
     expect(shellScreen({ ...READY, signedIn: false, view: "settings" })).toBe(
       "settings"
     );
   });
 
-  it("laisse passer un build de développement qui a demandé à continuer sans compte", () => {
+  it("lets through a development build that asked to continue without an account", () => {
     expect(
       shellScreen({
         ...READY,
@@ -166,7 +166,7 @@ describe("la connexion vient avant tout le reste", () => {
     ).toBe("server");
   });
 
-  it("refuse quand même une licence suspendue, connecté ou non", () => {
+  it("still refuses a suspended licence, signed in or not", () => {
     expect(shellScreen({ ...READY, usage: SUSPENDED })).toBe("account");
     expect(
       shellScreen({

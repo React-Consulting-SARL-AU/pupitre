@@ -40,8 +40,8 @@ function answering(
   return { made, spawn: () => made as unknown as ChildProcess };
 }
 
-describe("un ssh court", () => {
-  it("rend ce qu'il a écrit et son code", async () => {
+describe("a short ssh", () => {
+  it("returns what it wrote and its code", async () => {
     const { spawn } = answering((made) => {
       made.stdout.write("abc  /tmp/pupitred\n");
       made.stderr.write("Warning: added\nPermission denied\n");
@@ -64,7 +64,7 @@ describe("un ssh court", () => {
     );
   });
 
-  it("ne garde que la fin d'une sortie qui déborde", async () => {
+  it("keeps only the end of an output that overflows", async () => {
     const { spawn } = answering((made) => {
       made.stdout.write("x".repeat(5000));
       made.stdout.write("\nla fin\n");
@@ -83,7 +83,7 @@ describe("un ssh court", () => {
     );
   });
 
-  it("tue ce qui ne répond pas et le dit", async () => {
+  it("kills what does not respond and says so", async () => {
     const made = child();
 
     const run = await runSsh(["host"], {

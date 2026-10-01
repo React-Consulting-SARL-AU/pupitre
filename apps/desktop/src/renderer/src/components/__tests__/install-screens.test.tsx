@@ -80,34 +80,34 @@ function tag(html: string, attribute: string, value: string): string {
   return match?.[0] ?? "";
 }
 
-describe("les modules pendant l'installation", () => {
+describe("modules during the installation", () => {
   const html = renderToStaticMarkup(
     <InstallProgress modules={MODULES} nameOf={nameOf} />
   );
 
-  it("nomme chaque module et son étape", () => {
+  it("names each module and its step", () => {
     expect(text(html)).toContain("Socle système");
     expect(text(html)).toContain("paquets");
     expect(text(html)).toContain("mise");
   });
 
-  it("montre la durée de chaque étape terminée", () => {
+  it("shows the duration of each finished step", () => {
     expect(text(html)).toContain(humanMs(12_400));
     expect(text(html)).toContain(humanMs(9100));
   });
 
-  it("compte l'attente de ce qui tourne encore, module et étape", () => {
+  it("counts the wait of what is still running, module and step", () => {
     const running = html.slice(html.indexOf('data-module="runtime.node"'));
 
     expect(running.match(/data-live="duration"/g)?.length).toBe(2);
   });
 
-  it("aligne le titre sur la plaque du logo, puces comprises", () => {
+  it("aligns the title on the logo plate, bullets included", () => {
     expect(html).toContain("min-height:30px");
     expect(html).not.toContain("items-baseline");
   });
 
-  it("distingue les états par la forme avant la couleur", () => {
+  it("tells states apart by shape before colour", () => {
     expect(tag(html, "data-module", "core.system")).toContain(
       'data-status="ok"'
     );
@@ -123,12 +123,12 @@ describe("les modules pendant l'installation", () => {
     expect(html).toContain('data-shape="filled"');
   });
 
-  it("montre la commande de rejeu que l'agent a donnée, telle quelle", () => {
+  it("shows the replay command the agent gave, as it is", () => {
     expect(text(html)).toContain("pupitred install db.mysql");
   });
 });
 
-describe("ce qu'une étape a dit", () => {
+describe("what a step said", () => {
   const rows = (step: ModuleProgress["steps"][number]) =>
     renderToStaticMarkup(
       <ul>
@@ -136,7 +136,7 @@ describe("ce qu'une étape a dit", () => {
       </ul>
     );
 
-  it("montre la ligne d'un échec telle que l'agent l'a écrite", () => {
+  it("shows a failure line as the agent wrote it", () => {
     const html = rows({
       message: "E: Unable to locate package mysql-server",
       ms: 9100,
@@ -148,7 +148,7 @@ describe("ce qu'une étape a dit", () => {
     expect(text(html)).toContain("E: Unable to locate package mysql-server");
   });
 
-  it("montre l'avertissement d'une étape passée, sous son nom", () => {
+  it("shows the warning of a passed step, under its name", () => {
     const html = rows({
       message: "Le fuseau demandé est inconnu : Etc/UTC a été gardé.",
       ms: 12,
@@ -160,13 +160,13 @@ describe("ce qu'une étape a dit", () => {
     expect(text(html)).toContain("Etc/UTC a été gardé");
   });
 
-  it("ne dit rien sous une étape qui n'avait rien à dire", () => {
+  it("says nothing under a step that had nothing to say", () => {
     const html = rows({ ms: 12_400, status: "ok", step: "paquets" });
 
     expect(html).not.toContain("data-step-message");
   });
 
-  it("ne répète pas la ligne d'un échec dans la liste des modules", () => {
+  it("does not repeat a failure line in the module list", () => {
     const html = renderToStaticMarkup(
       <InstallProgress modules={MODULES} nameOf={nameOf} />
     );
@@ -175,15 +175,15 @@ describe("ce qu'une étape a dit", () => {
   });
 });
 
-describe("l'envoi de l'agent", () => {
-  it("dit ce qui part et où, plutôt qu'un point qui tourne", () => {
+describe("the agent upload", () => {
+  it("says what is leaving and where, rather than a spinning dot", () => {
     const html = renderToStaticMarkup(<InstallSending />);
 
     expect(text(html)).toContain("L'agent est copié sur le serveur.");
     expect(html).toContain('data-shape="breathing"');
   });
 
-  it("dit clairement que l'app ne porte aucun binaire", () => {
+  it("states clearly that the app carries no binary", () => {
     const html = renderToStaticMarkup(
       <InstallReport
         modules={[]}
@@ -200,14 +200,14 @@ describe("l'envoi de l'agent", () => {
   });
 });
 
-describe("le rapport final", () => {
+describe("the final report", () => {
   const result: InstallResult = {
     failed: ["db.mysql"],
     warned: ["core.system"],
     report_path: "/var/lib/pupitre/report.json",
   };
 
-  it("liste failed et warned tels que l'agent les renvoie", () => {
+  it("lists failed and warned as the agent returns them", () => {
     const html = renderToStaticMarkup(
       <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
     );
@@ -217,7 +217,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("Etc/UTC a été gardé");
   });
 
-  it("dit l'échec en clair, garde la ligne de l'agent sous Détails", () => {
+  it("states the failure plainly, keeps the agent's line under Détails", () => {
     const html = renderToStaticMarkup(
       <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
     );
@@ -229,7 +229,7 @@ describe("le rapport final", () => {
     );
   });
 
-  it("porte un bouton Réessayer par module en échec, et dit ce que ça change", () => {
+  it("carries a Réessayer button per failed module, and says what it changes", () => {
     const html = renderToStaticMarkup(
       <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
     );
@@ -238,7 +238,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("les autres services ne sont pas concernés");
   });
 
-  it("propose de tout réessayer d'un coup quand plusieurs modules ont échoué", () => {
+  it("offers to retry everything at once when several modules failed", () => {
     const html = renderToStaticMarkup(
       <InstallOutcomeBar
         blocking={[]}
@@ -251,7 +251,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("Réessayer les 2 services");
   });
 
-  it("propose de continuer quand rien de bloquant n'a échoué", () => {
+  it("offers to continue when nothing blocking failed", () => {
     const html = renderToStaticMarkup(
       <InstallOutcomeBar blocking={[]} nameOf={nameOf} result={result} />
     );
@@ -260,7 +260,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("vous pourrez réessayer plus tard");
   });
 
-  it("ne propose pas de continuer quand un module obligatoire a échoué", () => {
+  it("does not offer to continue when a required module failed", () => {
     const html = renderToStaticMarkup(
       <InstallOutcomeBar
         blocking={["core.system"]}
@@ -275,7 +275,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("Socle système : la suite en dépend.");
   });
 
-  it("se tait quand rien n'a échoué ni averti", () => {
+  it("stays silent when nothing failed or warned", () => {
     const html = renderToStaticMarkup(
       <InstallReport
         modules={MODULES}
@@ -294,8 +294,8 @@ describe("le rapport final", () => {
   });
 });
 
-describe("le journal", () => {
-  it("est replié et garde les lignes dans l'ordre", () => {
+describe("the journal", () => {
+  it("is folded and keeps the lines in order", () => {
     const html = renderToStaticMarkup(
       <InstallLog lines={["core.system · paquets · ok · 12,4 s", "seconde"]} />
     );
@@ -307,22 +307,22 @@ describe("le journal", () => {
     );
   });
 
-  it("ne s'affiche pas tant qu'il n'y a rien à lire", () => {
+  it("is not displayed while there is nothing to read", () => {
     expect(renderToStaticMarkup(<InstallLog lines={[]} />)).toBe("");
   });
 });
 
-describe("les durées écrites pour être comparées", () => {
-  it("reste en secondes sous la minute", () => {
+describe("durations written to be compared", () => {
+  it("stays in seconds under a minute", () => {
     expect(humanMs(900)).toBe("0,9 s");
     expect(humanMs(12_400)).toBe("12,4 s");
   });
 
-  it("passe aux minutes au-delà", () => {
+  it("switches to minutes beyond that", () => {
     expect(humanMs(80_000)).toBe("1 min 20 s");
   });
 
-  it("dit les mégaoctets du binaire envoyé", () => {
+  it("states the megabytes of the uploaded binary", () => {
     expect(humanBytes(18_000_000)).toBe("18,0 Mo");
   });
 });

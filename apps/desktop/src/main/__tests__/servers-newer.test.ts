@@ -30,8 +30,8 @@ const NEWER = JSON.stringify({
   version: 99,
 });
 
-describe("un fichier des serveurs écrit par une version plus récente", () => {
-  it("se lit, et un changement tient la session sans toucher au fichier", () => {
+describe("a servers file written by a newer version", () => {
+  it("reads, and a change holds for the session without touching the file", () => {
     writeFileSync(FILE, NEWER);
     reload();
 

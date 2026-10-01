@@ -128,7 +128,7 @@ const RICH = {
   ],
 };
 
-test.describe("catalogue", () => {
+test.describe("catalog", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -144,7 +144,7 @@ test.describe("catalogue", () => {
     await running.app.close();
   });
 
-  test("les préréglages et la recherche", async () => {
+  test("presets and search", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -156,7 +156,7 @@ test.describe("catalogue", () => {
     await page.getByRole("button", { name: "Choisir les services" }).click();
     await expect(page.getByText("Socle système").first()).toBeVisible();
 
-    await test.step("un préréglage sans exclusif s'applique et se voit", async () => {
+    await test.step("a preset without exclusives applies and shows", async () => {
       await page.locator('[data-preset="web-js"]').click();
 
       await expect(page.locator('[data-preset="web-js"]')).toHaveAttribute(
@@ -172,7 +172,7 @@ test.describe("catalogue", () => {
       );
     });
 
-    await test.step("un préréglage exclusif demande, et laisse n'en prendre aucun", async () => {
+    await test.step("an exclusive preset asks, and lets you take none", async () => {
       await page.locator('[data-preset="full"]').click();
       await expect(page.locator('[data-preset-choice="full"]')).toBeVisible();
 
@@ -195,7 +195,7 @@ test.describe("catalogue", () => {
       );
     });
 
-    await test.step("la recherche resserre le catalogue", async () => {
+    await test.step("search narrows the catalog", async () => {
       await page.getByLabel("Chercher dans le catalogue").fill("sql");
 
       await expect(page.locator("[data-category]")).toHaveCount(1);
@@ -207,7 +207,7 @@ test.describe("catalogue", () => {
       );
     });
 
-    await test.step("elle dit quand elle n'a rien trouvé", async () => {
+    await test.step("it says when it found nothing", async () => {
       await page.getByLabel("Chercher dans le catalogue").fill("kubernetes");
 
       await expect(
@@ -218,20 +218,20 @@ test.describe("catalogue", () => {
       );
     });
 
-    await test.step("Échap rend le catalogue entier", async () => {
+    await test.step("Escape restores the whole catalog", async () => {
       await page.getByLabel("Chercher dans le catalogue").press("Escape");
 
       await expect(page.locator('[data-preset="full"]')).toBeVisible();
       await expect(page.locator('[data-module="runtime.node"]')).toBeVisible();
     });
 
-    await test.step("l'accessibilité de l'écran tient", async () => {
+    await test.step("the screen passes the accessibility check", async () => {
       await assertAccessible(page, "onboarding/catalog");
     });
   });
 });
 
-test.describe("catalogue sur une machine arm64", () => {
+test.describe("catalog on an arm64 machine", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -270,7 +270,7 @@ test.describe("catalogue sur une machine arm64", () => {
     await running.app.close();
   });
 
-  test("un préréglage ne coche pas ce que l'architecture ne porte pas", async () => {
+  test("a preset does not tick what the architecture cannot run", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -303,7 +303,7 @@ test.describe("catalogue sur une machine arm64", () => {
   });
 });
 
-test.describe("le catalogue sur un serveur déjà installé", () => {
+test.describe("the catalog on an already installed server", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -318,7 +318,7 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
     await running.app.close();
   });
 
-  test("ajoute un service sans perdre le choix sous le lecteur", async () => {
+  test("adds a service without losing the choice under the reader", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Services" }).click();
@@ -326,7 +326,7 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
 
     await expect(page.locator('[data-preset="web-js"]')).toBeVisible();
 
-    await test.step("un préréglage ne promet pas ce qui tourne déjà", async () => {
+    await test.step("a preset does not promise what already runs", async () => {
       await expect(page.locator('[data-module="db.postgres"]')).toHaveAttribute(
         "data-blocked",
         "true"
@@ -338,7 +338,7 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
       );
     });
 
-    await test.step("deux relèves du snapshot plus tard, le choix tient", async () => {
+    await test.step("two snapshot polls later, the choice holds", async () => {
       const before = await snapshotReads(running.app);
 
       await expect
@@ -357,7 +357,7 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
       ).toBeVisible();
     });
 
-    await test.step("la recherche est là aussi", async () => {
+    await test.step("search is there too", async () => {
       await page.getByLabel("Chercher dans le catalogue").fill("caddy");
 
       await expect(
@@ -366,7 +366,7 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
       await expect(page.locator('[data-module="runtime.node"]')).toHaveCount(0);
     });
 
-    await test.step("l'accessibilité de l'écran tient", async () => {
+    await test.step("the screen passes the accessibility check", async () => {
       await assertAccessible(page, "services/add");
     });
   });

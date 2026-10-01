@@ -36,9 +36,9 @@ beforeEach(() => {
   });
 });
 
-describe("le refus d'un jeton à la connexion", () => {
+describe("a token refused at connection", () => {
   // Two forms share the screen, so a refusal belongs under the one that sent the token.
-  it("reste sous le compte qui l'a reçu, et sous lui seul", async () => {
+  it("stays under the account that received it, and only that one", async () => {
     stubPupitre({
       connectAccount: () =>
         Promise.resolve({
@@ -69,7 +69,7 @@ describe("le refus d'un jeton à la connexion", () => {
     expect(problems.wrangler).toBeUndefined();
   });
 
-  it("s'efface quand le même compte est retenté, pas quand un autre l'est", async () => {
+  it("clears when the same account is retried, not when another one is", async () => {
     const refused = {
       code: "bad_request" as const,
       message: "refusal.connection.revoked",
@@ -105,7 +105,7 @@ describe("le refus d'un jeton à la connexion", () => {
     expect(useConnections.getState().problems.cloudflare).toBeUndefined();
   });
 
-  it("n'occupe que le compte en cours d'envoi", async () => {
+  it("only occupies the account being sent", async () => {
     const seen: unknown[] = [];
 
     stubPupitre({
@@ -126,13 +126,13 @@ describe("le refus d'un jeton à la connexion", () => {
   });
 });
 
-describe("un jeton qui ouvre plusieurs comptes", () => {
+describe("a token that opens several accounts", () => {
   const ACCOUNTS = [
     { id: "acc-1", name: "Flyleaf" },
     { id: "acc-2", name: "Atelier" },
   ];
 
-  it("n'est pas connecté tant que le compte n'est pas choisi", async () => {
+  it("is not connected until the account is chosen", async () => {
     stubPupitre({
       connectAccount: () =>
         Promise.resolve({
@@ -153,7 +153,7 @@ describe("un jeton qui ouvre plusieurs comptes", () => {
     expect(busy).toBeNull();
   });
 
-  it("renvoie le jeton avec le compte choisi, puis oublie la question", async () => {
+  it("resends the token with the chosen account, then forgets the question", async () => {
     const sent: unknown[] = [];
 
     useConnections.setState({ choices: { wrangler: ACCOUNTS } });
@@ -176,7 +176,7 @@ describe("un jeton qui ouvre plusieurs comptes", () => {
     expect(useConnections.getState().choices.wrangler).toBeUndefined();
   });
 
-  it("laisse tomber la question quand le jeton est retapé", () => {
+  it("drops the question when the token is retyped", () => {
     useConnections.setState({
       choices: { cloudflare: ACCOUNTS, wrangler: ACCOUNTS },
     });
@@ -189,8 +189,8 @@ describe("un jeton qui ouvre plusieurs comptes", () => {
   });
 });
 
-describe("la santé d'un jeton", () => {
-  it("dit comme quel compte le fournisseur répond, et le renomme", async () => {
+describe("the health of a token", () => {
+  it("says which account the provider answers as, and renames it", async () => {
     stubPupitre({
       verifyAccount: () =>
         Promise.resolve({
@@ -214,7 +214,7 @@ describe("la santé d'un jeton", () => {
     });
   });
 
-  it("garde le refus d'un jeton révoqué, avec son remède", async () => {
+  it("keeps the refusal of a revoked token, with its fix", async () => {
     stubPupitre({
       verifyAccount: () =>
         Promise.resolve({
@@ -235,7 +235,7 @@ describe("la santé d'un jeton", () => {
     });
   });
 
-  it("dit qu'un fournisseur muet ne peut pas être interrogé", async () => {
+  it("says a silent provider cannot be queried", async () => {
     stubPupitre({
       verifyAccount: () =>
         Promise.resolve({ ok: true, result: { status: "unaskable" } }),
@@ -248,7 +248,7 @@ describe("la santé d'un jeton", () => {
     });
   });
 
-  it("oublie la santé avec le compte", async () => {
+  it("forgets the health along with the account", async () => {
     useConnections.setState({
       health: { github: { status: "unaskable" } },
     });
@@ -263,27 +263,27 @@ describe("la santé d'un jeton", () => {
   });
 });
 
-describe("le rayon d'action d'un oubli", () => {
+describe("the blast radius of forgetting an account", () => {
   const manifests = [
     manifest("tool.github", "github"),
     manifest("tool.neon", "neon"),
     manifest("runtime.node"),
   ];
 
-  it("nomme les modules installés qui déclarent ce compte", () => {
+  it("names the installed modules that declare this account", () => {
     expect(
       forgetScope("github", ["tool.github", "runtime.node"], manifests)
     ).toEqual({ known: true, modules: ["tool.github"] });
   });
 
-  it("ne nomme pas un module qui n'est pas installé", () => {
+  it("does not name a module that is not installed", () => {
     expect(forgetScope("neon", ["tool.github"], manifests)).toEqual({
       known: true,
       modules: [],
     });
   });
 
-  it("dit qu'il ne sait pas quand le catalogue n'a pas été lu", () => {
+  it("says it does not know when the catalogue has not been read", () => {
     expect(forgetScope("github", ["tool.github"], null)).toEqual({
       known: false,
       modules: [],

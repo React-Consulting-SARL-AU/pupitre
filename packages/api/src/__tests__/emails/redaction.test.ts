@@ -7,13 +7,13 @@ const TOKEN = "b6f1d0c2a9e34f7c8d15e2b0a7c934ff"
 const MAGIC_LINK = `https://app.pupitre.studio/api/auth/magic-link/verify?token=${TOKEN}&callbackURL=%2Fdashboard`
 
 describe("redactTokens", () => {
-  it("cache le jeton dans une URL nue", () => {
+  it("hides the token in a bare URL", () => {
     expect(redactTokens(MAGIC_LINK)).toBe(
       "https://app.pupitre.studio/api/auth/magic-link/verify?token=[redacted]&callbackURL=%2Fdashboard"
     )
   })
 
-  it("cache le jeton dans un attribut href", () => {
+  it("hides the token in an href attribute", () => {
     const redacted = redactTokens(`<a href="${MAGIC_LINK}">Se connecter</a>`)
 
     expect(redacted).not.toContain(TOKEN)
@@ -22,8 +22,8 @@ describe("redactTokens", () => {
   })
 })
 
-describe("le journal du lien magique", () => {
-  it("ne porte jamais le jeton entier", async () => {
+describe("the magic link log", () => {
+  it("never carries the whole token", async () => {
     const lines: string[] = []
     const sendEmail = createLoggingSendEmail((line) => lines.push(line))
     const email = await renderMagicLinkEmail({
@@ -48,7 +48,7 @@ describe("le journal du lien magique", () => {
     }
   })
 
-  it("ne journalise pas le corps HTML, qui porte le lien deux fois", async () => {
+  it("does not log the HTML body, which carries the link twice", async () => {
     const lines: string[] = []
     const sendEmail = createLoggingSendEmail((line) => lines.push(line))
     const email = await renderMagicLinkEmail({

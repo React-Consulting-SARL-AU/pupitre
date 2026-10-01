@@ -153,7 +153,7 @@ describe("ingestInboundEmail", () => {
     mail = useFakeMail()
   })
 
-  it("ouvre un fil, écrit le texte en base et le brut dans le seau", async () => {
+  it("opens a thread, writes the text to the database and the raw message to the bucket", async () => {
     const result = await ingest(eml())
 
     expect(result.status).toBe("stored")
@@ -177,7 +177,7 @@ describe("ingestInboundEmail", () => {
     ).toContain("<p>Bonjour, rien ne repond.</p>")
   })
 
-  it("range les pièces jointes dans le seau avec leur ligne", async () => {
+  it("stores the attachments in the bucket with their row", async () => {
     const raw = new TextEncoder().encode(
       [
         "From: Camille <camille@exemple.fr>",
@@ -215,7 +215,7 @@ describe("ingestInboundEmail", () => {
     expect(textOf(mail.objects.get(attachment.key))).toBe("erreur 502")
   })
 
-  it("refuse d'écrire deux fois le même message brut", async () => {
+  it("refuses to write the same raw message twice", async () => {
     const raw = eml({ messageId: "unique" })
     const first = await ingest(raw)
     const second = await ingest(raw)
@@ -225,7 +225,7 @@ describe("ingestInboundEmail", () => {
     expect(await getPrisma().mailMessage.count()).toBe(1)
   })
 
-  it("reconnaît un doublon par son Message-ID malgré des octets différents", async () => {
+  it("recognizes a duplicate by its Message-ID despite different bytes", async () => {
     const first = await ingest(eml({ messageId: "meme-id", text: "un" }))
     const second = await ingest(eml({ messageId: "meme-id", text: "deux" }))
 
@@ -233,7 +233,7 @@ describe("ingestInboundEmail", () => {
     expect(second.threadId).toBe(first.threadId)
   })
 
-  it("range le même message écrit à deux de nos adresses dans deux fils, et reconnaît le renvoi de chacun", async () => {
+  it("files the same message sent to two of our addresses in two threads, and recognizes the redelivery of each", async () => {
     const raw = eml({
       messageId: "deux-boites",
       to: "support@pupitre.studio, legal@pupitre.studio",
@@ -270,7 +270,7 @@ describe("ingestInboundEmail", () => {
     ])
   })
 
-  it("ne laisse aucun fil vide quand une livraison concurrente écrit le même message", async () => {
+  it("leaves no empty thread when a concurrent delivery writes the same message", async () => {
     const raw = eml({ messageId: "concurrent", subject: "Course" })
     const prisma = getPrisma()
 
@@ -314,7 +314,7 @@ describe("ingestInboundEmail", () => {
     expect(await prisma.mailMessage.count()).toBe(1)
   })
 
-  it("rattache une réponse par In-Reply-To malgré un autre sujet", async () => {
+  it("attaches a reply by In-Reply-To despite a different subject", async () => {
     const first = await ingest(eml({ messageId: "racine" }))
     const second = await ingest(
       eml({
@@ -328,14 +328,14 @@ describe("ingestInboundEmail", () => {
     expect(second.newThread).toBe(false)
   })
 
-  it("rattache par sujet normalisé quand le même correspondant écrit dans la fenêtre", async () => {
+  it("attaches by normalized subject when the same correspondent writes within the window", async () => {
     const first = await ingest(eml({ subject: "Facture de septembre" }))
     const second = await ingest(eml({ subject: "Re: Facture de septembre" }))
 
     expect(second.threadId).toBe(first.threadId)
   })
 
-  it("ouvre un fil neuf passé la fenêtre de trente jours", async () => {
+  it("opens a new thread past the thirty-day window", async () => {
     const first = await ingest(eml({ subject: "Facture de septembre" }))
     const later = new Date(Date.now() + (THREAD_WINDOW_DAYS + 10) * DAY)
     const second = await ingest(
@@ -347,7 +347,7 @@ describe("ingestInboundEmail", () => {
     expect(second.newThread).toBe(true)
   })
 
-  it("ouvre un fil neuf pour un autre correspondant sur le même sujet", async () => {
+  it("opens a new thread for another correspondent on the same subject", async () => {
     const first = await ingest(eml({ subject: "Bonjour" }))
     const second = await ingest(
       eml({ subject: "Bonjour", from: "Autre <autre@exemple.fr>" })
@@ -356,7 +356,7 @@ describe("ingestInboundEmail", () => {
     expect(second.threadId).not.toBe(first.threadId)
   })
 
-  it("range un envoi automatique sans marquer le fil non lu", async () => {
+  it("files an automatic message without marking the thread unread", async () => {
     const result = await ingest(
       eml({ extra: ["List-Unsubscribe: <https://exemple.fr/stop>"] })
     )
@@ -369,7 +369,7 @@ describe("ingestInboundEmail", () => {
     expect(thread.lastInboundAutomated).toBe(true)
   })
 
-  it("rattache le fil à la boîte qui déclare l'adresse", async () => {
+  it("attaches the thread to the mailbox that declares the address", async () => {
     await seedPlatformMailboxes()
 
     const result = await ingest(eml())
@@ -385,7 +385,7 @@ describe("ingestInboundEmail", () => {
     })
   })
 
-  it("laisse le fil sans boîte quand aucune ne déclare l'adresse", async () => {
+  it("leaves the thread without a mailbox when none declares the address", async () => {
     await seedPlatformMailboxes()
 
     const result = await ingestInboundEmail({
@@ -401,7 +401,7 @@ describe("ingestInboundEmail", () => {
     expect(thread.mailboxId).toBeNull()
   })
 
-  it("nomme le correspondant quand l'adresse est celle d'un compte", async () => {
+  it("names the correspondent when the address belongs to an account", async () => {
     const { user } = await createUser({ email: "camille@exemple.fr" })
     const result = await ingest(eml())
     const thread = await getPrisma().mailThread.findUniqueOrThrow({
@@ -412,7 +412,7 @@ describe("ingestInboundEmail", () => {
     expect(thread.senderAuthenticated).toBe(true)
   })
 
-  it("ne relie pas un compte à un expéditeur que personne n'a vérifié", async () => {
+  it("does not link an account to a sender nobody has verified", async () => {
     await createUser({ email: "camille@exemple.fr" })
 
     const result = await ingest(eml({ authenticated: false }))
@@ -427,7 +427,7 @@ describe("ingestInboundEmail", () => {
     expect(thread.messages[0].authenticated).toBe(false)
   })
 
-  it("n'ouvre pas un fil existant à un expéditeur non vérifié qui en reprend le sujet", async () => {
+  it("does not open an existing thread to an unverified sender who reuses its subject", async () => {
     const first = await ingest(eml({ subject: "Facture de septembre" }))
     const second = await ingest(
       eml({ subject: "Re: Facture de septembre", authenticated: false })
@@ -436,7 +436,7 @@ describe("ingestInboundEmail", () => {
     expect(second.threadId).not.toBe(first.threadId)
   })
 
-  it("rattache quand même par ses références un expéditeur non vérifié", async () => {
+  it("still attaches an unverified sender by its references", async () => {
     const first = await ingest(eml({ messageId: "racine-verifiee" }))
     const second = await ingest(
       eml({ inReplyTo: "racine-verifiee@exemple.fr", authenticated: false })
@@ -445,7 +445,7 @@ describe("ingestInboundEmail", () => {
     expect(second.threadId).toBe(first.threadId)
   })
 
-  it("range un message sans objet sous un sujet vide, que la console nomme", async () => {
+  it("files a message without a subject under an empty subject, which the console names", async () => {
     const result = await ingest(eml({ subject: "" }))
     const thread = await getPrisma().mailThread.findUniqueOrThrow({
       where: { id: result.threadId },
@@ -457,7 +457,7 @@ describe("ingestInboundEmail", () => {
     expect(thread.messages[0].subject).toBeNull()
   })
 
-  it("ne range au seau que les premières pièces jointes d'un message qui en porte trop", async () => {
+  it("stores in the bucket only the first attachments of a message that carries too many", async () => {
     const parts = Array.from(
       { length: MAIL_MAX_INBOUND_ATTACHMENTS + 5 },
       (_, index) =>
@@ -502,7 +502,7 @@ describe("ingestInboundEmail", () => {
     )
   })
 
-  it("ne garde que les références les plus récentes d'une chaîne démesurée", async () => {
+  it("keeps only the most recent references of an oversized chain", async () => {
     const chain = Array.from(
       { length: 3000 },
       (_, index) => `<ancien-${index}@exemple.fr>`
@@ -517,7 +517,7 @@ describe("ingestInboundEmail", () => {
     expect(message.references).toContain("<ancien-2999@exemple.fr>")
   })
 
-  it("range tout le message quand le seau a cassé au premier essai", async () => {
+  it("stores the whole message when the bucket failed on the first attempt", async () => {
     const raw = emlWithAttachment()
 
     let refused = false
@@ -563,7 +563,7 @@ describe("ingestInboundEmail", () => {
     expect(await prisma.mailMessage.count()).toBe(1)
   })
 
-  it("coupe un texte démesuré et garde le brut entier dans le seau", async () => {
+  it("truncates an oversized text and keeps the whole raw message in the bucket", async () => {
     const body = "a".repeat(MAIL_MAX_TEXT_CHARS + 5000)
     const result = await ingest(eml({ text: body }))
     const message = await getPrisma().mailMessage.findUniqueOrThrow({
@@ -574,7 +574,7 @@ describe("ingestInboundEmail", () => {
     expect(textOf(mail.objects.get(message.rawKey ?? ""))).toContain(body)
   })
 
-  it("garde l'enveloppe d'un message illisible", async () => {
+  it("keeps the envelope of an unreadable message", async () => {
     const raw = new Uint8Array([0xff, 0xfe, 0x00, 0x01]).buffer as ArrayBuffer
     const result = await ingest(raw)
     const message = await getPrisma().mailMessage.findUniqueOrThrow({
@@ -627,7 +627,7 @@ describe("handleInboundEmailMessage", () => {
     useFakeMail()
   })
 
-  it("refuse un message au-dessus du plafond sans lire ses octets", async () => {
+  it("refuses a message above the ceiling without reading its bytes", async () => {
     const message = fakeMessage(MAIL_MAX_BYTES + 1)
 
     await handleInboundEmailMessage(message)
@@ -637,7 +637,7 @@ describe("handleInboundEmailMessage", () => {
     expect(await getPrisma().mailMessage.count()).toBe(0)
   })
 
-  it("range un message qui tient dans le plafond", async () => {
+  it("files a message that fits within the ceiling", async () => {
     const message = fakeMessage(MAIL_MAX_BYTES)
 
     await handleInboundEmailMessage(message)

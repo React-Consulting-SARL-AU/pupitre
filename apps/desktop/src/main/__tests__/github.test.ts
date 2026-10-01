@@ -36,8 +36,8 @@ function repoRow(name: string, extra: Record<string, unknown> = {}) {
   };
 }
 
-describe("les dépôts du compte GitHub", () => {
-  it("rend ce que l'écran affiche, le jeton restant dans l'en-tête", async () => {
+describe("the GitHub account's repositories", () => {
+  it("returns what the screen displays, the token staying in the header", async () => {
     const { fetcher, seen } = answering([
       [repoRow("atlas-web", { private: true })],
     ]);
@@ -62,7 +62,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(seen[0]?.url).toContain("sort=pushed");
   });
 
-  it("demande la page suivante tant que la page est pleine", async () => {
+  it("requests the next page while the page is full", async () => {
     const full = Array.from({ length: 100 }, (_, rank) =>
       repoRow(`repo-${String(rank)}`)
     );
@@ -75,7 +75,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(seen[1]?.url).toContain("page=2");
   });
 
-  it("laisse tomber une ligne qui ne nomme aucun dépôt clonable", async () => {
+  it("drops a row that names no cloneable repository", async () => {
     const { fetcher } = answering([[repoRow("kept"), { full_name: "acme/x" }]]);
 
     const repos = await githubApi("ghp_de_test", fetcher).repos();
@@ -83,7 +83,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(repos.map((repo) => repo.fullName)).toEqual(["acme/kept"]);
   });
 
-  it("rend le refus de GitHub avec ses mots, jamais le jeton", async () => {
+  it("returns GitHub's refusal in its own words, never the token", async () => {
     const fetcher = ((_url: string) =>
       Promise.resolve({
         json: () => Promise.resolve({ message: "Bad credentials" }),
@@ -98,7 +98,7 @@ describe("les dépôts du compte GitHub", () => {
   });
 });
 
-describe("un chemin que le renderer aurait inventé", () => {
+describe("a path the renderer would have made up", () => {
   const knows = {
     declaresService: () => true,
     knows: (serverId: string) => serverId === "srv-1",
@@ -110,7 +110,7 @@ describe("un chemin que le renderer aurait inventé", () => {
     return isRefusal(call) && !call.ok ? (call.error.phrase?.id ?? "") : null;
   }
 
-  it("passe un chemin relatif du navigateur de dossiers", () => {
+  it("accepts a relative path from the folder browser", () => {
     expect(
       checkedCall("srv-1", "fs.list", { path: "projects" }, knows)
     ).toEqual({
@@ -121,7 +121,7 @@ describe("un chemin que le renderer aurait inventé", () => {
     expect(refused("fs.mkdir", { path: "projects/flyleaf" })).toBeNull();
   });
 
-  it("refuse ce que le contrat de la commande ne lit pas", () => {
+  it("refuses what the command's contract does not read", () => {
     expect(refused("fs.mkdir", { path: "" })).toBe("refusal.params.invalid");
     expect(refused("fs.list", { path: 42 })).toBe("refusal.params.invalid");
     expect(refused("fs.list", { path: "projects", depth: 2 })).toBe(

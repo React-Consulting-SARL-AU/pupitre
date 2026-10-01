@@ -39,8 +39,8 @@ function sources(dir: string): string[] {
   return found;
 }
 
-describe("les tokens", () => {
-  it("ne laisse aucune ombre, aucun rayon ni aucune couleur en dur", () => {
+describe("the tokens", () => {
+  it("leaves no hardcoded shadow, radius or colour", () => {
     const files = sources(RENDERER);
     const offenders = files.filter((file) =>
       HARDCODED.test(readFileSync(file, "utf8"))
@@ -50,7 +50,7 @@ describe("les tokens", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("déclare l'élévation par une classe et jamais par un box-shadow", () => {
+  it("declares elevation by a class and never by a box-shadow", () => {
     const styles = readFileSync(path.join(RENDERER, "styles.css"), "utf8");
 
     expect(styles).toContain("box-shadow: var(--shadow-raised)");
@@ -58,8 +58,8 @@ describe("les tokens", () => {
   });
 });
 
-describe("l'élévation", () => {
-  it("pose les cartes du tableau de bord sur le fond", () => {
+describe("the elevation", () => {
+  it("sets the dashboard cards on the background", () => {
     const html = renderToStaticMarkup(
       <DashboardPanel
         attached={[]}
@@ -78,7 +78,7 @@ describe("l'élévation", () => {
     expect(html).toContain("rounded-md");
   });
 
-  it("pose l'avis d'attente et l'avis d'erreur", () => {
+  it("sets the waiting notice and the error notice", () => {
     const waiting = renderToStaticMarkup(
       <WaitingNotice detail="Ports, utilisateurs" title="Inspection" />
     );
@@ -93,8 +93,8 @@ describe("l'élévation", () => {
   });
 });
 
-describe("les logos", () => {
-  it("montre la marque de chaque service installé", () => {
+describe("the logos", () => {
+  it("shows the brand of each installed service", () => {
     const html = renderToStaticMarkup(
       <ServiceRow onOpen={NOOP} service={SNAPSHOT.services[0]} />
     );
@@ -103,7 +103,7 @@ describe("les logos", () => {
     expect(html).toContain("<svg");
   });
 
-  it("montre la marque de chaque module du catalogue", () => {
+  it("shows the brand of each catalogue module", () => {
     const modules = CATALOG.modules.filter(
       (module) => module.category === "database"
     );
@@ -122,7 +122,7 @@ describe("les logos", () => {
     expect(html).toContain('data-logo="db.mysql"');
   });
 
-  it("montre le runtime d'un projet, ou une icône quand aucune marque n'est redistribuable", () => {
+  it("shows a project's runtime, or an icon when no brand may be redistributed", () => {
     const [bun, node] = SNAPSHOT.projects;
 
     const withoutMark = renderToStaticMarkup(

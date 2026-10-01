@@ -1,7 +1,7 @@
-# 0005 — TanStack Start sur Cloudflare Workers, un seul déploiement
+# 0005 — TanStack Start on Cloudflare Workers, a single deployment
 
-Date : 2026-09-04 · Statut : acceptée
+Date: 2026-09-04 · Status: accepted
 
-La console, l'API et l'authentification vivent dans `apps/web`, un TanStack Start déployé sur Cloudflare Workers via le plugin Vite. Le Worker sert `/api/v1` directement ; les routes `api/v1/$` et `api/auth/$` restent le chemin de dev.
+The console, the API and authentication live in `apps/web`, a TanStack Start app deployed on Cloudflare Workers through the Vite plugin. The Worker serves `/api/v1` directly; the `api/v1/$` and `api/auth/$` routes remain the dev path.
 
-Pourquoi : une origine, des cookies simples, un déploiement, les Workflows et R2 à portée. Le propriétaire utilise déjà cette stack.
+Why: one origin, simple cookies, one deployment, Workflows and R2 within reach. The owner already uses this stack.

@@ -21,8 +21,8 @@ function harness(over: { focused?: boolean; allowed?: boolean } = {}) {
   };
 }
 
-describe("les sessions qui attendent", () => {
-  it("se comptent, et seules celles qui viennent de basculer se signalent", () => {
+describe("sessions that are waiting", () => {
+  it("are counted, and only those that just switched are signalled", () => {
     expect(waitingIn({ a: "attention", b: "working", c: "attention" })).toEqual(
       ["a", "c"]
     );
@@ -34,7 +34,7 @@ describe("les sessions qui attendent", () => {
     ).toEqual(["b"]);
   });
 
-  it("peignent le badge à chaque lecture et notifient une bascule, une fois", () => {
+  it("paint the badge on every read and notify a switch once", () => {
     const seen = harness();
 
     seen.watch({ a: "working" });
@@ -47,7 +47,7 @@ describe("les sessions qui attendent", () => {
     expect(seen.notified).toEqual(["a", "b"]);
   });
 
-  it("ne notifient pas une fenêtre au premier plan, mais comptent quand même", () => {
+  it("do not notify a foreground window, but still count", () => {
     const seen = harness({ focused: true });
 
     seen.watch({ a: "attention" });
@@ -56,7 +56,7 @@ describe("les sessions qui attendent", () => {
     expect(seen.notified).toEqual([]);
   });
 
-  it("se taisent quand la personne a coupé les notifications", () => {
+  it("stay silent when the person turned notifications off", () => {
     const seen = harness({ allowed: false });
 
     seen.watch({ a: "attention" });
@@ -66,8 +66,8 @@ describe("les sessions qui attendent", () => {
   });
 });
 
-describe("la préférence des notifications", () => {
-  it("vaut oui par défaut, s'écrit avec sa révision et se relit", () => {
+describe("the notifications preference", () => {
+  it("defaults to yes, is written with its revision and read back", () => {
     const file = join(
       mkdtempSync(join(tmpdir(), "pupitre-prefs-")),
       "preferences.json"
@@ -86,7 +86,7 @@ describe("la préférence des notifications", () => {
     expect(preferencesStore(file).read().notifications).toBe(false);
   });
 
-  it("porte un fichier de la première révision, qui ne disait rien du démarrage", () => {
+  it("carries a first-revision file, which said nothing about startup", () => {
     const file = join(
       mkdtempSync(join(tmpdir(), "pupitre-prefs-")),
       "preferences.json"
@@ -112,7 +112,7 @@ describe("la préférence des notifications", () => {
     expect(preferencesStore(file).read().launchAtLogin).toBe(true);
   });
 
-  it("lit un fichier d'une version plus récente sans le réécrire", () => {
+  it("reads a file from a newer version without rewriting it", () => {
     const file = join(
       mkdtempSync(join(tmpdir(), "pupitre-prefs-")),
       "preferences.json"

@@ -89,8 +89,8 @@ function stack(): string {
   return document.querySelector("[data-testid=toasts]")?.textContent ?? ""
 }
 
-describe("une mutation optimistic", () => {
-  it("retire la ligne avant que le serveur réponde", async () => {
+describe("an optimistic mutation", () => {
+  it("removes the row before the server responds", async () => {
     const queryClient = client()
     let release = () => {
       // replaced by the promise the mutation awaits
@@ -113,7 +113,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("remet la liste en l'état quand l'appel échoue", async () => {
+  it("restores the list when the call fails", async () => {
     const queryClient = client()
     const remove = () => Promise.reject(new Error("nope"))
 
@@ -129,7 +129,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("ne touche pas aux requêtes que le geste ne concerne pas", async () => {
+  it("leaves alone the queries the action does not concern", async () => {
     const queryClient = client()
     const view = await render(
       <Harness queryClient={queryClient} remove={() => Promise.resolve()} />
@@ -143,7 +143,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("ne quitte la page qu'une fois le serveur d'accord", async () => {
+  it("leaves the page only once the server agrees", async () => {
     const queryClient = client()
     const left: string[] = []
     let release = () => {
@@ -177,7 +177,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("fait le pas immédiat dès le clic, avant la réponse", async () => {
+  it("takes the immediate step on click, before the response", async () => {
     const queryClient = client()
     const left: string[] = []
     let release = () => {
@@ -207,7 +207,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("dit que c'est fait une fois le serveur d'accord", async () => {
+  it("says it is done once the server agrees", async () => {
     const queryClient = client()
     const view = await render(
       <Harness
@@ -223,7 +223,7 @@ describe("une mutation optimistic", () => {
     view.unmount()
   })
 
-  it("dit l'échec, son remède, et rejoue le geste sur demande", async () => {
+  it("states the failure, its remedy, and replays the action on request", async () => {
     const queryClient = client()
     const calls: string[] = []
     const remove = (id: string) => {

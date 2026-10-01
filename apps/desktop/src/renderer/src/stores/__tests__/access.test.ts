@@ -61,8 +61,8 @@ beforeEach(() => {
   useAccess.getState().forget();
 });
 
-describe("les clés d'accès d'un serveur", () => {
-  it("lit les clés, puis ce que cet ordinateur en garde", async () => {
+describe("a server's access keys", () => {
+  it("reads the keys, then what this computer holds of them", async () => {
     const listed: string[][] = [];
     agent(KEYS, listed);
 
@@ -76,7 +76,7 @@ describe("les clés d'accès d'un serveur", () => {
     expect(listed).toEqual([["device000001", "review000001"]]);
   });
 
-  it("dit quelles clés ouvrent un projet", () => {
+  it("tells which keys open a project", () => {
     const [device, review] = KEYS;
 
     expect(device && opens(device, "blog")).toBe(true);
@@ -84,7 +84,7 @@ describe("les clés d'accès d'un serveur", () => {
     expect(review && opens(review, "shop")).toBe(true);
   });
 
-  it("rend la clé créée et relit la liste", async () => {
+  it("returns the created key and rereads the list", async () => {
     agent(KEYS);
 
     const created = await useAccess.getState().create(SERVER, "iPhone", null);
@@ -93,7 +93,7 @@ describe("les clés d'accès d'un serveur", () => {
     expect(useAccess.getState().state.status).toBe("read");
   });
 
-  it("garde le refus d'une révocation sur la clé visée", async () => {
+  it("keeps a revocation refusal on the targeted key", async () => {
     agent(KEYS);
 
     await useAccess.getState().revoke(SERVER, "review000001");
@@ -105,7 +105,7 @@ describe("les clés d'accès d'un serveur", () => {
     expect(useAccess.getState().revoking).toBeNull();
   });
 
-  it("dit ce qu'une copie a mis dans le presse-papiers", async () => {
+  it("tells what a copy put in the clipboard", async () => {
     agent(KEYS);
 
     await useAccess.getState().copy(SERVER, "device000001", "header", null);

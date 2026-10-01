@@ -42,8 +42,8 @@ beforeEach(() => {
   useSnapshot.getState().forget();
 });
 
-describe("une réponse tardive d'un serveur quitté", () => {
-  it("ne se pose pas sur le serveur devenu actif", async () => {
+describe("a late response from a server that was left", () => {
+  it("does not land on the server that became active", async () => {
     const a = deferred<SnapshotResult>();
     const b = deferred<SnapshotResult>();
 
@@ -64,7 +64,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
     expect(snapshotOf(state)?.machine.hostname).toBe("b");
   });
 
-  it("ne rouvre pas un serveur oublié entre-temps", async () => {
+  it("does not reopen a server forgotten in the meantime", async () => {
     const a = deferred<SnapshotResult>();
 
     agents({ "srv-a": a });
@@ -78,7 +78,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
     expect(useSnapshot.getState().state).toEqual({ status: "idle" });
   });
 
-  it("ne repeint pas la machine après un redémarrage demandé", async () => {
+  it("does not repaint the machine after a requested restart", async () => {
     const a = deferred<SnapshotResult>();
 
     agents({ "srv-a": a });
@@ -97,7 +97,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
   });
 });
 
-describe("un serveur qui redémarre", () => {
+describe("a server that is restarting", () => {
   function refusing(): void {
     stubPupitre({
       agentCall: (_serverId: string, cmd: string) =>
@@ -113,7 +113,7 @@ describe("un serveur qui redémarre", () => {
     } as never);
   }
 
-  it("garde son nom et son attente tant que sa lecture refuse", async () => {
+  it("keeps its name and its wait while its read is refused", async () => {
     refusing();
 
     await useSnapshot.getState().reboot("srv-a", "atelier");
@@ -125,7 +125,7 @@ describe("un serveur qui redémarre", () => {
     });
   });
 
-  it("revient au tableau de bord dès que snapshot répond", async () => {
+  it("returns to the dashboard as soon as snapshot answers", async () => {
     refusing();
 
     await useSnapshot.getState().reboot("srv-a", "atelier");
@@ -147,7 +147,7 @@ describe("un serveur qui redémarre", () => {
     });
   });
 
-  it("devient injoignable, avec le refus, une fois sa patience épuisée", async () => {
+  it("becomes unreachable, with the refusal, once its patience runs out", async () => {
     refusing();
 
     await useSnapshot.getState().reboot("srv-a", "atelier");
@@ -169,8 +169,8 @@ describe("un serveur qui redémarre", () => {
   });
 });
 
-describe("la lecture d'un serveur", () => {
-  it("garde le snapshot tel que l'agent le renvoie", async () => {
+describe("reading a server", () => {
+  it("keeps the snapshot as the agent returns it", async () => {
     const a = deferred<SnapshotResult>();
 
     agents({ "srv-a": a });
@@ -190,8 +190,8 @@ describe("la lecture d'un serveur", () => {
   });
 });
 
-describe("une lecture qui échoue après une réussie", () => {
-  it("garde la machine à l'écran et la marque, jusqu'à la lecture suivante", async () => {
+describe("a read that fails after a successful one", () => {
+  it("keeps the machine on screen and marks it, until the next read", async () => {
     let answering = true;
 
     stubPupitre({
@@ -228,8 +228,8 @@ describe("une lecture qui échoue après une réussie", () => {
   });
 });
 
-describe("les processus", () => {
-  it("garde la table et dit qu'une lecture a échoué, jusqu'à la suivante", async () => {
+describe("processes", () => {
+  it("keeps the table and says a read failed, until the next one", async () => {
     let fails = false;
 
     stubPupitre({
@@ -259,7 +259,7 @@ describe("les processus", () => {
     expect(useSnapshot.getState().processesProblem).toBeNull();
   });
 
-  it("note un processus qui survit à son arrêt, et force quand on le demande", async () => {
+  it("notes a process that survives its stop, and forces when asked", async () => {
     const kills: unknown[] = [];
     const first = PROCESSES[0];
 
@@ -297,8 +297,8 @@ describe("les processus", () => {
   });
 });
 
-describe("un geste achevé après un changement de serveur", () => {
-  it("ne relit pas le serveur quitté et laisse l'autre à l'écran", async () => {
+describe("a gesture completed after a server change", () => {
+  it("does not reread the server that was left and leaves the other on screen", async () => {
     const a = deferred<SnapshotResult>();
     const b = deferred<SnapshotResult>();
     const acted = deferred<{ ok: true; result: Record<string, never> }>();
@@ -334,7 +334,7 @@ describe("un geste achevé après un changement de serveur", () => {
     expect(snapshotOf(state)?.machine.hostname).toBe("b");
   });
 
-  it("vide la table des processus du serveur quitté dès la lecture du suivant", async () => {
+  it("empties the process table of the server that was left as soon as the next one is read", async () => {
     const a = deferred<SnapshotResult>();
     const b = deferred<SnapshotResult>();
 

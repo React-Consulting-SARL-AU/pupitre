@@ -12,14 +12,14 @@ const UNRESOLVED_PLACEHOLDER_RE =
   /\{(server|organization|inviter|device|deadline|url|count|version|current|disk|address|fingerprint|date|paid|seated|reason)\}/
 const RGB_WITH_ALPHA_RE = /rgb\([^)]*\//
 
-describe("le catalogue des gabarits", () => {
-  it("porte une prévisualisation par gabarit", () => {
+describe("the template catalogue", () => {
+  it("carries one preview per template", () => {
     expect(EMAIL_PREVIEWS.map((preview) => preview.id).sort()).toEqual(
       [...EMAIL_TEMPLATE_IDS].sort()
     )
   })
 
-  it("compte les quinze moments et les six alertes", () => {
+  it("counts the fifteen moments and the six alerts", () => {
     expect(EMAIL_TEMPLATE_IDS).toHaveLength(21)
     expect(EMAIL_TEMPLATE_IDS.filter((id) => id.startsWith("alert_"))).toEqual([
       "alert_server_unreachable",
@@ -32,10 +32,10 @@ describe("le catalogue des gabarits", () => {
   })
 })
 
-describe("le rendu de chaque gabarit", () => {
+describe("the rendering of each template", () => {
   for (const preview of EMAIL_PREVIEWS) {
     for (const locale of LOCALES) {
-      it(`${preview.id} rend en ${locale}`, async () => {
+      it(`${preview.id} renders in ${locale}`, async () => {
         const email = await preview.render(locale)
 
         expect(email.subject.length).toBeGreaterThan(0)
@@ -50,15 +50,15 @@ describe("le rendu de chaque gabarit", () => {
   }
 })
 
-describe("les données passent dans le rendu", () => {
-  it("le lien magique porte le lien reçu, et lui seul", async () => {
+describe("data flows into the rendering", () => {
+  it("the magic link carries the received link, and only that", async () => {
     const email = await previewOf("magic_link").render("fr")
 
     expect(email.html).toContain(href(SAMPLE.magicLinkUrl))
     expect(email.text).toContain(SAMPLE.magicLinkUrl)
   })
 
-  it("l'invitation porte l'organisation, l'hôte et son lien", async () => {
+  it("the invitation carries the organization, the host and its link", async () => {
     const email = await previewOf("invitation").render("fr")
 
     expect(email.subject).toContain(SAMPLE.organizationName)
@@ -66,7 +66,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(SAMPLE.inviterEmail)
   })
 
-  it("le serveur enrôlé porte son adresse, sa version et son empreinte", async () => {
+  it("the enrolled server carries its address, version and fingerprint", async () => {
     const email = await previewOf("server_enrolled").render("fr")
 
     expect(email.html).toContain(SAMPLE.address)
@@ -75,7 +75,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard`))
   })
 
-  it("le serveur attribué nomme le serveur et l'organisation", async () => {
+  it("the assigned server names the server and the organization", async () => {
     const email = await previewOf("server_assigned").render("fr")
 
     expect(email.subject).toContain(SAMPLE.serverName)
@@ -83,7 +83,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(SAMPLE.address)
   })
 
-  it("l'appareil ajouté porte son nom et son empreinte", async () => {
+  it("the added device carries its name and fingerprint", async () => {
     const email = await previewOf("device_added").render("fr")
 
     expect(email.html).toContain(SAMPLE.deviceName)
@@ -93,21 +93,21 @@ describe("les données passent dans le rendu", () => {
     )
   })
 
-  it("la tolérance porte sa date limite et le lien de facturation", async () => {
+  it("the grace carries its deadline and the billing link", async () => {
     const email = await previewOf("license_grace").render("fr")
 
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.html).toContain("2026")
   })
 
-  it("la suspension dit le remède", async () => {
+  it("the suspension states the fix", async () => {
     const email = await previewOf("server_suspended").render("fr")
 
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.text.length).toBeGreaterThan(80)
   })
 
-  it("la suspension par l'équipe porte le motif et l'adresse du support", async () => {
+  it("the suspension by the team carries the reason and the support address", async () => {
     const email = await previewOf("server_suspended_admin").render("fr")
 
     expect(email.subject).toContain(SAMPLE.serverName)
@@ -115,7 +115,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain("mailto:support@pupitre.studio")
   })
 
-  it("l'écart de sièges dit les deux nombres et mène à la facturation", async () => {
+  it("the seat gap states both numbers and leads to billing", async () => {
     const email = await previewOf("seats_drift").render("fr")
 
     expect(email.text).toContain(String(SAMPLE.paidSeats))
@@ -123,21 +123,21 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
   })
 
-  it("la décommission annonce la date d'effacement", async () => {
+  it("the decommissioning announces the erasure date", async () => {
     const email = await previewOf("server_decommission").render("fr")
 
     expect(email.subject).toContain(SAMPLE.serverName)
     expect(email.html).toContain("2026")
   })
 
-  it("l'échec de sauvegarde porte l'erreur telle que l'agent l'a dite", async () => {
+  it("the backup failure carries the error as the agent stated it", async () => {
     const email = await previewOf("alert_backup_failed").render("en")
 
     expect(email.subject).toContain(SAMPLE.serverName)
     expect(email.text).toContain(SAMPLE.backupError)
   })
 
-  it("une sauvegarde incomplète dit combien de parties manquent, et non une erreur vide", async () => {
+  it("an incomplete backup says how many parts are missing, rather than an empty error", async () => {
     const email = await renderAlertBackupFailedEmail({
       locale: "fr",
       serverName: SAMPLE.serverName,
@@ -151,7 +151,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.text).not.toContain("Dernière erreur")
   })
 
-  it("la sauvegarde en retard dit l'intervalle et la dernière réussite", async () => {
+  it("the overdue backup states the interval and the last success", async () => {
     const email = await previewOf("alert_backup_stale").render("fr")
 
     expect(email.subject).toContain(SAMPLE.serverName)
@@ -160,8 +160,8 @@ describe("les données passent dans le rendu", () => {
   })
 })
 
-describe("le thème monochrome", () => {
-  it("est clair, toujours : aucun bloc sombre, rien que Gmail ne sache lire", async () => {
+describe("the monochrome theme", () => {
+  it("is always light: no dark block, nothing Gmail cannot read", async () => {
     const email = await previewOf("magic_link").render("fr")
 
     expect(email.html).toContain("#ffffff")

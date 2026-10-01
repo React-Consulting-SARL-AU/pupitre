@@ -33,7 +33,7 @@ async function organizationWithOneSeatUsed(): Promise<string> {
   return organization.id
 }
 
-describe("le workflow ReconcileSeats", () => {
+describe("the ReconcileSeats workflow", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -42,7 +42,7 @@ describe("le workflow ReconcileSeats", () => {
     await resetDb()
   })
 
-  it("appelle reconcileSeats dans une étape nommée", async () => {
+  it("calls reconcileSeats in a named step", async () => {
     const organizationId = await organizationWithOneSeatUsed()
     const recorder = recordSteps()
 

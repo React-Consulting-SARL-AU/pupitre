@@ -21,8 +21,8 @@ function fed(screen: Screen, data: string): Promise<void> {
   return new Promise((resolve) => screen.write(data, resolve));
 }
 
-describe("l'écran d'une session", () => {
-  it("relit entière l'adresse que tmux a pliée sur trois lignes", async () => {
+describe("a session's screen", () => {
+  it("reads back whole the address tmux wrapped over three lines", async () => {
     const frame = tmuxLogin();
     const screen = openScreen(frame.cols, frame.rows);
 
@@ -35,7 +35,7 @@ describe("l'écran d'une session", () => {
     screen.dispose();
   });
 
-  it("la relit aussi quand elle arrive en morceaux", async () => {
+  it("also reads it back when it arrives in pieces", async () => {
     const frame = tmuxLogin();
     const screen = openScreen(frame.cols, frame.rows);
     let login: ReturnType<typeof loginAddress> = null;
@@ -49,7 +49,7 @@ describe("l'écran d'une session", () => {
     screen.dispose();
   });
 
-  it("suit la largeur de la fenêtre", async () => {
+  it("follows the window width", async () => {
     const screen = openScreen(10, 3);
 
     screen.resize(20, 3);

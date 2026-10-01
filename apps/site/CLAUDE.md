@@ -1,59 +1,59 @@
 # apps/site — Guidelines
 
-`pupitre.studio`, le site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · produit et voix → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
+`pupitre.studio`, the site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · product and voice → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
 
-## Stack imposée
+## Mandatory stack
 
-Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex et répondre 404 à une page 404 demandée par son nom) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
+Static Astro 5, served by a Cloudflare Worker with static assets (`wrangler.jsonc`, one Worker per environment, `worker/index.ts` only redirects `www` to the apex and answers 404 to a 404 page requested by name) · Tailwind 4 on `@pupitre/design` · MDX for docs, blog, legal · folder-based i18n, English at `/`, French at `/fr` · no client framework outside targeted islands · AVIF and WebP images at four widths with intrinsic dimensions.
 
-**Banned** : bibliothèques de composants, animations de fond, illustrations, icônes décoratives, couleurs en dur, toute chaîne en dur hors `src/content`.
+**Banned**: component libraries, background animations, illustrations, decorative icons, hard-coded colours, any hard-coded string outside `src/content`.
 
-## Règles
+## Rules
 
-- **La voix de [PRODUCT.md](../../docs/product/PRODUCT.md)** : précise, sobre, technique sans jargon. Mots interdits, vérifiés par test : « AI-powered », « seamless », « blazing », « bank-grade », « secure by design », « revolutionary ».
-- **Les captures montrent l'app réelle**, via `<ProductShot>` uniquement, jamais un `<img>` à la main. Pas de capture tant que l'app n'est pas au design monochrome : du texte.
-- **Deux SVG seulement** : un logo de service, lu dans `@pupitre/design/logos` par `<BrandLogo>` dans les couleurs de la marque, et une icône d'interface tracée par `<Icon>` — quatre glyphes Lucide inlinés, `aria-hidden`, jamais décoratifs. Jamais un fichier de logo posé dans le site. Un test refuse tout autre `<svg>`.
-- **Le nombre de serveurs gratuits vient de `FREE_SERVERS` (`@pupitre/shared/plans`)**, par un `{count}` dans `src/content` ou un `{FREE_SERVERS}` importé dans un MDX, jamais écrit à la main : un test refuse « 3 serveurs » dans les sources. Le site n'affiche aucun prix — Pupitre est gratuit jusqu'à `FREE_SERVERS` serveurs par organisation, une licence est accordée sur demande au-delà — ni essai, ni lancement, ni bascule de facturation.
-- **Le code source est public** (Apache 2.0 + Commons Clause, licence de React Consulting SARL AU) : le site dit « source disponible » / « code source ouvert à la lecture », jamais « open source ». L'adresse du dépôt vient de `SOURCE_REPOSITORY_URL` dans `src/lib/urls.ts`.
-- **Chaque page existe en fr et en en dans la même passe.** Un script vérifie la parité des routes.
-- **Le site ne vend pas.** Le bouton de commande ouvre la console ; aucune logique de compte ici.
-- **Légal** : l'éditeur, la société qui signe l'app, les contacts, les origines, le registre des documents et les sous-traitants viennent de `@pupitre/shared/legal` ; aucune page n'écrit un nom d'entreprise à la main. Les textes sont publiés et engagent : un `TODO`, un `draft: true` ou un passage entre crochets fait échouer le build de production et `check:content`. Ce que les conditions disent de l'agent — ce qu'il envoie, ce que la plateforme peut lui faire faire — se met à jour avant le code qui le change. Voir [`docs/legal.md`](../../docs/legal.md).
+- **The voice of [PRODUCT.md](../../docs/product/PRODUCT.md)**: precise, sober, technical without jargon. Forbidden words, checked by test: "AI-powered", "seamless", "blazing", "bank-grade", "secure by design", "revolutionary".
+- **Screenshots show the real app**, through `<ProductShot>` only, never a hand-written `<img>`. No screenshot until the app is in the monochrome design: text instead.
+- **Only two SVGs**: a service logo, read from `@pupitre/design/logos` by `<BrandLogo>` in the brand's colours, and an interface icon drawn by `<Icon>` — four inlined Lucide glyphs, `aria-hidden`, never decorative. Never a logo file dropped into the site. A test refuses any other `<svg>`.
+- **The number of free servers comes from `FREE_SERVERS` (`@pupitre/shared/plans`)**, through a `{count}` in `src/content` or an imported `{FREE_SERVERS}` in an MDX, never written by hand: a test refuses "3 servers" in the sources. The site shows no price — Pupitre is free up to `FREE_SERVERS` servers per organization, a licence is granted on request beyond that — no trial, no launch, no billing switch.
+- **The source code is public** (Apache 2.0 + Commons Clause, licence of React Consulting SARL AU): the site says "source-available" / "source code open to reading", never "open source". The repository address comes from `SOURCE_REPOSITORY_URL` in `src/lib/urls.ts`.
+- **Every page exists in fr and en in the same pass.** A script checks route parity.
+- **The site does not sell.** The order button opens the console; no account logic here.
+- **Legal**: the publisher, the company that signs the app, the contacts, the origins, the document register and the subprocessors come from `@pupitre/shared/legal`; no page writes a company name by hand. The texts are published and binding: a `TODO`, a `draft: true` or a passage in square brackets fails the production build and `check:content`. What the terms say about the agent — what it sends, what the platform can make it do — is updated before the code that changes it. See [`docs/legal.md`](../../docs/legal.md).
 
 ## Architecture
 
 ```
 src/pages/       index · pricing · download · integrations · security · docs/** · blog/** · legal/** · og/[...slug].png · llms.txt · .well-known/security.txt · 404 · fr/**
-src/content/     docs/{en,fr} · blog/ · legal/ (MDX) · changelog/ (MDX, notes de version lues par la chaîne de release, jamais rendues) · site/ (accueil, page gratuite `/pricing`, téléchargement, intégrations, sécurité, catalogue, doc des modules) · ui/ (chaînes d'interface)
+src/content/     docs/{en,fr} · blog/ · legal/ (MDX) · changelog/ (MDX, release notes read by the release pipeline, never rendered) · site/ (home, free page `/pricing`, download, integrations, security, catalogue, module docs) · ui/ (interface strings)
 src/layouts/     Base · Docs · Post
-src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing (serveurs gratuits, licence au-delà, code source) · FreeNote · Download · Integrations · Security · Docs* · Callout · ProductShot · StatusMark · Analytics
-src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (cookie `?ref=` pour la console, suivi seulement, aucune offre) · i18n.ts · theme.ts · seo.ts · structured-data.ts · security-txt.ts (contact de `LEGAL_CONTACTS.security`, expiration renouvelée à chaque build) · urls.ts (console, statut, dépôt du code source)
-src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement ; les pages servent les woff2 de `@pupitre/design/fonts.css`, jamais Google Fonts
-scripts/         check-content.ts (parité, mots interdits, traductions du blog) · legal.ts (garde des pages légales, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection) · not-found.ts (`fr/404/index.html` → `fr/404.html`, là où la couche d'assets le cherche)
-worker/          index.ts — `www` → apex, une page 404 demandée par son nom répond 404, puis les assets ; rien d'autre
-public/          robots.txt · _headers · _redirects · favicons et manifeste, copiés du kit `bun --cwd=packages/design run brand`
+src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card-like (Feature, Claim) · Pricing (free servers, licence beyond that, source code) · FreeNote · Download · Integrations · Security · Docs* · Callout · ProductShot · StatusMark · Analytics
+src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (`?ref=` cookie for the console, tracking only, no offer) · i18n.ts · theme.ts · seo.ts · structured-data.ts · security-txt.ts (contact from `LEGAL_CONTACTS.security`, expiry renewed at every build) · urls.ts (console, status, source code repository)
+src/assets/fonts Bricolage and JetBrains Mono, read at build time for the Open Graph images only; the pages serve the woff2 files of `@pupitre/design/fonts.css`, never Google Fonts
+scripts/         check-content.ts (parity, forbidden words, blog translations) · legal.ts (legal pages guard, Astro integration) · redirects.ts (every top-level page has its redirect) · not-found.ts (`fr/404/index.html` → `fr/404.html`, where the assets layer looks for it)
+worker/          index.ts — `www` → apex, a 404 page requested by name answers 404, then the assets; nothing else
+public/          robots.txt · _headers · _redirects · favicons and manifest, copied from the `bun --cwd=packages/design run brand` kit
 ```
 
-Le design vit dans `src/styles/global.css` : des `@utility` Tailwind 4 posées sur les tokens de `@pupitre/design` (`shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, `display-1`…). Un composant n'écrit jamais une valeur de couleur, de rayon ou d'ombre.
+The design lives in `src/styles/global.css`: Tailwind 4 `@utility` classes set on the `@pupitre/design` tokens (`shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, `display-1`…). A component never writes a colour, radius or shadow value.
 
-Les pages des modules du catalogue sont **générées** depuis `src/content/site/catalog.ts` et `src/content/site/module-docs.ts` : une route `docs/services/[module]` par langue, jamais un fichier MDX par module. `catalog.ts` suit les catégories et l'ordre de `MODULE_CATEGORIES` dans `@pupitre/shared/catalog`, ceux de l'app desktop : la page `/integrations`, l'index de la doc et sa barre latérale regroupent les services par ces catégories.
+The catalogue's module pages are **generated** from `src/content/site/catalog.ts` and `src/content/site/module-docs.ts`: one `docs/services/[module]` route per language, never one MDX file per module. `catalog.ts` follows the categories and order of `MODULE_CATEGORIES` in `@pupitre/shared/catalog`, those of the desktop app: the `/integrations` page, the docs index and its sidebar group the services by these categories.
 
-Le site n'a pas de page changelog : `src/content/changelog/` reste la source des notes de version de la chaîne de release (voir [`docs/monorepo.md`](../../docs/monorepo.md#le-changelog)), sans collection Astro ni route.
+The site has no changelog page: `src/content/changelog/` remains the source of the release pipeline's release notes (see [`docs/monorepo.md`](../../docs/monorepo.md#the-changelog)), with no Astro collection and no route.
 
-Deux variables de build, absentes en local : `PUBLIC_RELEASES_URL` (liste des releases, sinon le fallback statique et un avertissement) et `PUBLIC_POSTHOG_KEY` (sans elle, aucun analytics et aucun bandeau de consentement).
+Two build variables, absent locally: `PUBLIC_RELEASES_URL` (list of releases, otherwise the static fallback and a warning) and `PUBLIC_POSTHOG_KEY` (without it, no analytics and no consent banner).
 
 ## Tests
 
-Tests de rendu Astro sous Vitest (`bun run test`, jamais `bun test`, qui échoue à tort sur les composants Astro), et `check:content`, lancé par `lint` : parité fr/en des routes, mots interdits sur `src/content` et `src/pages`, pages légales complètes. Aucun Lighthouse ne tourne, ni en CI ni ailleurs : la performance se mesure à la main.
+Astro rendering tests under Vitest (`bun run test`, never `bun test`, which fails wrongly on Astro components), and `check:content`, run by `lint`: fr/en route parity, forbidden words on `src/content` and `src/pages`, complete legal pages. No Lighthouse runs, neither in CI nor elsewhere: performance is measured by hand.
 
-Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest : on teste les pages adossées à une collection par leur **modèle** (frontmatter sur le disque, parité des dossiers `en` et `fr`) plutôt que par leur rendu, et on garde le rendu pour ce qui est adossé à des données statiques.
+Content collections do not load in Vitest's Astro container: pages backed by a collection are tested through their **model** (frontmatter on disk, parity of the `en` and `fr` folders) rather than through their rendering, and rendering is kept for what is backed by static data.
 
-## Commandes
+## Commands
 
 ```bash
 bun run dev
 bun run build
-bun run build:production    # PUPITRE_ENV=production : le garde légal refuse une page incomplète, PUBLIC_RELEASES_URL de la console
-bun run deploy:production   # wrangler deploy --env production → pupitre.studio et www
+bun run build:production    # PUPITRE_ENV=production: the legal guard refuses an incomplete page, PUBLIC_RELEASES_URL from the console
+bun run deploy:production   # wrangler deploy --env production → pupitre.studio and www
 bun run test
-bun run check:content     # parité, mots interdits, pages légales complètes
+bun run check:content     # parity, forbidden words, complete legal pages
 ```

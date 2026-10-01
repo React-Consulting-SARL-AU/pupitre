@@ -65,8 +65,8 @@ const SERVER_ONLY = [
   "sudo:copy",
 ];
 
-describe("les canaux du compte, de l'agent et de l'app", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the account, agent and app channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("account:state", OTHER_PAGE)).toBe(true);
     expect(refused("agent:session", OTHER_PAGE, "srv-1")).toBe(true);
     expect(refused("open-url", OTHER_PAGE, "https://pupitre.studio")).toBe(
@@ -76,13 +76,13 @@ describe("les canaux du compte, de l'agent et de l'app", () => {
     expect(spoken).toEqual([]);
   });
 
-  it("refusent tout argument sur un canal qui n'en prend pas", () => {
+  it("refuse any argument on a channel that takes none", () => {
     for (const channel of WITHOUT_ARGUMENT) {
       expect(refused(channel, OWN_PAGE, "extra")).toBe(true);
     }
   });
 
-  it("refusent un serveur qui n'est pas un identifiant", () => {
+  it("refuse a server that is not an identifier", () => {
     for (const channel of SERVER_ONLY) {
       expect(refused(channel, OWN_PAGE, 42)).toBe(true);
       expect(refused(channel, OWN_PAGE)).toBe(true);
@@ -90,7 +90,7 @@ describe("les canaux du compte, de l'agent et de l'app", () => {
     }
   });
 
-  it("refusent un appel à l'agent mal formé", () => {
+  it("refuse a malformed call to the agent", () => {
     expect(refused("agent:call", OWN_PAGE, 1, "snapshot")).toBe(true);
     expect(refused("agent:call", OWN_PAGE, "srv-1", 7)).toBe(true);
     expect(
@@ -105,20 +105,20 @@ describe("les canaux du compte, de l'agent et de l'app", () => {
     expect(refused("agent:stream", OWN_PAGE, "token", "srv-1", 3)).toBe(true);
   });
 
-  it("refusent une langue que l'app ne parle pas", () => {
+  it("refuse a language the app does not speak", () => {
     expect(refused("locale:set", OWN_PAGE, "de")).toBe(true);
     expect(refused("locale:set", OWN_PAGE, 1)).toBe(true);
     expect(spoken).toEqual([]);
   });
 
-  it("refusent un compte appelé avec des valeurs d'une autre forme", () => {
+  it("refuse an account called with values of another shape", () => {
     expect(refused("account:organization", OWN_PAGE, { id: "org" })).toBe(true);
     expect(refused("account:device-revoke", OWN_PAGE, 5)).toBe(true);
     expect(refused("account:sign-in", OWN_PAGE, undefined)).toBe(true);
     expect(refused("key-approvals:approve", OWN_PAGE, "srv-1", 2)).toBe(true);
   });
 
-  it("refusent une mise à jour ou une sécurisation sans jeton", () => {
+  it("refuse an update or a hardening without a token", () => {
     expect(refused("agent-update:agent", OWN_PAGE, 1, "srv-1")).toBe(true);
     expect(refused("agent-update:modules", OWN_PAGE, "token", 1, [])).toBe(
       true
@@ -130,12 +130,12 @@ describe("les canaux du compte, de l'agent et de l'app", () => {
     expect(refused("harden:start", OWN_PAGE, undefined, "srv-1")).toBe(true);
   });
 
-  it("refusent une préférence qui n'est pas un booléen", () => {
+  it("refuse a preference that is not a boolean", () => {
     expect(refused("notifications:set", OWN_PAGE, "true")).toBe(true);
     expect(refused("startup:set", OWN_PAGE, 1)).toBe(true);
   });
 
-  it("refusent un mot de passe, un chemin ou une adresse d'une autre forme", () => {
+  it("refuse a password, a path or an address of another shape", () => {
     expect(refused("sudo:enter", OWN_PAGE, "srv-1", 1234)).toBe(true);
     expect(refused("completions", OWN_PAGE, "srv-1", ["src"])).toBe(true);
     expect(refused("open-url", OWN_PAGE, { href: "https://x" })).toBe(true);

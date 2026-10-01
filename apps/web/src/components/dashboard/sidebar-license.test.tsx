@@ -22,7 +22,7 @@ describe("SidebarLicense", () => {
     }
   })
 
-  it("dit la licence requise et mène à sa page", async () => {
+  it("says the licence is required and leads to its page", async () => {
     const { container, unmount } = await render(pill("suspended"))
 
     mounted.push(unmount)
@@ -33,7 +33,7 @@ describe("SidebarLicense", () => {
     )
   })
 
-  it("ne mène nulle part qui ne gère pas la licence", async () => {
+  it("leads nowhere for someone who does not manage the licence", async () => {
     const { container, unmount } = await render(pill("suspended", "member"))
 
     mounted.push(unmount)
@@ -42,7 +42,7 @@ describe("SidebarLicense", () => {
     expect(container.querySelector("a")).toBeNull()
   })
 
-  it("s'efface quand le droit d'usage est en règle", async () => {
+  it("disappears when the right of use is in order", async () => {
     const { container, unmount } = await render(pill("valid"))
 
     mounted.push(unmount)

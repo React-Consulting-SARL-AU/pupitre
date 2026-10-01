@@ -120,8 +120,8 @@ beforeEach(() => {
   useTunnel.getState().forget();
 });
 
-describe("un dépôt qui démarre", () => {
-  it("va de l'adresse à online, avec son journal et son URL", async () => {
+describe("a repository that starts", () => {
+  it("goes from the address to online, with its journal and its URL", async () => {
     const asked: ProjectAddRequest[] = [];
 
     stubPupitre({
@@ -163,7 +163,7 @@ describe("un dépôt qui démarre", () => {
     expect(phase("publish")).toBe("skip");
   });
 
-  it("récupère les sources, puis installe les dépendances, en deux phases", async () => {
+  it("fetches the sources, then installs the dependencies, in two phases", async () => {
     const order: string[] = [];
 
     stubPupitre({
@@ -204,7 +204,7 @@ describe("un dépôt qui démarre", () => {
     ]);
   });
 
-  it("dit qu'un projet sans commande d'installation n'a rien eu à installer", async () => {
+  it("says a project with no install command had nothing to install", async () => {
     stubPupitre({
       ...QUIET_RUN,
       installProject: () =>
@@ -227,7 +227,7 @@ describe("un dépôt qui démarre", () => {
     });
   });
 
-  it("propose un sous-domaine quand une exposition est là, et rien sinon", async () => {
+  it("offers a subdomain when an exposure is present, and nothing otherwise", async () => {
     stubPupitre({ listProjects: QUIET_RUN.listProjects });
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -255,7 +255,7 @@ describe("un dépôt qui démarre", () => {
     expect(routes()).toEqual([{ label: "web", port: 3000 }]);
   });
 
-  it("tient une ligne par port, la première étant le port principal", async () => {
+  it("holds one row per port, the first being the main port", async () => {
     stubPupitre({ listProjects: QUIET_RUN.listProjects });
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -288,7 +288,7 @@ describe("un dépôt qui démarre", () => {
     expect(main()?.rows).toHaveLength(2);
   });
 
-  it("tient un processus par dossier qui tourne, chacun sur ses ports et sa commande", async () => {
+  it("holds one process per running folder, each on its own ports and command", async () => {
     stubPupitre({ listProjects: QUIET_RUN.listProjects });
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -350,7 +350,7 @@ describe("un dépôt qui démarre", () => {
   });
 
   // The agent writes the route; the DNS name is written from the account the app holds.
-  it("fait pointer le nom vers le tunnel quand le projet est publié", async () => {
+  it("points the name at the tunnel when the project is published", async () => {
     const sent: string[] = [];
     const named: string[] = [];
 
@@ -400,7 +400,7 @@ describe("un dépôt qui démarre", () => {
     });
   });
 
-  it("s'arrête sur le nom refusé, et reprend là", async () => {
+  it("stops on the refused name, and resumes there", async () => {
     let refuse = true;
 
     stubPupitre({
@@ -445,7 +445,7 @@ describe("un dépôt qui démarre", () => {
   });
 
   // The route belongs to the declaration, so failed dependencies must not leave the name unwritten.
-  it("écrit le nom sur le web même quand les dépendances ne s'installent pas", async () => {
+  it("writes the name on the web even when the dependencies do not install", async () => {
     const named: string[] = [];
 
     stubPupitre({
@@ -492,7 +492,7 @@ describe("un dépôt qui démarre", () => {
   });
 });
 
-describe("ce que l'agent lit dans la source", () => {
+describe("what the agent reads in the source", () => {
   function detecting(answer: AgentResponse<unknown>): { asked: unknown[] } {
     const asked: unknown[] = [];
 
@@ -508,7 +508,7 @@ describe("ce que l'agent lit dans la source", () => {
     return { asked };
   }
 
-  it("prend le gestionnaire, le port et la commande que le dépôt déclare", async () => {
+  it("takes the manager, the port and the command the repository declares", async () => {
     const { asked } = detecting({
       ok: true,
       result: {
@@ -544,7 +544,7 @@ describe("ce que l'agent lit dans la source", () => {
   });
 
   // Naming the branch shows a reader who just changed it that the change was taken.
-  it("dit, pendant la lecture, quelle branche l'agent clone", async () => {
+  it("says, during the read, which branch the agent clones", async () => {
     let seen: DetectionState | undefined;
 
     stubPupitre({
@@ -581,7 +581,7 @@ describe("ce que l'agent lit dans la source", () => {
   });
 
   // A frozen `--host x.localhost` only resolves on the laptop, so it must be declared as the host.
-  it("déclare le nom en .localhost que le dépôt fige, et la boucle locale sinon", async () => {
+  it("declares the .localhost name the repository freezes, and the loopback otherwise", async () => {
     detecting({
       ok: true,
       result: {
@@ -619,7 +619,7 @@ describe("ce que l'agent lit dans la source", () => {
     );
   });
 
-  it("prend les ports d'un monorepo, une ligne par workspace", async () => {
+  it("takes a monorepo's ports, one row per workspace", async () => {
     detecting({
       ok: true,
       result: {
@@ -651,7 +651,7 @@ describe("ce que l'agent lit dans la source", () => {
     ]);
   });
 
-  it("prend les processus d'un dépôt qui en tient plusieurs, chacun dans son dossier", async () => {
+  it("takes the processes of a repository that holds several, each in its own folder", async () => {
     const asked: ProjectAddParams[] = [];
 
     stubPupitre({
@@ -766,7 +766,7 @@ describe("ce que l'agent lit dans la source", () => {
   }
 
   // Opening on the next free port spares the reader a refusal to fix by hand.
-  it("propose le port libre suivant quand un autre projet tient celui que le dépôt déclare", async () => {
+  it("offers the next free port when another project holds the one the repository declares", async () => {
     detectingBeside(
       [5173],
       [
@@ -791,7 +791,7 @@ describe("ce que l'agent lit dans la source", () => {
     expect(useProjectAdd.getState().ready()).toBe(true);
   });
 
-  it("décale chaque port d'un monorepo qu'un autre projet tient, sans en doubler un", async () => {
+  it("shifts each port of a monorepo that another project holds, without duplicating one", async () => {
     detectingBeside(
       [3100, 3102],
       [
@@ -835,7 +835,7 @@ describe("ce que l'agent lit dans la source", () => {
     expect(useProjectAdd.getState().ready()).toBe(true);
   });
 
-  it("nomme un dossier du serveur comme tel, et ne relit pas la même source", async () => {
+  it("names a server folder as such, and does not reread the same source", async () => {
     const { asked } = detecting({
       ok: true,
       result: {
@@ -856,7 +856,7 @@ describe("ce que l'agent lit dans la source", () => {
     });
   });
 
-  it("garde le refus de l'agent sous la source, et l'oublie avec elle", async () => {
+  it("keeps the agent's refusal under the source, and forgets it along with it", async () => {
     const absent: AgentError = {
       code: "bad_request",
       fix: "Clonez-le d'abord, ou donnez son adresse git.",
@@ -879,7 +879,7 @@ describe("ce que l'agent lit dans la source", () => {
     expect(useProjectAdd.getState().detection.status).toBe("idle");
   });
 
-  it("ne relit pas un projet que le serveur déclare déjà", async () => {
+  it("does not reread a project the server already declares", async () => {
     const asked: unknown[] = [];
 
     stubPupitre({
@@ -940,7 +940,7 @@ describe("ce que l'agent lit dans la source", () => {
   });
 });
 
-describe("les deux pas du formulaire", () => {
+describe("the two steps of the form", () => {
   const READ = {
     ok: true as const,
     result: {
@@ -972,7 +972,7 @@ describe("les deux pas du formulaire", () => {
     return { asked };
   }
 
-  it("ouvre sur la source, ne la lit que sur demande, puis passe à la configuration", async () => {
+  it("opens on the source, reads it only on request, then moves to the configuration", async () => {
     const { asked } = reading([READ]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -989,7 +989,7 @@ describe("les deux pas du formulaire", () => {
     expect(mainPort()).toBe(5173);
   });
 
-  it("reste sur la source quand la lecture échoue, la relit sur demande, ou s'en passe", async () => {
+  it("stays on the source when the read fails, rereads it on request, or goes without", async () => {
     const refused: AgentError = {
       code: "bad_request",
       message: "le dépôt ne répond pas",
@@ -1023,7 +1023,7 @@ describe("les deux pas du formulaire", () => {
     expect(mainPort()).toBe(3000);
   });
 
-  it("revient à la source sans rien perdre, et ne relit pas ce qui l'a été", async () => {
+  it("returns to the source without losing anything, and does not reread what was already read", async () => {
     const { asked } = reading([READ]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1042,7 +1042,7 @@ describe("les deux pas du formulaire", () => {
     expect(useProjectAdd.getState().step).toBe("config");
   });
 
-  it("ne se passe pas de lecture sans source, et repart de la source à la remise à zéro", async () => {
+  it("does not skip the read without a source, and restarts from the source on reset", async () => {
     reading([READ]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1058,7 +1058,7 @@ describe("les deux pas du formulaire", () => {
   });
 });
 
-describe("un port déjà pris", () => {
+describe("a port that is already taken", () => {
   const taken: AgentError = {
     code: "bad_request",
     fix: "Donne un autre port à shop.",
@@ -1089,7 +1089,7 @@ describe("un port déjà pris", () => {
     return { asked };
   }
 
-  it("garde le refus tel quel et prend le port libre du champ, pas de la phrase", async () => {
+  it("keeps the refusal as is and takes the free port from the field, not from the sentence", async () => {
     stub();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1105,7 +1105,7 @@ describe("un port déjà pris", () => {
     expect(main()?.cmd).toBe("bun run dev --port 3001");
   });
 
-  it("aboutit au second essai, sur le port du remède", async () => {
+  it("succeeds on the second attempt, on the fix's port", async () => {
     const { asked } = stub();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1123,7 +1123,7 @@ describe("un port déjà pris", () => {
   });
 });
 
-describe("un projet qui ne démarre pas", () => {
+describe("a project that does not start", () => {
   const dead: AgentError = {
     code: "internal",
     fix: "Ouvre le journal du projet, ou corrige la colonne install du registre.",
@@ -1156,7 +1156,7 @@ describe("un projet qui ne démarre pas", () => {
     return counters;
   }
 
-  it("laisse le journal visible et rend l'erreur de l'agent telle quelle", async () => {
+  it("leaves the journal visible and returns the agent's error as is", async () => {
     stub(() => false);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1174,7 +1174,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(phase("up")).toBe("fail");
   });
 
-  it("reprend au démarrage sans redéclarer le projet", async () => {
+  it("resumes at startup without redeclaring the project", async () => {
     let up = false;
     const counters = stub(() => up);
 
@@ -1193,7 +1193,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(phase("add")).toBe("ok");
   });
 
-  it("tient pour un échec un projet que l'agent ne donne pas en marche", async () => {
+  it("treats as a failure a project the agent does not report as running", async () => {
     stubPupitre({
       ...QUIET_RUN,
       projectJournal: () =>
@@ -1214,8 +1214,8 @@ describe("un projet qui ne démarre pas", () => {
   });
 });
 
-describe("ce que le lecteur choisit du démarrage", () => {
-  it("démarre après la création et pas avec le serveur, sauf à le demander", async () => {
+describe("what the reader chooses about startup", () => {
+  it("starts after creation and not with the server, unless asked to", async () => {
     stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1230,7 +1230,7 @@ describe("ce que le lecteur choisit du démarrage", () => {
     expect(useProjectAdd.getState().params().boot).toBe(true);
   });
 
-  it("laisse le projet arrêté quand le démarrage n'est pas demandé", async () => {
+  it("leaves the project stopped when startup is not requested", async () => {
     let started = 0;
 
     stubPupitre({
@@ -1260,7 +1260,7 @@ describe("ce que le lecteur choisit du démarrage", () => {
   });
 });
 
-describe("un démarrage qui prend son temps", () => {
+describe("a startup that takes its time", () => {
   // `project.up` answers before the port is bound, so what follows is read off the project list.
   function stub(states: readonly string[]) {
     const polled: string[] = [];
@@ -1308,7 +1308,7 @@ describe("un démarrage qui prend son temps", () => {
     return polled;
   }
 
-  it("attend que le projet quitte « démarre » avant de dire son état", async () => {
+  it('waits for the project to leave "starting" before reporting its state', async () => {
     const polled = stub(["starting", "starting", "online"]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1323,7 +1323,7 @@ describe("un démarrage qui prend son temps", () => {
     });
   });
 
-  it("tient pour un échec une commande qui meurt après le démarrage", async () => {
+  it("treats as a failure a command that dies after startup", async () => {
     stub(["starting", "failed"]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1340,7 +1340,7 @@ describe("un démarrage qui prend son temps", () => {
     ]);
   });
 
-  it("n'attend pas sans fin un serveur long à venir", async () => {
+  it("does not wait endlessly for a slow server to come up", async () => {
     const polled = stub(["starting"]);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1355,7 +1355,7 @@ describe("un démarrage qui prend son temps", () => {
     });
   });
 
-  it("s'arrête à la première lecture refusée et la dit, au lieu de l'avaler", async () => {
+  it("stops at the first refused read and reports it, instead of swallowing it", async () => {
     let started = false;
     let reads = 0;
 
@@ -1405,7 +1405,7 @@ describe("un démarrage qui prend son temps", () => {
   });
 });
 
-describe("un projet que le serveur déclare déjà", () => {
+describe("a project the server already declares", () => {
   const API = {
     boot: false,
     dir: "apps/api",
@@ -1447,7 +1447,7 @@ describe("un projet que le serveur déclare déjà", () => {
     return added;
   }
 
-  it("le nomme, ferme l'ajout et offre de l'ouvrir plutôt que de le redéclarer", async () => {
+  it("names it, closes the add and offers to open it rather than redeclaring it", async () => {
     declaring();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1459,7 +1459,7 @@ describe("un projet que le serveur déclare déjà", () => {
     expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 
-  it("le reconnaît à son nom seul, même dans un autre dossier", async () => {
+  it("recognises it by its name alone, even in another folder", async () => {
     declaring();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1470,7 +1470,7 @@ describe("un projet que le serveur déclare déjà", () => {
     expect(useProjectAdd.getState().ready()).toBe(false);
   });
 
-  it("tient ses ports pour pris par un autre projet", async () => {
+  it("treats its ports as taken by another project", async () => {
     declaring();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1483,8 +1483,8 @@ describe("un projet que le serveur déclare déjà", () => {
   });
 });
 
-describe("un projet déclaré avec des réserves", () => {
-  it("poursuit la chaîne et garde chaque réserve sous la phase de déclaration", async () => {
+describe("a project declared with caveats", () => {
+  it("continues the chain and keeps each caveat under the declaration phase", async () => {
     stubPupitre({
       ...QUIET_RUN,
       addProject: (_serverId: string, params: ProjectAddParams) =>
@@ -1516,7 +1516,7 @@ describe("un projet déclaré avec des réserves", () => {
   });
 });
 
-describe("ce que project.add emporte", () => {
+describe("what project.add carries", () => {
   function sending() {
     const sent: Record<string, unknown>[] = [];
 
@@ -1532,7 +1532,7 @@ describe("ce que project.add emporte", () => {
     return sent;
   }
 
-  it("omet le démarrage avec le serveur tant qu'il n'est pas demandé", async () => {
+  it("omits start-with-server as long as it is not requested", async () => {
     const sent = sending();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1543,7 +1543,7 @@ describe("ce que project.add emporte", () => {
     expect(sent[0]).not.toHaveProperty("runtimes");
   });
 
-  it("l'envoie quand il est demandé", async () => {
+  it("sends it when it is requested", async () => {
     const sent = sending();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1555,8 +1555,8 @@ describe("ce que project.add emporte", () => {
   });
 });
 
-describe("un dossier déjà présent sur le serveur", () => {
-  it("ne récupère aucune source pour un dossier qui est déjà là", async () => {
+describe("a folder already present on the server", () => {
+  it("fetches no source for a folder that is already there", async () => {
     stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1569,7 +1569,7 @@ describe("un dossier déjà présent sur le serveur", () => {
     expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
   });
 
-  it("refuse de partir sans nom, sans port valable ou sans commande", async () => {
+  it("refuses to start without a name, a valid port or a command", async () => {
     stubPupitre({ listProjects: QUIET_RUN.listProjects });
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1591,7 +1591,7 @@ describe("un dossier déjà présent sur le serveur", () => {
     expect(useProjectAdd.getState().ready()).toBe(false);
   });
 
-  it("refuse deux lignes sur le même libellé ou le même port", async () => {
+  it("refuses two rows with the same label or the same port", async () => {
     stubPupitre({ listProjects: QUIET_RUN.listProjects });
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1610,7 +1610,7 @@ describe("un dossier déjà présent sur le serveur", () => {
   });
 });
 
-describe("le sous-domaine du projet", () => {
+describe("the project's subdomain", () => {
   const held = {
     ...QUIET_RUN,
     listProjects: () =>
@@ -1649,7 +1649,7 @@ describe("le sous-domaine du projet", () => {
       }),
   };
 
-  it("se déduit d'un nom à point sous une forme que l'agent accepte", async () => {
+  it("is derived from a dotted name into a form the agent accepts", async () => {
     stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -1661,7 +1661,7 @@ describe("le sous-domaine du projet", () => {
     expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 
-  it("refuse une valeur mal formée sans appeler l'agent", async () => {
+  it("refuses a malformed value without calling the agent", async () => {
     const asked: ProjectAddParams[] = [];
 
     stubPupitre({
@@ -1683,7 +1683,7 @@ describe("le sous-domaine du projet", () => {
     expect(asked).toEqual([]);
   });
 
-  it("refuse un sous-domaine qu'un projet déclaré tient déjà", async () => {
+  it("refuses a subdomain a declared project already holds", async () => {
     stubPupitre(held);
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -1695,7 +1695,7 @@ describe("le sous-domaine du projet", () => {
     expect(useProjectAdd.getState().ready()).toBe(false);
   });
 
-  it("propose un nom libre quand on le lui demande", async () => {
+  it("offers a free name when asked", async () => {
     stubPupitre(held);
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
@@ -1708,7 +1708,7 @@ describe("le sous-domaine du projet", () => {
     expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 
-  it("ne juge rien quand la machine n'a pas de tunnel", async () => {
+  it("judges nothing when the machine has no tunnel", async () => {
     stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1720,7 +1720,7 @@ describe("le sous-domaine du projet", () => {
   });
 });
 
-describe("les dépôts du compte GitHub", () => {
+describe("the GitHub account's repositories", () => {
   const REPO_ROW = {
     cloneUrl: "https://github.com/acme/atlas-web.git",
     defaultBranch: "release/2.0",
@@ -1731,7 +1731,7 @@ describe("les dépôts du compte GitHub", () => {
     pushedAt: "2026-09-01T10:00:00Z",
   };
 
-  it("met le dépôt, la branche et le nom dans le brouillon", async () => {
+  it("puts the repository, the branch and the name in the draft", async () => {
     stubPupitre({
       ...QUIET_RUN,
       githubRepos: () => Promise.resolve({ ok: true, result: [REPO_ROW] }),
@@ -1756,7 +1756,7 @@ describe("les dépôts du compte GitHub", () => {
     });
   });
 
-  it("lit l'absence de compte comme une invite, et un échec comme une erreur", async () => {
+  it("reads the absence of an account as a prompt, and a failure as an error", async () => {
     stubPupitre({
       ...QUIET_RUN,
       githubRepos: () =>
@@ -1786,7 +1786,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(useProjectAdd.getState().repos.status).toBe("failed");
   });
 
-  it("ne demande une branche que pour un dépôt", async () => {
+  it("asks for a branch only for a repository", async () => {
     stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1801,7 +1801,7 @@ describe("les dépôts du compte GitHub", () => {
   });
 });
 
-describe("le navigateur de dossiers", () => {
+describe("the folder browser", () => {
   function browsing(): { asked: { cmd: string; params: unknown }[] } {
     const asked: { cmd: string; params: unknown }[] = [];
 
@@ -1855,7 +1855,7 @@ describe("le navigateur de dossiers", () => {
     return { asked };
   }
 
-  it("ne liste que les dossiers, sous la racine que l'agent nomme", async () => {
+  it("lists only folders, under the root the agent names", async () => {
     const { asked } = browsing();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1870,7 +1870,7 @@ describe("le navigateur de dossiers", () => {
     });
   });
 
-  it("pose le dossier choisi comme dir du projet", async () => {
+  it("sets the chosen folder as the project's dir", async () => {
     browsing();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1887,7 +1887,7 @@ describe("le navigateur de dossiers", () => {
     });
   });
 
-  it("crée un dossier sous celui qui est ouvert, puis le relit", async () => {
+  it("creates a folder under the open one, then rereads it", async () => {
     const { asked } = browsing();
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -1906,7 +1906,7 @@ describe("le navigateur de dossiers", () => {
     });
   });
 
-  it("rend le refus d'un dossier au dialogue qui l'a demandé, et garde la liste", async () => {
+  it("returns a folder refusal to the dialog that asked for it, and keeps the list", async () => {
     browsing();
 
     await useProjectAdd.getState().prepare("srv-1", null);

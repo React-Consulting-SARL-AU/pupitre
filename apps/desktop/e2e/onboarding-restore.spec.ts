@@ -12,7 +12,7 @@ const INSTALL = /^Installer$/;
 const CONFIGURE = /^Continuer avec/;
 const ADOPTED = /Votre organisation a déjà des sauvegardes/;
 
-test.describe("onboarding depuis une sauvegarde", () => {
+test.describe("onboarding from a backup", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -26,7 +26,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
     await running.app.close();
   });
 
-  test("repart d'une sauvegarde, installe, sécurise, puis ramène les données", async () => {
+  test("starts from a backup, installs, hardens, then brings the data back", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -38,7 +38,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
 
-    await test.step("l'étape propose les sauvegardes de l'organisation", async () => {
+    await test.step("the step offers the organization's backups", async () => {
       await expect(
         page.getByRole("heading", { name: "Repartir d'une sauvegarde ?" })
       ).toBeVisible();
@@ -48,7 +48,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await expect(page.locator("[data-restore-backup]")).toHaveCount(2);
     });
 
-    await test.step("le seau se donne sans la phrase : la clé de l'organisation est reprise", async () => {
+    await test.step("the bucket is given without the passphrase: the organization's key is reused", async () => {
       await expect(page.getByText(ADOPTED)).toBeVisible();
       await expect(page.locator("#backup-passphrase")).toHaveCount(0);
 
@@ -75,7 +75,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
 
     await assertAccessible(page, "onboarding/restore");
 
-    await test.step("la phrase de passe ouvre la sauvegarde", async () => {
+    await test.step("the passphrase opens the backup", async () => {
       await page.locator("#restore-passphrase").fill(PASSPHRASE);
       await page
         .getByRole("button", { name: "Repartir de cette sauvegarde" })
@@ -86,7 +86,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       ).toHaveCount(1);
     });
 
-    await test.step("le catalogue et la configuration s'ouvrent sur la sauvegarde", async () => {
+    await test.step("the catalog and the configuration open on the backup", async () => {
       await page.getByRole("button", { name: CONFIGURE }).click();
       await expect(
         page.locator('[data-step="config"] [data-current]')
@@ -103,7 +103,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await page.getByRole("button", { name: "Continuer" }).click();
     });
 
-    await test.step("la sécurité mène aux données", async () => {
+    await test.step("security leads to the data", async () => {
       await page.getByRole("button", { name: "Passer aux données" }).click();
 
       await expect(
@@ -115,7 +115,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await assertAccessible(page, "onboarding/data");
     });
 
-    await test.step("les données reviennent et les projets démarrent", async () => {
+    await test.step("the data comes back and the projects start", async () => {
       await page.getByRole("button", { name: "Ramener 3 parties" }).click();
 
       await expect(

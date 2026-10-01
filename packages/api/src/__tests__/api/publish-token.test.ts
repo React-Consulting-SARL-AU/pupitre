@@ -20,16 +20,16 @@ function env(current?: string, previous?: string) {
   }
 }
 
-describe("ce qui ressemble à un jeton de publication", () => {
-  it("se reconnaît à son préfixe", () => {
+describe("what looks like a publish token", () => {
+  it("is recognized by its prefix", () => {
     expect(isPublishToken(CURRENT)).toBe(true)
     expect(isPublishToken("pupitre_srv_something")).toBe(false)
     expect(isPublishToken("a-session-token")).toBe(false)
   })
 })
 
-describe("les jetons acceptés", () => {
-  it("sont ceux que la plateforme déclare, sans les vides", () => {
+describe("the accepted tokens", () => {
+  it("are those the platform declares, without the empty ones", () => {
     expect(acceptedPublishTokens(env(CURRENT, PREVIOUS))).toEqual([
       CURRENT,
       PREVIOUS,
@@ -40,26 +40,26 @@ describe("les jetons acceptés", () => {
   })
 })
 
-describe("la vérification", () => {
-  it("accepte le jeton courant", async () => {
+describe("verification", () => {
+  it("accepts the current token", async () => {
     expect(await verifyPublishToken(CURRENT, env(CURRENT))).toBe(true)
   })
 
-  it("accepte encore le précédent, le temps d'une rotation", async () => {
+  it("still accepts the previous one, for the duration of a rotation", async () => {
     expect(await verifyPublishToken(PREVIOUS, env(CURRENT, PREVIOUS))).toBe(
       true
     )
   })
 
-  it("refuse le précédent une fois qu'il est retiré", async () => {
+  it("refuses the previous one once it is removed", async () => {
     expect(await verifyPublishToken(PREVIOUS, env(CURRENT))).toBe(false)
   })
 
-  it("refuse quand la plateforme n'en déclare aucun", async () => {
+  it("refuses when the platform declares none", async () => {
     expect(await verifyPublishToken(CURRENT, env())).toBe(false)
   })
 
-  it("refuse un préfixe du jeton, et le jeton suivi de n'importe quoi", async () => {
+  it("refuses a prefix of the token, and the token followed by anything", async () => {
     expect(await verifyPublishToken(CURRENT.slice(0, -1), env(CURRENT))).toBe(
       false
     )
@@ -68,27 +68,27 @@ describe("la vérification", () => {
   })
 })
 
-describe("l'adresse d'un artefact", () => {
+describe("an artifact's address", () => {
   const KEY = "app/1.4.0/Pupitre-1.4.0-arm64.dmg"
 
-  it("se compose depuis le seau déclaré", () => {
+  it("is composed from the declared bucket", () => {
     expect(
       artefactUrl(KEY, { PUPITRE_DOWNLOADS_URL: "https://dl.pupitre.studio" })
     ).toBe(`https://dl.pupitre.studio/${KEY}`)
   })
 
-  it("supporte une variable qui traîne une barre finale", () => {
+  it("tolerates a variable with a trailing slash", () => {
     expect(
       artefactUrl(KEY, { PUPITRE_DOWNLOADS_URL: "https://dl.pupitre.studio//" })
     ).toBe(`https://dl.pupitre.studio/${KEY}`)
   })
 
-  it("dit que rien ne sera téléchargé quand aucun seau n'est déclaré", () => {
+  it("says nothing will be downloaded when no bucket is declared", () => {
     expect(artefactUrl(KEY, {})).toBe(`http://localhost/__downloads/${KEY}`)
   })
 
   // The `r2_key` pattern already rejects such keys; this guards composition if one slips through.
-  it("ne quitte pas l'hôte, même sur une clé qui a échappé au motif", () => {
+  it("does not leave the host, even on a key that escaped the pattern", () => {
     const escaped = artefactUrl("//evil.example/x", {
       PUPITRE_DOWNLOADS_URL: "https://dl.pupitre.studio",
     })

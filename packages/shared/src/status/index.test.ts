@@ -12,33 +12,33 @@ function minutesAgo(minutes: number): Date {
 }
 
 describe("statusFreshness", () => {
-  it("laisse trois cycles de heartbeat avant de crier au périmé", () => {
+  it("allows three heartbeat cycles before crying stale", () => {
     expect(STATUS_STALE_AFTER_MINUTES).toBe(15)
   })
 
-  it("dit fraîche une observation plus jeune que le seuil", () => {
+  it("calls an observation younger than the threshold fresh", () => {
     expect(statusFreshness(minutesAgo(14), NOW)).toBe("fresh")
   })
 
-  it("dit fraîche une observation pile sur le seuil", () => {
+  it("calls an observation exactly at the threshold fresh", () => {
     expect(
       statusFreshness(new Date(NOW.getTime() - STATUS_STALE_AFTER_MS), NOW)
     ).toBe("fresh")
   })
 
-  it("dit périmée une observation plus vieille que le seuil", () => {
+  it("calls an observation older than the threshold stale", () => {
     expect(statusFreshness(minutesAgo(16), NOW)).toBe("stale")
   })
 
-  it("dit inconnue l'absence d'observation", () => {
+  it("calls the absence of an observation unknown", () => {
     expect(statusFreshness(null, NOW)).toBe("unknown")
   })
 
-  it("dit inconnue une date illisible", () => {
+  it("calls an unreadable date unknown", () => {
     expect(statusFreshness("pas une date", NOW)).toBe("unknown")
   })
 
-  it("accepte une date ISO", () => {
+  it("accepts an ISO date", () => {
     expect(statusFreshness(minutesAgo(60).toISOString(), NOW)).toBe("stale")
   })
 })

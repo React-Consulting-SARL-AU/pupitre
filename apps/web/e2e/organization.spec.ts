@@ -4,19 +4,19 @@ import { harnessUrl, signIn, stayLocal } from "./harness/session"
 const EMAIL = "org@e2e.local"
 const START_URL_RE = /\/dashboard\/start$/
 
-test.describe("organisation", () => {
-  test("création, renommage, et le chrome porté par la barre latérale", async ({
+test.describe("organization", () => {
+  test("creation, renaming, and the chrome carried by the sidebar", async ({
     page,
     request,
   }) => {
     await stayLocal(page)
     await request.post(harnessUrl("/reset"))
 
-    await test.step("le lien magique ouvre la console sur l'étape de démarrage", async () => {
+    await test.step("the magic link opens the console on the getting-started step", async () => {
       await signIn(page, request, EMAIL)
     })
 
-    await test.step("la barre latérale porte le thème, la langue et le légal", async () => {
+    await test.step("the sidebar carries the theme, the language and the legal pages", async () => {
       await page.getByLabel("Compte et préférences").click()
 
       await expect(page.getByRole("menuitem", { name: "Statut" })).toBeVisible()
@@ -31,7 +31,7 @@ test.describe("organisation", () => {
       await page.keyboard.press("Escape")
     })
 
-    await test.step("une nouvelle organisation se crée et devient active", async () => {
+    await test.step("a new organization is created and becomes active", async () => {
       await page.getByRole("button", { name: "org" }).first().click()
       await page
         .getByRole("menuitem", { name: "Nouvelle organisation" })
@@ -43,7 +43,7 @@ test.describe("organisation", () => {
       await expect(page.getByText("Acme Inc.")).toBeVisible()
     })
 
-    await test.step("le propriétaire renomme l'organisation active", async () => {
+    await test.step("the owner renames the active organization", async () => {
       await page.goto("/dashboard/organization")
       await page.getByLabel("Nom").fill("Acme Studio")
       await page.getByRole("button", { name: "Enregistrer" }).click()

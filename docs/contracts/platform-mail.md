@@ -1,249 +1,249 @@
-# Boîte de la plateforme
+# Platform inbox
 
-Tout ce qui est écrit à une adresse `*@pupitre.studio` arrive dans la base de la plateforme, et l'équipe y répond depuis la console. Il n'y a pas de boîte ailleurs : pas de Gmail, pas de Zendesk, pas de redirection vers une adresse personnelle.
+Everything written to an `*@pupitre.studio` address lands in the platform database, and the team answers from the console. There is no inbox anywhere else: no Gmail, no Zendesk, no forwarding to a personal address.
 
-Complément de [`platform-api.md`](./platform-api.md), dont il reprend le registre : les routes vivent sous `/api/v1/admin/inbox`, elles sont cachées de l'OpenAPI comme tout le groupe `/admin/**`, et leurs erreurs ont la forme `{ error: { code, message, fix? } }`.
+Complements [`platform-api.md`](./platform-api.md), whose conventions it follows: the routes live under `/api/v1/admin/inbox`, they are hidden from the OpenAPI document like the whole `/admin/**` group, and their errors have the shape `{ error: { code, message, fix? } }`.
 
-## Ce qui arrive
+## What comes in
 
-Email Routing de Cloudflare porte une règle **catch-all** sur la zone `pupitre.studio` : *Send to a Worker*, le Worker de la console (`ppt-web-production`). Aucune adresse n'est déclarée une par une — `support@`, `legal@`, `privacy@`, `security@` reçoivent, et n'importe quelle autre aussi.
+Cloudflare Email Routing carries a **catch-all** rule on the `pupitre.studio` zone: *Send to a Worker*, the console Worker (`ppt-web-production`). No address is declared one by one — `support@`, `legal@`, `privacy@`, `security@` receive, and so does any other.
 
-Le Worker expose un handler `email(message, env, ctx)` (`apps/web/src/worker.ts`), qui délègue à `handleInboundEmailMessage`. Il lit `message.raw` en entier, ouvre un client Prisma sur la D1 de la requête, et appelle `ingestInboundEmail`. **Il ne rattrape rien** : une exception remonte à Cloudflare, qui traite la livraison comme un échec temporaire et la représente. Un message perdu coûte plus qu'un message livré deux fois — et un message livré deux fois est reconnu (voir *Doublons*).
+The Worker exposes an `email(message, env, ctx)` handler (`apps/web/src/worker.ts`), which delegates to `handleInboundEmailMessage`. It reads `message.raw` in full, opens a Prisma client on the request's D1, and calls `ingestInboundEmail`. **It catches nothing**: an exception goes back up to Cloudflare, which treats the delivery as a temporary failure and presents it again. A lost message costs more than a message delivered twice — and a message delivered twice is recognised (see *Duplicates*).
 
-Le même chemin s'ouvre en local par `POST /internal/email`, derrière le secret `INTERNAL_WORKFLOW_SECRET` des déclencheurs internes ; le corps est le MIME brut, l'enveloppe est portée par deux en-têtes. La commande est dans [`monorepo.md`](../monorepo.md).
+The same path opens locally through `POST /internal/email`, behind the `INTERNAL_WORKFLOW_SECRET` secret of the internal triggers; the body is the raw MIME, and the envelope is carried by two headers. The command is in [`monorepo.md`](../monorepo.md).
 
-## Ce qui ne rentre pas
+## What does not get in
 
-**Un message au-dessus de `MAIL_MAX_BYTES`** (20 Mio, `@pupitre/shared/legal`) **est refusé à la porte.** `message.rawSize` est lu avant les octets : au-dessus du plafond, `message.setReject("Message too large")` et rien d'autre. Sans ce refus, mettre le message en mémoire tue l'isolat, Cloudflare traite la mort comme un échec temporaire, et représente indéfiniment un message qui ne passera jamais. Un refus est définitif et l'expéditeur en est averti ; une boucle de renvoi, non. Le même plafond vaut sur `POST /internal/email`, qui répond `413`.
+**A message above `MAIL_MAX_BYTES`** (20 MiB, `@pupitre/shared/legal`) **is refused at the door.** `message.rawSize` is read before the bytes: above the ceiling, `message.setReject("Message too large")` and nothing else. Without this refusal, loading the message into memory kills the isolate, Cloudflare treats the death as a temporary failure, and presents indefinitely a message that will never go through. A refusal is final and the sender is told; a retry loop is not. The same ceiling applies to `POST /internal/email`, which answers `413`.
 
-**Le texte est coupé à `MAIL_MAX_TEXT_CHARS`** (200 000 caractères) avant d'entrer en base : D1 refuse une valeur au-delà du mégaoctet, et ce refus-là arriverait après l'écriture des objets, donc dans la même boucle de renvoi. Le `.eml` brut dans le seau garde le corps entier — **c'est lui la source de vérité**, la colonne n'est que ce qu'on lit à l'écran. Le `snippet` est calculé sur le texte complet.
+**The text is cut at `MAIL_MAX_TEXT_CHARS`** (200,000 characters) before it enters the database: D1 refuses a value above one megabyte, and that refusal would come after the objects are written, hence in the same retry loop. The raw `.eml` in the bucket keeps the whole body — **it is the source of truth**, the column is only what is read on screen. The `snippet` is computed from the full text.
 
-**Seules les `MAIL_MAX_INBOUND_ATTACHMENTS` premières pièces jointes** (vingt) partent au seau avec leur ligne ; les suivantes ne vivent que dans le `.eml` brut. Chaque pièce est une écriture du Worker : un message de milliers de parties dépasserait ses sous-requêtes, et Cloudflare le représenterait indéfiniment. De même, **`In-Reply-To` et `References` ne comptent que leurs `MAIL_MAX_REFERENCES` identifiants les plus récents** (vingt), pour le rattachement comme pour la colonne `references` : une chaîne gonflée de milliers d'identifiants n'est ni cherchée ni recopiée dans une réponse.
+**Only the first `MAIL_MAX_INBOUND_ATTACHMENTS` attachments** (twenty) go to the bucket with their row; the following ones live only in the raw `.eml`. Each attachment is a Worker write: a message with thousands of parts would exceed its subrequests, and Cloudflare would present it indefinitely. Likewise, **`In-Reply-To` and `References` count only their `MAIL_MAX_REFERENCES` most recent identifiers** (twenty), both for threading and for the `references` column: a chain inflated to thousands of identifiers is neither searched nor copied into a reply.
 
-## Lecture du message
+## Reading the message
 
-`postal-mime` lit le message : sujet, expéditeur, destinataires, copies, corps texte, corps HTML, `Message-ID`, `In-Reply-To`, `References`, pièces jointes avec leurs octets. Les identifiants sont rangés **sans chevrons**.
+`postal-mime` reads the message: subject, sender, recipients, copies, text body, HTML body, `Message-ID`, `In-Reply-To`, `References`, attachments with their bytes. Identifiers are stored **without angle brackets**.
 
-**Un message illisible est quand même rangé.** La lecture rend `null`, l'enveloppe SMTP fournit l'expéditeur et le destinataire, et les octets partent dans le seau : rien ne se perd dans une boucle de renvoi sur un message qu'aucun analyseur n'acceptera jamais.
+**An unreadable message is stored anyway.** The parse returns `null`, the SMTP envelope supplies the sender and the recipient, and the bytes go to the bucket: nothing is lost in a retry loop over a message that no parser will ever accept.
 
-**Un message sans objet est rangé sous un sujet vide** (`MailThread.subject = ""`, `MailMessage.subject = null`) : c'est la console qui dit « (sans objet) » ou « (no subject) », dans sa langue. Une pièce jointe sans nom s'appelle `attachment`.
+**A message without a subject is stored under an empty subject** (`MailThread.subject = ""`, `MailMessage.subject = null`): it is the console that says « (sans objet) » or « (no subject) », in its language. An attachment without a name is called `attachment`.
 
-### L'expéditeur vérifié
+### The verified sender
 
-Le `From` n'est qu'une déclaration. Le MX d'Email Routing authentifie le message avant de le passer au Worker et **préfixe** ses résultats — `ARC-Authentication-Results` et `Authentication-Results` sous l'authserv-id `MAIL_TRUSTED_AUTHSERV_ID` (`mx.cloudflare.net`, `@pupitre/shared/legal`). `isAuthenticatedSender` (`lib/mail/authentication.ts`) ne lit que **l'en-tête le plus haut de chaque nom** : un résultat recopié plus bas par l'expéditeur, même sous notre authserv-id, ne compte jamais. Chaque en-tête le plus haut que notre MX a écrit doit se porter garant du domaine du `From` : `dmarc=pass` sur ce domaine, ou `dkim=pass` / `spf=pass` sur un domaine aligné (le même, ou l'un sous l'autre). Sans aucun de ces en-têtes, l'expéditeur n'est pas vérifié.
+`From` is only a claim. The Email Routing MX authenticates the message before handing it to the Worker and **prefixes** its results — `ARC-Authentication-Results` and `Authentication-Results` under the authserv-id `MAIL_TRUSTED_AUTHSERV_ID` (`mx.cloudflare.net`, `@pupitre/shared/legal`). `isAuthenticatedSender` (`lib/mail/authentication.ts`) reads only **the topmost header of each name**: a result copied lower down by the sender, even under our authserv-id, never counts. Each topmost header that our MX wrote must vouch for the `From` domain: `dmarc=pass` on that domain, or `dkim=pass` / `spf=pass` on an aligned domain (the same one, or one beneath the other). Without any of these headers, the sender is not verified.
 
-Le message porte `authenticated` (`MailMessage.authenticated`, `true` pour ce que nous envoyons), le fil `senderAuthenticated` pour son expéditeur affiché. **Un expéditeur non vérifié ne relie aucun compte** (`contactUserId`) et **ne rejoint un fil que par ses références**, jamais par le sujet et le correspondant. Les messages reçus avant la migration `0017` sont non vérifiés : personne ne les a vérifiés.
+The message carries `authenticated` (`MailMessage.authenticated`, `true` for what we send), the thread carries `senderAuthenticated` for its displayed sender. **An unverified sender links no account** (`contactUserId`) and **joins a thread only through its references**, never through the subject and the correspondent. Messages received before migration `0017` are unverified: nobody verified them.
 
-**Un envoi automatique est rangé sans allumer le fil.** Un `List-Unsubscribe`, un `Auto-Submitted` autre que `no`, un `Precedence: bulk | list | junk`, ou un expéditeur `mailer-daemon@` ou `postmaster@` : le fil garde son état, ni non lu ni rouvert. Le message porte `automated = true` (`MailMessage.automated`, `false` par défaut) et le rend dans sa forme ; le fil porte `lastInboundAutomated`, qui dit si le **dernier** entrant l'était — c'est cette colonne qui range le fil dans « Automatiques », parce qu'aucun filtre relationnel ne sait dire « le dernier ».
+**An automatic send is stored without lighting up the thread.** A `List-Unsubscribe`, an `Auto-Submitted` other than `no`, a `Precedence: bulk | list | junk`, or a `mailer-daemon@` or `postmaster@` sender: the thread keeps its state, neither unread nor reopened. The message carries `automated = true` (`MailMessage.automated`, `false` by default) and renders it in its shape; the thread carries `lastInboundAutomated`, which says whether the **last** inbound message was one — it is this column that files the thread under « Automated », because no relational filter can say "the last one".
 
-## Les boîtes
+## The mailboxes
 
-`MailMailbox` déclare les adresses que l'équipe reconnaît : `address` (unique, minuscule, toujours sur `MAIL_DOMAIN`), `displayName`, `signature`, `sensitive`, `canReply`, `enabled`, `sortOrder`. La migration `0009_mail_v2.sql` en écrit **quatre**, aux identifiants stables de `@pupitre/shared/platform` (`PLATFORM_MAILBOX_IDS`) : `mbx_support` (non sensible), `mbx_legal`, `mbx_privacy`, `mbx_security` (sensibles). Ces quatre-là ne se suppriment pas.
+`MailMailbox` declares the addresses the team recognises: `address` (unique, lowercase, always on `MAIL_DOMAIN`), `displayName`, `signature`, `sensitive`, `canReply`, `enabled`, `sortOrder`. Migration `0009_mail_v2.sql` writes **four**, with the stable identifiers of `@pupitre/shared/platform` (`PLATFORM_MAILBOX_IDS`): `mbx_support` (not sensitive), `mbx_legal`, `mbx_privacy`, `mbx_security` (sensitive). Those four cannot be deleted.
 
-`MailThread.address` reste la vérité de l'enveloppe ; `MailThread.mailboxId` est la boîte qu'on a déclarée pour elle, et vaut `null` quand aucune ne la déclare — le fil est alors rangé dans **« Autres »**. Ouvrir une boîte sur une adresse qui a déjà reçu **rattache** ces fils-là. Une boîte désactivée reçoit encore — le catch-all ne trie pas — mais n'émet plus et sort des onglets par défaut.
+`MailThread.address` remains the truth of the envelope; `MailThread.mailboxId` is the mailbox declared for it, and is `null` when none declares it — the thread is then filed under **« Others »**. Opening a mailbox on an address that has already received **attaches** those threads. A disabled mailbox still receives — the catch-all does not sort — but no longer sends and drops out of the default tabs.
 
-La migration ne se contente pas d'ajouter les colonnes : elle **remplit** `mailboxId` depuis l'adresse, et `lastInboundAutomated` depuis le dernier message entrant de chaque fil. Sans cela un fil reçu avant la migration serait entré dans la vue ouverte quel que soit son dernier entrant, et la valeur par défaut de la colonne aurait fait passer un accusé automatique pour du courrier à traiter.
+The migration does not merely add the columns: it **fills** `mailboxId` from the address, and `lastInboundAutomated` from the last inbound message of each thread. Without this, a thread received before the migration would have entered the open view whatever its last inbound message, and the column's default value would have made an automatic acknowledgement pass for mail to handle.
 
-**Une boîte sensible journalise ses lectures** : ouvrir un fil y écrit `mail.read`, ouvrir une pièce jointe `mail.attachment_read`. Une boîte ordinaire n'écrit rien.
+**A sensitive mailbox logs its reads**: opening a thread writes `mail.read`, opening an attachment `mail.attachment_read`. An ordinary mailbox writes nothing.
 
-Il n'y a plus de liste d'adresses d'expédition figée : **les expéditeurs possibles sont les boîtes `enabled && canReply`**. Le binding `send_email` de `wrangler.jsonc` ne liste **aucun** `allowed_sender_addresses`, et c'est délibéré : toute adresse du domaine peut émettre, la vérification est faite par le domaine lui-même dans Email Sending.
+There is no longer a fixed list of sending addresses: **the possible senders are the mailboxes that are `enabled && canReply`**. The `send_email` binding in `wrangler.jsonc` lists **no** `allowed_sender_addresses`, and that is deliberate: any address of the domain may send, the verification is done by the domain itself in Email Sending.
 
-## Rattachement à un fil
+## Attaching to a thread
 
-Dans cet ordre, le premier qui répond gagne :
+In this order, the first that answers wins:
 
-1. **Les références.** `In-Reply-To` et `References` nomment des identifiants ; si l'un d'eux est déjà en base, le message rejoint son fil, quel que soit son sujet — celui de la même adresse de destination d'abord, quand le message référencé a été rangé sous plusieurs.
-2. **Le sujet et le correspondant**, pour un expéditeur vérifié seulement. Même adresse de destination, même sujet **normalisé**, fil touché dans les **trente jours**, et un message du fil qui porte cette personne en expéditeur ou en destinataire. Un homonyme de sujet venu d'ailleurs n'entre pas. Au plus **dix** fils candidats sont examinés, les plus récemment touchés d'abord : au-delà, ce n'est plus un fil, c'est un sujet générique.
-3. **Sinon, un fil neuf**, dont `mailboxId` est celui de la boîte qui déclare l'adresse, ou `null`.
+1. **References.** `In-Reply-To` and `References` name identifiers; if one of them is already in the database, the message joins its thread, whatever its subject — the one for the same destination address first, when the referenced message was stored under several.
+2. **The subject and the correspondent**, for a verified sender only. Same destination address, same **normalised** subject, a thread touched within **thirty days**, and a message of the thread that carries this person as sender or recipient. A subject namesake from elsewhere does not enter. At most **ten** candidate threads are examined, the most recently touched first: beyond that, it is no longer a thread, it is a generic subject.
+3. **Otherwise, a new thread**, whose `mailboxId` is that of the mailbox that declares the address, or `null`.
 
-Le sujet normalisé est le sujet débarrassé de ses préfixes empilés (`Re:`, `RE :`, `Re[2]:`, `Fw:`, `Fwd:`, `TR:`, `Réf:`), espaces écrasés, en minuscules.
+The normalised subject is the subject stripped of its stacked prefixes (`Re:`, `RE :`, `Re[2]:`, `Fw:`, `Fwd:`, `TR:`, `Réf:`), whitespace collapsed, lowercased.
 
-À l'arrivée d'un message lisible non automatique, le fil passe `unread = true`, `status = open`, et `lastInboundAt` prend l'heure. `contactUserId` nomme le compte dont l'adresse est celle de l'expéditeur, quand il y en a un et que l'expéditeur est vérifié. Tout message entrant porte sur le fil `senderEmail`, `senderName`, `senderAuthenticated` et `snippet` ; un message sortant y porte son `snippet` : la liste ne lit que les lignes des fils. Une activité `received` est écrite sur le fil, et l'événement temps réel `thread.received` part.
+When a readable non-automatic message arrives, the thread becomes `unread = true`, `status = open`, and `lastInboundAt` takes the time. `contactUserId` names the account whose address is the sender's, when there is one and the sender is verified. Every inbound message carries onto the thread `senderEmail`, `senderName`, `senderAuthenticated` and `snippet`; an outbound message carries its `snippet` there: the list reads only the thread rows. A `received` activity is written on the thread, and the `thread.received` realtime event goes out.
 
-## Doublons
+## Duplicates
 
-Deux verrous, dans cet ordre :
+Two locks, in this order:
 
-1. **L'empreinte SHA-256 de l'adresse de destination suivie des octets bruts** (`rawHash`, unique). Un renvoi de Cloudflare retombe dessus ; le même message écrit à `support@` et à `legal@` fait deux livraisons, donc deux empreintes.
-2. **Le `Message-ID` sur la même adresse de destination** (`@@unique([messageId, address])`, `MailMessage.address` portant l'adresse de l'enveloppe, ou la boîte d'où part un message sortant). Un même message arrivé par deux chemins retombe dessus ; le même `Message-ID` écrit à deux de nos adresses fait deux lignes, dans deux fils.
+1. **The SHA-256 hash of the destination address followed by the raw bytes** (`rawHash`, unique). A Cloudflare retry lands on it; the same message written to `support@` and to `legal@` makes two deliveries, hence two hashes.
+2. **The `Message-ID` on the same destination address** (`@@unique([messageId, address])`, `MailMessage.address` carrying the envelope address, or the mailbox an outbound message leaves from). The same message arriving by two paths lands on it; the same `Message-ID` written to two of our addresses makes two rows, in two threads.
 
-Les deux sont vérifiés avant l'écriture, et la contrainte unique rattrape la course : `ingestInboundEmail` rend alors `{ status: "duplicate" }` avec l'identifiant de la ligne déjà écrite, sans rien réécrire, et **efface le fil qu'il venait d'ouvrir** pour ce message s'il est resté vide (`discardEmptyMailThread`) — une course ne laisse aucun fil sans message. Un doublon **republie quand même** `thread.received` : la console qui a raté la première diffusion rattrape celle-là.
+Both are checked before the write, and the unique constraint catches the race: `ingestInboundEmail` then returns `{ status: "duplicate" }` with the identifier of the row already written, rewriting nothing, and **deletes the thread it had just opened** for this message if it stayed empty (`discardEmptyMailThread`) — a race leaves no thread without a message. A duplicate **still republishes** `thread.received`: a console that missed the first broadcast catches up on this one.
 
-## Ce qui va où
+## What goes where
 
-La D1 tient le fil, le texte et les métadonnées ; le seau R2 `ppt-mail` tient tout le reste. Le Worker y touche de deux façons : par le binding `MAIL` pour ce qu'il écrit et lit lui-même (l'ingestion, le corps HTML, la construction du MIME sortant), et par des **adresses signées** SigV4 pour ce que la console lit ou dépose directement — les pièces jointes ne traversent jamais le Worker entre la console et le seau. Les adresses signées portent le nom du seau `R2_MAIL_BUCKET_NAME` (`vars` de `wrangler.jsonc`, `ppt-mail`) et la clé S3 des trois secrets `R2_*` ; sans eux, sous Bun, l'adresse est locale (`http://localhost/__mail-storage/<clé>?…`) et ne sert à rien d'autre qu'à être lue par un test.
+D1 holds the thread, the text and the metadata; the R2 bucket `ppt-mail` holds everything else. The Worker touches it in two ways: through the `MAIL` binding for what it writes and reads itself (ingestion, the HTML body, building the outbound MIME), and through SigV4 **signed addresses** for what the console reads or drops directly — attachments never cross the Worker between the console and the bucket. Signed addresses carry the bucket name `R2_MAIL_BUCKET_NAME` (`vars` of `wrangler.jsonc`, `ppt-mail`) and the S3 key of the three `R2_*` secrets; without them, under Bun, the address is local (`http://localhost/__mail-storage/<key>?…`) and serves no purpose other than being read by a test.
 
-| Objet | Clé |
+| Object | Key |
 | --- | --- |
-| Message entrant brut | `mail/inbound/<rawHash>/raw.eml` |
-| Corps HTML entrant | `mail/inbound/<rawHash>/body.html` |
-| Pièce jointe entrante | `mail/inbound/<rawHash>/attachments/<rang>/<nom assaini>` |
-| Message sortant brut | `mail/<threadId>/<Message-ID généré, sans chevrons>/raw.eml`, déposé **avant** l'envoi et avant la ligne : un dépôt qui échoue n'envoie rien, et aucune ligne ne naît sans son brut |
-| Pièce jointe sortante | `mail/<threadId>/<Message-ID>/attachments/<rang>/<nom assaini>`, copiée du dépôt juste après le brut, avant l'envoi |
-| Dépôt en attente | `mail/uploads/<userId>/<uuid>/<nom assaini>` : ce que la console a téléversé et pas encore envoyé. Effacé à l'envoi, ou par la purge quotidienne au bout de vingt-quatre heures |
+| Raw inbound message | `mail/inbound/<rawHash>/raw.eml` |
+| Inbound HTML body | `mail/inbound/<rawHash>/body.html` |
+| Inbound attachment | `mail/inbound/<rawHash>/attachments/<rank>/<sanitised name>` |
+| Raw outbound message | `mail/<threadId>/<generated Message-ID, without angle brackets>/raw.eml`, dropped **before** sending and before the row: a failing drop sends nothing, and no row is born without its raw |
+| Outbound attachment | `mail/<threadId>/<Message-ID>/attachments/<rank>/<sanitised name>`, copied from the upload right after the raw, before sending |
+| Pending upload | `mail/uploads/<userId>/<uuid>/<sanitised name>`: what the console uploaded and has not yet sent. Deleted on send, or by the daily purge after twenty-four hours |
 
-Le nom de fichier est assaini avant d'entrer dans une clé : chemin retiré, tout ce qui n'est ni lettre, ni chiffre, ni `.`, ni `-`, ni `_` remplacé.
+The file name is sanitised before it enters a key: path removed, everything that is not a letter, a digit, `.`, `-` or `_` replaced.
 
-Un message sortant range lui aussi son MIME complet sous `raw.eml` : le fil se relit entier, des deux côtés.
+An outbound message also stores its complete MIME under `raw.eml`: the thread can be reread whole, on both sides.
 
-### Le seau d'abord, la ligne ensuite
+### Bucket first, row second
 
-**Tout part au seau avant qu'une seule ligne soit écrite** — le brut, le HTML, chaque pièce jointe. Une ligne ne naît jamais sans ses clés : `rawKey` est posé à la création, et une pièce jointe n'existe pas avant que ses octets soient rangés.
+**Everything goes to the bucket before a single row is written** — the raw, the HTML, each attachment. A row is never born without its keys: `rawKey` is set at creation, and an attachment does not exist before its bytes are stored.
 
-La clé d'un entrant ne dépend d'aucune ligne : elle est **l'empreinte de ses propres octets**. Un `put` qui casse ne laisse donc rien derrière lui — ni ligne orpheline, ni fil vide — et le renvoi qui suit écrit aux mêmes clés, par-dessus la moitié rangée au premier essai.
+An inbound key depends on no row: it is **the hash of its own bytes**. A `put` that fails therefore leaves nothing behind — no orphan row, no empty thread — and the retry that follows writes to the same keys, over the half stored on the first attempt.
 
-C'est ce qui manquait : quand la ligne était écrite d'abord, un `put` cassé laissait un message sans corps, et le renvoi de Cloudflare retombait sur son `rawHash` et repartait en « doublon » sans jamais ranger les octets. Le message était perdu, et rien ne le disait.
+This is what was missing: when the row was written first, a failed `put` left a message without a body, and Cloudflare's retry landed on its `rawHash` and went off as a "duplicate" without ever storing the bytes. The message was lost, and nothing said so.
 
-## Ce qui part
+## What goes out
 
-Une réponse et un nouveau message passent par le binding `EMAIL` d'Email Sending, un envoi par destinataire — c'est ce que le binding accepte.
+A reply and a new message go through the `EMAIL` binding of Email Sending, one send per recipient — that is what the binding accepts.
 
-**L'adresse d'expédition est celle de la boîte.** Une réponse part de la boîte du fil ; sur un fil « Autres », elle est refusée en `422` avec le remède : créer la boîte, les fils déjà reçus lui seront rattachés. Une boîte qui n'émet pas — `canReply` faux ou `enabled` faux — répond `409 conflict` (`mailbox_cannot_reply`). Un nouveau message nomme sa boîte par `mailbox_id`.
+**The sending address is the mailbox's.** A reply leaves from the thread's mailbox; on an "Others" thread, it is refused with `422` and the remedy: create the mailbox, the threads already received will be attached to it. A mailbox that does not send — `canReply` false or `enabled` false — answers `409 conflict` (`mailbox_cannot_reply`). A new message names its mailbox through `mailbox_id`.
 
-**Le nom d'expéditeur est `"<prénom> · Pupitre"`**, le prénom étant le premier mot du nom du compte qui répond ; sans nom de compte, `Pupitre` seul. Il voyage encodé RFC 2047 à côté de l'adresse nue, que le binding reçoit telle quelle.
+**The sender name is `"<first name> · Pupitre"`**, the first name being the first word of the replying account's name; without an account name, `Pupitre` alone. It travels RFC 2047 encoded beside the bare address, which the binding receives as is.
 
-**La signature de la boîte est ajoutée sous le texte**, séparée par `-- ` sur sa propre ligne, quand elle existe. Elle entre dans le texte enregistré : le fil relu montre ce qui est parti.
+**The mailbox signature is appended below the text**, separated by `-- ` on its own line, when it exists. It enters the stored text: the reread thread shows what went out.
 
-`In-Reply-To` nomme le message répondu, `References` ajoute son identifiant à sa propre chaîne. Le sujet est `Re: <sujet du fil>`, sans empiler un second `Re:`. Tout en-tête construit — `Subject`, `Message-ID`, `In-Reply-To`, `References` — passe par l'encodage RFC 2047, qui écrase les retours à la ligne : un `References` reçu d'un tiers ne peut pas ajouter un `Bcc:` à ce qui part.
+`In-Reply-To` names the replied-to message, `References` adds its identifier to its own chain. The subject is `Re: <thread subject>`, without stacking a second `Re:`. Every built header — `Subject`, `Message-ID`, `In-Reply-To`, `References` — goes through RFC 2047 encoding, which collapses line breaks: a `References` received from a third party cannot add a `Bcc:` to what goes out.
 
-### À qui elle va
+### Who it goes to
 
-La console peut **nommer les destinataires** : `to` et `cc` dans le corps de la réponse, dix au plus chacun. Sans eux, ou avec un `to` vide après filtrage, les destinataires par défaut s'appliquent.
+The console can **name the recipients**: `to` and `cc` in the reply body, ten at most each. Without them, or with an empty `to` after filtering, the default recipients apply.
 
-**Le message répondu est le dernier entrant non automatique.** Un rebond, une liste de diffusion, un accusé automatique sont sautés — on ne répond pas à `mailer-daemon@`. Sans aucun entrant humain, la réponse reprend les destinataires de **notre propre dernier message** ; sans l'un ni l'autre, elle est refusée.
+**The replied-to message is the last non-automatic inbound one.** A bounce, a mailing list, an automatic acknowledgement are skipped — we do not reply to `mailer-daemon@`. With no human inbound message at all, the reply takes the recipients of **our own last message**; with neither, it is refused.
 
-**Aucune adresse `@pupitre.studio` n'est destinataire**, ni en `to` ni en copie, y compris parmi celles que la console a nommées. Le filtre vaut des deux côtés, et c'est ce qui compte : un expéditeur qui se déclare `From: support@pupitre.studio` ne transforme pas la réponse en boucle sur nous-mêmes. Quand il ne reste plus personne après le filtre, la route répond `409 conflict` (`MailThreadHasNoRecipientError`) plutôt que d'écrire à la boîte elle-même.
+**No `@pupitre.studio` address is a recipient**, neither in `to` nor in copy, including among those the console named. The filter applies on both sides, and that is what matters: a sender who declares `From: support@pupitre.studio` does not turn the reply into a loop on ourselves. When no one remains after the filter, the route answers `409 conflict` (`MailThreadHasNoRecipientError`) rather than writing to the mailbox itself.
 
-Les copies du message répondu sont reprises, moins les nôtres et moins celles déjà en `to`.
+The copies of the replied-to message are carried over, minus ours and minus those already in `to`.
 
-Un nouveau message suit la même règle : ses `to` sont filtrés de nos adresses, et sans personne après le filtre `/compose` répond `409 conflict` sans ouvrir de fil.
+A new message follows the same rule: its `to` are filtered of our addresses, and with no one left after the filter `/compose` answers `409 conflict` without opening a thread.
 
-**Un envoi qui casse ne disparaît pas.** Le message est enregistré `delivery: failed` avec la cause dans `error`, une activité `reply_failed` est écrite, la route répond `502`, et l'événement `message.failed` part. La réponse de la route ne recopie jamais les mots du service d'envoi : son message est générique, la cause reste sur la ligne et dans le journal du Worker. Le fil garde sa trace, et un nouvel essai est un nouveau message : rien ne part deux fois sans qu'on le voie.
+**A send that fails does not disappear.** The message is stored `delivery: failed` with the cause in `error`, a `reply_failed` activity is written, the route answers `502`, and the `message.failed` event goes out. The route's response never copies the sending service's words: its message is generic, the cause stays on the row and in the Worker log. The thread keeps its trace, and a new attempt is a new message: nothing goes out twice without it being seen.
 
-**Le brouillon du fil est effacé dès que l'envoi réussit.**
+**The thread's draft is deleted as soon as the send succeeds.**
 
-### Les pièces jointes sortantes
+### Outbound attachments
 
-Une réponse et un nouveau message en portent. Les octets ne passent pas par l'API : **la console dépose d'abord chaque fichier dans le seau**, par une adresse `PUT` signée, puis nomme les dépôts dans le corps de l'envoi.
+A reply and a new message carry them. The bytes do not go through the API: **the console first drops each file in the bucket**, through a signed `PUT` address, then names the uploads in the send body.
 
-1. `POST /uploads { filename, mime_type, size }` refuse une extension de `MAIL_BLOCKED_ATTACHMENT_EXTENSIONS` (`@pupitre/shared/legal` : exécutables, scripts, installeurs) en `422 validation`, sinon rend la clé `mail/uploads/<userId>/<uuid>/<nom assaini>` et une adresse `PUT` valable `MAIL_SIGNED_URL_TTL_SECONDS` (dix minutes). La console y envoie les octets elle-même, avec le seul en-tête `content-type` — c'est ce que la règle CORS du seau autorise ([`deploy.md`](../deploy.md)).
-2. `attachments: [{ key, filename, mime_type, size }]` dans le corps de `/threads/:id/reply` ou de `/compose` : au plus `MAIL_MAX_OUTBOUND_ATTACHMENTS` (dix), `MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES` (5 Mio) en tout, chaque clé sous `mail/uploads/<userId de l'appelant>/` — une clé d'un autre, ou qui remonte hors du préfixe, vaut `422`. Un nom bloqué vaut `422` ici aussi.
-3. À l'envoi, chaque dépôt est lu par le binding : absent, `422 validation` (`mail_upload_missing`) ; plus gros qu'annoncé, `422` (`mail_upload_size_mismatch`). Tout est vérifié **avant** qu'un fil ou une ligne naisse : un `compose` refusé n'ouvre aucun fil. Un `compose` dont le dépôt au seau casse efface le fil qu'il venait d'ouvrir ; un envoi refusé par le service le garde, avec son message en échec.
+1. `POST /uploads { filename, mime_type, size }` refuses an extension of `MAIL_BLOCKED_ATTACHMENT_EXTENSIONS` (`@pupitre/shared/legal`: executables, scripts, installers) with `422 validation`, otherwise returns the key `mail/uploads/<userId>/<uuid>/<sanitised name>` and a `PUT` address valid for `MAIL_SIGNED_URL_TTL_SECONDS` (ten minutes). The console sends the bytes there itself, with the `content-type` header only — that is what the bucket's CORS rule allows ([`deploy.md`](../deploy.md)).
+2. `attachments: [{ key, filename, mime_type, size }]` in the body of `/threads/:id/reply` or `/compose`: at most `MAIL_MAX_OUTBOUND_ATTACHMENTS` (ten), `MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES` (5 MiB) in total, each key under `mail/uploads/<caller's userId>/` — another user's key, or one that climbs out of the prefix, is `422`. A blocked name is `422` here too.
+3. On send, each upload is read through the binding: missing, `422 validation` (`mail_upload_missing`); larger than announced, `422` (`mail_upload_size_mismatch`). Everything is checked **before** a thread or a row is born: a refused `compose` opens no thread. A `compose` whose bucket drop fails deletes the thread it had just opened; a send refused by the service keeps it, with its failed message.
 
-`mime_type` suit `^[\w.+-]+/[\w.+-]+$` (`422` sinon), et le MIME construit retire encore tout retour à la ligne du type : un type ne peut pas ajouter d'en-tête.
-4. Le MIME devient `multipart/mixed` : le `multipart/alternative` texte + HTML en première partie, puis chaque pièce en base64 sous `Content-Disposition: attachment; filename="…"`. Sans pièce jointe, rien ne change.
-5. Le brut est déposé, puis chaque pièce est copiée sous `mail/<threadId>/<Message-ID>/attachments/<rang>/<nom>`, puis le message part, puis la ligne et ses `MailAttachment` sont écrites, puis les dépôts sont effacés. Un envoi qui casse garde ses pièces sous le message en échec.
+`mime_type` follows `^[\w.+-]+/[\w.+-]+$` (`422` otherwise), and the built MIME still strips any line break from the type: a type cannot add a header.
+4. The MIME becomes `multipart/mixed`: the text + HTML `multipart/alternative` as first part, then each attachment in base64 under `Content-Disposition: attachment; filename="…"`. Without an attachment, nothing changes.
+5. The raw is dropped, then each attachment is copied under `mail/<threadId>/<Message-ID>/attachments/<rank>/<name>`, then the message goes out, then the row and its `MailAttachment` rows are written, then the uploads are deleted. A send that fails keeps its attachments under the failed message.
 
-Un `MailAttachment` sortant a la même forme qu'un entrant : la console les lit par la même route.
+An outbound `MailAttachment` has the same shape as an inbound one: the console reads them through the same route.
 
-### Lire une pièce jointe
+### Reading an attachment
 
-`GET /attachments/:id/url?disposition=inline|attachment` rend une adresse `GET` signée de dix minutes, et rien d'autre : les octets vont du seau au navigateur. Ce que le seau répond est **signé dans l'adresse** — `response-content-disposition` et `response-content-type` font partie de la requête canonique, la console ne peut pas les changer.
+`GET /attachments/:id/url?disposition=inline|attachment` returns a ten-minute signed `GET` address, and nothing else: the bytes go from the bucket to the browser. What the bucket answers is **signed into the address** — `response-content-disposition` and `response-content-type` are part of the canonical request, the console cannot change them.
 
-- `inline` n'est honoré que pour un type que `isPreviewableMailType` accepte — une image matricielle (`image/*` hors SVG) ou un PDF — et l'adresse demande alors le type enregistré. Tout le reste est forcé en `attachment; filename="<nom assaini>"`, sous un type ramené à une liste courte (images hors SVG, PDF, texte, CSV, zip, bureautique) ou `application/octet-stream` : à enregistrer, jamais à ouvrir.
-- `mime_type` dans la réponse est celui que l'adresse servira, pas forcément celui que l'expéditeur avait déclaré.
-- Sur une **boîte sensible**, la lecture écrit `mail.attachment_read` sur la cible `mail_thread`.
+- `inline` is honoured only for a type that `isPreviewableMailType` accepts — a raster image (`image/*` except SVG) or a PDF — and the address then asks for the stored type. Everything else is forced to `attachment; filename="<sanitised name>"`, under a type narrowed to a short list (images except SVG, PDF, text, CSV, zip, office documents) or `application/octet-stream`: to save, never to open.
+- `mime_type` in the response is the one the address will serve, not necessarily the one the sender declared.
+- On a **sensitive mailbox**, the read writes `mail.attachment_read` on the `mail_thread` target.
 
-### Les images en ligne
+### Inline images
 
-Un message HTML qui porte `<img src="cid:…">` désigne une partie du même message par son `Content-ID`. `GET /messages/:id/html` réécrit chaque `src="cid:<id>"` — guillemets doubles, simples ou nus — vers l'adresse `inline` signée de la pièce jointe qui porte ce `contentId`. La réécriture reste, mais **la CSP ne charge plus aucune image distante** (voir *Le HTML d'un message*) : l'image se lit depuis le bandeau des pièces jointes, au-dessus du corps. Un `cid` qui ne correspond à rien reste tel quel.
+An HTML message that carries `<img src="cid:…">` designates a part of the same message by its `Content-ID`. `GET /messages/:id/html` rewrites each `src="cid:<id>"` — double quotes, single quotes or bare — to the signed `inline` address of the attachment that carries that `contentId`. The rewrite stays, but **the CSP no longer loads any remote image** (see *A message's HTML*): the image is read from the attachments strip, above the body. A `cid` that matches nothing is left as is.
 
-### La purge des dépôts
+### The purge of uploads
 
-`purgeStaleMailUploads` (`lib/mail/uploads.ts`) liste `mail/uploads/` par le binding et efface ce qui a plus de vingt-quatre heures, d'après la date de dépôt de l'objet. Elle tourne en dernière étape du workflow quotidien `SuspendExpiredGrace`, après `suspend-expired-grace`. Rien d'autre n'est purgé : un fil et ses objets restent.
+`purgeStaleMailUploads` (`lib/mail/uploads.ts`) lists `mail/uploads/` through the binding and deletes what is more than twenty-four hours old, according to the object's upload date. It runs as the last step of the daily `SuspendExpiredGrace` workflow, after `suspend-expired-grace`. Nothing else is purged: a thread and its objects stay.
 
-## Le temps réel
+## Realtime
 
-`GET /api/v1/admin/inbox/events`, en **WebSocket**. Le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne rend pas un `101` : il résout la session par `resolveAuthContext`, exige l'appartenance à l'organisation Pupitre (même règle que `requirePlatformAdmin`), puis transmet la requête au stub du Durable Object. Les refus suivent l'ordre de `refuseSession` : un compte que la plateforme n'honore plus (`accountRefusal`) reçoit `403` avant même que son rôle soit lu, sans session c'est `401`, hors de l'équipe `403`, et sans en-tête `Upgrade: websocket` `400`. Aucun de ces refus n'ouvre de socket.
+`GET /api/v1/admin/inbox/events`, as a **WebSocket**. The Worker intercepts this path **before** Elysia — an Elysia router does not return a `101`: it resolves the session through `resolveAuthContext`, requires membership of the Pupitre organization (same rule as `requirePlatformAdmin`), then forwards the request to the Durable Object stub. Refusals follow the order of `refuseSession`: an account the platform no longer honours (`accountRefusal`) gets `403` before its role is even read, without a session it is `401`, outside the team `403`, and without an `Upgrade: websocket` header `400`. None of these refusals opens a socket.
 
-La classe `InboxRealtime` est exportée par `apps/web/src/worker.ts` — Cloudflare résout un binding d'objet durable sur l'entrée du Worker, comme les workflows — et sa logique vit dans `apps/web/src/realtime/inbox-realtime.ts`. Une seule instance, `idFromName("platform")`. Elle **ne stocke rien** : elle accepte la socket en hibernation (`state.acceptWebSocket`, `webSocketMessage`, `webSocketClose`) et diffuse. Un `ping` reçoit `pong`, rien d'autre.
+The `InboxRealtime` class is exported by `apps/web/src/worker.ts` — Cloudflare resolves a durable object binding on the Worker's entry, like workflows — and its logic lives in `apps/web/src/realtime/inbox-realtime.ts`. A single instance, `idFromName("platform")`. It **stores nothing**: it accepts the socket in hibernation (`state.acceptWebSocket`, `webSocketMessage`, `webSocketClose`) and broadcasts. A `ping` receives `pong`, nothing else.
 
-`packages/api/src/lib/mail/realtime.ts` expose `publishInboxEvent(event)`, configurable comme le transport (`configureInboxRealtime`, no-op par défaut). En production, le Worker installe un éditeur qui `fetch` le stub sur son chemin interne `/publish`, derrière `INTERNAL_WORKFLOW_SECRET` ; le harnais de test enregistre les événements dans `useFakeMail().broadcast`. **Une diffusion qui casse ne casse jamais l'écriture** : la console retombe sur son sondage.
+`packages/api/src/lib/mail/realtime.ts` exposes `publishInboxEvent(event)`, configurable like the transport (`configureInboxRealtime`, no-op by default). In production, the Worker installs a publisher that `fetch`es the stub on its internal `/publish` path, behind `INTERNAL_WORKFLOW_SECRET`; the test harness records events in `useFakeMail().broadcast`. **A broadcast that fails never fails the write**: the console falls back to its polling.
 
-| Événement | Quand | Ce que la console refetche |
+| Event | When | What the console refetches |
 | --- | --- | --- |
-| `thread.received` | l'ingestion a rangé un message, doublon reconnu compris | la liste, les compteurs, le fil nommé |
-| `thread.updated` | un `PATCH /threads/:id`, une note | la liste, le fil nommé |
-| `draft.changed` | un brouillon gardé ou jeté | la liste seule (`has_draft`) |
-| `message.sent` | une réponse ou un nouveau message est parti | la liste, le fil nommé |
-| `message.failed` | l'envoi a été refusé par le service d'envoi | la liste, le fil nommé |
-| `counts.changed` | un lot qui change quelque chose, ou un changement de boîte | les compteurs, les boîtes |
+| `thread.received` | ingestion stored a message, recognised duplicate included | the list, the counters, the named thread |
+| `thread.updated` | a `PATCH /threads/:id`, a note | the list, the named thread |
+| `draft.changed` | a draft kept or discarded | the list only (`has_draft`) |
+| `message.sent` | a reply or a new message went out | the list, the named thread |
+| `message.failed` | the send was refused by the sending service | the list, the named thread |
+| `counts.changed` | a batch that changes something, or a mailbox change | the counters, the mailboxes |
 
-Chaque événement porte `type`, et selon le cas `thread_id` et `mailbox_id`.
+Each event carries `type`, and depending on the case `thread_id` and `mailbox_id`.
 
-**Une lecture ne se diffuse pas.** Ouvrir un fil d'une boîte sensible écrit au journal mais n'émet aucune trame : elle ne change rien pour les autres, et une trame qui aurait fait refetcher le fil aurait refait la lecture qui l'a émise — la lecture aurait bouclé sur elle-même. Pour la même raison, **la console distribue l'invalidation par type d'événement** (colonne ci-dessus) au lieu de tout invalider, et une trame d'un type qu'elle ne connaît pas ne refetche rien.
+**A read is not broadcast.** Opening a thread of a sensitive mailbox writes to the log but emits no frame: it changes nothing for the others, and a frame that had made the thread refetch would have redone the read that emitted it — the read would have looped on itself. For the same reason, **the console dispatches invalidation by event type** (column above) instead of invalidating everything, and a frame of a type it does not know refetches nothing.
 
-Côté console, `useInboxRealtime()` est ouvert **une fois** par le layout de la boîte, se reconnecte avec un repli exponentiel plafonné à trente secondes, et invalide les requêtes que l'événement nomme. `INBOX_POLL_INTERVAL_MS` vaut 60 s et ne sert plus qu'à rattraper une socket morte : la console fonctionne sans socket, et c'est ce que fait le harnais e2e.
+On the console side, `useInboxRealtime()` is opened **once** by the inbox layout, reconnects with an exponential backoff capped at thirty seconds, and invalidates the queries the event names. `INBOX_POLL_INTERVAL_MS` is 60 s and now serves only to catch up after a dead socket: the console works without a socket, and that is what the e2e harness does.
 
-Une socket qui jette à l'envoi est fermée et écartée de la tournée : la diffusion continue vers les autres.
+A socket that throws on send is closed and dropped from the round: the broadcast continues to the others.
 
-## Les routes
+## Routes
 
-Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupitre** (`requirePlatformAdmin`) ; **agir demande le rôle `admin` ou `owner`** dans cette organisation (`requirePlatformRole("admin")`). Deux exceptions gardées de l'ancien contrat : `unread` sur un fil, et `unread` dans un lot, restent ouverts à tout membre.
+Under `/api/v1/admin/inbox`. **Reading requires membership of the Pupitre organization** (`requirePlatformAdmin`); **acting requires the `admin` or `owner` role** in that organization (`requirePlatformRole("admin")`). Two exceptions kept from the old contract: `unread` on a thread, and `unread` in a batch, remain open to any member.
 
-### Les boîtes
+### Mailboxes
 
-| Méthode | Route | Corps | Réponse |
+| Method | Route | Body | Response |
 | --- | --- | --- | --- |
-| GET | `/mailboxes` | — | `{ data: Mailbox[] }`, `sortOrder` puis adresse |
-| POST | `/mailboxes` | `{ address, display_name, signature?, sensitive?, can_reply? }` | `201 { data: Mailbox }`. `address` est la partie locale seule, ou l'adresse complète sur `MAIL_DOMAIN` ; autre chose vaut `422 validation`. `409 conflict` (`mailbox_taken`) si l'adresse a déjà une boîte. Les fils « Autres » sur cette adresse lui sont rattachés. Journal `mail.mailbox_created`. Rôle `admin` |
-| PATCH | `/mailboxes/:id` | `{ display_name?, signature?, sensitive?, can_reply?, enabled?, sort_order? }` | `{ data: Mailbox }`. `404` sur une boîte inconnue. Journal `mail.mailbox_updated`. Rôle `admin` |
-| DELETE | `/mailboxes/:id` | — | `204` quand la boîte ne porte aucun fil. `409 conflict` (`mailbox_in_use`, le `fix` dit de la désactiver) sinon ; `409 conflict` (`mailbox_protected`) sur l'une des quatre boîtes légales. Journal `mail.mailbox_deleted`. Rôle `admin` |
-| GET | `/counts` | — | `{ data: { mailboxes: [{ id, unread, open }], others: { unread, open, threads }, total_unread } }`. `others.threads` compte **tous** les fils qu'aucune boîte ne déclare, lus et fermés compris : c'est lui qui décide si « Autres » apparaît dans le rail |
+| GET | `/mailboxes` | — | `{ data: Mailbox[] }`, `sortOrder` then address |
+| POST | `/mailboxes` | `{ address, display_name, signature?, sensitive?, can_reply? }` | `201 { data: Mailbox }`. `address` is the local part alone, or the full address on `MAIL_DOMAIN`; anything else is `422 validation`. `409 conflict` (`mailbox_taken`) if the address already has a mailbox. The "Others" threads on this address are attached to it. Log `mail.mailbox_created`. `admin` role |
+| PATCH | `/mailboxes/:id` | `{ display_name?, signature?, sensitive?, can_reply?, enabled?, sort_order? }` | `{ data: Mailbox }`. `404` on an unknown mailbox. Log `mail.mailbox_updated`. `admin` role |
+| DELETE | `/mailboxes/:id` | — | `204` when the mailbox carries no thread. `409 conflict` (`mailbox_in_use`, the `fix` says to disable it) otherwise; `409 conflict` (`mailbox_protected`) on one of the four legal mailboxes. Log `mail.mailbox_deleted`. `admin` role |
+| GET | `/counts` | — | `{ data: { mailboxes: [{ id, unread, open }], others: { unread, open, threads }, total_unread } }`. `others.threads` counts **all** the threads that no mailbox declares, read and closed included: it is what decides whether "Others" appears in the rail |
 
-### Les fils
+### Threads
 
-| Méthode | Route | Corps | Réponse |
+| Method | Route | Body | Response |
 | --- | --- | --- | --- |
-| GET | `/threads` | — | `{ data: Thread[], total, unread }`. Filtres en paramètres : `status=open\|closed`, `unread=true\|false`, `q`, `address`, `mailbox_id` (`others` pour les fils qu'aucune boîte ne déclare), `organization_id`, `automated=true`, `assigned=me\|none\|<userId>`, `sort=last_activity\|last_inbound_at\|created_at\|subject` (`last_activity` par défaut), `direction=asc\|desc` (`desc` par défaut), `limit` (50 par défaut, 200 au plus), `offset`. `q` cherche dans le sujet, l'adresse et le nom des expéditeurs, **le texte des messages** et l'identifiant du fil. Le `%` et le `_` sont les jokers du `LIKE` que `q` alimente : ils sont **retirés** de la recherche, et une recherche qui n'était que des jokers ne rend rien — `q=%` rendait tout. **Les fils dont le dernier entrant est automatique sont exclus par défaut** ; `automated=true` ne rend qu'eux. `unread` compte les fils non lus qui passent les **autres** filtres : c'est le compteur d'en-tête, il ne suit pas la case « non lus » |
-| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages du plus ancien au plus récent. **Ouvrir un fil ne le marque pas lu** : c'est la console qui le dit, par le PATCH. Sur une **boîte sensible**, l'ouverture écrit `mail.read` au journal et une activité `read`, **une fois par lecteur et par fenêtre de `MAIL_READ_AUDIT_WINDOW_MS`** (`@pupitre/shared/legal`, dix minutes) : le journal dit qui a lu quoi, pas combien de fois la console a refetché |
-| PATCH | `/threads/:id` | `{ status?, unread?, assigned_user_id?, linked_organization_id? }` | `{ data: ThreadDetail }`. `unread` est ouvert à tout membre ; `status`, `assigned_user_id` et `linked_organization_id` demandent le rôle `admin`, sinon `403 forbidden`. L'attributaire doit être membre de l'organisation Pupitre, sinon `422 validation` ; une organisation inconnue vaut `422 validation` ; `null` délie. Activités `assigned`/`unassigned`/`closed`/`reopened`/`linked`/`unlinked`/`read`/`unread` |
-| POST | `/threads/bulk` | `{ ids (1..100), status?, unread? }` | `{ data: { updated } }`, où `updated` est le nombre de fils **réellement changés** : clore ce qui est déjà clos n'en change aucun. `status` demande le rôle `admin`, `unread` est ouvert à tout membre. Une activité par fil qui change vraiment ; un événement de journal par lot, nommé par ce qu'il fait — `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread` — et aucun `counts.changed` quand rien n'a changé |
-| GET | `/messages/:id/html` | — | le corps HTML stocké, en `text/html; charset=utf-8`, sous la CSP de *Le HTML d'un message* et `X-Content-Type-Options: nosniff`, les `src="cid:…"` réécrits. `404` quand le message n'a pas de HTML |
-| GET | `/attachments/:id/url` | `?disposition=inline\|attachment` | `{ data: { url, expires_at, mime_type, filename, size } }`. Voir *Lire une pièce jointe*. `404 not_found` |
+| GET | `/threads` | — | `{ data: Thread[], total, unread }`. Filters as parameters: `status=open\|closed`, `unread=true\|false`, `q`, `address`, `mailbox_id` (`others` for the threads no mailbox declares), `organization_id`, `automated=true`, `assigned=me\|none\|<userId>`, `sort=last_activity\|last_inbound_at\|created_at\|subject` (`last_activity` by default), `direction=asc\|desc` (`desc` by default), `limit` (50 by default, 200 at most), `offset`. `q` searches the subject, the address and the sender names, **the message text** and the thread identifier. `%` and `_` are the wildcards of the `LIKE` that `q` feeds: they are **removed** from the search, and a search that was only wildcards returns nothing — `q=%` used to return everything. **Threads whose last inbound message is automatic are excluded by default**; `automated=true` returns only them. `unread` counts the unread threads that pass the **other** filters: it is the header counter, it does not follow the "unread" checkbox |
+| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages from oldest to newest. **Opening a thread does not mark it read**: the console says so, through the PATCH. On a **sensitive mailbox**, opening writes `mail.read` to the log and a `read` activity, **once per reader and per `MAIL_READ_AUDIT_WINDOW_MS` window** (`@pupitre/shared/legal`, ten minutes): the log says who read what, not how many times the console refetched |
+| PATCH | `/threads/:id` | `{ status?, unread?, assigned_user_id?, linked_organization_id? }` | `{ data: ThreadDetail }`. `unread` is open to any member; `status`, `assigned_user_id` and `linked_organization_id` require the `admin` role, otherwise `403 forbidden`. The assignee must be a member of the Pupitre organization, otherwise `422 validation`; an unknown organization is `422 validation`; `null` unlinks. Activities `assigned`/`unassigned`/`closed`/`reopened`/`linked`/`unlinked`/`read`/`unread` |
+| POST | `/threads/bulk` | `{ ids (1..100), status?, unread? }` | `{ data: { updated } }`, where `updated` is the number of threads **actually changed**: closing what is already closed changes none. `status` requires the `admin` role, `unread` is open to any member. One activity per thread that really changes; one log event per batch, named by what it does — `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread` — and no `counts.changed` when nothing changed |
+| GET | `/messages/:id/html` | — | the stored HTML body, as `text/html; charset=utf-8`, under the CSP of *A message's HTML* and `X-Content-Type-Options: nosniff`, `src="cid:…"` rewritten. `404` when the message has no HTML |
+| GET | `/attachments/:id/url` | `?disposition=inline\|attachment` | `{ data: { url, expires_at, mime_type, filename, size } }`. See *Reading an attachment*. `404 not_found` |
 
-L'adresse de la console ne porte que ce que le lecteur a choisi (`parseInboxSearch` est construit sur `listSearch`) : les filtres laissés sur leur défaut n'y figurent pas, `/dashboard/admin/inbox` nue vaut la vue ouverte triée par dernière activité, et l'organisation qu'un `organization_id` nomme est lue par `GET /admin/organizations/:id`, jamais devinée depuis la page affichée.
+The console's address carries only what the reader chose (`parseInboxSearch` is built on `listSearch`): filters left at their default do not appear in it, a bare `/dashboard/admin/inbox` is the open view sorted by last activity, and the organization an `organization_id` names is read by `GET /admin/organizations/:id`, never guessed from the displayed page.
 
-### Les notes, les brouillons, les réponses types
+### Notes, drafts, canned replies
 
-| Méthode | Route | Corps | Réponse |
+| Method | Route | Body | Response |
 | --- | --- | --- | --- |
-| GET | `/threads/:id/notes` | — | `{ data: Note[] }`, de la plus ancienne à la plus récente |
-| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activité `note_added`, journal `mail.note_added`. Rôle `admin` |
-| DELETE | `/threads/:id/notes/:noteId` | — | `204`, `404` sur une note inconnue. Activité `note_deleted`, journal `mail.note_deleted`. Rôle `admin` : écrire une note le demande déjà, donc l'auteur d'une note est toujours un `admin` |
-| GET | `/threads/:id/draft` | — | `{ data: Draft }`, `404 not_found` quand le fil n'en porte pas |
-| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. Un brouillon par fil : l'écriture crée ou remplace. Événement `draft.changed`. Rôle `admin` |
-| DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même, et la console l'efface dès que le texte redevient vide. Événement `draft.changed`. Rôle `admin` |
-| GET | `/templates` | `?mailbox_id=` | `{ data: Template[] }`. Avec `mailbox_id`, les réponses types de cette boîte **et** celles qui n'en nomment aucune |
-| POST | `/templates` | `{ name (1..80), body (1..20 000), mailbox_id? }` | `201 { data: Template }`. Une boîte inconnue vaut `422 validation`. Journal `mail.template_created`. Rôle `admin` |
-| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin`. La page des réglages l'appelle : chaque réponse type porte un geste qui la charge dans le formulaire, qui enregistre alors les changements au lieu d'en créer une seconde |
-| DELETE | `/templates/:id` | — | `204`, `404`. Journal `mail.template_deleted`. Rôle `admin` |
+| GET | `/threads/:id/notes` | — | `{ data: Note[] }`, from oldest to newest |
+| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activity `note_added`, log `mail.note_added`. `admin` role |
+| DELETE | `/threads/:id/notes/:noteId` | — | `204`, `404` on an unknown note. Activity `note_deleted`, log `mail.note_deleted`. `admin` role: writing a note already requires it, so a note's author is always an `admin` |
+| GET | `/threads/:id/draft` | — | `{ data: Draft }`, `404 not_found` when the thread carries none |
+| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. One draft per thread: the write creates or replaces. Event `draft.changed`. `admin` role |
+| DELETE | `/threads/:id/draft` | — | `204`, `404` without a draft. A successful send deletes it by itself, and the console deletes it as soon as the text becomes empty again. Event `draft.changed`. `admin` role |
+| GET | `/templates` | `?mailbox_id=` | `{ data: Template[] }`. With `mailbox_id`, the canned replies of that mailbox **and** those that name none |
+| POST | `/templates` | `{ name (1..80), body (1..20 000), mailbox_id? }` | `201 { data: Template }`. An unknown mailbox is `422 validation`. Log `mail.template_created`. `admin` role |
+| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` on an unknown canned reply. Log `mail.template_updated`. `admin` role. The settings page calls it: each canned reply carries a gesture that loads it into the form, which then saves the changes instead of creating a second one |
+| DELETE | `/templates/:id` | — | `204`, `404`. Log `mail.template_deleted`. `admin` role |
 
-Une réponse type est **un préremplissage de la console** : `template_id` n'est jamais envoyé au serveur, c'est le texte inséré qui part.
+A canned reply is **a prefill of the console**: `template_id` is never sent to the server, the inserted text is what goes out.
 
-### Ce qui sort
+### What goes out
 
-| Méthode | Route | Corps | Réponse |
+| Method | Route | Body | Response |
 | --- | --- | --- | --- |
-| POST | `/uploads` | `{ filename (1..255), mime_type, size (1..5 Mio) }` | `201 { data: { key, url, expires_at } }`. `422 validation` sur une extension bloquée. Rôle `admin` |
-| POST | `/threads/:id/reply` | `{ text (1..20 000), to?, cc?, attachments? }` | `201 { data: Message }`. Le fil passe `unread = false`, `lastOutboundAt` prend l'heure, le brouillon est effacé. `422 validation` (`mail_thread_no_mailbox`) sur un fil « Autres », `409 conflict` (`mailbox_cannot_reply`) sur une boîte qui n'émet pas, `409 conflict` si le fil ne porte aucune adresse à qui répondre, `422 validation` sur une pièce jointe refusée, `502` si l'envoi casse. Activité `replied` ou `reply_failed` |
-| POST | `/compose` | `{ mailbox_id, to[1..10], subject, text, attachments? }` | `201 { data: ThreadDetail }`. Une boîte inconnue vaut `422 validation`, une boîte qui n'émet pas `409 conflict` ; mêmes règles de pièces jointes. Activité `composed` |
+| POST | `/uploads` | `{ filename (1..255), mime_type, size (1..5 MiB) }` | `201 { data: { key, url, expires_at } }`. `422 validation` on a blocked extension. `admin` role |
+| POST | `/threads/:id/reply` | `{ text (1..20 000), to?, cc?, attachments? }` | `201 { data: Message }`. The thread becomes `unread = false`, `lastOutboundAt` takes the time, the draft is deleted. `422 validation` (`mail_thread_no_mailbox`) on an "Others" thread, `409 conflict` (`mailbox_cannot_reply`) on a mailbox that does not send, `409 conflict` if the thread carries no address to reply to, `422 validation` on a refused attachment, `502` if the send fails. Activity `replied` or `reply_failed` |
+| POST | `/compose` | `{ mailbox_id, to[1..10], subject, text, attachments? }` | `201 { data: ThreadDetail }`. An unknown mailbox is `422 validation`, a mailbox that does not send `409 conflict`; same attachment rules. Activity `composed` |
 
-`GET /addresses` **n'existe plus** : `GET /mailboxes` le remplace, et la console choisit parmi les boîtes qui émettent.
+`GET /addresses` **no longer exists**: `GET /mailboxes` replaces it, and the console chooses among the mailboxes that send.
 
-### Le HTML d'un message
+### A message's HTML
 
-**Il n'y a pas d'assainisseur, et c'est délibéré.** Il y en a eu un : une passe de quatre expressions régulières. Elle ne tenait pas. `<scri<script>pt>` reconstituait la balise que la passe venait de retirer, `<img/onerror=…>` passait faute d'espace avant l'attribut, `jav&#97;script:` et `java\tscript:` passaient faute de décodage. Un demi-verrou se lit comme un verrou : on l'a retiré plutôt que de le laisser rassurer.
+**There is no sanitiser, and that is deliberate.** There used to be one: a pass of four regular expressions. It did not hold. `<scri<script>pt>` rebuilt the tag the pass had just removed, `<img/onerror=…>` got through for lack of a space before the attribute, `jav&#97;script:` and `java\tscript:` got through for lack of decoding. A half-lock reads as a lock: it was removed rather than left to reassure.
 
-Ce qui tient, à sa place :
+What holds, in its place:
 
-1. **La CSP.** `default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'; frame-ancestors 'self'; sandbox`. `sandbox` isole le corps même ouvert hors du cadre de la console, `form-action` et `base-uri` ferment ce que `default-src` ne couvre pas. `script-src` retombe sur `default-src 'none'` : aucun script en ligne, aucun gestionnaire `on*`, aucune URL `javascript:` ne s'exécute, quelle que soit la tête de la balise. **`img-src` s'arrête à `data:`** : un pixel de suivi dans un message écrit à `security@` ne dit à son expéditeur ni l'heure de la lecture, ni l'adresse d'où elle vient. Une image en pièce jointe s'ouvre depuis le bandeau, au-dessus du corps.
-2. **Le cadre de la console.** Le corps est affiché dans une `iframe` au `sandbox` vide (`apps/web/src/components/admin/inbox/inbox-message-html.tsx`) : pas de script, pas de formulaire, pas de navigation, origine opaque.
-3. **`nosniff`**, pour que le type servi soit celui qu'on annonce.
+1. **The CSP.** `default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'; frame-ancestors 'self'; sandbox`. `sandbox` isolates the body even when opened outside the console's frame, `form-action` and `base-uri` close what `default-src` does not cover. `script-src` falls back to `default-src 'none'`: no inline script, no `on*` handler, no `javascript:` URL runs, whatever the tag looks like. **`img-src` stops at `data:`**: a tracking pixel in a message written to `security@` tells its sender neither the time of the read nor the address it came from. An attached image opens from the strip above the body.
+2. **The console's frame.** The body is displayed in an `iframe` with an empty `sandbox` (`apps/web/src/components/admin/inbox/inbox-message-html.tsx`): no script, no form, no navigation, opaque origin.
+3. **`nosniff`**, so that the served type is the one announced.
 
-Le corps part donc **tel qu'il est arrivé**, à une réécriture près : les `src="cid:…"` deviennent les adresses signées de leurs pièces jointes, et rien d'autre n'est touché.
+The body therefore goes out **as it arrived**, up to one rewrite: `src="cid:…"` become the signed addresses of their attachments, and nothing else is touched.
 
-### Les formes
+### Shapes
 
 ```ts
 Mailbox = {
@@ -304,29 +304,29 @@ Draft = {
 Template = { id, name, body, mailbox_id: string | null, created_at, updated_at }
 ```
 
-`messages` et `notes` comptent dans la liste et **portent** dans le détail : la liste dit combien, le fil ouvert dit lesquels.
+`messages` and `notes` are counts in the list and are **carried** in the detail: the list says how many, the open thread says which.
 
-`from` est le dernier expéditeur entrant ; sur un fil né d'un message écrit par l'équipe, c'est le premier destinataire de ce message, pour que la ligne ne soit pas vide. `sender_authenticated` dit si ce dernier expéditeur entrant a été vérifié (voir *L'expéditeur vérifié*) — `true` sur un fil que l'équipe a ouvert et qui n'a rien reçu : la console affiche « Expéditeur non vérifié » quand il est `false`. `authenticated` dit la même chose d'un message, et vaut `true` pour ce qui part. `subject` vaut `""` pour un message reçu sans objet : la console le nomme.
+`from` is the last inbound sender; on a thread born from a message written by the team, it is the first recipient of that message, so the line is not empty. `sender_authenticated` says whether that last inbound sender was verified (see *The verified sender*) — `true` on a thread the team opened that has received nothing: the console shows « Expéditeur non vérifié » when it is `false`. `authenticated` says the same of a message, and is `true` for what goes out. `subject` is `""` for a message received without a subject: the console names it.
 
-`action` d'une activité vaut l'un de `received`, `read`, `unread`, `replied`, `reply_failed`, `composed`, `assigned`, `unassigned`, `closed`, `reopened`, `linked`, `unlinked`, `note_added`, `note_deleted`.
+An activity's `action` is one of `received`, `read`, `unread`, `replied`, `reply_failed`, `composed`, `assigned`, `unassigned`, `closed`, `reopened`, `linked`, `unlinked`, `note_added`, `note_deleted`.
 
-### Les codes d'erreur
+### Error codes
 
-Ceux de `@pupitre/shared/api/errors`, sans ajout. Un envoi qui casse répond `502` avec le code `internal` : c'est la plateforme qui a échoué, pas l'appelant, et le `fix` dit que le message est gardé en échec dans le fil. Une pièce jointe refusée répond `422 validation`, et le message dit laquelle et pourquoi (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` dans `lib/i18n`), le `fix` ce qu'il reste à faire. Les refus propres aux boîtes ont leurs clés : `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
+Those of `@pupitre/shared/api/errors`, with no additions. A send that fails answers `502` with the code `internal`: it is the platform that failed, not the caller, and the `fix` says the message is kept as failed in the thread. A refused attachment answers `422 validation`, and the message says which one and why (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` in `lib/i18n`), the `fix` what remains to be done. Refusals specific to mailboxes have their own keys: `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
 
-## Le journal
+## The log
 
-Sur la cible `mail_thread` : `mail.closed`, `mail.reopened`, `mail.assigned`, `mail.replied`, `mail.composed`, `mail.read`, `mail.attachment_read`, `mail.linked`, `mail.note_added`, `mail.note_deleted`, `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread`.
+On the `mail_thread` target: `mail.closed`, `mail.reopened`, `mail.assigned`, `mail.replied`, `mail.composed`, `mail.read`, `mail.attachment_read`, `mail.linked`, `mail.note_added`, `mail.note_deleted`, `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread`.
 
-Sur la cible `mail_mailbox` : `mail.mailbox_created`, `mail.mailbox_updated`, `mail.mailbox_deleted`.
+On the `mail_mailbox` target: `mail.mailbox_created`, `mail.mailbox_updated`, `mail.mailbox_deleted`.
 
-Sur la cible `mail_template` : `mail.template_created`, `mail.template_updated`, `mail.template_deleted`.
+On the `mail_template` target: `mail.template_created`, `mail.template_updated`, `mail.template_deleted`.
 
-Sans organisation, sauf `mail.linked`, qui porte celle qu'on vient de lier : la boîte est celle de la plateforme, pas celle d'un client.
+Without an organization, except `mail.linked`, which carries the one just linked: the inbox is the platform's, not a customer's.
 
-## Ce qui n'est pas construit
+## What is not built
 
-- **Pas de purge des fils.** Seuls les dépôts en attente s'effacent (voir *La purge des dépôts*) ; rien n'efface un fil ni ses objets. Le jour où ça manquera, ce sera une décision, pas un effet de bord.
-- **Pas de brouillon par personne.** Un fil porte un brouillon, celui de l'équipe ; le dernier qui écrit remplace le précédent, et la ligne dit qui.
-- **Pas de pièce jointe dans un brouillon déjà déposée.** Le brouillon garde les clés que la console lui donne ; les fichiers choisis ne partent au seau qu'à l'envoi.
-- **Pas de renvoi automatique d'un message en échec.** Un nouvel essai est un nouveau message, écrit à la main.
+- **No thread purge.** Only pending uploads are deleted (see *The purge of uploads*); nothing deletes a thread or its objects. The day it is missed, it will be a decision, not a side effect.
+- **No per-person draft.** A thread carries one draft, the team's; the last to write replaces the previous one, and the row says who.
+- **No already-uploaded attachment in a draft.** The draft keeps the keys the console gives it; the chosen files go to the bucket only on send.
+- **No automatic resend of a failed message.** A new attempt is a new message, written by hand.

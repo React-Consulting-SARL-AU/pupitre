@@ -1,7 +1,7 @@
-# 0008 — Design monochrome, clair et sombre
+# 0008 — Monochrome design, light and dark
 
-Date : 2026-09-04 · Statut : acceptée
+Date: 2026-09-04 · Status: accepted
 
-Toutes les surfaces sont en gris neutres, sans couleur d'accent, avec un thème clair et un thème sombre. La couleur ne sert que l'état. Détail : [product/DESIGN.md](../product/DESIGN.md).
+All surfaces are neutral greys, with no accent colour, with a light theme and a dark theme. Colour is used only for state. Details: [product/DESIGN.md](../product/DESIGN.md).
 
-Pourquoi : choix du propriétaire ; un outil de travail, pas une vitrine. L'ancienne palette chaude à accent orange de l'app est retirée.
+Why: the owner's choice; a working tool, not a showcase. The app's former warm palette with an orange accent is withdrawn.

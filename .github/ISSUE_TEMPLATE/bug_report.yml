@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in the app, the agent, the console or the site does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. A security issue never goes here: see SECURITY.md.
+        Never paste a secret, a token, a private key or a sudo password — redact them.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - Desktop app
+        - Agent (pupitred on the server)
+        - Console or API (app.pupitre.studio)
+        - Site or documentation (pupitre.studio)
+        - Development setup of this repository
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+      description: One or two sentences each.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings › About in the app, or the commit if you run from source.
+  - type: input
+    id: agent-version
+    attributes:
+      label: Agent version
+      description: "`pupitred version` on the server."
+  - type: input
+    id: system
+    attributes:
+      label: Systems
+      description: Your computer's OS and the server's distribution and architecture.
+      placeholder: macOS 26 arm64 · Ubuntu 24.04 amd64
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or logs
+      description: The message the app showed, and if relevant the end of /var/log/pupitre.log or /var/lib/pupitre/report.json. Redact anything secret.
+      render: text

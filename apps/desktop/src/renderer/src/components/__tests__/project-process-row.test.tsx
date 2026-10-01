@@ -15,8 +15,8 @@ function declared() {
   return process;
 }
 
-describe("un processus dont l'environnement a changé", () => {
-  it("dit qu'un redémarrage applique les nouvelles valeurs", async () => {
+describe("a process whose environment changed", () => {
+  it("says a restart applies the new values", async () => {
     const view = await mount(
       <ul>
         <ProjectProcessRow
@@ -34,7 +34,7 @@ describe("un processus dont l'environnement a changé", () => {
     view.unmount();
   });
 
-  it("ne dit rien tant que rien n'a changé", async () => {
+  it("says nothing while nothing has changed", async () => {
     const view = await mount(
       <ul>
         <ProjectProcessRow busy={false} onAct={NEVER} process={declared()} />

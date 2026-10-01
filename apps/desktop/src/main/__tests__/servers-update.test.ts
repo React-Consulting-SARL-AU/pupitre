@@ -38,7 +38,7 @@ function sshConfig(): string {
   return readFileSync(paths().configPath, "utf8");
 }
 
-describe("la modification d'un serveur", () => {
+describe("editing a server", () => {
   beforeEach(() => {
     write(() => ({
       active: TYPED.id,
@@ -51,7 +51,7 @@ describe("la modification d'un serveur", () => {
     );
   });
 
-  it("réécrit le bloc de la configuration SSH de l'app", async () => {
+  it("rewrites the block in the app's SSH configuration", async () => {
     const updated = await update(TYPED.id, { port: 2222, user: "dev" });
 
     expect(updated.server).toMatchObject({ port: 2222, user: "dev" });
@@ -61,7 +61,7 @@ describe("la modification d'un serveur", () => {
     expect(sshConfig()).not.toContain("  User root\n");
   });
 
-  it("garde la clé d'hôte épinglée tant que l'adresse ne change pas", async () => {
+  it("keeps the pinned host key as long as the address does not change", async () => {
     const updated = await update(TYPED.id, { user: "dev" });
 
     expect(updated.hostKeyDropped).toBe(false);
@@ -70,7 +70,7 @@ describe("la modification d'un serveur", () => {
     expect(readFileSync(paths().knownHostsPath, "utf8")).toContain(TYPED.host);
   });
 
-  it("oublie la clé d'hôte quand l'hôte change, et le dit", async () => {
+  it("forgets the host key when the host changes, and says so", async () => {
     const updated = await update(TYPED.id, { host: "203.0.113.9" });
 
     expect(updated.hostKeyDropped).toBe(true);
@@ -83,7 +83,7 @@ describe("la modification d'un serveur", () => {
     );
   });
 
-  it("refuse une adresse, un port ou un compte qui n'en sont pas, sans rien écrire", async () => {
+  it("refuses an address, port or account that is not one, writing nothing", async () => {
     const before = sshConfig();
 
     await expect(
@@ -100,11 +100,11 @@ describe("la modification d'un serveur", () => {
     expect(read().servers[0]).toMatchObject({ host: TYPED.host, port: 22 });
   });
 
-  it("refuse de toucher un hôte de la configuration du système", async () => {
+  it("refuses to touch a host from the system configuration", async () => {
     await expect(update(SYSTEM.id, { port: 2222 })).rejects.toThrow(SetupError);
   });
 
-  it("nomme le champ refusé, pour que l'écran le marque", () => {
+  it("names the refused field, so the screen can mark it", () => {
     const refused = (changes: Parameters<typeof changeServer>[2]) => {
       try {
         changeServer([TYPED], TYPED.id, changes);
@@ -124,7 +124,7 @@ describe("la modification d'un serveur", () => {
   });
 });
 
-describe("le nom SSH d'un serveur", () => {
+describe("the SSH name of a server", () => {
   beforeEach(() => {
     write(() => ({
       active: TYPED.id,
@@ -133,7 +133,7 @@ describe("le nom SSH d'un serveur", () => {
     }));
   });
 
-  it("change sur la ligne Host de la configuration SSH de l'app, l'alias gardé", async () => {
+  it("changes on the Host line of the app's SSH configuration, the alias kept", async () => {
     expect(sshConfig()).toContain("Host pupitre-srv-local-1 mon-serveur\n");
 
     const updated = await update(TYPED.id, { slug: "Prod VPS" });
@@ -144,7 +144,7 @@ describe("le nom SSH d'un serveur", () => {
     expect(sshConfig()).not.toContain("mon-serveur");
   });
 
-  it("revient au nom du serveur quand le champ est vidé", async () => {
+  it("falls back to the server name when the field is cleared", async () => {
     await update(TYPED.id, { slug: "prod" });
 
     const updated = await update(TYPED.id, { slug: "" });
@@ -153,13 +153,13 @@ describe("le nom SSH d'un serveur", () => {
     expect(sshConfig()).toContain("Host pupitre-srv-local-1 mon-serveur\n");
   });
 
-  it("garde le nom quand le changement ne le nomme pas", async () => {
+  it("keeps the name when the change does not mention it", async () => {
     const updated = await update(TYPED.id, { port: 2222 });
 
     expect(updated.server.slug).toBe("mon-serveur");
   });
 
-  it("refuse un mot qui désigne déjà une autre machine", async () => {
+  it("refuses a word that already names another machine", async () => {
     await expect(update(TYPED.id, { slug: "atelier" })).rejects.toMatchObject({
       phrase: { id: "refusal.setup.sshNameTaken", values: { name: "atelier" } },
     });
@@ -169,7 +169,7 @@ describe("le nom SSH d'un serveur", () => {
     expect(read().servers[0]?.slug).toBe("mon-serveur");
   });
 
-  it("peut reprendre son propre mot", async () => {
+  it("can take back its own word", async () => {
     const updated = await update(TYPED.id, { slug: "mon-serveur" });
 
     expect(updated.server.slug).toBe("mon-serveur");

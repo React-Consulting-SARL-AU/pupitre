@@ -32,10 +32,10 @@ function reset(): void {
   });
 }
 
-describe("l'installation de la clé", () => {
+describe("installing the key", () => {
   beforeEach(reset);
 
-  it("suit les étapes que le processus principal annonce", async () => {
+  it("follows the steps the main process announces", async () => {
     const seen: string[] = [];
 
     stubPupitre({
@@ -72,7 +72,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("ne garde jamais le mot de passe, seulement le fait qu'il a été refusé", async () => {
+  it("never keeps the password, only the fact that it was refused", async () => {
     stubPupitre({
       installKey: () =>
         Promise.resolve({
@@ -89,7 +89,7 @@ describe("l'installation de la clé", () => {
     expect(JSON.stringify(state)).not.toContain("hunter2");
   });
 
-  it("rend la ligne à coller quand l'app ne peut pas poser la clé", async () => {
+  it("returns the line to paste when the app cannot install the key", async () => {
     stubPupitre({
       installKey: () =>
         Promise.resolve({
@@ -109,7 +109,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("oublie l'installation en même temps que l'ajout", () => {
+  it("forgets the installation along with the addition", () => {
     useServers.setState({
       keyInstall: { installed: true, status: "opened" },
     });
@@ -120,10 +120,10 @@ describe("l'installation de la clé", () => {
   });
 });
 
-describe("l'ajout d'un serveur", () => {
+describe("adding a server", () => {
   beforeEach(reset);
 
-  it("garde la clé publique et la commande que le processus principal renvoie", async () => {
+  it("keeps the public key and the command the main process returns", async () => {
     stubPupitre({
       addServer: () =>
         Promise.resolve({
@@ -149,7 +149,7 @@ describe("l'ajout d'un serveur", () => {
     expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
   });
 
-  it("arrive avec sa clé posée quand le mot de passe est parti avec le brouillon", async () => {
+  it("arrives with its key installed when the password left with the draft", async () => {
     stubPupitre({
       addServer: () =>
         Promise.resolve({
@@ -172,7 +172,7 @@ describe("l'ajout d'un serveur", () => {
     });
   });
 
-  it("garde le remède du refus tel quel", async () => {
+  it("keeps the refusal's fix as is", async () => {
     stubPupitre({
       addServer: () =>
         Promise.resolve({
@@ -194,10 +194,10 @@ describe("l'ajout d'un serveur", () => {
   });
 });
 
-describe("la clé d'hôte", () => {
+describe("the host key", () => {
   beforeEach(reset);
 
-  it("bloque la connexion quand elle a changé, en gardant l'explication", async () => {
+  it("blocks the connection when it changed, keeping the explanation", async () => {
     stubPupitre({
       hostKey: () =>
         Promise.resolve({
@@ -227,7 +227,7 @@ describe("la clé d'hôte", () => {
     expect(state.phrase.id).toBe("refusal.hostKey.changed");
   });
 
-  it("ne retient rien d'un premier contact", async () => {
+  it("retains nothing from a first contact", async () => {
     stubPupitre({
       hostKey: () =>
         Promise.resolve({ ok: true, result: { status: "first_contact" } }),
@@ -238,7 +238,7 @@ describe("la clé d'hôte", () => {
     expect(useServers.getState().hostKey).toEqual({ status: "unknown" });
   });
 
-  it("remplace l'empreinte quand le serveur a été réinstallé, et rouvre la connexion", async () => {
+  it("replaces the fingerprint when the server was reinstalled, and reopens the connection", async () => {
     const forgotten: string[] = [];
 
     stubPupitre({
@@ -270,7 +270,7 @@ describe("la clé d'hôte", () => {
     expect(useServers.getState().hostKey).toEqual({ status: "unknown" });
   });
 
-  it("laisse l'empreinte en place quand on annule", async () => {
+  it("leaves the fingerprint in place on cancel", async () => {
     useServers.setState({
       hostKey: {
         actions: ["reinstalled", "cancel"],
@@ -288,10 +288,10 @@ describe("la clé d'hôte", () => {
   });
 });
 
-describe("la liste", () => {
+describe("the list", () => {
   beforeEach(reset);
 
-  it("prend la configuration que le processus principal renvoie", async () => {
+  it("takes the configuration the main process returns", async () => {
     stubPupitre({
       servers: () => Promise.resolve({ active: "srv-a", servers: [STAGING] }),
     });
@@ -302,7 +302,7 @@ describe("la liste", () => {
     expect(useServers.getState().config?.active).toBe("srv-a");
   });
 
-  it("renomme, choisit l'actif et supprime par identifiant", async () => {
+  it("renames, picks the active one and deletes by identifier", async () => {
     const calls: string[] = [];
 
     stubPupitre({
@@ -339,7 +339,7 @@ describe("la liste", () => {
   });
 });
 
-describe("un serveur supprimé", () => {
+describe("a deleted server", () => {
   beforeEach(reset);
 
   function pendingOn(server: Server): void {
@@ -356,7 +356,7 @@ describe("un serveur supprimé", () => {
     });
   }
 
-  it("emporte la demande de mot de passe avec lui", async () => {
+  it("takes the password request with it", async () => {
     stubPupitre({
       removeServer: () => Promise.resolve({ active: null, servers: [] }),
     });
@@ -371,7 +371,7 @@ describe("un serveur supprimé", () => {
     expect(state.publicKey).toBeNull();
   });
 
-  it("laisse l'installation en cours quand c'est un autre serveur qui part", async () => {
+  it("leaves the installation running when another server is the one leaving", async () => {
     stubPupitre({
       removeServer: () =>
         Promise.resolve({ active: "srv-a", servers: [STAGING] }),
@@ -390,7 +390,7 @@ describe("un serveur supprimé", () => {
     });
   });
 
-  it("emporte aussi la demande quand il est effacé de la console", async () => {
+  it("also takes the request when it is erased from the console", async () => {
     stubPupitre({
       forgetServer: () =>
         Promise.resolve({ ok: true, result: { active: null, servers: [] } }),
@@ -403,7 +403,7 @@ describe("un serveur supprimé", () => {
     expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
   });
 
-  it("ne revient pas quand l'écran relit la liste", async () => {
+  it("does not come back when the screen rereads the list", async () => {
     stubPupitre({
       servers: () => Promise.resolve({ active: null, servers: [] }),
     });
@@ -415,7 +415,7 @@ describe("un serveur supprimé", () => {
     expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
   });
 
-  it("ne laisse pas la réponse tardive de l'installation revenir sur l'écran", async () => {
+  it("does not let the installation's late response come back onto the screen", async () => {
     let answer: (value: {
       ok: true;
       result: { retry: boolean; status: "password" };

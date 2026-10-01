@@ -63,34 +63,34 @@ function text(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-describe("les préréglages en tête", () => {
+describe("the presets at the top", () => {
   const html = screen(
     CATALOG,
     ["core.system", "core.hardening"],
     LARGE_MACHINE
   );
 
-  it("propose les trois du catalogue, dans l'ordre reçu", () => {
+  it("offers the three from the catalogue, in the order received", () => {
     expect(
       [...html.matchAll(/data-preset="([^"]+)"/g)].map((m) => m[1])
     ).toEqual(["web-js", "full", "minimal"]);
   });
 
-  it("nomme les trois du contrat en français", () => {
+  it("names the three from the contract in French", () => {
     expect(text(html)).toContain("Web JavaScript");
     expect(text(html)).toContain("Tout le catalogue");
     expect(text(html)).toContain("Minimal");
   });
 });
 
-describe("les catégories et leurs modules", () => {
+describe("the categories and their modules", () => {
   const html = screen(
     CATALOG,
     ["core.system", "core.hardening"],
     LARGE_MACHINE
   );
 
-  it("groupe par catégorie, dans l'ordre du contrat", () => {
+  it("groups by category, in the contract's order", () => {
     expect(
       [...html.matchAll(/data-category="([^"]+)"/g)].map((m) => m[1])
     ).toEqual([
@@ -104,7 +104,7 @@ describe("les catégories et leurs modules", () => {
     ]);
   });
 
-  it("montre le nom et le résumé de chaque module, sans ses chiffres", () => {
+  it("shows the name and summary of each module, without its figures", () => {
     const readable = text(html);
 
     expect(readable).toContain("PostgreSQL 17");
@@ -114,16 +114,16 @@ describe("les catégories et leurs modules", () => {
     expect(tag(html, "data-module", "db.postgres")).not.toContain("900");
   });
 
-  it("dit ce que le choix pèse, une fois, contre la machine", () => {
+  it("says what the choice weighs against the machine, once", () => {
     expect(html).toContain('data-resources="true"');
     expect(text(html)).toContain("Mémoire 320 Mo sur");
   });
 
-  it("nomme ce qu'un préréglage apporte plutôt que de le compter", () => {
+  it("names what a preset brings rather than counting it", () => {
     expect(text(html)).toContain("Node.js, MySQL 8, VS Code Remote");
   });
 
-  it("ne promet pas à un serveur ce qu'il fait déjà tourner", () => {
+  it("does not promise a server what it already runs", () => {
     const again = screen(CATALOG, [], LARGE_MACHINE, {
       installed: ["core.system", "core.hardening", "runtime.node"],
     });
@@ -132,7 +132,7 @@ describe("les catégories et leurs modules", () => {
     expect(text(again)).not.toContain("Node.js, MySQL 8");
   });
 
-  it("grise le préréglage qui n'apporte plus rien, et dit pourquoi", () => {
+  it("greys out the preset that brings nothing more, and says why", () => {
     const done = screen(CATALOG, [], LARGE_MACHINE, {
       installed: [
         "core.system",
@@ -149,7 +149,7 @@ describe("les catégories et leurs modules", () => {
     );
   });
 
-  it("marque celui qui est appliqué plutôt que de laisser le clic sans réponse", () => {
+  it("marks the one that is applied rather than leaving the click unanswered", () => {
     const preset = CATALOG.presets.find((one) => one.id === "web-js");
     const applied = screen(
       CATALOG,
@@ -165,17 +165,17 @@ describe("les catégories et leurs modules", () => {
     );
   });
 
-  it("pose le logo en couleurs quand le module en a un", () => {
+  it("sets the logo in colour when the module has one", () => {
     expect(html).toContain('data-logo="db.postgres"');
     expect(html).toContain("PostgreSQL");
   });
 
-  it("retombe sur une icône sobre quand aucun logo n'est licite", () => {
+  it("falls back to a plain icon when no logo is lawful", () => {
     expect(html).toContain('data-logo-fallback="core.system"');
     expect(html).not.toContain('data-logo="core.system"');
   });
 
-  it("coche et verrouille les modules obligatoires", () => {
+  it("ticks and locks the mandatory modules", () => {
     const card = tag(html, "data-module", "core.system");
 
     expect(card).toContain('data-selected="true"');
@@ -183,8 +183,8 @@ describe("les catégories et leurs modules", () => {
   });
 });
 
-describe("ce qui est hors de portée", () => {
-  it("grise un module en conflit et dit lequel", () => {
+describe("what is out of reach", () => {
+  it("greys out a conflicting module and says which", () => {
     const chosen = select(CATALOG.modules, [], "exposure.cloudflare");
     const html = screen(CATALOG, chosen, LARGE_MACHINE);
 
@@ -196,7 +196,7 @@ describe("ce qui est hors de portée", () => {
     );
   });
 
-  it("grise un module que l'architecture de la machine ne porte pas", () => {
+  it("greys out a module the machine's architecture cannot run", () => {
     const html = screen(CATALOG, ["core.system"], ARM_MACHINE);
 
     expect(tag(html, "data-module", "tool.legacy")).toContain(
@@ -208,8 +208,8 @@ describe("ce qui est hors de portée", () => {
   });
 });
 
-describe("les ressources cumulées", () => {
-  it("reste muet tant que la machine suffit", () => {
+describe("the cumulated resources", () => {
+  it("stays silent while the machine is enough", () => {
     const base = select(CATALOG.modules, [], "core.hardening");
     const chosen = select(CATALOG.modules, base, "editor.jetbrains");
     const html = screen(CATALOG, chosen, SMALL_MACHINE);
@@ -217,7 +217,7 @@ describe("les ressources cumulées", () => {
     expect(html).not.toContain('data-tone="warn"');
   });
 
-  it("avertit quand postgres s'ajoute à jetbrains sur 4 Go", () => {
+  it("warns when postgres is added to jetbrains on 4 GB", () => {
     const base = select(CATALOG.modules, [], "core.hardening");
     const withJetbrains = select(CATALOG.modules, base, "editor.jetbrains");
     const chosen = select(CATALOG.modules, withJetbrains, "db.postgres");
@@ -230,8 +230,8 @@ describe("les ressources cumulées", () => {
   });
 });
 
-describe("un module que l'agent vient d'ajouter", () => {
-  it("apparaît dans sa catégorie sans une ligne de code de plus", () => {
+describe("a module the agent has just added", () => {
+  it("appears in its category without another line of code", () => {
     const before = screen(CATALOG, ["core.system"], LARGE_MACHINE);
     const after = screen(CATALOG_NEXT, ["core.system"], LARGE_MACHINE);
 
@@ -245,7 +245,7 @@ describe("un module que l'agent vient d'ajouter", () => {
   });
 });
 
-describe("un préréglage qui nomme des modules exclusifs", () => {
+describe("a preset that names exclusive modules", () => {
   const preset = CATALOG.presets.find((one) => one.choose_one);
 
   function question(installed: readonly string[] = []): string {
@@ -273,7 +273,7 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     );
   }
 
-  it("demande lequel prendre plutôt que de choisir à la place du lecteur", () => {
+  it("asks which to take rather than choosing in the reader's place", () => {
     const html = question();
 
     for (const id of preset?.choose_one ?? []) {
@@ -283,11 +283,11 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     expect(html).toContain('role="radiogroup"');
   });
 
-  it("laisse n'en prendre aucun sans abandonner le préréglage", () => {
+  it("lets none be taken without abandoning the preset", () => {
     expect(question()).toContain('data-preset-option="none"');
   });
 
-  it("n'oppose pas un module que le serveur fait déjà tourner", () => {
+  it("does not set against each other a module the server already runs", () => {
     const html = question(["exposure.caddy"]);
 
     expect(html).not.toContain('value="exposure.caddy"');
@@ -295,22 +295,22 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
   });
 
   // A preset carrying one of them would already have chosen for the reader.
-  it("ne porte lui-même aucun des modules qu'il oppose", () => {
+  it("carries none of the modules it sets against each other", () => {
     for (const id of preset?.choose_one ?? []) {
       expect(preset?.modules).not.toContain(id);
     }
   });
 });
 
-describe("chercher un service dans le catalogue", () => {
-  it("offre le champ, et compte ce qu'il laisse", () => {
+describe("searching for a service in the catalogue", () => {
+  it("offers the field, and counts what it leaves", () => {
     const html = screen(CATALOG, [], LARGE_MACHINE, { query: "mysql" });
 
     expect(html).toContain('data-catalog-search="true"');
     expect(html).toContain('data-search-found="1"');
   });
 
-  it("ne garde que les catégories qui ont encore quelque chose", () => {
+  it("keeps only the categories that still have something", () => {
     const html = screen(CATALOG, [], LARGE_MACHINE, { query: "sql" });
 
     expect(
@@ -322,14 +322,14 @@ describe("chercher un service dans le catalogue", () => {
   });
 
   // A typed name already answers "what should I install", which is what presets are for.
-  it("retire les préréglages tant qu'une phrase est tapée", () => {
+  it("removes the presets while a phrase is typed", () => {
     expect(screen(CATALOG, [], LARGE_MACHINE)).toContain('data-preset="full"');
     expect(
       screen(CATALOG, [], LARGE_MACHINE, { query: "mysql" })
     ).not.toContain('data-preset="full"');
   });
 
-  it("dit qu'il n'a rien trouvé, avec la phrase cherchée", () => {
+  it("says it found nothing, with the phrase searched", () => {
     const html = screen(CATALOG, [], LARGE_MACHINE, { query: "kubernetes" });
 
     expect(text(html)).toContain("Aucun service ne répond à « kubernetes ».");
@@ -337,13 +337,13 @@ describe("chercher un service dans le catalogue", () => {
   });
 });
 
-describe("un préréglage sur une sélection déjà faite", () => {
+describe("a preset on an existing selection", () => {
   const FULL = CATALOG.presets.find((p) => p.id === "full");
   const chosen = FULL
     ? fromPreset(CATALOG.modules, FULL, [], LARGE_MACHINE)
     : [];
 
-  it("demande avant de retirer ce qui était coché, en le nommant", async () => {
+  it("asks before removing what was ticked, naming it", async () => {
     const picked: string[] = [];
     const view = await mount(
       <CatalogPresets
@@ -364,7 +364,7 @@ describe("un préréglage sur une sélection déjà faite", () => {
     view.unmount();
   });
 
-  it("applique sans rien demander quand rien ne serait retiré", async () => {
+  it("applies without asking when nothing would be removed", async () => {
     const picked: string[] = [];
     const view = await mount(
       <CatalogPresets

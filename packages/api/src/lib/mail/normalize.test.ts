@@ -11,61 +11,61 @@ import {
 } from "./normalize"
 
 describe("normalizeSubject", () => {
-  it("retire les préfixes de réponse et de transfert empilés", () => {
+  it("strips stacked reply and forward prefixes", () => {
     expect(normalizeSubject("Re: Fwd: RE : Mon serveur ne répond plus")).toBe(
       "mon serveur ne répond plus"
     )
   })
 
-  it("retire aussi TR: et Fw:", () => {
+  it("also strips TR: and Fw:", () => {
     expect(normalizeSubject("TR: Fw: Facture")).toBe("facture")
   })
 
-  it("retire un compteur entre crochets", () => {
+  it("strips a counter in square brackets", () => {
     expect(normalizeSubject("Re[2]: Facture")).toBe("facture")
   })
 
-  it("écrase les espaces et passe en minuscules", () => {
+  it("collapses whitespace and lowercases", () => {
     expect(normalizeSubject("  Deux   Mots  ")).toBe("deux mots")
   })
 
-  it("rend une chaîne vide pour un sujet qui n'est qu'un préfixe", () => {
+  it("returns an empty string for a subject that is only a prefix", () => {
     expect(normalizeSubject("Re:")).toBe("")
   })
 })
 
 describe("replySubject", () => {
-  it("préfixe une seule fois", () => {
+  it("prefixes only once", () => {
     expect(replySubject("Re: Facture")).toBe("Re: Facture")
     expect(replySubject("Facture")).toBe("Re: Facture")
   })
 })
 
 describe("snippetOf", () => {
-  it("coupe à 160 caractères", () => {
+  it("truncates at 160 characters", () => {
     expect(snippetOf("a".repeat(400))).toHaveLength(SNIPPET_LENGTH)
   })
 
-  it("écrase les retours à la ligne", () => {
+  it("collapses line breaks", () => {
     expect(snippetOf("Bonjour\n\n  Jordan")).toBe("Bonjour Jordan")
   })
 
-  it("rend null sans texte", () => {
+  it("returns null without text", () => {
     expect(snippetOf("   ")).toBeNull()
     expect(snippetOf(null)).toBeNull()
   })
 })
 
 describe("referencedMessageIds", () => {
-  it("lit les identifiants entre chevrons, sans doublon", () => {
+  it("reads the identifiers between angle brackets, without duplicates", () => {
     expect(referencedMessageIds("<a@x> <b@x>", "<b@x>")).toEqual(["a@x", "b@x"])
   })
 
-  it("accepte un en-tête sans chevrons", () => {
+  it("accepts a header without angle brackets", () => {
     expect(referencedMessageIds("a@x")).toEqual(["a@x"])
   })
 
-  it("ne garde que les plus récents d'une chaîne démesurée", () => {
+  it("keeps only the most recent of an oversized chain", () => {
     const chain = Array.from({ length: 5000 }, (_, index) => `<m${index}@x>`)
     const ids = referencedMessageIds(chain.join(" "))
 
@@ -74,7 +74,7 @@ describe("referencedMessageIds", () => {
     expect(ids[0]).toBe(`m${5000 - MAIL_MAX_REFERENCES}@x`)
   })
 
-  it("garde In-Reply-To lu après une chaîne pleine", () => {
+  it("keeps In-Reply-To read after a full chain", () => {
     const chain = Array.from({ length: 50 }, (_, index) => `<m${index}@x>`)
 
     expect(referencedMessageIds(chain.join(" "), "<repondu@x>")).toContain(
@@ -82,17 +82,17 @@ describe("referencedMessageIds", () => {
     )
   })
 
-  it("ignore les en-têtes absents", () => {
+  it("ignores missing headers", () => {
     expect(referencedMessageIds(null, undefined)).toEqual([])
   })
 })
 
 describe("buildReferences", () => {
-  it("ajoute l'identifiant du message répondu à la chaîne existante", () => {
+  it("appends the replied-to message's identifier to the existing chain", () => {
     expect(buildReferences("<a@x>", "b@x")).toBe("<a@x> <b@x>")
   })
 
-  it("borne la chaîne rendue, l'identifiant répondu en dernier", () => {
+  it("bounds the returned chain, the replied-to identifier last", () => {
     const chain = Array.from({ length: 40 }, (_, index) => `<m${index}@x>`)
     const references = buildReferences(chain.join(" "), "repondu@x") ?? ""
 
@@ -100,17 +100,17 @@ describe("buildReferences", () => {
     expect(references.endsWith("<repondu@x>")).toBe(true)
   })
 
-  it("ne duplique pas un identifiant déjà présent", () => {
+  it("does not duplicate an identifier already present", () => {
     expect(buildReferences("<a@x> <b@x>", "b@x")).toBe("<a@x> <b@x>")
   })
 
-  it("rend null quand rien n'est référencé", () => {
+  it("returns null when nothing is referenced", () => {
     expect(buildReferences(null, null)).toBeNull()
   })
 })
 
 describe("stripAngles", () => {
-  it("retire les chevrons d'un Message-ID", () => {
+  it("strips the angle brackets of a Message-ID", () => {
     expect(stripAngles(" <abc@pupitre.studio> ")).toBe("abc@pupitre.studio")
   })
 })

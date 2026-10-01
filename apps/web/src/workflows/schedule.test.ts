@@ -35,15 +35,15 @@ function envRecording(
   } as unknown as CloudflareEnv
 }
 
-describe("les cron triggers", () => {
-  it("couvrent chaque workflow une fois, en deux réveils", () => {
+describe("the cron triggers", () => {
+  it("cover each workflow once, in two wake-ups", () => {
     const scheduled: string[] = Object.values(WORKFLOW_CRONS).flat()
 
     expect(scheduled.sort()).toEqual(Object.keys(WORKFLOW_BINDINGS).sort())
     expect(Object.keys(WORKFLOW_CRONS)).toHaveLength(2)
   })
 
-  it("démarre les horaires ensemble, sous un nom tiré de l'heure du réveil", async () => {
+  it("starts the hourly ones together, under a name drawn from the wake-up hour", async () => {
     const started: Started[] = []
 
     expect(
@@ -55,7 +55,7 @@ describe("les cron triggers", () => {
     ])
   })
 
-  it("démarre les quotidiens ensemble, une fois par jour", async () => {
+  it("starts the daily ones together, once a day", async () => {
     const started: Started[] = []
 
     await runScheduledWorkflows("20 3 * * *", FIRED_AT, envRecording(started))
@@ -68,7 +68,7 @@ describe("les cron triggers", () => {
     ])
   })
 
-  it("démarre les autres quand l'un d'eux refuse de démarrer", async () => {
+  it("starts the others when one of them refuses to start", async () => {
     const started: Started[] = []
 
     const ids = await runScheduledWorkflows(
@@ -84,7 +84,7 @@ describe("les cron triggers", () => {
     ])
   })
 
-  it("ne démarre rien sur un cron inconnu", async () => {
+  it("starts nothing on an unknown cron", async () => {
     const started: Started[] = []
 
     expect(

@@ -31,8 +31,8 @@ const ENTRIES: FileEntry[] = [
   entry("Beta.md", "file", "2026-09-06T10:00:00Z"),
 ];
 
-describe("le fil d'Ariane", () => {
-  it("découpe un chemin en miettes et n'en fait aucune de la racine", () => {
+describe("the breadcrumb", () => {
+  it("splits a path into crumbs and makes none from the root", () => {
     expect(crumbsOf("")).toEqual([]);
     expect(crumbsOf("projects/atlas/src")).toEqual([
       "projects",
@@ -41,7 +41,7 @@ describe("le fil d'Ariane", () => {
     ]);
   });
 
-  it("nomme le parent et le nom d'un chemin", () => {
+  it("names the parent and the name of a path", () => {
     expect(parentOf("projects/atlas/src")).toBe("projects/atlas");
     expect(parentOf("projects")).toBe("");
     expect(nameOf("projects/atlas/.env")).toBe(".env");
@@ -49,14 +49,14 @@ describe("le fil d'Ariane", () => {
   });
 });
 
-describe("la composition d'un chemin", () => {
-  it("joint deux morceaux dont l'un peut être la racine", () => {
+describe("composing a path", () => {
+  it("joins two pieces, one of which may be the root", () => {
     expect(under("", "src")).toBe("src");
     expect(under("projects/atlas", "src")).toBe("projects/atlas/src");
     expect(under("projects", "")).toBe("projects");
   });
 
-  it("lit un chemin sous une racine, et rien hors d'elle", () => {
+  it("reads a path under a root, and nothing outside it", () => {
     expect(within("projects/atlas", "projects/atlas/src")).toBe("src");
     expect(within("projects/atlas", "projects/atlas")).toBe("");
     expect(within("", "projects/atlas")).toBe("projects/atlas");
@@ -67,7 +67,7 @@ describe("la composition d'un chemin", () => {
     expect(within("/home/dev", "/srv/atlas")).toBeNull();
   });
 
-  it("recompose un chemin absolu depuis la racine que l'agent nomme", () => {
+  it("rebuilds an absolute path from the root the agent names", () => {
     expect(absoluteOf("/home/dev", "projects/atlas/.env")).toBe(
       "/home/dev/projects/atlas/.env"
     );
@@ -76,7 +76,7 @@ describe("la composition d'un chemin", () => {
     expect(dirnameOf("/home")).toBe("/");
   });
 
-  it("n'accepte comme nom d'entrée ni un chemin, ni le dossier courant, ni le parent", () => {
+  it("accepts as an entry name neither a path, nor the current folder, nor the parent", () => {
     expect(isEntryName("notes.md")).toBe(true);
     expect(isEntryName(".env")).toBe(true);
     expect(isEntryName("a/b")).toBe(false);
@@ -86,8 +86,8 @@ describe("la composition d'un chemin", () => {
   });
 });
 
-describe("le tri d'un dossier", () => {
-  it("met les dossiers d'abord, puis les fichiers par nom sans tenir compte de la casse", () => {
+describe("sorting a folder", () => {
+  it("puts folders first, then files by name ignoring case", () => {
     expect(sortedEntries(ENTRIES, "name", true).map((e) => e.name)).toEqual([
       ".git",
       "src",
@@ -98,7 +98,7 @@ describe("le tri d'un dossier", () => {
     ]);
   });
 
-  it("cache les entrées qui commencent par un point tant qu'on ne les demande pas", () => {
+  it("hides entries starting with a dot until they are asked for", () => {
     expect(sortedEntries(ENTRIES, "name", false).map((e) => e.name)).toEqual([
       "src",
       "alpha.ts",
@@ -107,7 +107,7 @@ describe("le tri d'un dossier", () => {
     ]);
   });
 
-  it("trie par date la plus récente en premier, les dossiers restant devant", () => {
+  it("sorts by date, most recent first, folders staying in front", () => {
     expect(sortedEntries(ENTRIES, "date", false).map((e) => e.name)).toEqual([
       "src",
       "Beta.md",
@@ -116,7 +116,7 @@ describe("le tri d'un dossier", () => {
     ]);
   });
 
-  it("ne modifie pas la liste que l'agent a donnée", () => {
+  it("does not modify the list the agent gave", () => {
     const given = [...ENTRIES];
 
     sortedEntries(given, "date", true);
@@ -125,7 +125,7 @@ describe("le tri d'un dossier", () => {
   });
 });
 
-describe("le menu d'une entrée", () => {
+describe("an entry's menu", () => {
   const zed = {
     backend: false,
     id: "zed" as const,
@@ -134,7 +134,7 @@ describe("le menu d'une entrée", () => {
     name: "Zed",
   };
 
-  it("offre un terminal à un dossier seulement, un éditeur par éditeur installé, et un téléchargement à tous", () => {
+  it("offers a terminal to folders only, one editor entry per installed editor, and a download to all", () => {
     expect(entryActions(entry("src", "dir"), [zed]).map((a) => a.id)).toEqual([
       "open",
       "editor",
@@ -153,13 +153,13 @@ describe("le menu d'une entrée", () => {
     ]);
   });
 
-  it("n'offre ni ouverture ni copie d'un tube, d'une socket ou d'un périphérique, qu'une lecture attendrait sans fin", () => {
+  it("offers neither opening nor copying of a pipe, a socket or a device, which a read would wait on forever", () => {
     expect(
       entryActions(entry("fifo", "special"), [zed]).map((a) => a.id)
     ).toEqual(["rename", "remove"]);
   });
 
-  it("dit d'un téléchargement s'il porte sur un dossier, ce qui change la boîte", () => {
+  it("tells whether a download targets a folder, which changes the dialog", () => {
     expect(
       entryActions(entry("src", "dir"), []).find((a) => a.id === "download")
         ?.folder
@@ -170,14 +170,14 @@ describe("le menu d'une entrée", () => {
   });
 });
 
-describe("la forme rendue d'un fichier", () => {
-  it("se lit sur l'extension, sans la casse", () => {
+describe("a file's rendered form", () => {
+  it("is read from the extension, ignoring case", () => {
     expect(renderedFormOf("projects/atlas/README.md")).toBe("markdown");
     expect(renderedFormOf("notes.markdown")).toBe("markdown");
     expect(renderedFormOf("Logo.SVG")).toBe("svg");
   });
 
-  it("n'existe pas pour ce qui se lit tel quel", () => {
+  it("does not exist for what is read as is", () => {
     expect(renderedFormOf("index.ts")).toBeNull();
     expect(renderedFormOf(".env")).toBeNull();
     expect(renderedFormOf("md")).toBeNull();

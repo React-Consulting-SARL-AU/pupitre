@@ -7,15 +7,15 @@ const deps = {
   knows: (serverId: string) => serverId === "srv-1",
 };
 
-describe("un lien pupitre://", () => {
-  it("nomme un serveur connu", () => {
+describe("a pupitre:// link", () => {
+  it("names a known server", () => {
     expect(parseDeepLink("pupitre://server/srv-1", deps)).toEqual({
       kind: "server",
       serverId: "srv-1",
     });
   });
 
-  it("nomme un projet que l'agent de ce serveur a déclaré", () => {
+  it("names a project that this server's agent has declared", () => {
     expect(parseDeepLink("pupitre://project/srv-1/flyleaf-api", deps)).toEqual({
       kind: "project",
       name: "flyleaf-api",
@@ -23,7 +23,7 @@ describe("un lien pupitre://", () => {
     });
   });
 
-  it("ne porte de la réponse de la plateforme que l'appareil approuvé", () => {
+  it("carries only the approved device from the platform's response", () => {
     expect(
       parseDeepLink("pupitre://account/callback?code=abc&state=xyz", deps)
     ).toEqual({ kind: "account", query: {} });
@@ -35,7 +35,7 @@ describe("un lien pupitre://", () => {
     ).toEqual({ kind: "account", query: { device: "approved" } });
   });
 
-  it("refuse un serveur inconnu, un projet non déclaré et une forme inconnue", () => {
+  it("refuses an unknown server, an undeclared project and an unknown shape", () => {
     expect(parseDeepLink("pupitre://server/srv-9", deps)).toBeNull();
     expect(parseDeepLink("pupitre://project/srv-1/autre", deps)).toBeNull();
     expect(
@@ -47,13 +47,13 @@ describe("un lien pupitre://", () => {
     expect(parseDeepLink("pupitre://account/other", deps)).toBeNull();
   });
 
-  it("refuse un autre schéma et ce qui n'est pas une adresse", () => {
+  it("refuses another scheme and anything that is not an address", () => {
     expect(parseDeepLink("https://server/srv-1", deps)).toBeNull();
     expect(parseDeepLink("not a url", deps)).toBeNull();
     expect(parseDeepLink("pupitre://server/srv%201", deps)).toBeNull();
   });
 
-  it("se retrouve parmi les arguments d'un second lancement", () => {
+  it("is found among the arguments of a second launch", () => {
     expect(
       deepLinkArgument(["/app/Pupitre", "--flag", "pupitre://server/srv-1"])
     ).toBe("pupitre://server/srv-1");

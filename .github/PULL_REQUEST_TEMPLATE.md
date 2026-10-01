@@ -1,13 +1,18 @@
-## Ce que change cette PR
+## What this changes
 
-<!-- Une phrase : ce qui est livré, et pourquoi. -->
+<!-- One sentence: what is delivered, and why. Link the issue it closes: "Closes #123". -->
 
-## Ce qui le prouve
+## What proves it
 
-<!-- Une case par comportement vérifié, cochée quand le test l'établit. -->
+<!-- One box per verified behaviour, checked when a test establishes it. -->
 
 - [ ]
 
-## Vérifications
+## Checks
 
-<!-- Dernières lignes de `bun run lint`, `bun run check:types`, `bun run test`, `bun run build`, et de `go vet` / `go test` si l'agent est touché. -->
+<!-- The last lines of `bun run lint`, `bun run check:types`, `bun run test`, `bun run build`, and of `go vet` / `go test` if the agent is touched. -->
+
+- [ ] The pull request targets `staging`, not `main`.
+- [ ] A contract that crosses a boundary (app ↔ agent, app ↔ platform, console ↔ API) is typed in `packages/shared` first.
+- [ ] A changed configuration file shape comes with its numbered migration.
+- [ ] User-facing text exists in English and French.

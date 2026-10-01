@@ -5,8 +5,8 @@ import { Button } from "../ui/button";
 import { IconButton } from "../ui/icon-button";
 import { Tooltip } from "../ui/tooltip";
 
-describe("une infobulle", () => {
-  it("se pose sur le contrôle qu'on lui donne, sans en changer la nature", () => {
+describe("a tooltip", () => {
+  it("attaches to the control it is given, without changing its nature", () => {
     const html = renderToStaticMarkup(
       <Tooltip label="Chercher">
         <button className="clickable" type="button">
@@ -20,7 +20,7 @@ describe("une infobulle", () => {
     expect(html).not.toContain("title=");
   });
 
-  it("reste fermée tant que personne ne survole", () => {
+  it("stays closed while nobody hovers", () => {
     const html = renderToStaticMarkup(
       <Tooltip label="Chercher">
         <button type="button">go</button>
@@ -31,8 +31,8 @@ describe("une infobulle", () => {
   });
 });
 
-describe("un bouton à icône", () => {
-  it("porte son nom pour le lecteur d'écran et pour la souris", () => {
+describe("an icon button", () => {
+  it("carries its name for the screen reader and for the mouse", () => {
     const html = renderToStaticMarkup(
       <IconButton icon={Search} label="Chercher" />
     );
@@ -43,8 +43,8 @@ describe("un bouton à icône", () => {
   });
 });
 
-describe("un bouton", () => {
-  it("n'a de bulle que s'il a quelque chose à ajouter", () => {
+describe("a button", () => {
+  it("has a bubble only if it has something to add", () => {
     const bare = renderToStaticMarkup(<Button>Envoyer</Button>);
     const hinted = renderToStaticMarkup(
       <Button hint="Vers le serveur">Envoyer</Button>

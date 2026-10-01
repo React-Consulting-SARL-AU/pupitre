@@ -9,8 +9,8 @@ function keysOf(mac: boolean, group: string, name: string): string[] {
   );
 }
 
-describe("la fiche des raccourcis", () => {
-  it("écrit chaque raccourci avec les touches de la plateforme", () => {
+describe("the shortcut sheet", () => {
+  it("writes each shortcut with the platform's keys", () => {
     expect(keysOf(true, "project", "shell")).toEqual(["⌘T"]);
     expect(keysOf(false, "project", "shell")).toEqual(["Ctrl+T"]);
     expect(keysOf(true, "project", "tabByRank")).toEqual(["⌘⌥1", "⌘⌥7"]);
@@ -24,12 +24,12 @@ describe("la fiche des raccourcis", () => {
     expect(keysOf(false, "navigation", "back")).toEqual(["Alt+←"]);
   });
 
-  it("ne mentionne copier et coller que là où l'app les prend elle-même", () => {
+  it("mentions copy and paste only where the app handles them itself", () => {
     expect(keysOf(true, "terminal", "copy")).toEqual([]);
     expect(keysOf(false, "terminal", "copy")).toEqual(["Ctrl+Shift+C"]);
   });
 
-  it("nomme chaque groupe et chaque raccourci par une clé du dictionnaire", () => {
+  it("names each group and each shortcut by a dictionary key", () => {
     for (const group of shortcutSheet(true)) {
       expect(group.shortcuts.length).toBeGreaterThan(0);
 

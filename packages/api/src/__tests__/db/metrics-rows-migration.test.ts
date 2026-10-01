@@ -31,7 +31,7 @@ async function seedServer(
   })
 }
 
-describe("la migration 0012 sur une base déjà remplie", () => {
+describe("migration 0012 on an already populated database", () => {
   let dir: string
   let client: Client
 
@@ -86,7 +86,7 @@ describe("la migration 0012 sur une base déjà remplie", () => {
     rmSync(dir, { force: true, recursive: true })
   })
 
-  it("porte chaque lecture de la fenêtre en ligne, horodatée comme le client écrit", async () => {
+  it("carries each reading of the window as a row, timestamped the way the client writes", async () => {
     const rows = await client.execute(
       'SELECT "serverId", "at", json_extract("sample", \'$.disk\') AS disk FROM "ServerMetric" ORDER BY "at"'
     )
@@ -101,7 +101,7 @@ describe("la migration 0012 sur une base déjà remplie", () => {
     expect(rows.rows[1]?.disk).toBe(0.42)
   })
 
-  it("emporte la colonne, et laisse les index lire les fenêtres", async () => {
+  it("drops the column, and lets the indexes read the windows", async () => {
     const columns = await client.execute("PRAGMA table_info(Server)")
 
     expect(columns.rows.map((row) => row.name)).not.toContain("metrics")
@@ -115,7 +115,7 @@ describe("la migration 0012 sur une base déjà remplie", () => {
     )
   })
 
-  it("garderait le filtre de fenêtre juste : une ligne de la migration se lit comme une du client", async () => {
+  it("would keep the window filter correct: a migration row reads like a client row", async () => {
     await client.execute(
       'INSERT INTO "ServerMetric" ("id", "serverId", "at", "sample") VALUES (\'row_client\', \'srv_fenetre\', \'2026-09-17T10:00:00.000+00:00\', \'{"at":"2026-09-17T10:00:00.000Z","disk":0.5}\')'
     )

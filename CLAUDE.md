@@ -1,35 +1,35 @@
 # Pupitre Monorepo — Claude/Codex Guidelines
 
-Source de vérité du monorepo. Lis aussi le guide du workspace que tu touches :
+Source of truth for the monorepo. Also read the guide of the workspace you touch:
 
-- Site marketing : [`apps/site/CLAUDE.md`](./apps/site/CLAUDE.md)
-- Plateforme (console + API + auth) : [`apps/web/CLAUDE.md`](./apps/web/CLAUDE.md)
-- App desktop : [`apps/desktop/CLAUDE.md`](./apps/desktop/CLAUDE.md)
-- Agent serveur : [`apps/agent/CLAUDE.md`](./apps/agent/CLAUDE.md)
-- Produit : [`docs/product/PRODUCT.md`](./docs/product/PRODUCT.md) · design : [`docs/product/DESIGN.md`](./docs/product/DESIGN.md)
+- Marketing site: [`apps/site/CLAUDE.md`](./apps/site/CLAUDE.md)
+- Platform (console + API + auth): [`apps/web/CLAUDE.md`](./apps/web/CLAUDE.md)
+- Desktop app: [`apps/desktop/CLAUDE.md`](./apps/desktop/CLAUDE.md)
+- Server agent: [`apps/agent/CLAUDE.md`](./apps/agent/CLAUDE.md)
+- Product: [`docs/product/PRODUCT.md`](./docs/product/PRODUCT.md) · design: [`docs/product/DESIGN.md`](./docs/product/DESIGN.md)
 
-Pupitre est **source disponible** : le code de ce dépôt est public, sous licence Apache 2.0 assortie de la Commons Clause ([`LICENSE`](./LICENSE), concédant React Consulting SARL AU). Ce n'est pas de l'open source au sens de l'OSI : chacun peut lire, modifier et auto-héberger le code, personne ne peut vendre Pupitre ni un service qui en tire l'essentiel de sa valeur. La plateforme hébergée est gratuite jusqu'à `FREE_SERVERS` serveurs par organisation ; au-delà, une licence est requise, accordée aujourd'hui par un admin de la plateforme (voir [décision 0018](./docs/decisions/0018-source-disponible-et-gratuit.md)). Tout ce qui est commité est public : aucun secret, aucune donnée client, aucune note interne dans le dépôt. Tout le code est produit par des agents ; le propriétaire du projet spécifie, relit et valide.
+Pupitre is **source-available**: the code in this repository is public, under the Apache 2.0 licence with the Commons Clause ([`LICENSE`](./LICENSE), licensor React Consulting SARL AU). It is not open source in the OSI sense: anyone can read, modify and self-host the code, and no one can sell Pupitre or a service that derives its main value from it. The hosted platform is free up to `FREE_SERVERS` servers per organization; beyond that, a licence is required, currently granted by a platform admin (see [decision 0018](./docs/decisions/0018-source-available-and-free.md)). Everything that is committed is public: no secrets, no customer data, no internal notes in the repository. All the code is produced by agents; the project owner specifies, reviews and validates.
 
 ## Structure
 
 ```txt
-apps/site        Astro — pupitre.studio : marketing, docs publiques, blog, légal, téléchargement
-apps/web         TanStack Start sur Cloudflare Workers — app.pupitre.studio : console, /api/v1 (Elysia), /api/auth (Better Auth)
-apps/desktop     Electron — l'app : onboarding d'un VPS, catalogue de services, projets, terminaux, agents
-apps/agent       Go — pupitred, l'agent compilé installé sur le VPS du client
+apps/site        Astro — pupitre.studio: marketing, public docs, blog, legal, download
+apps/web         TanStack Start on Cloudflare Workers — app.pupitre.studio: console, /api/v1 (Elysia), /api/auth (Better Auth)
+apps/desktop     Electron — the app: VPS onboarding, service catalogue, projects, terminals, agents
+apps/agent       Go — pupitred, the compiled agent installed on the customer's VPS
 
-packages/db      schéma Prisma + migrations SQL de D1 + clients générés (Bun et Cloudflare)
-packages/auth    Better Auth : configuration serveur, plugins, clients web et desktop
-packages/api     app Elysia /api/v1, client Eden, harnais de test API/DB
-packages/shared  contrats partagés : protocole agent, catalogue de services, plans, permissions, erreurs API
-packages/design  tokens CSS monochrome + preset Tailwind, partagés par site, web et desktop
+packages/db      Prisma schema + D1 SQL migrations + generated clients (Bun and Cloudflare)
+packages/auth    Better Auth: server configuration, plugins, web and desktop clients
+packages/api     Elysia /api/v1 app, Eden client, API/DB test harness
+packages/shared  shared contracts: agent protocol, service catalogue, plans, permissions, API errors
+packages/design  monochrome CSS tokens + Tailwind preset, shared by site, web and desktop
 
-docs/            produit, architecture, contrats, décisions
+docs/            product, architecture, contracts, decisions
 ```
 
 ## Commands
 
-Bun uniquement.
+Bun only.
 
 ```bash
 bun install
@@ -37,7 +37,7 @@ bun dev                 # site + web
 bun run dev:site
 bun run dev:web
 bun run dev:desktop
-bun run build:agent     # go build, toutes architectures
+bun run build:agent     # go build, all architectures
 bun run lint
 bun run lint:fix
 bun run check:types
@@ -48,35 +48,35 @@ bun run db:migrate
 bun run db:seed
 ```
 
-Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.
+Single-workspace commands: `bun --cwd=<workspace> run <script>`.
 
 ## Rules
 
-- **Les règles qui ne bougent pas** (voir [`docs/architecture.md`](./docs/architecture.md)) : le serveur du client est la source de vérité de ce qui le concerne ; aucune clé privée hors du laptop du client ; aucune connexion entrante vers le serveur du client ; rien de lisible déposé sur le serveur, un binaire et des fichiers de configuration ; l'app reste utilisable sept jours sans la plateforme.
-- **Une mise à jour ne réinstalle rien.** Tout changement de forme d'un fichier de configuration — `/etc/pupitre` sur le VPS, les fichiers de l'app sur le laptop — s'accompagne d'une migration numérotée dans le registre correspondant, jamais d'un « le code lira les deux formes ». Les règles et la marche à suivre sont dans [`docs/contracts/config-migrations.md`](./docs/contracts/config-migrations.md), et le skill `config-migrations` les applique.
-- **Le contrat d'abord.** Tout ce qui traverse une frontière (app ↔ agent, app ↔ plateforme, console ↔ API) est typé dans `packages/shared` avant d'être implémenté des deux côtés. Un agent ne modifie pas un contrat au fil de l'eau : il s'arrête et le signale au propriétaire.
-- **Réutilise avant de créer.** Cherche une primitive existante (`components/ui`, `hooks`, `lib`) et étends-la par `variant`/prop plutôt que de la dupliquer.
-- **Le design est enforced** par [`DESIGN.md`](./docs/product/DESIGN.md) : monochrome, tokens sémantiques uniquement, jamais de couleur en dur, la couleur ne sert que l'état.
-- **Pas de nouveau package partagé au fil de l'eau.** On en crée un quand deux workspaces partagent réellement un contrat stable.
-- **Commentaires toujours en anglais.** Même règle que le reste (dernier recours, une ligne, jamais de bannière) mais jamais en français ni dans aucune autre langue. Un commentaire existant en français se corrige dès qu'on touche le fichier.
-- **Qualité exigeante, sans compromis.** Zéro erreur de lint/typecheck, zéro code mort, zéro duplication évitable, gestion d'erreurs uniquement aux frontières réelles (entrée utilisateur, API externe). Un correctif ne s'accompagne pas de nettoyage hors périmètre, mais le code touché doit sortir irréprochable.
-- **Config externalisée par défaut.** Toute valeur qui peut varier entre environnements (URL, clé, seuil, flag, délai) va en variable d'environnement ou dans la config partagée existante (`packages/shared`, `packages/design`) — jamais en dur dans le code applicatif. Ça ne crée pas de nouveau package partagé (règle ci-dessus) : on étend l'existant.
-- **Un fichier se modifie avec les outils d'édition** (`Edit`, `Write`), jamais par `sed`, un heredoc ou un script ad hoc : une édition qui rate en silence coûte plus que le tour d'outil économisé.
-- Hors `components/ui`, exactement un composant React par fichier ; sous-composants dans des fichiers frères.
-- Les artefacts générés restent hors de Git, sauf `apps/web/src/routeTree.gen.ts` et le client Prisma sous `packages/db/src/generated/` (le pipeline Cloudflare Builds en a besoin avant l'installation).
-- **Secrets** : jamais dans le dépôt. `.env.local` à la racine (ignoré), secrets Wrangler en production, hook de détection avant commit.
-- **Git — ne commit/push que sur demande explicite.** Applique les changements puis arrête-toi pour revue. Jamais `--force` ni `--no-verify`.
-- **`main` est la production et ne se touche pas en local.** Le travail va sur `staging` ou sur une branche qui en part ; `main` ne change que par la pull request `staging` → `main`, toujours fusionnée par un merge commit — celle qu'une release ouvre et fusionne, ou une à la main quand ni l'app ni l'agent ne changent. Il n'y a pas de staging en ligne : tout s'essaie en local. Les hooks refusent le commit et le push sur `main` (`scripts/assert-branch-writable.ts`, exception `PUPITRE_ALLOW_MAIN=1`). Voir [`docs/monorepo.md`](./docs/monorepo.md#branches).
-- Avant un commit : `bun run lint:fix`. Avant un push, le hook lance lint, typecheck et tests affectés.
-- Commits en Conventional Commits : `feat(desktop): écran d'inspection`.
+- **The rules that do not move** (see [`docs/architecture.md`](./docs/architecture.md)): the customer's server is the source of truth for what concerns it; no private key outside the customer's laptop; no inbound connection to the customer's server; nothing readable left on the server, only a binary and configuration files; the app stays usable for seven days without the platform.
+- **An update reinstalls nothing.** Any change to the shape of a configuration file — `/etc/pupitre` on the VPS, the app's files on the laptop — comes with a numbered migration in the matching registry, never a "the code will read both shapes". The rules and the procedure are in [`docs/contracts/config-migrations.md`](./docs/contracts/config-migrations.md), and the `config-migrations` skill applies them.
+- **Contract first.** Everything that crosses a boundary (app ↔ agent, app ↔ platform, console ↔ API) is typed in `packages/shared` before being implemented on both sides. An agent does not change a contract on the fly: it stops and flags it to the owner.
+- **Reuse before creating.** Look for an existing primitive (`components/ui`, `hooks`, `lib`) and extend it through a `variant`/prop rather than duplicating it.
+- **The design is enforced** by [`DESIGN.md`](./docs/product/DESIGN.md): monochrome, semantic tokens only, never a hard-coded colour, colour is only for state.
+- **No new shared package on the fly.** One is created when two workspaces really share a stable contract.
+- **Comments are in English.** Same rule as the rest (last resort, one line, never a banner).
+- **Demanding quality, no compromise.** Zero lint/typecheck errors, zero dead code, zero avoidable duplication, error handling only at real boundaries (user input, external API). A fix does not come with out-of-scope cleanup, but the code touched must come out flawless.
+- **Configuration externalized by default.** Any value that can vary between environments (URL, key, threshold, flag, delay) goes into an environment variable or into the existing shared configuration (`packages/shared`, `packages/design`) — never hard-coded in application code. That does not create a new shared package (rule above): extend what exists.
+- **A file is modified with the editing tools** (`Edit`, `Write`), never with `sed`, a heredoc or an ad hoc script: an edit that silently misses costs more than the tool call saved.
+- Outside `components/ui`, exactly one React component per file; sub-components in sibling files.
+- Generated artifacts stay out of Git, except `apps/web/src/routeTree.gen.ts` and the Prisma client under `packages/db/src/generated/` (the Cloudflare Builds pipeline needs them before installation).
+- **Secrets**: never in the repository. `.env.local` at the root (ignored), Wrangler secrets in production, detection hook before commit.
+- **Git — commit/push only on explicit request.** Apply the changes, then stop for review. Never `--force` nor `--no-verify`.
+- **`main` is production and is not touched locally.** Work goes on `staging` or on a branch that starts from it; `main` only changes through the `staging` → `main` pull request, always merged with a merge commit — the one a release opens and merges, or one by hand when neither the app nor the agent changes. There is no online staging: everything is tried locally. The hooks refuse commits and pushes on `main` (`scripts/assert-branch-writable.ts`, exception `PUPITRE_ALLOW_MAIN=1`). See [`docs/monorepo.md`](./docs/monorepo.md#branches).
+- Before a commit: `bun run lint:fix`. Before a push, the hook runs lint, typecheck and the affected tests.
+- Commit messages in English, Conventional Commits: `feat(desktop): inspection screen`.
 
-## Travailler
+## Working
 
-1. Lis ce fichier, le guide du workspace que tu touches, et les contrats concernés dans `docs/contracts/`.
-2. Écris d'abord les tests qui traduisent le comportement attendu, puis le code.
-3. Reste dans le périmètre demandé et dans ton workspace. Un besoin découvert ailleurs se signale au propriétaire, il ne se règle pas au passage.
-4. Lint, typecheck, tests verts, puis arrête-toi.
+1. Read this file, the guide of the workspace you touch, and the relevant contracts in `docs/contracts/`.
+2. First write the tests that express the expected behaviour, then the code.
+3. Stay within the requested scope and within your workspace. A need discovered elsewhere is flagged to the owner, not settled in passing.
+4. Lint, typecheck, tests green, then stop.
 
 ## External Configs
 
-Cloudflare Builds, D1, Stripe et les certificats de signature vivent dans des dashboards, hors du dépôt : garde [`docs/monorepo.md`](./docs/monorepo.md) synchronisé avec eux.
+Cloudflare Builds, D1, Stripe and the signing certificates live in dashboards, outside the repository: keep [`docs/monorepo.md`](./docs/monorepo.md) in sync with them.

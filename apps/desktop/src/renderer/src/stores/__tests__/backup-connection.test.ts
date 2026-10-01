@@ -30,8 +30,8 @@ beforeEach(() => {
   });
 });
 
-describe("la connexion des sauvegardes", () => {
-  it("lit ce que l'ordinateur tient et l'identité de l'organisation", async () => {
+describe("the backup connection", () => {
+  it("reads what the computer holds and the organization's identity", async () => {
     stubPupitre({
       backupConnection: () => Promise.resolve(null),
       backupIdentity: () =>
@@ -54,7 +54,7 @@ describe("la connexion des sauvegardes", () => {
     });
   });
 
-  it("envoie la phrase une fois, ne garde que ce que le main a gardé", async () => {
+  it("sends the phrase once, keeps only what main kept", async () => {
     let sent: BackupConnectionInput | null = null;
 
     stubPupitre({
@@ -90,7 +90,7 @@ describe("la connexion des sauvegardes", () => {
     expect(useConnections.getState().holds("backup")).toBe(true);
   });
 
-  it("garde le refus du main pour le formulaire", async () => {
+  it("keeps main's refusal for the form", async () => {
     stubPupitre({
       connectBackup: () =>
         Promise.resolve({
@@ -111,7 +111,7 @@ describe("la connexion des sauvegardes", () => {
     );
   });
 
-  it("rend la main quand le pont lève au lieu de répondre, plutôt que d'attendre sans fin", async () => {
+  it("gives control back when the bridge throws instead of answering, rather than waiting forever", async () => {
     stubPupitre({
       probeBackup: () =>
         Promise.reject(new Error("No handler registered for 'backup:probe'")),

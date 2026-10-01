@@ -44,7 +44,7 @@ async function seedThread(
   })
 }
 
-describe("la migration 0009 sur une base déjà remplie", () => {
+describe("migration 0009 on an already populated database", () => {
   let dir: string
   let client: Client
 
@@ -78,7 +78,7 @@ describe("la migration 0009 sur une base déjà remplie", () => {
     rmSync(dir, { force: true, recursive: true })
   })
 
-  it("range chaque fil dans la boîte de son adresse, et laisse les autres dehors", async () => {
+  it("files each thread in its address's mailbox, and leaves the others out", async () => {
     const rows = await client.execute(
       'SELECT "id", "mailboxId" FROM "MailThread" ORDER BY "id"'
     )
@@ -90,7 +90,7 @@ describe("la migration 0009 sur une base déjà remplie", () => {
     ])
   })
 
-  it("marque automatique le fil dont le dernier entrant l'était, et lui seul", async () => {
+  it("flags as automatic the thread whose last incoming message was, and only that one", async () => {
     const rows = await client.execute(
       'SELECT "id", "lastInboundAutomated" FROM "MailThread" ORDER BY "id"'
     )

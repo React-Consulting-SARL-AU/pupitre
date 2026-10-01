@@ -3,8 +3,8 @@ import { mount } from "../../__tests__/dom";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { SettingsAboutHelp } from "../settings/settings-about-help";
 
-describe("l'aide dans les réglages", () => {
-  it("mène à la documentation, au support et aux conditions, dans la langue de l'app", async () => {
+describe("help in the settings", () => {
+  it("leads to the documentation, support and terms, in the app's language", async () => {
     const opened: unknown[][] = [];
 
     stubPupitre({

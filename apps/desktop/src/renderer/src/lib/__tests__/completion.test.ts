@@ -35,7 +35,7 @@ const SOURCES = {
 };
 
 describe("split", () => {
-  it("ne regarde que la dernière commande de la ligne", () => {
+  it("looks only at the last command on the line", () => {
     expect(split("cd atlas && pupitred up ")).toMatchObject({
       position: 2,
       token: "",
@@ -45,11 +45,11 @@ describe("split", () => {
 });
 
 describe("propose", () => {
-  it("n'offre rien sur une ligne vide", () => {
+  it("offers nothing on an empty line", () => {
     expect(propose("   ", SOURCES, FR).candidates).toEqual([]);
   });
 
-  it("offre la commande de l'agent en première position", () => {
+  it("offers the agent's command in first position", () => {
     const { candidates } = propose("pup", SOURCES, FR);
 
     expect(candidates[0]).toMatchObject({
@@ -59,7 +59,7 @@ describe("propose", () => {
     });
   });
 
-  it("nomme ses propres suggestions dans la langue de l'app", () => {
+  it("names its own suggestions in the app's language", () => {
     expect(propose("pup", SOURCES, EN).candidates[0].help).toBe(
       "the agent's command"
     );
@@ -71,7 +71,7 @@ describe("propose", () => {
     ).toBe("process");
   });
 
-  it("offre les sous-commandes que la grammaire déclare", () => {
+  it("offers the subcommands the grammar declares", () => {
     const { candidates } = propose("pupitred ", SOURCES, FR);
 
     const grammar = candidates.filter((c) => c.kind === "argument");
@@ -80,7 +80,7 @@ describe("propose", () => {
     expect(grammar[0].help).toBe("démarre un projet");
   });
 
-  it("remplace $project par les projets que le serveur a nommés", () => {
+  it("replaces $project with the projects the server named", () => {
     const { candidates } = propose("pupitred up ", SOURCES, FR);
 
     const projects = candidates.filter((c) => c.kind === "argument");
@@ -89,7 +89,7 @@ describe("propose", () => {
     expect(projects[0].help).toBe("projet");
   });
 
-  it("remplace $process par les processus du projet tapé juste avant", () => {
+  it("replaces $process with the processes of the project typed just before", () => {
     const { candidates } = propose("pupitred logs flyleaf-api ", SOURCES, FR);
 
     const processes = candidates.filter((c) => c.kind === "argument");
@@ -103,19 +103,19 @@ describe("propose", () => {
     ).toEqual([]);
   });
 
-  it("offre les chemins que le serveur a listés quand le jeton en est un", () => {
+  it("offers the paths the server listed when the token is one", () => {
     const { candidates } = propose("cat src/", SOURCES, FR);
 
     expect(candidates.map((c) => c.text)).toContain("src/lib.ts");
   });
 
-  it("rend le reste de l'entrée d'historique qui commence comme la ligne", () => {
+  it("returns the rest of the history entry that starts like the line", () => {
     const { ghost } = propose("git st", SOURCES, FR);
 
     expect(ghost).toBe("atus");
   });
 
-  it("n'offre jamais le jeton déjà tapé", () => {
+  it("never offers the token already typed", () => {
     const { candidates } = propose("pupitred up flyleaf-api", SOURCES, FR);
 
     expect(candidates.map((c) => c.text)).not.toContain("flyleaf-api");
@@ -125,21 +125,21 @@ describe("propose", () => {
 describe("underRoot", () => {
   const ROOT = "/home/dev/projects";
 
-  it("rend le dossier demandé relatif à la racine des projets", () => {
+  it("returns the requested folder relative to the projects root", () => {
     expect(underRoot(ROOT, "/home/dev/projects/flyleaf", "api/")).toBe(
       "flyleaf/api"
     );
   });
 
-  it("rend une chaîne vide pour la racine elle-même", () => {
+  it("returns an empty string for the root itself", () => {
     expect(underRoot(ROOT, ROOT, "")).toBe("");
   });
 
-  it("suit un chemin absolu que le jeton donne", () => {
+  it("follows an absolute path given by the token", () => {
     expect(underRoot(ROOT, "/tmp", "/home/dev/projects/atlas/")).toBe("atlas");
   });
 
-  it("ne demande rien hors de la racine, ni par le dossier ni par un ..", () => {
+  it("asks for nothing outside the root, neither by folder nor by a ..", () => {
     expect(underRoot(ROOT, "/etc", "")).toBeNull();
     expect(
       underRoot(ROOT, "/home/dev/projects/flyleaf", "../../../")
@@ -148,13 +148,13 @@ describe("underRoot", () => {
 });
 
 describe("insertion", () => {
-  it("complète un dossier sans ajouter d'espace", () => {
+  it("completes a folder without adding a space", () => {
     expect(insertion({ kind: "path", text: "src/" }, "cat sr", "sr")).toBe(
       "c/"
     );
   });
 
-  it("remplace la ligne entière pour une entrée d'historique", () => {
+  it("replaces the whole line for a history entry", () => {
     expect(
       insertion({ kind: "history", text: "git status" }, "git st", "st")
     ).toBe("atus");

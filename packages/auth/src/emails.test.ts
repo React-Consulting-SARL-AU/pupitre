@@ -10,13 +10,31 @@ import {
 } from "./emails"
 
 const MAGIC_LINK =
+  "https://app.pupitre.studio/api/auth/magic-link/verify?token=abc123&callbackURL=%2Fdashboard"
+
+const LOCAL_MAGIC_LINK =
   "http://localhost:3000/api/auth/magic-link/verify?token=abc123&callbackURL=%2Fdashboard"
 
 describe("redactTokens", () => {
   it("hides token query values and nothing else", () => {
     expect(redactTokens(`open ${MAGIC_LINK} now`)).toBe(
-      "open http://localhost:3000/api/auth/magic-link/verify?token=[redacted]&callbackURL=%2Fdashboard now"
+      "open https://app.pupitre.studio/api/auth/magic-link/verify?token=[redacted]&callbackURL=%2Fdashboard now"
     )
+  })
+
+  it("keeps the token of a link to a console on this machine, the only way to sign in locally without mail", () => {
+    expect(redactTokens(`open ${LOCAL_MAGIC_LINK} now`)).toBe(
+      `open ${LOCAL_MAGIC_LINK} now`
+    )
+    expect(redactTokens("http://127.0.0.1:3000/verify?token=abc123")).toContain(
+      "token=abc123"
+    )
+  })
+
+  it("still hides a token on a host that only starts like localhost", () => {
+    expect(
+      redactTokens("https://localhost.attacker.example/verify?token=abc123")
+    ).toContain("token=[redacted]")
   })
 
   it("stops at the quote that closes an href", () => {
@@ -47,12 +65,12 @@ describe("createLoggingSendEmail", () => {
   })
 })
 
-describe("le port des gabarits", () => {
-  it("refuse de composer tant que personne ne l'a rempli", () => {
+describe("the template port", () => {
+  it("refuses to compose until someone has filled it", () => {
     expect(() => authEmailRenderer()).toThrow(AuthEmailsNotConfiguredError)
   })
 
-  it("rend le gabarit enregistré et retient l'expéditeur", async () => {
+  it("returns the registered template and remembers the sender", async () => {
     const sent: EmailMessage[] = []
 
     configureAuthEmails({

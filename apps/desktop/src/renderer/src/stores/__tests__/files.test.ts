@@ -208,8 +208,8 @@ beforeEach(() => {
   useFiles.getState().forget();
 });
 
-describe("le navigateur de fichiers", () => {
-  it("attache la racine d'un projet sous celle que l'agent nomme, et liste le dossier", async () => {
+describe("the file browser", () => {
+  it("attaches a project's root under the one the agent names, and lists the folder", async () => {
     const agent = await opened();
 
     expect(useFiles.getState().workRoot).toBe("/home/dev");
@@ -223,7 +223,7 @@ describe("le navigateur de fichiers", () => {
     ]);
   });
 
-  it("refuse un projet qui ne vit pas sous la racine de travail, sans deviner", async () => {
+  it("refuses a project that does not live under the working root, without guessing", async () => {
     agentOf({ calls: [] });
 
     await useFiles.getState().open(SERVER, "/srv/elsewhere");
@@ -235,7 +235,7 @@ describe("le navigateur de fichiers", () => {
     });
   });
 
-  it("ne pose un listing que sur le dossier demandé, jamais sur celui qu'on a quitté", async () => {
+  it("only sets a listing on the requested folder, never on the one that was left", async () => {
     let release: () => void = () => undefined;
     const held = new Promise<void>((resolve) => {
       release = resolve;
@@ -264,7 +264,7 @@ describe("le navigateur de fichiers", () => {
     });
   });
 
-  it("garde le refus d'un dossier absent avec son remède", async () => {
+  it("keeps the refusal of a missing folder with its fix", async () => {
     await opened();
 
     await useFiles.getState().browse(SERVER, "projects/nowhere");
@@ -280,8 +280,8 @@ describe("le navigateur de fichiers", () => {
   });
 });
 
-describe("l'aperçu d'un fichier", () => {
-  it("recolle les morceaux, vérifie l'empreinte et décode le texte", async () => {
+describe("the preview of a file", () => {
+  it("reassembles the chunks, checks the digest and decodes the text", async () => {
     await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
@@ -294,7 +294,7 @@ describe("l'aperçu d'un fichier", () => {
     });
   });
 
-  it("lit un SVG comme du texte, pour l'éditer comme pour le rendre", async () => {
+  it("reads an SVG as text, to edit it as well as to render it", async () => {
     await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/logo.svg");
@@ -306,7 +306,7 @@ describe("l'aperçu d'un fichier", () => {
     });
   });
 
-  it("ouvre chaque fichier sur sa forme rendue, et garde le code demandé jusqu'au suivant", async () => {
+  it("opens each file on its rendered form, and keeps the requested code until the next one", async () => {
     await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/README.md");
@@ -319,7 +319,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(useFiles.getState().view).toBe("rendered");
   });
 
-  it("refuse un fichier dont l'empreinte n'est pas celle du reçu", async () => {
+  it("refuses a file whose digest is not the one in the receipt", async () => {
     await opened({ calls: [], receipt: { sha256: "0".repeat(64) } });
 
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
@@ -330,7 +330,7 @@ describe("l'aperçu d'un fichier", () => {
     });
   });
 
-  it("montre la fiche d'un type que l'agent ne rend pas, sans le lire", async () => {
+  it("shows the card of a type the agent does not render, without reading it", async () => {
     const agent = await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/site.zip");
@@ -343,7 +343,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(calls(agent, "fs.read")).toHaveLength(0);
   });
 
-  it("garde le refus de l'agent quand la lecture est refusée avant d'avoir lieu", async () => {
+  it("keeps the agent's refusal when the read is refused before it happens", async () => {
     await opened();
 
     stubPupitre({
@@ -381,7 +381,7 @@ describe("l'aperçu d'un fichier", () => {
     });
   });
 
-  it("descend dans un dossier plutôt que de l'ouvrir à droite", async () => {
+  it("descends into a folder rather than opening it on the right", async () => {
     await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/src");
@@ -394,8 +394,8 @@ describe("l'aperçu d'un fichier", () => {
   });
 });
 
-describe("l'écriture d'un fichier", () => {
-  it("envoie l'empreinte lue et garde celle que l'agent rend pour la suivante", async () => {
+describe("writing a file", () => {
+  it("sends the digest read and keeps the one the agent returns for the next write", async () => {
     const agent = await opened();
     const read = await fingerprint(bytesOf(ENV));
 
@@ -422,7 +422,7 @@ describe("l'écriture d'un fichier", () => {
     expect(useFiles.getState().write).toMatchObject({ status: "written" });
   });
 
-  it("dit que le fichier a changé quand l'agent refuse et que l'empreinte sur le serveur diffère", async () => {
+  it("says the file changed when the agent refuses and the digest on the server differs", async () => {
     const agent: Agent = {
       calls: [],
       onServer: "c".repeat(64),
@@ -449,7 +449,7 @@ describe("l'écriture d'un fichier", () => {
     });
   });
 
-  it("garde un refus ordinaire comme un échec, pas comme un fichier changé", async () => {
+  it("keeps an ordinary refusal as a failure, not as a changed file", async () => {
     await opened({
       calls: [],
       onServer: await fingerprint(bytesOf(ENV)),
@@ -462,7 +462,7 @@ describe("l'écriture d'un fichier", () => {
     expect(useFiles.getState().write).toMatchObject({ status: "failed" });
   });
 
-  it("relire perd le tampon et reprend le texte du serveur", async () => {
+  it("rereading loses the buffer and takes the server's text again", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");
@@ -476,7 +476,7 @@ describe("l'écriture d'un fichier", () => {
     });
   });
 
-  it("retient un geste qui quitterait un tampon modifié jusqu'au mot du lecteur", async () => {
+  it("holds a gesture that would leave a modified buffer until the reader decides", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");
@@ -500,7 +500,7 @@ describe("l'écriture d'un fichier", () => {
     expect(useFiles.getState().draft).toBeNull();
   });
 
-  it("garde le tampon modifié d'une racine quand on passe à une autre, et le rend au retour", async () => {
+  it("keeps a root's modified buffer when moving to another, and returns it on the way back", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");
@@ -526,7 +526,7 @@ describe("l'écriture d'un fichier", () => {
     expect(useFiles.getState().leaving).toBeNull();
   });
 
-  it("garde le tampon modifié d'un serveur quand on en change, sans l'écrire sur l'autre", async () => {
+  it("keeps a server's modified buffer when switching servers, without writing it to the other", async () => {
     const agent = await opened();
 
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
@@ -546,7 +546,7 @@ describe("l'écriture d'un fichier", () => {
     expect(useFiles.getState().draft).toBe("PORT=3100\n");
   });
 
-  it("revient sur la même racine sans demander d'abandonner le tampon", async () => {
+  it("returns to the same root without asking to abandon the buffer", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");
@@ -558,8 +558,8 @@ describe("l'écriture d'un fichier", () => {
   });
 });
 
-describe("les gestes sur une entrée", () => {
-  it("renomme dans le même dossier puis relit celui-ci", async () => {
+describe("gestures on an entry", () => {
+  it("renames within the same folder then rereads it", async () => {
     const agent = await opened();
 
     await useFiles
@@ -572,7 +572,7 @@ describe("les gestes sur une entrée", () => {
     expect(calls(agent, "fs.list")).toHaveLength(2);
   });
 
-  it("rend le refus d'un renommage au geste qui l'a demandé, sans rien relire", async () => {
+  it("returns a rename refusal to the gesture that asked for it, without rereading anything", async () => {
     const agent = await opened({
       calls: [],
       rename: () => refused("entrée déjà présente : projects/atlas/src"),
@@ -595,7 +595,7 @@ describe("les gestes sur une entrée", () => {
     ).toBeNull();
   });
 
-  it("suit un fichier ouvert qui vient d'être renommé", async () => {
+  it("follows an open file that was just renamed", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
 
@@ -607,7 +607,7 @@ describe("les gestes sur une entrée", () => {
     });
   });
 
-  it("garde le refus d'un dossier non vide sur l'entrée, puis supprime avec recursive", async () => {
+  it("keeps the refusal of a non-empty folder on the entry, then removes with recursive", async () => {
     const agent = await opened({ calls: [], held: 4 });
 
     await useFiles.getState().remove(SERVER, "projects/atlas/src");
@@ -630,7 +630,7 @@ describe("les gestes sur une entrée", () => {
     expect(calls(agent, "fs.list")).toHaveLength(2);
   });
 
-  it("ferme le fichier ouvert quand son dossier part, et relit", async () => {
+  it("closes the open file when its folder goes, and rereads", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/src/index.ts");
     await useFiles.getState().browse(SERVER, "projects/atlas");
@@ -640,7 +640,7 @@ describe("les gestes sur une entrée", () => {
     expect(useFiles.getState().preview).toMatchObject({ status: "idle" });
   });
 
-  it("crée un dossier dans celui qui est à l'écran et relit", async () => {
+  it("creates a folder inside the one on screen and rereads", async () => {
     const agent = await opened();
 
     await useFiles.getState().makeFolder(SERVER, "docs");
@@ -651,7 +651,7 @@ describe("les gestes sur une entrée", () => {
     expect(calls(agent, "fs.list")).toHaveLength(2);
   });
 
-  it("crée un fichier vide sans empreinte, relit le dossier et l'ouvre", async () => {
+  it("creates an empty file without a digest, rereads the folder and opens it", async () => {
     const agent = await opened();
 
     await useFiles.getState().makeFile(SERVER, "notes.md");
@@ -668,7 +668,7 @@ describe("les gestes sur une entrée", () => {
     expect(useFiles.getState().problem).toBeNull();
   });
 
-  it("montre le refus d'un fichier qui existe déjà et garde ce qui est ouvert", async () => {
+  it("shows the refusal of a file that already exists and keeps what is open", async () => {
     const agent = await opened({
       calls: [],
       write: () =>
@@ -689,7 +689,7 @@ describe("les gestes sur une entrée", () => {
     expect(calls(agent, "fs.list")).toHaveLength(1);
   });
 
-  it("crée le fichier mais laisse le tampon modifié à l'écran", async () => {
+  it("creates the file but leaves the modified buffer on screen", async () => {
     await opened();
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");

@@ -1,116 +1,116 @@
-# Un faux VPS dans Docker
+# A fake VPS in Docker
 
-Une machine Ubuntu 24.04 sous systemd, jointe en SSH sur le port 2222, qui tient lieu de VPS de test.
+An Ubuntu 24.04 machine under systemd, reached over SSH on port 2222, standing in for a test VPS.
 
-**Elle tourne sur le Mac.** C'est la boucle courte : le conteneur est sur la même machine que l'app,
-joint par `127.0.0.1`, sans réseau local, sans pare-feu à ouvrir et sans adresse qui change de café en
-café. Le PC Windows garde une raison d'exister — il est `amd64`, le Mac est `arm64` — mais c'est un
-contrôle avant une release, pas le geste de tous les jours.
+**It runs on the Mac.** This is the short loop: the container is on the same machine as the app,
+reached through `127.0.0.1`, with no local network, no firewall to open and no address that changes from
+café to café. The Windows PC keeps a reason to exist — it is `amd64`, the Mac is `arm64` — but it is a
+check before a release, not the everyday gesture.
 
-**Root ouvre avec un mot de passe**, comme une machine qu'on vient de louer : l'app le demande une fois,
-pose sa propre clé sur cette session, et tout ce qui suit se joue comme sur un vrai VPS. `core.hardening`
-est ce qui referme la porte, et c'est justement l'étape que ce banc sert à éprouver.
+**Root opens with a password**, like a machine you have just rented: the app asks for it once,
+places its own key on that session, and everything that follows plays out as on a real VPS. `core.hardening`
+is what closes the door again, and it is precisely the step this bench is there to exercise.
 
-L'image sait aussi n'exiger **rien du tout** — `ROOT_PASSWORD` vide, `PermitEmptyPasswords yes` —, ce qui
-est pratique pour un `ssh` à la main. Ce n'est pas le bon réglage pour l'onboarding : l'app constate que
-la machine s'ouvre déjà et n'installe donc pas sa clé, si bien que le durcissement refuse de fermer root,
-faute de clé qui ouvre `dev`. Le mot de passe est le réglage par défaut pour cette raison.
+The image can also require **nothing at all** — empty `ROOT_PASSWORD`, `PermitEmptyPasswords yes` —, which
+is handy for a manual `ssh`. It is not the right setting for onboarding: the app notices that
+the machine already opens and therefore does not install its key, so hardening refuses to close root,
+for lack of a key that opens `dev`. The password is the default setting for that reason.
 
-**L'identité de la machine survit à une reconstruction.** Les clés d'hôte vivent sur un volume, pas dans
-l'image : `docker compose up --build` rend à l'app le même serveur, pas un inconnu. Seul `down -v` fait
-une machine neuve — et l'app demandera alors de confirmer la réinstallation, ce qui est le bon geste.
+**The machine's identity survives a rebuild.** The host keys live on a volume, not in the
+image: `docker compose up --build` gives the app back the same server, not a stranger. Only `down -v` makes
+a new machine — and the app will then ask to confirm the reinstallation, which is the right gesture.
 
-## Sur le MacBook
+## On the MacBook
 
-Il faut un runtime de conteneurs. **OrbStack** est le plus léger sur un Mac Apple silicon et fournit
-`docker` et `docker compose` :
+You need a container runtime. **OrbStack** is the lightest on an Apple silicon Mac and provides
+`docker` and `docker compose`:
 
 ```bash
 brew install --cask orbstack
 ```
 
-Docker Desktop fait la même chose, en plus lourd. Puis, depuis le dépôt :
+Docker Desktop does the same thing, only heavier. Then, from the repository:
 
 ```bash
 cd apps/agent/test/vps
 docker compose up -d --build
 ```
 
-C'est tout : le port `2222` répond sur `127.0.0.1`, il n'y a ni règle de pare-feu à poser ni adresse à
-relever.
+That is all: port `2222` answers on `127.0.0.1`, there is no firewall rule to set and no address to
+look up.
 
-## Depuis l'app desktop
+## From the desktop app
 
-Ajoute le serveur avec l'hôte `127.0.0.1`, le port `2222` et le compte `root`. L'app demande le mot de
-passe — `pupitre` — une seule fois, pose sa clé, et enchaîne.
+Add the server with the host `127.0.0.1`, port `2222` and account `root`. The app asks for the
+password — `pupitre` — once, places its key, and carries on.
 
-## Sur le PC Windows, pour l'amd64
+## On the Windows PC, for amd64
 
-Docker Desktop installé, backend WSL2.
+Docker Desktop installed, WSL2 backend.
 
-1. Copie ce dossier sur le PC.
-2. Dans le dossier, en PowerShell :
+1. Copy this folder to the PC.
+2. In the folder, in PowerShell:
 
    ```powershell
    docker compose up -d --build
    ```
 
-3. Ouvre le port sur le réseau local, en PowerShell administrateur, une fois pour toutes :
+3. Open the port on the local network, in an administrator PowerShell, once and for all:
 
    ```powershell
-   New-NetFirewallRule -DisplayName "Pupitre VPS de test" -Direction Inbound -Protocol TCP -LocalPort 2222 -Action Allow -Profile Private
+   New-NetFirewallRule -DisplayName "Pupitre test VPS" -Direction Inbound -Protocol TCP -LocalPort 2222 -Action Allow -Profile Private
    ```
 
-   Le profil du réseau Wi-Fi doit être `Private` : `Get-NetConnectionProfile`.
+   The Wi-Fi network's profile must be `Private`: `Get-NetConnectionProfile`.
 
-4. Relève l'adresse locale du PC : `ipconfig` → « Adresse IPv4 » de la carte utilisée, et donne-la à
-   l'app à la place de `127.0.0.1`.
+4. Look up the PC's local address: `ipconfig` → "IPv4 Address" of the adapter in use, and give it to
+   the app in place of `127.0.0.1`.
 
-## Si l'app dit « répond, mais ce n'est pas un accès SSH »
+## If the app says "answers, but it is not an SSH access"
 
-Le port accepte la connexion et la coupe aussitôt : c'est le proxy de Docker qui répond, sans rien
-derrière lui. `sshd` ne tourne donc pas dans le conteneur. Ce que ça dit :
+The port accepts the connection and cuts it immediately: it is Docker's proxy answering, with nothing
+behind it. So `sshd` is not running in the container. What says so:
 
 ```bash
 docker compose exec vps systemctl status ssh.service --no-pager
-ssh -p 2222 root@127.0.0.1 true          # « Connection reset » quand rien n'écoute
+ssh -p 2222 root@127.0.0.1 true          # "Connection reset" when nothing is listening
 ```
 
-L'image fait tourner `sshd` de plein droit plutôt que par activation de socket, précisément pour cette
-raison : `ssh.socket` ne montait pas dans ce conteneur, et rien ne le disait. Un `ssh.service` inactif
-après un `up` est le signe qu'il faut reconstruire — `docker compose up -d --build`.
+The image runs `sshd` as a regular service rather than through socket activation, precisely for this
+reason: `ssh.socket` did not come up in this container, and nothing said so. An inactive `ssh.service`
+after an `up` is the sign that a rebuild is needed — `docker compose up -d --build`.
 
-## Depuis le terminal
+## From the terminal
 
-Pour pousser un binaire de développement ou jouer les tests d'intégration, une clé évite de retaper le
-mot de passe à chaque commande. Déclare la tienne au build :
+To push a development binary or run the integration tests, a key avoids retyping the
+password for every command. Declare yours at build time:
 
 ```bash
 export PUPITRE_VPS_KEY="$(cat ~/.ssh/id_ed25519.pub)"
 docker compose up -d --build
 ```
 
-Puis, sur le Mac :
+Then, on the Mac:
 
 ```bash
 export VPS=root@127.0.0.1
-ssh -p 2222 $VPS true                 # répond sans rien demander
+ssh -p 2222 $VPS true                 # answers without asking for anything
 
 bun --cwd=apps/agent run build:dev:linux-arm64
 ssh -p 2222 $VPS 'install -m 755 /dev/stdin /usr/local/bin/pupitred' < apps/agent/dist/dev/pupitred-linux-arm64
 ssh -p 2222 $VPS pupitred install --only=runtime.node,ai.claude
 ```
 
-Le build `dev` embarque une licence : ni jeton ni plateforme. Sur le PC, `build:dev` et
-`pupitred-linux-amd64`, avec l'adresse relevée à la place de `127.0.0.1`.
+The `dev` build embeds a licence: no token and no platform. On the PC, `build:dev` and
+`pupitred-linux-amd64`, with the address you looked up in place of `127.0.0.1`.
 
-Tests d'intégration :
+Integration tests:
 
 ```bash
 PUPITRE_STAGING_HOST="root@127.0.0.1" go test -tags staging ./test/staging/...
 ```
 
-Le harnais appelle `ssh` sans `-p` : déclare le port dans `~/.ssh/config`.
+The harness calls `ssh` without `-p`: declare the port in `~/.ssh/config`.
 
 ```sshconfig
 Host 127.0.0.1
@@ -118,69 +118,69 @@ Host 127.0.0.1
   User root
 ```
 
-## Une machine qui n'exige rien
+## A machine that requires nothing
 
-Pour un `ssh` à la main, l'image sait ouvrir sans clé ni mot de passe :
+For a manual `ssh`, the image can open without a key or a password:
 
 ```bash
 docker compose build --build-arg ROOT_PASSWORD=
 docker compose up -d
 ```
 
-`sshd` remet alors le mot de passe vide à PAM, qui ne l'accepte que si `pam_unix` porte `nullok` —
-l'image l'y met, et deux commandes le disent :
+`sshd` then hands the empty password to PAM, which only accepts it if `pam_unix` carries `nullok` —
+the image puts it there, and two commands say so:
 
 ```bash
-docker compose exec vps sshd -T | grep -i permitemptypasswords   # doit dire yes
-docker compose exec vps grep nullok /etc/pam.d/common-auth       # doit répondre
+docker compose exec vps sshd -T | grep -i permitemptypasswords   # must say yes
+docker compose exec vps grep nullok /etc/pam.d/common-auth       # must answer
 ```
 
-À ne pas utiliser pour l'onboarding : l'app voit une machine qui s'ouvre déjà, n'installe donc pas sa
-clé, et le durcissement refuse ensuite de fermer root faute de clé qui ouvre `dev`.
+Not to be used for onboarding: the app sees a machine that already opens, therefore does not install its
+key, and hardening then refuses to close root for lack of a key that opens `dev`.
 
-## L'architecture
+## The architecture
 
-Un Mac teste `arm64`, jamais `amd64`. Un module qui télécharge un binaire par architecture — mise,
-Claude Code, les éditeurs — n'est donc éprouvé que pour l'une des deux dans la boucle courte. Le PC
-Windows tranche l'autre, et le VPS de staging, `amd64`, tranche avant une release.
+A Mac tests `arm64`, never `amd64`. A module that downloads one binary per architecture — mise,
+Claude Code, the editors — is therefore only exercised for one of the two in the short loop. The Windows
+PC settles the other, and the `amd64` staging VPS settles it before a release.
 
-## La sonde doit voir une machine vierge
+## The probe must see a blank machine
 
-Deux détails la feraient conclure « serveur déjà utilisé », et aucun ne dit quoi que ce soit du vrai serveur :
+Two details would make it conclude "server already in use", and neither says anything about the real server:
 
-- `/var/lib/docker` la convainc que Docker est là. D'où l'absence de volume nommé sur ce chemin.
-- L'image `ubuntu:24.04` livre un compte `ubuntu` en UID 1000, qu'elle compte comme compte non système. D'où le `userdel`.
+- `/var/lib/docker` convinces it that Docker is there. Hence the absence of a named volume on that path.
+- The `ubuntu:24.04` image ships an `ubuntu` account at UID 1000, which it counts as a non-system account. Hence the `userdel`.
 
-Si le verdict reste `in_use`, `pupitred probe` sur la machine dit ce qu'elle a vu.
+If the verdict stays `in_use`, `pupitred probe` on the machine says what it saw.
 
-## Remise à zéro
+## Reset
 
-Deux gestes, et ils ne disent pas la même chose à l'app.
+Two gestures, and they do not say the same thing to the app.
 
 ```bash
-docker compose down            # la machine repart à zéro, avec la même identité
+docker compose down            # the machine starts from zero, with the same identity
 docker compose up -d --build
 ```
 
 ```bash
-docker compose down -v         # une autre machine : nouvelles clés d'hôte
+docker compose down -v         # another machine: new host keys
 docker compose up -d --build
 ```
 
-Après le second, l'app refuse la connexion — elle avait épinglé l'empreinte de la précédente, et ne
-sait pas distinguer une réinstallation de quelqu'un qui répondrait à sa place. Réglages › Serveurs,
-avec ce serveur actif : le bandeau compare les deux empreintes, et **« J'ai réinstallé ce serveur »**
-réépingle la nouvelle. C'est le comportement voulu ; le premier geste évite d'y passer à chaque fois.
+After the second, the app refuses the connection — it had pinned the fingerprint of the previous one, and
+cannot tell a reinstallation from someone answering in its place. Settings › Servers,
+with this server active: the banner compares the two fingerprints, and **"I reinstalled this server"**
+pins the new one again. That is the intended behaviour; the first gesture avoids going through it every time.
 
-## Ce que cette machine ne reproduit pas
+## What this machine does not reproduce
 
-- `create-swap` échoue — pas de swap dans un conteneur. L'étape se contente d'un avertissement.
-- `ufw` et `fail2ban` s'installent, mais filtrent le réseau du conteneur, pas celui d'un vrai VPS.
-- Le noyau est celui de la machine virtuelle qui porte Docker — WSL2 sur le PC, la VM d'OrbStack ou de Docker Desktop sur le Mac — et il est partagé : `sysctl` s'applique à elle tout entière.
-- Pas d'adresse publique : les tunnels Cloudflare sortants marchent, une exposition par DNS public non.
-- Redémarrer la machine, c'est `docker compose restart`, pas un vrai `reboot`.
-- Le module `runtime.docker` s'installe, mais son stockage tombe sur `vfs` : le noyau refuse overlay2 au-dessus de l'overlay du conteneur. Lent, et rien à voir avec un vrai VPS.
-- `runtime.rust` échoue : `/tmp` est monté `noexec` (tmpfs du conteneur), et `rustup-init` s'extrait dans `/tmp` puis s'y exécute. Un vrai VPS a un `/tmp` exécutable et l'installe sans broncher.
-- `db.*` en bloc sature le stockage `vfs` (30 min, échecs d'apt sous la contention) alors que chaque base seule s'installe très bien ; le `snapshot` à dix projets dépasse de quelques millisecondes son budget de 300 ms, le temps de la virtualisation OrbStack. Les deux passent sur un vrai VPS.
+- `create-swap` fails — no swap in a container. The step settles for a warning.
+- `ufw` and `fail2ban` install, but filter the container's network, not that of a real VPS.
+- The kernel is that of the virtual machine carrying Docker — WSL2 on the PC, the OrbStack or Docker Desktop VM on the Mac — and it is shared: `sysctl` applies to all of it.
+- No public address: outbound Cloudflare tunnels work, exposure through public DNS does not.
+- Restarting the machine is `docker compose restart`, not a real `reboot`.
+- The `runtime.docker` module installs, but its storage falls back to `vfs`: the kernel refuses overlay2 on top of the container's overlay. Slow, and nothing like a real VPS.
+- `runtime.rust` fails: `/tmp` is mounted `noexec` (the container's tmpfs), and `rustup-init` extracts into `/tmp` and then runs from there. A real VPS has an executable `/tmp` and installs it without a hitch.
+- `db.*` all at once saturates the `vfs` storage (30 min, apt failures under contention) whereas each database installs just fine on its own; the ten-project `snapshot` exceeds its 300 ms budget by a few milliseconds, the cost of OrbStack's virtualization. Both pass on a real VPS.
 
-Pour ce que cette liste couvre, un vrai VPS de staging reste le juge.
+For what this list covers, a real staging VPS remains the judge.

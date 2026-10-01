@@ -1,67 +1,67 @@
 ---
 name: config-migrations
-description: "Faire passer une configuration d'une version à la suivante sans réinstaller — registre numéroté de l'agent dans `apps/agent/internal/migrate/migrations.go` et des fichiers de l'app dans `apps/desktop/src/main/*-migrations.ts`, `Touches`, JSON brut plutôt qu'un type d'aujourd'hui, idempotence, sauvegarde et remise en l'état, `agent.migrate`, `pupitred migrate`, refus `migration_required`. À utiliser dès qu'on renomme un champ, scinde un module, change une valeur par défaut ou touche à la forme d'un fichier que l'agent ou l'app relit."
+description: "Carry a configuration from one version to the next without reinstalling — the agent's numbered registry in `apps/agent/internal/migrate/migrations.go` and the app files' registries in `apps/desktop/src/main/*-migrations.ts`, `Touches`, raw JSON rather than today's type, idempotence, backup and restoration, `agent.migrate`, `pupitred migrate`, `migration_required` refusal. Use whenever a field is renamed, a module is split, a default value is changed, or the shape of a file that the agent or the app rereads is touched."
 ---
 
-# Migrations de configuration
+# Configuration migrations
 
-Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app se met à jour, et les fichiers qu'ils lisent restent là où ils sont. **Un binaire ne lit jamais une configuration qu'il n'a pas migrée** — c'est la règle, et ce skill dit ce qu'il en coûte de la tenir.
+An update reinstalls nothing. The agent's binary is replaced, the app updates itself, and the files they read stay where they are. **A binary never reads a configuration it has not migrated** — that is the rule, and this skill says what it costs to keep it.
 
-Contrat de référence : [`docs/contracts/config-migrations.md`](../../../docs/contracts/config-migrations.md). Le lire avant d'écrire.
+Reference contract: [`docs/contracts/config-migrations.md`](../../../docs/contracts/config-migrations.md). Read it before writing.
 
-## Quand ce skill s'applique
+## When this skill applies
 
-Dès qu'un changement touche la **forme** de ce qui est déjà écrit sur une machine ou un laptop :
+Whenever a change touches the **shape** of what is already written on a machine or a laptop:
 
-- un champ de manifeste renommé, supprimé, ou dont le type change — les valeurs sont dans `install.json` ;
-- un identifiant de module qui bouge, un module scindé en deux, deux modules fusionnés ;
-- une valeur par défaut qui change de sens (pas qui change de valeur : un défaut est appliqué à la lecture, il ne se migre pas) ;
-- une clé de `/etc/pupitre/env` renommée ;
-- un champ ajouté, retiré ou déplacé dans `projects.local.json` ;
-- un champ de `servers.json`, `account.json`, `transfers.json`, `forwards.json` ou `preferences.json` côté app.
+- a manifest field renamed, removed, or whose type changes — the values are in `install.json`;
+- a module identifier that moves, a module split in two, two modules merged;
+- a default value that changes meaning (not that changes value: a default is applied on read, it is not migrated);
+- a key of `/etc/pupitre/env` renamed;
+- a field added, removed or moved in `projects.local.json`;
+- a field of `servers.json`, `account.json`, `transfers.json`, `forwards.json` or `preferences.json` on the app side.
 
-Ce skill **ne** s'applique **pas** à :
+This skill does **not** apply to:
 
-| Cas | Où ça se règle |
+| Case | Where it is settled |
 | --- | --- |
-| Un fichier qu'un module écrit (Caddy, unité systemd, conf d'un service) | l'`Upgrade` de ce module, qui le réécrit depuis ses valeurs |
-| Le schéma de la base de la plateforme | migrations Prisma, `bun run db:migrate` |
-| Un champ **ajouté** à un résultat du protocole | rien : le contrat le permet, l'app le lit optionnel |
-| Un champ retiré ou renommé **dans le protocole** | la feuille de compatibilité (`packages/shared/src/compat`) et l'entier `protocol` |
+| A file a module writes (Caddy, systemd unit, a service's conf) | that module's `Upgrade`, which rewrites it from its values |
+| The platform database schema | Prisma migrations, `bun run db:migrate` |
+| A field **added** to a protocol result | nothing: the contract allows it, the app reads it as optional |
+| A field removed or renamed **in the protocol** | the compatibility sheet (`packages/shared/src/compat`) and the `protocol` integer |
 
-Un changement peut appeler les deux : renommer un champ dans le manifeste **et** dans le protocole. Ce sont deux gestes distincts, dans deux registres distincts.
+A change can call for both: renaming a field in the manifest **and** in the protocol. These are two distinct gestures, in two distinct registries.
 
-## Fichiers gouvernés
+## Governed files
 
-| Fichier | Rôle |
+| File | Role |
 | --- | --- |
-| `apps/agent/internal/migrate/migrations.go` | la liste des migrations de l'agent, dans l'ordre |
-| `apps/agent/internal/migrate/migrate.go` | le moteur : révision, verrou, lot, remise en l'état |
-| `apps/agent/internal/migrate/paths.go` | les `Target` et leur résolution |
-| `apps/agent/internal/migrate/migrate_test.go` | les tests du moteur ; un test par migration s'y ajoute |
-| `apps/agent/internal/i18n/catalog_migrate.go` | toutes les phrases de la migration, FR et EN |
-| `apps/desktop/src/main/store-migrations.ts` | le moteur côté app |
-| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts` | les listes, un fichier par store ; un store nouveau ajoute le sien ici |
+| `apps/agent/internal/migrate/migrations.go` | the agent's list of migrations, in order |
+| `apps/agent/internal/migrate/migrate.go` | the engine: revision, lock, batch, restoration |
+| `apps/agent/internal/migrate/paths.go` | the `Target`s and their resolution |
+| `apps/agent/internal/migrate/migrate_test.go` | the engine's tests; one test per migration is added there |
+| `apps/agent/internal/i18n/catalog_migrate.go` | all the migration's sentences, FR and EN |
+| `apps/desktop/src/main/store-migrations.ts` | the engine on the app side |
+| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts` | the lists, one file per store; a new store adds its own here |
 | `packages/shared/src/agent-protocol/migrate.ts` | `ConfigRevision`, `AgentMigrateResult` |
-| `docs/contracts/config-migrations.md` | le contrat |
+| `docs/contracts/config-migrations.md` | the contract |
 
-## Les cinq règles
+## The five rules
 
-Elles ne se négocient pas.
+They are not negotiable.
 
-1. **Idempotente.** Rejouée sur une machine déjà migrée, elle ne change rien. C'est ce qui rend sûre une reprise après coupure.
-2. **Sans effet sur un fichier absent.** `ctx.JSON` rend `present == false` : on rend `nil` et on s'arrête.
-3. **Du JSON brut, jamais un type d'aujourd'hui.** `map[string]any` côté Go, `JsonObject` côté app. Décoder dans la structure du moment ferait tomber au passage tout champ qu'elle ne nomme plus — précisément ce que la migration existe pour porter. Un test le vérifie.
-4. **L'identifiant est fixé pour toujours.** C'est ce que la machine retient. On n'en supprime pas, on n'en réordonne pas, on n'en renumérote pas : on en ajoute.
-5. **Elle ne touche que ce qu'elle déclare.** `Touches` est ce qui est sauvegardé avant le lot, donc ce qui peut être remis. Un fichier écrit sans être déclaré ne revient pas.
+1. **Idempotent.** Replayed on an already migrated machine, it changes nothing. This is what makes a resume after an interruption safe.
+2. **No effect on an absent file.** `ctx.JSON` returns `present == false`: return `nil` and stop.
+3. **Raw JSON, never today's type.** `map[string]any` on the Go side, `JsonObject` on the app side. Decoding into the current structure would drop on the way any field it no longer names — precisely what the migration exists to carry. A test checks it.
+4. **The identifier is fixed forever.** It is what the machine remembers. None is removed, none is reordered, none is renumbered: they are added.
+5. **It only touches what it declares.** `Touches` is what is backed up before the batch, hence what can be restored. A file written without being declared does not come back.
 
-## Écrire une migration de l'agent
+## Writing an agent migration
 
-### 1. Le numéro
+### 1. The number
 
-Le suivant dans `All()`. Jamais un trou, jamais un numéro repris. `Since` porte la version de l'agent qui la publie — documentation seule, rien n'en dépend.
+The next one in `All()`. Never a gap, never a reused number. `Since` carries the agent version that publishes it — documentation only, nothing depends on it.
 
-### 2. Le fichier
+### 2. The file
 
 ```go
 // apps/agent/internal/migrate/migrations.go
@@ -100,13 +100,13 @@ func renameTimezone(ctx *Context) error {
 }
 ```
 
-Les cibles : `TargetInstall` (`install.json`), `TargetEnv` (`env`), `TargetProjects` (`projects.local.json`), `TargetProjectsConf` (`projects.local.conf`, la forme d'avant la révision 1, que seule la migration 1 lit), `TargetLicense` (`/var/lib/pupitre/license.json`, le cache de licence, sous `PUPITRE_LICENSE_PATH`) et `TargetEntitlement` (`entitlement.json` à côté, sa forme d'avant 2.0.0, que seule la migration 8 lit). Une cible non déclarée se résout sous `/etc/pupitre` par son nom — utile pour un marqueur, à n'employer que si le fichier appartient vraiment au registre et non à un module.
+The targets: `TargetInstall` (`install.json`), `TargetEnv` (`env`), `TargetProjects` (`projects.local.json`), `TargetProjectsConf` (`projects.local.conf`, the shape from before revision 1, which only migration 1 reads), `TargetLicense` (`/var/lib/pupitre/license.json`, the licence cache, under `PUPITRE_LICENSE_PATH`) and `TargetEntitlement` (`entitlement.json` next to it, its shape from before 2.0.0, which only migration 8 reads). An undeclared target resolves under `/etc/pupitre` by its name — useful for a marker, to be used only if the file truly belongs to the registry and not to a module.
 
-Les helpers du `Context` : `JSON`/`SetJSON` pour un document, `Lines`/`SetLines` pour un fichier en lignes, `Read`/`Write` pour des octets, `Exists`, `Remove`, `Logf`.
+The `Context` helpers: `JSON`/`SetJSON` for a document, `Lines`/`SetLines` for a file in lines, `Read`/`Write` for bytes, `Exists`, `Remove`, `Logf`.
 
-### 3. Le test
+### 3. The test
 
-Dans `migrate_test.go`, trois assertions au minimum :
+In `migrate_test.go`, three assertions at least:
 
 ```go
 func TestRenameTimezoneCarriesTheValueOver(t *testing.T) {
@@ -117,19 +117,19 @@ func TestRenameTimezoneCarriesTheValueOver(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	// la valeur est portée…
-	// …le champ que le code d'aujourd'hui ne nomme plus est encore là…
-	// …et un second passage ne change rien.
+	// the value is carried over…
+	// …the field that today's code no longer names is still there…
+	// …and a second pass changes nothing.
 }
 ```
 
-Le troisième point n'est pas décoratif : c'est l'idempotence, et c'est ce qui casse en premier quand une migration est écrite en pensant à une seule machine.
+The third point is not decorative: it is idempotence, and it is what breaks first when a migration is written with a single machine in mind.
 
-### 4. Les phrases
+### 4. The sentences
 
-Toute phrase visible passe par `internal/i18n/catalog_migrate.go`, FR et EN, ni l'une ni l'autre vide. Une migration n'a normalement rien à dire : son message d'erreur, s'il y en a un, doit nommer le fichier et ce qui n'y était pas.
+Every visible sentence goes through `internal/i18n/catalog_migrate.go`, FR and EN, neither empty. A migration normally has nothing to say: its error message, if there is one, must name the file and what was not in it.
 
-## Écrire une migration de l'app
+## Writing an app migration
 
 ```ts
 // apps/desktop/src/main/servers-migrations.ts
@@ -149,25 +149,25 @@ export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
 ];
 ```
 
-Mêmes règles. `migrate()` estampille le document à la révision attendue, `keepCopy()` garde le fichier d'avant sous `<fichier>.r<révision>`, et un fichier écrit par une version plus récente de l'app n'est **jamais** réécrit — le rejouer ne le réparerait pas et priverait le lecteur de la version qui, elle, le lit.
+Same rules. `migrate()` stamps the document at the expected revision, `keepCopy()` keeps the previous file under `<file>.r<revision>`, and a file written by a newer version of the app is **never** rewritten — replaying would not repair it and would deprive the reader of the version that does read it.
 
-Le test va dans `src/main/__tests__/store-migrations.test.ts`.
+The test goes in `src/main/__tests__/store-migrations.test.ts`.
 
-## Ce que le moteur fait autour
+## What the engine does around it
 
-À savoir, pour ne pas le refaire à la main :
+To know, so as not to redo it by hand:
 
-- **L'agent migre tout seul** au démarrage de `serve` et de `daemon`, avant de servir la première commande. Le chemin rapide ne prend aucun verrou.
-- **Le lot est une transaction** : sauvegarde des cibles et du registre avant, remise en l'état complète si une migration refuse.
-- **Le registre est écrit après chaque migration**, pas après le lot : une coupure de courant laisse une machine d'accord avec elle-même.
-- **Une machine jamais configurée est estampillée à la révision courante** sans que rien ne tourne.
-- **Un serveur en retard refuse** tout ce qui lit ou écrit une configuration, en `migration_required`, et laisse ouvertes la vue de la machine et les sorties (`MIGRATION_COMMANDS`).
+- **The agent migrates by itself** at the start of `serve` and `daemon`, before serving the first command. The fast path takes no lock.
+- **The batch is a transaction**: backup of the targets and the registry before, full restoration if a migration refuses.
+- **The registry is written after each migration**, not after the batch: a power cut leaves a machine consistent with itself.
+- **A machine never configured is stamped at the current revision** without anything running.
+- **A lagging server refuses** everything that reads or writes a configuration, with `migration_required`, and leaves the machine's view and the exits open (`MIGRATION_COMMANDS`).
 
-## L'ordre d'une mise à jour, côté app
+## The order of an update, app side
 
-`runAgentUpgrade` fait, dans cet ordre : `agent.upgrade` → **fermeture du canal** (le `serve` qui répond tient encore l'ancien binaire, remplacé par un `rename`) → `agent.migrate` → `upgrade` sur les modules. Ne pas réordonner, ne pas retirer la fermeture.
+`runAgentUpgrade` does, in this order: `agent.upgrade` → **channel closing** (the `serve` that answers still holds the old binary, replaced by a `rename`) → `agent.migrate` → `upgrade` on the modules. Do not reorder, do not remove the closing.
 
-## Vérifier
+## Verifying
 
 ```bash
 bun run contracts:export
@@ -181,18 +181,18 @@ cd apps/agent && go test ./internal/migrate/ ./internal/protocol/ ./cmd/... && b
 bun --cwd=apps/desktop run test && bun --cwd=apps/desktop run build
 ```
 
-Sur le faux VPS (`apps/agent/test/vps`) ou sur le VPS de staging, la vérification qui compte :
+On the fake VPS (`apps/agent/test/vps`) or on the staging VPS, the verification that counts:
 
 ```bash
 sudo pupitred migrate --status
 ```
 
-Elle doit dire la révision, ce qui a été appliqué, ce qui reste dû et les sauvegardes gardées, et sortir en 0 quand la machine est à jour.
+It must say the revision, what has been applied, what is still due and the backups kept, and exit 0 when the machine is up to date.
 
-## Ce qu'on ne fait pas
+## What is not done
 
-- Écrire du code qui lit « les deux formes ». C'est une migration reportée, et elle ne se fait jamais.
-- Renuméroter, réordonner ou supprimer une entrée existante.
-- Décoder `install.json` dans `modules.Request` à l'intérieur d'une migration.
-- Migrer depuis l'app en écrivant des fichiers sur le VPS : l'agent porte ses migrations, l'app les déclenche.
-- Restaurer une sauvegarde automatiquement, hors de l'unique exception du contrat : quand `agent.upgrade` remet l'ancien binaire parce que le nouveau ne répond pas à `hello`, le lot que le nouveau venait de sauvegarder avant de migrer est remis, révision comprise — il a quelques secondes, rien n'a été configuré depuis. Toute autre restauration (`pupitred migrate --restore`) est un geste du propriétaire, et ce qui a été configuré depuis part avec.
+- Writing code that reads "both shapes". It is a deferred migration, and it never gets done.
+- Renumbering, reordering or removing an existing entry.
+- Decoding `install.json` into `modules.Request` inside a migration.
+- Migrating from the app by writing files on the VPS: the agent carries its migrations, the app triggers them.
+- Restoring a backup automatically, outside the contract's one exception: when `agent.upgrade` puts the old binary back because the new one does not answer `hello`, the batch that the new one had just backed up before migrating is put back, revision included — it is a few seconds old, nothing has been configured since. Any other restoration (`pupitred migrate --restore`) is the owner's gesture, and what has been configured since goes with it.

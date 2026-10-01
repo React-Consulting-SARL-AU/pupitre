@@ -67,15 +67,15 @@ describe("licences", () => {
   })
 })
 
-describe("les serveurs et la licence tels que /me les rend", () => {
-  it("compte les serveurs d'une organisation contre sa limite", () => {
+describe("the servers and licence as /me returns them", () => {
+  it("counts an organization's servers against its limit", () => {
     expect(MeServersSchema.safeParse({ used: 2, limit: 3 }).success).toBe(true)
     expect(MeServersSchema.safeParse({ used: -1, limit: 3 }).success).toBe(
       false
     )
   })
 
-  it("accepte ce qu'une licence ajoute, et rien qui nomme une offre", () => {
+  it("accepts what a licence adds, and nothing that names a plan", () => {
     const parsed = MeLicenseGrantSchema.safeParse({
       status: "active",
       seats: 10,

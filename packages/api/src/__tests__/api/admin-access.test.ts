@@ -63,7 +63,7 @@ async function aServerAndALink() {
   return { organization, server, link, subscription }
 }
 
-describe("les pages de la plateforme", () => {
+describe("the platform pages", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -72,7 +72,7 @@ describe("les pages de la plateforme", () => {
     await resetDb()
   })
 
-  it("s'ouvrent en lecture à un membre de l'organisation Pupitre", async () => {
+  it("open read-only to a member of the Pupitre organization", async () => {
     const { organization, server, link, subscription } = await aServerAndALink()
     const reader = await platformMember()
     const paths = [
@@ -99,7 +99,7 @@ describe("les pages de la plateforme", () => {
     }
   })
 
-  it("refusent d'agir à ce même membre, et disent le rôle qu'il faut", async () => {
+  it("refuse that same member any action, and name the required role", async () => {
     const { organization, server, link, subscription } = await aServerAndALink()
     const { user: banned } = await createUser({ email: "client@test.local" })
     const reader = await platformMember()
@@ -189,7 +189,7 @@ describe("les pages de la plateforme", () => {
     ).toMatchObject({ status: "active" })
   })
 
-  it("disent les gestes permis de chaque ligne, et aucun à un membre", async () => {
+  it("list the actions allowed on each row, and none for a member", async () => {
     const { server, subscription } = await aServerAndALink()
     const reader = await platformMember()
     const admin = await platformAdmin()
@@ -223,7 +223,7 @@ describe("les pages de la plateforme", () => {
     ])
   })
 
-  it("laissent agir un membre promu administrateur de l'organisation Pupitre", async () => {
+  it("let a member promoted to administrator of the Pupitre organization act", async () => {
     const { server } = await aServerAndALink()
     const reader = await platformMember()
 
@@ -241,7 +241,7 @@ describe("les pages de la plateforme", () => {
     expect(response.status).toBe(200)
   })
 
-  it("restent fermées à un compte hors de l'organisation Pupitre", async () => {
+  it("stay closed to an account outside the Pupitre organization", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -255,7 +255,7 @@ describe("les pages de la plateforme", () => {
     expect(refused.json.error.code).toBe("forbidden")
   })
 
-  it("promeut un propriétaire de l'organisation Pupitre au rôle qui agit", async () => {
+  it("promote an owner of the Pupitre organization to the acting role", async () => {
     const { server } = await aServerAndALink()
     const admin = await platformAdmin()
     const response = await apiRequest(`/admin/servers/${server.id}/suspend`, {

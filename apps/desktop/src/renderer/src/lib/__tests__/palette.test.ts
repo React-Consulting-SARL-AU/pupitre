@@ -29,8 +29,8 @@ const ENTRIES: PaletteEntry[] = [
   { hint: "203.0.113.9", id: "srv-2", kind: "server", label: "Bureau" },
 ];
 
-describe("la palette", () => {
-  it("s'ouvre sur commande K sur macOS, contrôle K ailleurs", () => {
+describe("the palette", () => {
+  it("opens on command K on macOS, control K elsewhere", () => {
     expect(paletteChordOf(chord("k", { metaKey: true }), true)).toBe(true);
     expect(paletteChordOf(chord("K", { ctrlKey: true }), false)).toBe(true);
     expect(paletteChordOf(chord("k", { ctrlKey: true }), true)).toBe(false);
@@ -45,11 +45,11 @@ describe("la palette", () => {
     expect(paletteChordLabel(false)).toBe("Ctrl+K");
   });
 
-  it("garde tout sans terme, dans l'ordre donné", () => {
+  it("keeps everything without a term, in the given order", () => {
     expect(filterEntries(ENTRIES, "  ")).toEqual(ENTRIES);
   });
 
-  it("filtre à la frappe, ce qui commence par le terme d'abord, puis ce que l'indice porte", () => {
+  it("filters as you type, what starts with the term first, then what the hint carries", () => {
     expect(filterEntries(ENTRIES, "fly").map((one) => one.id)).toEqual([
       "flyleaf-api",
       "t1",
@@ -63,7 +63,7 @@ describe("la palette", () => {
     expect(filterEntries(ENTRIES, "zzz")).toEqual([]);
   });
 
-  it("se parcourt aux flèches en bouclant", () => {
+  it("moves with the arrow keys, wrapping around", () => {
     expect(stepSelection(0, 3, "ArrowDown")).toBe(1);
     expect(stepSelection(2, 3, "ArrowDown")).toBe(0);
     expect(stepSelection(0, 3, "ArrowUp")).toBe(2);
@@ -74,13 +74,13 @@ describe("la palette", () => {
   });
 });
 
-describe("les touches qu'un terminal garde pour lui", () => {
+describe("the keys a terminal keeps for itself", () => {
   const inside = (found: boolean) => ({
     closest: (selector: string) =>
       found && selector.includes("tablist") ? {} : null,
   });
 
-  it("couvrent le terminal et sa barre d'onglets, et rien d'autre", () => {
+  it("cover the terminal and its tab bar, and nothing else", () => {
     expect(claimedByTerminal(inside(true))).toBe(true);
     expect(claimedByTerminal(inside(false))).toBe(false);
     expect(claimedByTerminal(null)).toBe(false);

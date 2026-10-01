@@ -35,14 +35,14 @@ const OTHER: Server = {
   name: "L'autre",
 };
 
-describe("le fichier des serveurs", () => {
+describe("the servers file", () => {
   beforeEach(() => {
     rmSync(FILE, { force: true });
     rmSync(corruptPath(), { force: true });
     write(() => ({ active: TYPED.id, dismissed: [], servers: [TYPED, OTHER] }));
   });
 
-  it("est écrit à côté puis renommé, jamais tronqué en place", () => {
+  it("is written alongside then renamed, never truncated in place", () => {
     write(() => ({ active: TYPED.id, dismissed: [], servers: [TYPED] }));
 
     expect(readdirSync(DIR).filter((name) => name.endsWith(".tmp"))).toEqual(
@@ -51,7 +51,7 @@ describe("le fichier des serveurs", () => {
     expect(JSON.parse(readFileSync(FILE, "utf8")).servers).toHaveLength(1);
   });
 
-  it("applique le changement à ce que le fichier tient au moment d'écrire", async () => {
+  it("applies the change to what the file holds at the time of writing", async () => {
     const slow = add({
       host: "203.0.113.9",
       key: { mode: "generate" },
@@ -73,7 +73,7 @@ describe("le fichier des serveurs", () => {
     expect(read().active).toBe(created.server.id);
   });
 
-  it("ne perd pas une identité notée pendant qu'un serveur est retiré", async () => {
+  it("does not lose an identity recorded while a server is being removed", async () => {
     const removal = remove(TYPED.id);
 
     noteGrant(OTHER.id, "srv-platform-2");

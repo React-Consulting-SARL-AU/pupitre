@@ -31,7 +31,7 @@ const ATELIER = {
 }
 
 describe("OrganizationStandingBanner", () => {
-  it("ne montre rien sur une organisation active", async () => {
+  it("shows nothing on an active organization", async () => {
     const { container } = await mount({ ...ATELIER, state: "active" })
 
     expect(
@@ -39,7 +39,7 @@ describe("OrganizationStandingBanner", () => {
     ).toBeNull()
   })
 
-  it("nomme l'organisation suspendue, son motif et le remède", async () => {
+  it("names the suspended organization, its reason and the remedy", async () => {
     const { container } = await mount({
       ...ATELIER,
       state: "suspended",
@@ -55,7 +55,7 @@ describe("OrganizationStandingBanner", () => {
     expect(banner?.textContent).toContain("support@pupitre.studio")
   })
 
-  it("dit qu'une organisation fermée n'accueille plus personne", async () => {
+  it("says a closed organization no longer welcomes anyone", async () => {
     const { container } = await mount({
       ...ATELIER,
       state: "closed",
@@ -71,7 +71,7 @@ describe("OrganizationStandingBanner", () => {
     expect(banner?.textContent).not.toContain("Reason given")
   })
 
-  it("annonce l'effacement programmé", async () => {
+  it("announces the scheduled deletion", async () => {
     const { container } = await mount({ ...ATELIER, state: "deleting" })
 
     expect(
@@ -80,7 +80,7 @@ describe("OrganizationStandingBanner", () => {
     ).toContain("scheduled the erasure of Atelier Ferrand")
   })
 
-  it("porte le ton d'alerte du Callout", async () => {
+  it("carries the Callout's alert tone", async () => {
     const { container } = await mount({ ...ATELIER, state: "suspended" })
     const banner = container.querySelector(
       "[data-testid=organization-standing-banner]"
@@ -90,7 +90,7 @@ describe("OrganizationStandingBanner", () => {
     expect(banner?.getAttribute("role")).toBe("alert")
   })
 
-  it("ouvre une autre organisation depuis une organisation fermée ou en suppression", async () => {
+  it("opens another organization from a closed or deleting one", async () => {
     for (const state of ["closed", "deleting"] as const) {
       const { container } = await mount({ ...ATELIER, state })
 
@@ -101,7 +101,7 @@ describe("OrganizationStandingBanner", () => {
     }
   })
 
-  it("ne propose pas de sortie sur une organisation seulement suspendue", async () => {
+  it("offers no exit on an organization that is only suspended", async () => {
     const { container } = await mount({ ...ATELIER, state: "suspended" })
 
     expect(

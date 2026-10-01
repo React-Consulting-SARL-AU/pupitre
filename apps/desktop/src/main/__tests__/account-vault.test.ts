@@ -72,8 +72,8 @@ afterEach(() => {
   }
 });
 
-describe("le coffre du jeton", () => {
-  it("n'écrit le jeton en clair dans aucun fichier", () => {
+describe("the token vault", () => {
+  it("writes the token in plaintext to no file", () => {
     const dir = scratch();
     const vault = createTokenVault({ dir, sealer: keychain });
 
@@ -104,7 +104,7 @@ describe("le coffre du jeton", () => {
     expect(carriesToken(dir)).toEqual([]);
   });
 
-  it("rend le jeton à qui a la clé du trousseau", () => {
+  it("returns the token to whoever has the keychain key", () => {
     const dir = scratch();
 
     createTokenVault({ dir, sealer: keychain }).keep(TOKEN);
@@ -112,7 +112,7 @@ describe("le coffre du jeton", () => {
     expect(createTokenVault({ dir, sealer: keychain }).token()).toBe(TOKEN);
   });
 
-  it("écrit le chiffré en 0600", () => {
+  it("writes the ciphertext with mode 0600", () => {
     const dir = scratch();
 
     createTokenVault({ dir, sealer: keychain }).keep(TOKEN);
@@ -122,7 +122,7 @@ describe("le coffre du jeton", () => {
     }
   });
 
-  it("ne pose rien sur le disque quand le trousseau se refuse", () => {
+  it("writes nothing to disk when the keychain refuses", () => {
     const dir = scratch();
     const vault = createTokenVault({ dir, sealer: refusing });
 
@@ -134,7 +134,7 @@ describe("le coffre du jeton", () => {
     expect(createTokenVault({ dir, sealer: refusing }).token()).toBeNull();
   });
 
-  it("estampille la fiche de sa révision", () => {
+  it("stamps the record with its revision", () => {
     const dir = scratch();
 
     createTokenVault({ dir, sealer: keychain }).remember(EMPTY_RECORD);
@@ -144,7 +144,7 @@ describe("le coffre du jeton", () => {
     ).toBe(expectedRevision(ACCOUNT_MIGRATIONS));
   });
 
-  it("met de côté une fiche illisible au lieu de l'écraser", () => {
+  it("sets aside an unreadable record instead of overwriting it", () => {
     const dir = scratch();
     const path = join(dir, "account.json");
     writeFileSync(path, "{ tronqué");
@@ -156,7 +156,7 @@ describe("le coffre du jeton", () => {
     expect(statSync(`${path}.corrupt`).mode & 0o777).toBe(0o600);
   });
 
-  it("ne réécrit pas la fiche d'une version plus récente, et tient la nouvelle pour la session", () => {
+  it("does not rewrite a newer version's record, and holds the new one for the session", () => {
     const dir = scratch();
     const path = join(dir, "account.json");
     const newer = JSON.stringify({ ...EMPTY_RECORD, later: 1, version: 99 });
@@ -172,7 +172,7 @@ describe("le coffre du jeton", () => {
     expect(vault.record()).toEqual(fresh);
   });
 
-  it("emporte le jeton et la fiche à la déconnexion", () => {
+  it("removes the token and the record on disconnect", () => {
     const dir = scratch();
     const vault = createTokenVault({ dir, sealer: keychain });
 

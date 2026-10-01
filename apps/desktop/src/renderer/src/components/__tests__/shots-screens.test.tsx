@@ -14,8 +14,8 @@ const NOOP = () => undefined;
 
 const REMOVE = () => Promise.resolve();
 
-describe("une vignette de la galerie", () => {
-  it("montre le nom, le poids et la suppression, et attend ses octets", () => {
+describe("a gallery thumbnail", () => {
+  it("shows the name, the size and the deletion, and waits for its bytes", () => {
     const html = renderToStaticMarkup(
       <ShotTile
         folder={null}
@@ -37,7 +37,7 @@ describe("une vignette de la galerie", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("dessine l'image une fois les octets reçus", () => {
+  it("draws the image once the bytes are received", () => {
     const html = renderToStaticMarkup(
       <ShotTile
         folder={null}
@@ -61,7 +61,7 @@ describe("une vignette de la galerie", () => {
     expect(html).toContain('data-shown="true"');
   });
 
-  it("montre la date brute quand le serveur en donne une illisible", () => {
+  it("shows the raw date when the server gives an unreadable one", () => {
     const html = renderToStaticMarkup(
       <ShotTile
         folder={null}
@@ -78,7 +78,7 @@ describe("une vignette de la galerie", () => {
     expect(html).toContain("hier");
   });
 
-  it("nomme son dossier quand la galerie montre tous les projets", () => {
+  it("names its folder when the gallery shows all projects", () => {
     const html = renderToStaticMarkup(
       <ShotTile
         folder="boutique"

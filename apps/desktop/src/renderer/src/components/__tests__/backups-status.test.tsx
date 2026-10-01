@@ -35,8 +35,8 @@ function render(state: StatusState): string {
   );
 }
 
-describe("l'état des sauvegardes", () => {
-  it("nomme chaque partie qu'a laissée derrière elle la dernière sauvegarde", () => {
+describe("the backup status", () => {
+  it("names each part the last backup left behind", () => {
     const html = render(
       stateWith(["db:postgres:shop : pg_dump a refusé la base shop"])
     );
@@ -45,7 +45,7 @@ describe("l'état des sauvegardes", () => {
     expect(html).toContain("pg_dump a refusé la base shop");
   });
 
-  it("se tait sur une sauvegarde complète", () => {
+  it("stays silent on a complete backup", () => {
     expect(render(stateWith())).not.toContain("backup-incomplete");
   });
 });

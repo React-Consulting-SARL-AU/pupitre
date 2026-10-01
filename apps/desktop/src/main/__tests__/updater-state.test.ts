@@ -3,8 +3,8 @@ import { initialUpdateState, nextUpdateState } from "../updater-state";
 
 const NOW = () => "2026-09-11T10:00:00.000Z";
 
-describe("l'état de la mise à jour de l'app", () => {
-  it("part de rien, et dit si ce build se met à jour", () => {
+describe("the app update state", () => {
+  it("starts from nothing, and says whether this build updates itself", () => {
     expect(initialUpdateState(false)).toEqual({
       status: "idle",
       updates: false,
@@ -12,7 +12,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(initialUpdateState(true)).toEqual({ status: "idle", updates: true });
   });
 
-  it("suit le fil d'une mise à jour trouvée, téléchargée, prête", () => {
+  it("follows the course of an update found, downloaded, ready", () => {
     let state = initialUpdateState(true);
 
     state = nextUpdateState(state, { kind: "checking" }, NOW);
@@ -58,7 +58,7 @@ describe("l'état de la mise à jour de l'app", () => {
     });
   });
 
-  it("n'est jamais prête sur un téléchargement dont la signature n'a pas été vérifiée", () => {
+  it("is never ready on a download whose signature was not verified", () => {
     const downloaded = nextUpdateState(
       initialUpdateState(true),
       { kind: "downloaded", version: "0.2.0" },
@@ -72,7 +72,7 @@ describe("l'état de la mise à jour de l'app", () => {
     ).toBe("error");
   });
 
-  it("revient au repos quand rien n'est publié, en gardant la date", () => {
+  it("returns to idle when nothing is published, keeping the date", () => {
     const state = nextUpdateState(
       initialUpdateState(true),
       { kind: "not-available" },
@@ -82,7 +82,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(state).toEqual({ checkedAt: NOW(), status: "idle", updates: true });
   });
 
-  it("nomme la raison d'un échec plutôt que les mots de l'updater", () => {
+  it("names the reason for a failure rather than the updater's own words", () => {
     const failed = nextUpdateState(
       initialUpdateState(true),
       { kind: "error" },

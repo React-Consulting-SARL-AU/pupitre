@@ -142,8 +142,8 @@ beforeEach(() => {
   useAccount.setState({ view: { status: "unknown" } });
 });
 
-describe("l'ordre de l'onboarding", () => {
-  it("va du serveur au durcissement, l'agent avant le catalogue", () => {
+describe("the onboarding order", () => {
+  it("goes from the server to hardening, the agent before the catalogue", () => {
     const store = useOnboarding.getState();
 
     store.open();
@@ -161,11 +161,11 @@ describe("l'ordre de l'onboarding", () => {
     expect(useOnboarding.getState().step).toBe("harden");
   });
 
-  it("finit sur l'écran de fin, sitôt le durcissement et les données passés", () => {
+  it("ends on the final screen, as soon as hardening and the data are done", () => {
     expect(ONBOARDING_STEPS.slice(-3)).toEqual(["harden", "data", "done"]);
   });
 
-  it("revient en arrière tant que rien n'est installé", () => {
+  it("goes back as long as nothing is installed", () => {
     const store = useOnboarding.getState();
 
     store.begin("srv-1");
@@ -177,7 +177,7 @@ describe("l'ordre de l'onboarding", () => {
     expect(useOnboarding.getState().step).toBe("agent");
   });
 
-  it("ne revient plus en arrière une fois l'installation lancée", () => {
+  it("no longer goes back once the installation has started", () => {
     const store = useOnboarding.getState();
 
     store.begin("srv-1");
@@ -191,8 +191,8 @@ describe("l'ordre de l'onboarding", () => {
   });
 });
 
-describe("ce que le store fait en entrant dans une étape", () => {
-  it("lit la machine dès le choix du serveur, une seule fois", () => {
+describe("what the store does on entering a step", () => {
+  it("reads the machine as soon as the server is chosen, only once", () => {
     let asked = 0;
 
     stubPupitre({
@@ -212,7 +212,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
     });
   });
 
-  it("ne relit pas la machine en revenant sur l'inspection", () => {
+  it("does not reread the machine when returning to the inspection", () => {
     let asked = 0;
 
     stubPupitre({
@@ -231,7 +231,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
     expect(asked).toBe(1);
   });
 
-  it("lance l'installation du choix du catalogue, avec sa configuration", async () => {
+  it("launches the installation of the catalogue choice, with its configuration", async () => {
     const sent: { modules: readonly string[]; config: unknown }[] = [];
 
     stubPupitre({
@@ -262,7 +262,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
     ]);
   });
 
-  it("n'installe rien quand rien n'est choisi", async () => {
+  it("installs nothing when nothing is chosen", async () => {
     let asked = 0;
 
     stubPupitre({
@@ -284,7 +284,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
     expect(useInstall.getState().install.status).toBe("idle");
   });
 
-  it("relit la machine une seule fois à la reprise", async () => {
+  it("rereads the machine only once on resumption", async () => {
     let asked = 0;
 
     stubPupitre({
@@ -309,7 +309,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
   });
 });
 
-describe("une licence que la console ne confirme plus", () => {
+describe("a licence the console no longer confirms", () => {
   const refused = {
     build: "production" as const,
     checkedAt: null,
@@ -328,7 +328,7 @@ describe("une licence que la console ne confirme plus", () => {
     },
   };
 
-  it("gèle l'étape quand le compte perd son droit, la libère quand il revient", () => {
+  it("freezes the step when the account loses its licence, releases it when it returns", () => {
     useOnboarding.getState().begin("srv-1");
     walkTo("catalog");
 
@@ -348,8 +348,8 @@ describe("une licence que la console ne confirme plus", () => {
   });
 });
 
-describe("une machine qui quitte la liste", () => {
-  it("ne rouvre pas une reprise dont le serveur a disparu", async () => {
+describe("a machine that leaves the list", () => {
+  it("does not reopen a resumption whose server has vanished", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -363,7 +363,7 @@ describe("une machine qui quitte la liste", () => {
     expect(savedOnboarding()).toBeNull();
   });
 
-  it("reprend comme avant quand la liste la tient toujours", async () => {
+  it("resumes as before when the list still holds it", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -376,7 +376,7 @@ describe("une machine qui quitte la liste", () => {
     expect(useOnboarding.getState().step).toBe("catalog");
   });
 
-  it("ramène au choix quand elle est retirée en cours de route", () => {
+  it("returns to the choice when it is removed along the way", () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -388,7 +388,7 @@ describe("une machine qui quitte la liste", () => {
     expect(useOnboarding.getState().serverId).toBeNull();
   });
 
-  it("laisse le choix ouvert sur la liste qu'elle vient de lire", () => {
+  it("leaves the choice open on the list it has just read", () => {
     useOnboarding.getState().open();
     knownServers([]);
 
@@ -396,8 +396,8 @@ describe("une machine qui quitte la liste", () => {
   });
 });
 
-describe("une app qui redémarre", () => {
-  it("reprend l'onboarding là où il s'était arrêté", async () => {
+describe("an app that restarts", () => {
+  it("resumes the onboarding where it had stopped", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -410,7 +410,7 @@ describe("une app qui redémarre", () => {
     expect(useOnboarding.getState().serverId).toBe("srv-1");
   });
 
-  it("ne rouvre rien quand l'onboarding est allé au bout", async () => {
+  it("reopens nothing when the onboarding went all the way through", async () => {
     useOnboarding.getState().begin("srv-1");
     walkTo("done");
     useOnboarding.getState().close();
@@ -421,7 +421,7 @@ describe("une app qui redémarre", () => {
     expect(useOnboarding.getState().step).toBe("closed");
   });
 
-  it("garde l'étape quittée pour la reprendre depuis l'écran des serveurs", async () => {
+  it("keeps the step that was left so it can be resumed from the servers screen", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -434,7 +434,7 @@ describe("une app qui redémarre", () => {
     expect(useOnboarding.getState().step).toBe("install");
   });
 
-  it("retrouve le choix du catalogue et les réponses saisies", async () => {
+  it("restores the catalogue choice and the answers typed", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -457,7 +457,7 @@ describe("une app qui redémarre", () => {
     });
   });
 
-  it("ne repropose pas ce que la machine fait déjà tourner", async () => {
+  it("does not offer again what the machine already runs", async () => {
     server(machine(["core.system", "runtime.node"]));
 
     useOnboarding.getState().begin("srv-1");
@@ -473,7 +473,7 @@ describe("une app qui redémarre", () => {
     expect(useCatalog.getState().selected).not.toContain("core.system");
   });
 
-  it("relit le rapport quand l'installation était allée au bout", async () => {
+  it("rereads the report when the installation had gone all the way through", async () => {
     server(machine(["core.system", "core.hardening", "runtime.node"]));
 
     useOnboarding.getState().begin("srv-1");
@@ -491,7 +491,7 @@ describe("une app qui redémarre", () => {
     expect(useInstall.getState().install.status).toBe("done");
   });
 
-  it("redemande la configuration des modules à secret qu'une coupure a laissés", async () => {
+  it("asks again for the configuration of secret-bearing modules that an interruption left behind", async () => {
     server(machine(["core.system", "core.hardening"]));
 
     useOnboarding.getState().begin("srv-1");
@@ -509,7 +509,7 @@ describe("une app qui redémarre", () => {
     expect(useInstall.getState().install.status).toBe("idle");
   });
 
-  it("repart sur l'installation de ce qui manque quand aucun secret n'est en jeu", async () => {
+  it("restarts the installation of what is missing when no secret is involved", async () => {
     server(machine(["core.system", "core.hardening"]));
 
     useOnboarding.getState().begin("srv-1");
@@ -526,7 +526,7 @@ describe("une app qui redémarre", () => {
     expect(useOnboarding.getState().remaining).toEqual(["runtime.node"]);
   });
 
-  it("relit la machine sans rien rebâtir une fois l'installation passée", async () => {
+  it("rereads the machine without rebuilding anything once the installation is done", async () => {
     server(machine(["core.system", "exposure.cloudflare"]));
 
     useOnboarding.getState().begin("srv-1");
@@ -542,7 +542,7 @@ describe("une app qui redémarre", () => {
     expect(useCatalog.getState().catalog.status).toBe("idle");
   });
 
-  it("relance la sécurisation d'un serveur installé sans repasser par les autres étapes", () => {
+  it("relaunches the hardening of an installed server without going through the other steps", () => {
     let hardened = 0;
 
     knownServers(["srv-1"]);
@@ -564,7 +564,7 @@ describe("une app qui redémarre", () => {
     expect(hardened).toBe(1);
   });
 
-  it("relance le durcissement quand la reprise tombe dessus et que rien ne tourne", async () => {
+  it("relaunches hardening when the resumption lands on it and nothing is running", async () => {
     let hardened = 0;
 
     server(machine(["core.system", "core.hardening"]));
@@ -595,7 +595,7 @@ describe("une app qui redémarre", () => {
     });
   });
 
-  it("ne relance pas un durcissement déjà en route sur la même machine", async () => {
+  it("does not relaunch a hardening already under way on the same machine", async () => {
     let hardened = 0;
 
     server(machine(["core.system", "core.hardening"]));
@@ -618,7 +618,7 @@ describe("une app qui redémarre", () => {
     expect(hardened).toBe(1);
   });
 
-  it("renvoie à l'agent quand le binaire n'est jamais arrivé sur la machine", async () => {
+  it("sends back to the agent step when the binary never reached the machine", async () => {
     server(machine([], null));
 
     useOnboarding.getState().begin("srv-1");
@@ -630,7 +630,7 @@ describe("une app qui redémarre", () => {
     expect(useOnboarding.getState().step).toBe("agent");
   });
 
-  it("renvoie à l'inspection quand la machine ne répond plus", async () => {
+  it("sends back to the inspection when the machine no longer responds", async () => {
     stubPupitre({
       inspect: () =>
         Promise.resolve({
@@ -655,8 +655,8 @@ describe("une app qui redémarre", () => {
   });
 });
 
-describe("le brouillon appartient à son serveur", () => {
-  it("ne fait pas hériter un nouvel onboarding du choix du précédent", async () => {
+describe("the draft belongs to its server", () => {
+  it("does not make a new onboarding inherit the previous one's choice", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -672,7 +672,7 @@ describe("le brouillon appartient à son serveur", () => {
     });
   });
 
-  it("ignore le catalogue ouvert sur une autre machine", async () => {
+  it("ignores the catalogue opened on another machine", async () => {
     server(machine([]));
 
     useOnboarding.getState().begin("srv-1");
@@ -691,8 +691,8 @@ describe("le brouillon appartient à son serveur", () => {
   });
 });
 
-describe("rejouer un module", () => {
-  it("repasse par la configuration quand le module portait un secret", () => {
+describe("replaying a module", () => {
+  it("goes back through the configuration when the module carried a secret", () => {
     catalogue();
     const store = useOnboarding.getState();
 
@@ -705,7 +705,7 @@ describe("rejouer un module", () => {
     expect(useOnboarding.getState().replaying).toBe("db.postgres");
   });
 
-  it("repart directement quand le module n'en portait pas", () => {
+  it("restarts directly when the module carried none", () => {
     catalogue();
     const store = useOnboarding.getState();
 
@@ -718,7 +718,7 @@ describe("rejouer un module", () => {
     expect(useOnboarding.getState().replaying).toBeNull();
   });
 
-  it("revient à l'installation une fois la configuration refaite", () => {
+  it("returns to the installation once the configuration is redone", () => {
     catalogue();
     const store = useOnboarding.getState();
 
@@ -732,8 +732,8 @@ describe("rejouer un module", () => {
   });
 });
 
-describe("l'envoi du binaire de l'agent", () => {
-  it("garde ce que le serveur a reçu", async () => {
+describe("sending the agent binary", () => {
+  it("keeps what the server received", async () => {
     stubPupitre({
       sendAgent: () =>
         Promise.resolve({
@@ -756,7 +756,7 @@ describe("l'envoi du binaire de l'agent", () => {
     });
   });
 
-  it("garde le remède de l'agent en cas d'échec", async () => {
+  it("keeps the agent's fix on failure", async () => {
     stubPupitre({
       sendAgent: () =>
         Promise.resolve({
@@ -780,7 +780,7 @@ describe("l'envoi du binaire de l'agent", () => {
     });
   });
 
-  it("n'envoie pas un second binaire tant que le premier est en route", async () => {
+  it("does not send a second binary while the first is on its way", async () => {
     let sent = 0;
     let settle: () => void = () => undefined;
 

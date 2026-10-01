@@ -72,16 +72,16 @@ test.describe("services", () => {
     await running.app.close();
   });
 
-  test("ouvre une fiche qui dit ce que le serveur a répondu", async () => {
+  test("opens a page that says what the server answered", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Services" }).click();
 
-    await test.step("la liste vient du snapshot", async () => {
+    await test.step("the list comes from the snapshot", async () => {
       await expect(page.locator('[data-service="db.postgres"]')).toBeVisible();
     });
 
-    await test.step("la fiche nomme le service et son état", async () => {
+    await test.step("the page names the service and its state", async () => {
       await page.locator('[data-service="db.postgres"]').click();
 
       await expect(
@@ -91,16 +91,16 @@ test.describe("services", () => {
       await expect(page.getByText("port 5432").first()).toBeVisible();
     });
 
-    await test.step("elle nomme l'identifiant sans le montrer", async () => {
+    await test.step("it names the credential without showing it", async () => {
       await expect(page.getByText("Mot de passe applicatif")).toBeVisible();
     });
 
-    await test.step("elle dit pourquoi les réglages manquent", async () => {
+    await test.step("it says why the settings are missing", async () => {
       await expect(page.locator('[data-config="unknown"]')).toBeVisible();
       await expect(page.getByText(HELD_BACK)).toBeVisible();
     });
 
-    await test.step("le journal de l'unité arrive ligne par ligne", async () => {
+    await test.step("the unit journal arrives line by line", async () => {
       const journal = page.locator('[data-service-journal="db.postgres"]');
 
       await expect(journal).toBeVisible();
@@ -110,7 +110,7 @@ test.describe("services", () => {
       await expect(journal.getByText("checkpoint complete")).toBeVisible();
     });
 
-    await test.step("arrêter montre l'état que l'agent a répondu, et offre alors le démarrage", async () => {
+    await test.step("stopping shows the state the agent answered, and then offers starting", async () => {
       const controls = page.locator('[data-service-controls="db.postgres"]');
 
       await controls.getByRole("button", { name: "Arrêter" }).click();
@@ -131,7 +131,7 @@ test.describe("services", () => {
       ).toBeVisible();
     });
 
-    await test.step("redémarrer se confirme en nommant le service", async () => {
+    await test.step("restarting is confirmed by naming the service", async () => {
       const controls = page.locator('[data-service-controls="db.postgres"]');
 
       await controls
@@ -151,13 +151,13 @@ test.describe("services", () => {
       ).toBeVisible();
     });
 
-    await test.step("le shell de la base ouvre un onglet de terminal", async () => {
+    await test.step("the database shell opens a terminal tab", async () => {
       await page.getByRole("button", { name: "Ouvrir un shell" }).click();
 
       await expect(page.getByRole("tab", { name: DATABASE_TAB })).toBeVisible();
     });
 
-    await test.step("un CLI dit s'il est connecté, et comment l'être", async () => {
+    await test.step("a CLI says whether it is logged in, and how to be", async () => {
       await page.getByRole("button", { name: "Services" }).click();
       await page.locator('[data-service="tool.github"]').click();
 
@@ -171,7 +171,7 @@ test.describe("services", () => {
       await expect(page.locator('[data-service="tool.github"]')).toBeVisible();
     });
 
-    await test.step("l'accessibilité de la fiche tient", async () => {
+    await test.step("the page passes the accessibility check", async () => {
       await page.getByRole("button", { name: "Services" }).click();
       await page.locator('[data-service="db.postgres"]').click();
       await expect(

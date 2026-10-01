@@ -42,8 +42,8 @@ const REFUSED: HardenOutcome = {
   user: null,
 };
 
-describe("le verdict du durcissement", () => {
-  it("dit que l'accès root est fermé et sur quel compte l'app parle", () => {
+describe("the hardening verdict", () => {
+  it("says root access is closed and which account the app talks on", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={CLOSED} />
     );
@@ -53,7 +53,7 @@ describe("le verdict du durcissement", () => {
     expect(text(html)).not.toContain("Réessayer");
   });
 
-  it("garde l'accès, rend la raison telle quelle et propose de réessayer", () => {
+  it("keeps the access, renders the reason as it comes and offers to retry", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={REFUSED} />
     );
@@ -63,7 +63,7 @@ describe("le verdict du durcissement", () => {
     expect(text(html)).toContain("Réessayer");
   });
 
-  it("dit que l'accès est gardé à la demande, sans proposer de réessayer", () => {
+  it("says the access is kept on request, without offering to retry", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={KEPT} />
     );
@@ -76,7 +76,7 @@ describe("le verdict du durcissement", () => {
     );
   });
 
-  it("dit pourquoi la reconnexion a échoué, avec le remède de l'agent", () => {
+  it("says why the reconnection failed, with the agent's fix", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome
         outcome={{
@@ -98,8 +98,8 @@ describe("le verdict du durcissement", () => {
   });
 });
 
-describe("la fin du parcours", () => {
-  it("montre le compte auquel l'app est connectée", () => {
+describe("the end of the flow", () => {
+  it("shows the account the app is connected to", () => {
     const html = renderToStaticMarkup(
       <OnboardingDoneScreen root="closed" serverName="Staging" user="dev" />
     );
@@ -110,7 +110,7 @@ describe("la fin du parcours", () => {
     expect(text(html)).toContain("L'accès root est fermé");
   });
 
-  it("dit que l'accès est resté ouvert parce qu'on l'a demandé", () => {
+  it("says the access stayed open because it was requested", () => {
     const html = renderToStaticMarkup(
       <OnboardingDoneScreen root="kept" serverName="Staging" user="dev" />
     );
@@ -122,7 +122,7 @@ describe("la fin du parcours", () => {
     expect(text(html)).not.toContain("Relancer la sécurisation");
   });
 
-  it("offre de relancer la sécurisation quand l'accès root est resté ouvert", () => {
+  it("offers to rerun the hardening when root access stayed open", () => {
     const html = renderToStaticMarkup(
       <OnboardingDoneScreen
         onSecure={() => undefined}
@@ -137,8 +137,8 @@ describe("la fin du parcours", () => {
   });
 });
 
-describe("le rejeu d'un module à secret", () => {
-  it("dit que le secret n'a pas été gardé et qu'il faut le ressaisir", () => {
+describe("the replay of a module with a secret", () => {
+  it("says the secret was not kept and must be entered again", () => {
     const html = renderToStaticMarkup(
       <OnboardingReplayNotice moduleName="PostgreSQL 17" />
     );

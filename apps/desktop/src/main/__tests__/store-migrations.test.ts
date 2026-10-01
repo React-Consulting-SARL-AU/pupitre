@@ -41,8 +41,8 @@ function folder(): string {
   return mkdtempSync(join(tmpdir(), "pupitre-store-"));
 }
 
-describe("le registre d'un fichier de l'app", () => {
-  it("rejoue tout ce que le fichier doit, dans l'ordre", () => {
+describe("an app file's registry", () => {
+  it("replays everything the file is owed, in order", () => {
     const migrated = migrate({ tz: "UTC" }, [ADD, RENAME]);
 
     expect(migrated.applied).toEqual([1, 2]);
@@ -53,14 +53,14 @@ describe("le registre d'un fichier de l'app", () => {
     });
   });
 
-  it("ne rejoue pas ce que le fichier porte déjà", () => {
+  it("does not replay what the file already carries", () => {
     const migrated = migrate({ timezone: "UTC", version: 1 }, [ADD, RENAME]);
 
     expect(migrated.applied).toEqual([2]);
     expect(migrated.revision).toBe(2);
   });
 
-  it("ne touche pas un fichier écrit par une version plus récente", () => {
+  it("does not touch a file written by a newer version", () => {
     const held = { timezone: "UTC", unknown: 42, version: 9 };
     const migrated = migrate(held, [ADD, RENAME]);
 
@@ -69,20 +69,20 @@ describe("le registre d'un fichier de l'app", () => {
     expect(migrated.revision).toBe(9);
   });
 
-  it("garde ce que le code d'aujourd'hui ne nomme plus", () => {
+  it("keeps what today's code no longer names", () => {
     const migrated = migrate({ legacy: "gardé", tz: "UTC" }, [RENAME]);
 
     expect(migrated.document.legacy).toBe("gardé");
   });
 
-  it("dit la révision que ce code lit", () => {
+  it("states the revision this code reads", () => {
     expect(expectedRevision([ADD, RENAME])).toBe(2);
     expect(expectedRevision([])).toBe(0);
   });
 });
 
-describe("la copie d'avant la migration", () => {
-  it("garde le fichier sous la révision qu'il portait", () => {
+describe("the pre-migration copy", () => {
+  it("keeps the file under the revision it carried", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
 
@@ -94,7 +94,7 @@ describe("la copie d'avant la migration", () => {
     expect(readFileSync(`${path}.r2`, "utf8")).toBe(`{"version":2}`);
   });
 
-  it("n'écrase pas une copie déjà prise de cette révision", () => {
+  it("does not overwrite a copy already taken of this revision", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
 
@@ -107,7 +107,7 @@ describe("la copie d'avant la migration", () => {
     expect(readFileSync(`${path}.r2`, "utf8")).toBe(`{"version":2}`);
   });
 
-  it("s'en va avec le fichier qu'elle double", () => {
+  it("goes away with the file it duplicates", () => {
     const dir = folder();
     const path = join(dir, "account.json");
 
@@ -120,7 +120,7 @@ describe("la copie d'avant la migration", () => {
   });
 });
 
-describe("un fichier versionné", () => {
+describe("a versioned file", () => {
   function file(dir = folder()) {
     const path = join(dir, "store.json");
 
@@ -130,7 +130,7 @@ describe("un fichier versionné", () => {
     };
   }
 
-  it("migre à la lecture, garde la forme d'avant et s'écrit estampillé", () => {
+  it("migrates on read, keeps the previous shape and is written stamped", () => {
     const { path, store } = file();
 
     writeFileSync(path, JSON.stringify({ tz: "UTC", version: 1 }));
@@ -151,7 +151,7 @@ describe("un fichier versionné", () => {
     });
   });
 
-  it("ne réécrit jamais un fichier d'une version plus récente", () => {
+  it("never rewrites a file from a newer version", () => {
     const { path, store } = file();
     const newer = JSON.stringify({ later: true, version: 9 });
 
@@ -163,7 +163,7 @@ describe("un fichier versionné", () => {
     expect(readFileSync(path, "utf8")).toBe(newer);
   });
 
-  it("se sait gelé même quand on l'écrit sans l'avoir lu", () => {
+  it("knows it is frozen even when written without having been read", () => {
     const { path, store } = file();
     const newer = JSON.stringify({ version: 9 });
 
@@ -173,7 +173,7 @@ describe("un fichier versionné", () => {
     expect(readFileSync(path, "utf8")).toBe(newer);
   });
 
-  it("met de côté un fichier illisible avant que quoi que ce soit ne l'écrase", () => {
+  it("sets an unreadable file aside before anything overwrites it", () => {
     const { path, store } = file();
 
     writeFileSync(path, "{ pas du json");
@@ -185,7 +185,7 @@ describe("un fichier versionné", () => {
     expect(readFileSync(`${path}.corrupt`, "utf8")).toBe("{ pas du json");
   });
 
-  it("écrit à côté puis renomme, sans laisser de fichier temporaire", () => {
+  it("writes alongside then renames, leaving no temporary file", () => {
     const dir = folder();
     const { path, store } = file(dir);
 
@@ -195,13 +195,13 @@ describe("un fichier versionné", () => {
     expect(JSON.parse(readFileSync(path, "utf8")).theme).toBe("light");
   });
 
-  it("dit qu'il n'y a rien quand le fichier n'existe pas", () => {
+  it("reports nothing when the file does not exist", () => {
     expect(file().store.read()).toEqual({ status: "absent" });
   });
 });
 
-describe("le registre de account.json", () => {
-  it("donne ses organisations à une identité écrite avant qu'on les lise", () => {
+describe("the account.json registry", () => {
+  it("gives organizations to an identity written before they were read", () => {
     const held: JsonObject = {
       identity: { email: "moi@example.com", id: "u_1" },
     };
@@ -211,7 +211,7 @@ describe("le registre de account.json", () => {
     expect(migrated.document.identity).toMatchObject({ organizations: [] });
   });
 
-  it("ne touche pas une identité qui les porte déjà", () => {
+  it("does not touch an identity that already carries them", () => {
     const held: JsonObject = {
       identity: { id: "u_1", organizations: [{ id: "org_1" }] },
     };
@@ -223,14 +223,14 @@ describe("le registre de account.json", () => {
     });
   });
 
-  it("ne se met pas en peine d'un enregistrement sans identité", () => {
+  it("does not bother with a record without an identity", () => {
     const migrated = migrate({ device: null }, ACCOUNT_MIGRATIONS);
 
     expect(migrated.document.identity).toBeUndefined();
     expect(migrated.revision).toBe(3);
   });
 
-  it("donne un abonnement nul à une identité écrite avant qu'on le lise", () => {
+  it("gives a null subscription to an identity written before it was read", () => {
     const held: JsonObject = {
       identity: { id: "u_1", organizations: [] },
       version: 1,
@@ -242,7 +242,7 @@ describe("le registre de account.json", () => {
     expect(migrated.document.identity).toMatchObject({ subscription: null });
   });
 
-  it("nomme licence le droit d'usage et garde les serveurs de l'abonnement, sans en faire une licence", () => {
+  it("names the right of use a licence and keeps the subscription's servers, without making them a licence", () => {
     const held: JsonObject = {
       identity: {
         entitlement: "valid",
@@ -277,7 +277,7 @@ describe("le registre de account.json", () => {
     expect(again.document).toEqual(migrated.document);
   });
 
-  it("donne des serveurs nuls à une identité sans abonnement", () => {
+  it("gives null servers to an identity without a subscription", () => {
     const held: JsonObject = {
       identity: {
         entitlement: "suspended",
@@ -299,7 +299,7 @@ describe("le registre de account.json", () => {
     });
   });
 
-  it("porte jusqu'à la licence une identité de la toute première forme", () => {
+  it("carries an identity of the very first shape all the way to the licence", () => {
     const migrated = migrate(
       { identity: { entitlement: "grace", id: "u_1" } },
       ACCOUNT_MIGRATIONS
@@ -315,7 +315,7 @@ describe("le registre de account.json", () => {
   });
 });
 
-describe("le registre de servers.json", () => {
+describe("the servers.json registry", () => {
   const held: JsonObject = {
     active: "srv-1",
     servers: [
@@ -344,7 +344,7 @@ describe("le registre de servers.json", () => {
     version: 3,
   };
 
-  it("donne à chaque serveur le nom SSH qu'il portait, dessiné depuis son nom", () => {
+  it("gives each server the SSH name it carried, derived from its name", () => {
     const migrated = migrate(held, SERVERS_MIGRATIONS);
 
     expect(migrated.applied).toEqual([4]);
@@ -353,7 +353,7 @@ describe("le registre de servers.json", () => {
     ).toEqual(["atelier-d-ete", undefined, undefined, undefined, undefined]);
   });
 
-  it("porte les champs que le code d'aujourd'hui ne nomme plus, et n'y revient pas", () => {
+  it("carries the fields today's code no longer names, and does not come back to them", () => {
     const migrated = migrate(held, SERVERS_MIGRATIONS);
 
     expect((migrated.document.servers as JsonObject[])[4]).toMatchObject({
@@ -366,7 +366,7 @@ describe("le registre de servers.json", () => {
     expect(again.document).toEqual(migrated.document);
   });
 
-  it("laisse le nom SSH qu'un serveur porte déjà", () => {
+  it("leaves the SSH name a server already carries", () => {
     const migrated = migrate(
       {
         servers: [
@@ -386,15 +386,15 @@ describe("le registre de servers.json", () => {
     expect((migrated.document.servers as JsonObject[])[0]?.slug).toBe("prod");
   });
 
-  it("ne se met pas en peine d'un fichier sans liste", () => {
+  it("does not bother with a file without a list", () => {
     const migrated = migrate({ active: null }, SERVERS_MIGRATIONS);
 
     expect(migrated.document).toEqual({ active: null, version: 4 });
   });
 });
 
-describe("le registre des connexions", () => {
-  it("nomme id et name le compte que Cloudflare écrivait accountId et accountName", () => {
+describe("the connections registry", () => {
+  it("names id and name the account that Cloudflare wrote as accountId and accountName", () => {
     const migrated = migrate(
       {
         connection: { accountId: "acc-1", accountName: "Atelier", legacy: 1 },
@@ -417,7 +417,7 @@ describe("le registre des connexions", () => {
     expect(again.document).toEqual(migrated.document);
   });
 
-  it("laisse une fiche sans compte, ou qui le nomme déjà", () => {
+  it("leaves a record without an account, or one that already names it", () => {
     expect(
       migrate({ connection: null }, CONNECTIONS_MIGRATIONS).document
     ).toEqual({ connection: null, version: 1 });

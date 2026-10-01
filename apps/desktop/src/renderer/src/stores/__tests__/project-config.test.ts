@@ -87,8 +87,8 @@ beforeEach(() => {
   useTunnel.getState().forget();
 });
 
-describe("la configuration d'un projet rouverte", () => {
-  it("s'ouvre sur ce que le projet est, et n'a rien à envoyer tant que rien ne change", () => {
+describe("a reopened project configuration", () => {
+  it("opens on what the project is, and has nothing to send while nothing changes", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
 
     const { draft } = useProjectConfig.getState();
@@ -108,7 +108,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().dropped()).toEqual([]);
   });
 
-  it("envoie le démarrage avec le serveur quand il change, et lui seul", () => {
+  it("sends start-with-server when it changes, and only that", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
 
     expect(useProjectConfig.getState().draft.boot).toBe(false);
@@ -126,7 +126,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  it("envoie la protection du projet quand elle change, et le choix d'un processus qui s'en écarte", () => {
+  it("sends the project's protection when it changes, and the choice of a process that departs from it", () => {
     useProjectConfig
       .getState()
       .open({ ...SHOP, protected: true }, SNAPSHOT.projects, true);
@@ -156,7 +156,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  it("ne dit rien de la protection à un agent qui n'a pas de portier", () => {
+  it("says nothing about protection to an agent that has no gate", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
 
     useProjectConfig.getState().setProtected(false);
@@ -166,7 +166,7 @@ describe("la configuration d'un projet rouverte", () => {
   });
 
   // The sent map replaces the project's, so it always goes whole.
-  it("envoie les versions de runtime épinglées quand elles changent, la carte entière", () => {
+  it("sends the pinned runtime versions when they change, the whole map", () => {
     useProjectConfig
       .getState()
       .open({ ...SHOP, runtimes: { node: "22" } }, SNAPSHOT.projects, true);
@@ -196,7 +196,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  it("envoie la commande changée, dit quel processus redémarre, et rend le nom entier d'une route gardée", () => {
+  it("sends the changed command, says which process restarts, and returns the full name of a guarded route", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
     useProjectConfig
       .getState()
@@ -218,7 +218,7 @@ describe("la configuration d'un projet rouverte", () => {
     });
   });
 
-  it("publie un second port en sous-domaine, et nomme les adresses qu'un retrait fait mourir", () => {
+  it("publishes a second port on a subdomain, and names the addresses a removal kills", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
     useProjectConfig.getState().addRow(0);
 
@@ -248,7 +248,7 @@ describe("la configuration d'un projet rouverte", () => {
     ]);
   });
 
-  it("refuse un port que l'autre projet tient, avant l'agent", () => {
+  it("refuses a port the other project holds, before the agent", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
     useProjectConfig.getState().setRowPort(0, 1, 3200);
 
@@ -259,7 +259,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().ready()).toBe(false);
   });
 
-  it("ajoute un second processus dans son propre dossier, sans redémarrer le premier, et refuse deux fois le même identifiant", () => {
+  it("adds a second process in its own folder, without restarting the first, and refuses the same identifier twice", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
     useProjectConfig.getState().addProcess();
 
@@ -306,7 +306,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().draft.processes).toHaveLength(1);
   });
 
-  it("enregistre, synchronise l'exposition, relit le snapshot et reprend le projet rendu", async () => {
+  it("saves, syncs the exposure, rereads the snapshot and takes up the returned project", async () => {
     const { sent, synced } = quiet((params) => ({
       ok: true,
       result: {
@@ -354,7 +354,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  it("garde le refus de l'agent tel quel, et le draft avec", async () => {
+  it("keeps the agent's refusal as is, and the draft with it", async () => {
     quiet(() => ({
       error: {
         code: "bad_request",
@@ -378,7 +378,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(rows()[0]?.web).toBe("shop.elsewhere.org");
   });
 
-  it("ne tient pas un vieux refus de tunnel pour un échec quand rien n'a été synchronisé", async () => {
+  it("does not treat an old tunnel refusal as a failure when nothing was synced", async () => {
     const local: Project = {
       ...SHOP,
       processes: [
@@ -415,7 +415,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  it("dit à part un refus de synchronisation, sans faire échouer l'enregistrement", async () => {
+  it("reports a sync refusal separately, without failing the save", async () => {
     stubPupitre({
       agentCall: (_server, cmd) =>
         Promise.resolve(
@@ -464,7 +464,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(rows().map((row) => row.web)).toEqual(["boutique.example.org"]);
   });
 
-  it("garde les réserves de l'agent à côté d'un enregistrement qui tient", async () => {
+  it("keeps the agent's caveats alongside a save that holds", async () => {
     quiet(() => ({
       ok: true,
       result: {

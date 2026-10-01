@@ -20,8 +20,8 @@ afterEach(() => {
   view = null;
 });
 
-describe("le cadre du journal", () => {
-  it("dessine un démarrage, un arrêt puis un redémarrage comme des règles, et le reste comme des lignes", async () => {
+describe("the journal frame", () => {
+  it("draws a start, a stop and then a restart as rules, and everything else as lines", async () => {
     view = await mount(
       <JournalPane
         follow={true}
@@ -43,7 +43,7 @@ describe("le cadre du journal", () => {
     expect(view.text()).toContain("ready again");
   });
 
-  it("ouvre une adresse dehors sans naviguer", async () => {
+  it("opens an address externally without navigating", async () => {
     const opened: string[] = [];
 
     stubPupitre({
@@ -73,7 +73,7 @@ describe("le cadre du journal", () => {
     expect(opened).toEqual(["https://atlas.example.com/"]);
   });
 
-  it("lâche la fin dès qu'on pose le pointeur sur une ligne, pas sur un lien", async () => {
+  it("releases the tail as soon as the pointer rests on a line, not on a link", async () => {
     const changes: boolean[] = [];
 
     view = await mount(

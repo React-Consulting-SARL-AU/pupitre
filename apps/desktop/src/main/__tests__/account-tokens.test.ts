@@ -27,8 +27,8 @@ function answering(
   return { fetcher, seen };
 }
 
-describe("ce qu'un jeton ouvre", () => {
-  it("nomme le compte GitHub, sans que le jeton reparte ailleurs", async () => {
+describe("what a token opens", () => {
+  it("names the GitHub account, without the token going anywhere else", async () => {
     const { fetcher, seen } = answering({ id: 42, login: "ada" });
 
     const accounts = await accountsOfToken("github", "ghp_de_test", fetcher);
@@ -39,7 +39,7 @@ describe("ce qu'un jeton ouvre", () => {
     expect(seen[0]?.token).toBe("Bearer ghp_de_test");
   });
 
-  it("nomme le compte Neon par son nom, sinon par son adresse", async () => {
+  it("names the Neon account by its name, otherwise by its address", async () => {
     const named = answering({
       email: "ada@test.local",
       id: "u-1",
@@ -55,7 +55,7 @@ describe("ce qu'un jeton ouvre", () => {
     ]);
   });
 
-  it("nomme les comptes Vercel, Supabase et Stripe comme leurs tableaux de bord", async () => {
+  it("names the Vercel, Supabase and Stripe accounts as their dashboards do", async () => {
     const vercel = answering({
       user: { email: "ada@test.local", id: "u-1", username: "ada" },
     });
@@ -81,7 +81,7 @@ describe("ce qu'un jeton ouvre", () => {
     expect(vercel.seen[0]?.url).toBe("https://api.vercel.com/v2/user");
   });
 
-  it("lit le refus que Stripe et Vercel emboîtent sous error", async () => {
+  it("reads the refusal that Stripe and Vercel nest under error", async () => {
     const refused = answering(
       { error: { message: "Invalid API Key provided", type: "invalid" } },
       401
@@ -92,7 +92,7 @@ describe("ce qu'un jeton ouvre", () => {
     ).rejects.toThrow("Invalid API Key provided");
   });
 
-  it("rend le refus du fournisseur, jamais le jeton", async () => {
+  it("returns the provider's refusal, never the token", async () => {
     const { fetcher } = answering({ message: "Bad credentials" }, 401);
 
     const failure = await accountsOfToken("github", "ghp_secret", fetcher).then(
@@ -105,7 +105,7 @@ describe("ce qu'un jeton ouvre", () => {
     expect((failure as Error).message).not.toContain("ghp_secret");
   });
 
-  it("ne demande rien à 1Password, qui ne répond pas d'ici", async () => {
+  it("asks nothing of 1Password, which does not answer from here", async () => {
     const { fetcher, seen } = answering({});
 
     expect(
@@ -115,8 +115,8 @@ describe("ce qu'un jeton ouvre", () => {
   });
 });
 
-describe("un jeton déjà tenu, pesé de nouveau", () => {
-  it("nomme le compte tel qu'il est aujourd'hui", async () => {
+describe("a token already held, weighed again", () => {
+  it("names the account as it is today", async () => {
     const { fetcher } = answering({ id: 42, login: "ada-renamed" });
 
     const checked = await checkToken("github", "ghp_de_test", fetcher);
@@ -130,7 +130,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     });
   });
 
-  it("pèse le jeton sur le compte connecté, pas sur le premier listé", async () => {
+  it("weighs the token on the connected account, not the first one listed", async () => {
     const { fetcher } = answering({
       result: [
         { id: "acc-1", name: "Flyleaf" },
@@ -152,7 +152,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     });
   });
 
-  it("refuse un jeton qui n'ouvre plus le compte connecté", async () => {
+  it("refuses a token that no longer opens the connected account", async () => {
     const { fetcher } = answering({
       result: [{ id: "acc-1", name: "Flyleaf" }],
       success: true,
@@ -176,7 +176,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     });
   });
 
-  it("dit qu'un jeton révoqué ne répond plus, avec les mots du fournisseur", async () => {
+  it("says a revoked token no longer answers, in the provider's words", async () => {
     const { fetcher } = answering({ message: "Bad credentials" }, 401);
 
     const checked = await checkToken("github", "ghp_revoque", fetcher);
@@ -194,7 +194,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     expect(JSON.stringify(checked)).not.toContain("ghp_revoque");
   });
 
-  it("rend tous les comptes Cloudflare qu'un jeton ouvre, un compte sans nom par son identifiant", async () => {
+  it("returns every Cloudflare account a token opens, an unnamed account by its identifier", async () => {
     const { fetcher } = answering({
       result: [
         { id: "acc-1", name: "Flyleaf" },
@@ -212,7 +212,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
   });
 
   // The first account listed is nobody's choice: several and no name is a question, not an answer.
-  it("n'agit que sur le compte nommé, ou sur le seul qu'il y a", () => {
+  it("acts only on the named account, or on the only one there is", () => {
     const one = [{ id: "acc-1", name: "Flyleaf" }];
     const two = [...one, { id: "acc-2", name: "Atelier" }];
 
@@ -223,7 +223,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
   });
 
   // Cloudflare accepts a token that may not read account settings, and then lists no account at all.
-  it("nomme la permission qui manque à un jeton Cloudflare sans compte", async () => {
+  it("names the permission missing from a Cloudflare token with no account", async () => {
     const { fetcher } = answering({ result: [], success: true });
 
     const checked = await checkToken("wrangler", "cf_sans_compte", fetcher);
@@ -240,7 +240,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     expect(JSON.stringify(checked)).not.toContain("cf_sans_compte");
   });
 
-  it("dit qu'un fournisseur muet ne peut pas être interrogé", async () => {
+  it("says a silent provider cannot be queried", async () => {
     const { fetcher, seen } = answering({});
 
     const checked = await checkToken("1password", "ops_de_test", fetcher);

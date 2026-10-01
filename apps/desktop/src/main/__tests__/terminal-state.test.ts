@@ -20,8 +20,8 @@ function opened(kind: TerminalKind = "shell"): Activity {
   return freshActivity(kind, START);
 }
 
-describe("ce qu'une session est en train de faire", () => {
-  it("travaille tant que la sortie coule, puis s'arrête", () => {
+describe("what a session is doing", () => {
+  it("works while output flows, then stops", () => {
     const session = opened();
 
     noteOutput(session, OUTPUT, START + SECOND);
@@ -30,7 +30,7 @@ describe("ce qu'une session est en train de faire", () => {
     expect(stateOf(session, START + 3 * SECOND)).toBe("idle");
   });
 
-  it("compte une sortie fine comme du travail tant qu'elle continue", () => {
+  it("counts thin output as work as long as it continues", () => {
     const session = opened();
 
     for (let tick = 1; tick <= 4; tick += 1) {
@@ -40,7 +40,7 @@ describe("ce qu'une session est en train de faire", () => {
     expect(stateOf(session, START + 4 * SECOND)).toBe("working");
   });
 
-  it("ne prend pas la bannière de tmux pour du travail, et s'endort quand même", () => {
+  it("does not take tmux's banner for work, and still goes idle", () => {
     const session = opened();
     let now = START;
 
@@ -52,7 +52,7 @@ describe("ce qu'une session est en train de faire", () => {
     expect(stateOf(session, now)).toBe("asleep");
   });
 
-  it("reste éveillée sous la main du lecteur, sans que rien ne s'affiche", () => {
+  it("stays awake under the reader's hand, with nothing being displayed", () => {
     const session = opened();
     const typed = START + 10 * MINUTE;
 
@@ -62,8 +62,8 @@ describe("ce qu'une session est en train de faire", () => {
   });
 });
 
-describe("ce qu'un agent réclame", () => {
-  it("appelle quand il a sonné", () => {
+describe("what an agent asks for", () => {
+  it("calls when it rang the bell", () => {
     const session = opened("claude");
 
     session.bell = true;
@@ -71,7 +71,7 @@ describe("ce qu'un agent réclame", () => {
     expect(stateOf(session, START + 5 * SECOND)).toBe("attention");
   });
 
-  it("appelle quand il a écrit puis s'est tu, sans avoir sonné", () => {
+  it("calls when it wrote then went quiet, without ringing the bell", () => {
     const session = opened("claude");
 
     noteOutput(session, OUTPUT, START + SECOND);
@@ -79,7 +79,7 @@ describe("ce qu'un agent réclame", () => {
     expect(stateOf(session, START + 5 * SECOND)).toBe("attention");
   });
 
-  it("n'appelle pas pour la seule bannière de tmux", () => {
+  it("does not call for tmux's banner alone", () => {
     const session = opened("claude");
 
     noteOutput(session, BANNER, START + 15 * SECOND);
@@ -88,7 +88,7 @@ describe("ce qu'un agent réclame", () => {
     expect(stateOf(session, START + 35 * SECOND)).toBe("idle");
   });
 
-  it("se tait dès que le lecteur a répondu", () => {
+  it("goes quiet as soon as the reader has answered", () => {
     const session = opened("claude");
 
     noteOutput(session, OUTPUT, START + SECOND);
@@ -97,7 +97,7 @@ describe("ce qu'un agent réclame", () => {
     expect(stateOf(session, START + 5 * SECOND)).toBe("idle");
   });
 
-  it("dit que le processus est parti, quoi qu'il ait écrit", () => {
+  it("says the process is gone, whatever it wrote", () => {
     const session = opened("claude");
 
     session.finished = true;

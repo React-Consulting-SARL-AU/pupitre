@@ -21,15 +21,12 @@ function fail(message: string, fix?: string): never {
 
 function secret(): string {
   if (!existsSync(ENV_FILE)) {
-    fail(
-      "aucun .env.local sur ce poste.",
-      "Lance une fois : bun run dev:prepare"
-    )
+    fail("no .env.local on this machine.", "Run once: bun run dev:prepare")
   }
 
   const held = parse(readFileSync(ENV_FILE, "utf8")).INTERNAL_WORKFLOW_SECRET
 
-  return held || fail("INTERNAL_WORKFLOW_SECRET est vide dans .env.local.")
+  return held || fail("INTERNAL_WORKFLOW_SECRET is empty in .env.local.")
 }
 
 async function main(): Promise<void> {
@@ -37,8 +34,8 @@ async function main(): Promise<void> {
 
   if (!name) {
     fail(
-      "aucun workflow nommé.",
-      "Usage : bun run workflows:run <nom> — les noms sont ceux de apps/web/src/workflows/registry.ts"
+      "no workflow named.",
+      "Usage: bun run workflows:run <name> — the names are those in apps/web/src/workflows/registry.ts"
     )
   }
 
@@ -49,8 +46,8 @@ async function main(): Promise<void> {
     method: "POST",
   }).catch(() =>
     fail(
-      `${CONSOLE_URL} n'a pas répondu.`,
-      "Lance la console : bun run dev:web"
+      `${CONSOLE_URL} did not respond.`,
+      "Start the console: bun run dev:web"
     )
   )
 
@@ -61,12 +58,12 @@ async function main(): Promise<void> {
 
   if (!answer.ok) {
     fail(
-      `${name} refusé (${answer.status}) : ${body?.error?.message ?? "sans message"}`
+      `${name} refused (${answer.status}): ${body?.error?.message ?? "no message"}`
     )
   }
 
   process.stdout.write(
-    `workflow: ${body?.data?.workflow ?? name} lancé, instance ${body?.data?.instance_id ?? "?"}\n`
+    `workflow: ${body?.data?.workflow ?? name} started, instance ${body?.data?.instance_id ?? "?"}\n`
   )
 }
 

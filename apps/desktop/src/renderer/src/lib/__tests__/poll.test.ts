@@ -5,8 +5,8 @@ function tick(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe("une lecture répétée", () => {
-  it("lit tout de suite, puis attend la réponse avant de compter le délai", async () => {
+describe("a repeated read", () => {
+  it("reads right away, then waits for the response before counting the delay", async () => {
     let asked = 0;
     let settle: () => void = () => undefined;
 
@@ -30,7 +30,7 @@ describe("une lecture répétée", () => {
     stop();
   });
 
-  it("ne relit plus une fois arrêtée, même sur une réponse tardive", async () => {
+  it("no longer reads once stopped, even on a late response", async () => {
     let asked = 0;
     let settle: () => void = () => undefined;
 
@@ -49,7 +49,7 @@ describe("une lecture répétée", () => {
     expect(asked).toBe(1);
   });
 
-  describe("fenêtre cachée", () => {
+  describe("hidden window", () => {
     type Listener = () => void;
 
     function page(hidden: boolean): {
@@ -89,7 +89,7 @@ describe("une lecture répétée", () => {
       };
     }
 
-    it("ne lit pas tant que la fenêtre est cachée, et relit dès qu'elle revient", async () => {
+    it("does not read while the window is hidden, and reads again as soon as it returns", async () => {
       const view = page(true);
       let asked = 0;
 
@@ -115,7 +115,7 @@ describe("une lecture répétée", () => {
       stop();
     });
 
-    it("suspend le battement quand la fenêtre se cache, et n'écoute plus une fois arrêtée", async () => {
+    it("suspends the beat when the window hides, and stops listening once stopped", async () => {
       const view = page(false);
       let asked = 0;
 

@@ -24,8 +24,8 @@ function harness(
   };
 }
 
-describe("l'enregistrement d'une capture", () => {
-  it("écrit les octets là où la boîte a pointé", async () => {
+describe("saving a capture", () => {
+  it("writes the bytes where the dialog pointed", async () => {
     const { deps, written } = harness([PICKED]);
 
     const answer = await saveShot(PICKED, new Uint8Array([1, 2, 3]), deps);
@@ -35,7 +35,7 @@ describe("l'enregistrement d'une capture", () => {
     expect([...(written[0]?.bytes ?? [])]).toEqual([1, 2, 3]);
   });
 
-  it("refuse un chemin que la boîte n'a pas rendu, quel qu'il soit", async () => {
+  it("refuses any path the dialog did not return", async () => {
     const { deps, written } = harness([PICKED]);
 
     for (const path of ["/etc/passwd", "/Users/ada/Downloads/autre.png", 42]) {
@@ -53,7 +53,7 @@ describe("l'enregistrement d'une capture", () => {
     expect(written).toHaveLength(0);
   });
 
-  it("refuse ce qui n'est pas des octets, ou n'en a aucun", async () => {
+  it("refuses what is not bytes, or has none", async () => {
     const { deps, written } = harness([PICKED]);
 
     for (const bytes of ["texte", new Uint8Array(0), null]) {
@@ -68,7 +68,7 @@ describe("l'enregistrement d'une capture", () => {
     expect(written).toHaveLength(0);
   });
 
-  it("dit pourquoi le disque a refusé, avec le chemin", async () => {
+  it("says why the disk refused, with the path", async () => {
     const { deps } = harness([PICKED], () =>
       Promise.reject(new Error("EACCES: permission denied"))
     );

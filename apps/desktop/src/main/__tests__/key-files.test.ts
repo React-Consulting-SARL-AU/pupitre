@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { designatedKeyFile, designateKeyFile } from "../key-files";
 
-describe("les fichiers de clé désignés", () => {
-  it("ne tient pour désigné que ce que le sélecteur a rendu", () => {
+describe("designated key files", () => {
+  it("only treats as designated what the picker returned", () => {
     expect(designatedKeyFile("/home/j/.ssh/vps")).toBe(false);
 
     expect(designateKeyFile("/home/j/.ssh/vps")).toBe("/home/j/.ssh/vps");
@@ -12,7 +12,7 @@ describe("les fichiers de clé désignés", () => {
     expect(designatedKeyFile(null)).toBe(false);
   });
 
-  it("refuse un chemin qui n'est pas absolu", () => {
+  it("refuses a path that is not absolute", () => {
     expect(designateKeyFile("")).toBeNull();
     expect(designateKeyFile(".ssh/vps")).toBeNull();
     expect(designateKeyFile(undefined)).toBeNull();

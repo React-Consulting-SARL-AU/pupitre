@@ -35,7 +35,7 @@ const SHOTS = [
 
 const GALLERY = { exposed: true, url: "https://shots.flyleaf.dev/jeton" };
 
-test.describe("la galerie", () => {
+test.describe("the gallery", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -176,12 +176,12 @@ test.describe("la galerie", () => {
     await running.app.close();
   });
 
-  test("dessine les captures par jour et en supprime une par son bouton", async () => {
+  test("draws the screenshots by day and deletes one with its button", async () => {
     const { page } = running;
 
     await openServerPage(page, "Galerie");
 
-    await test.step("la grille groupe par jour, dans l'ordre de la liste", async () => {
+    await test.step("the grid groups by day, in the order of the list", async () => {
       await expect(page.locator("[data-shot-day]")).toHaveCount(2);
       await expect(page.locator("[data-shot-day]").first()).toHaveAttribute(
         "data-shot-day",
@@ -190,7 +190,7 @@ test.describe("la galerie", () => {
       await expect(page.locator("[data-shot]")).toHaveCount(3);
     });
 
-    await test.step("les vignettes reçoivent leurs octets par le canal, et la page les dessine", async () => {
+    await test.step("thumbnails receive their bytes through the channel, and the page draws them", async () => {
       const thumbnail = page.locator(
         '[data-shot="boutique/2026-09-05/panier.png"] img'
       );
@@ -203,7 +203,7 @@ test.describe("la galerie", () => {
         .toBeGreaterThan(0);
     });
 
-    await test.step("les onglets rangent les captures par projet, sans projet en dernier", async () => {
+    await test.step("tabs sort the screenshots by project, those without a project last", async () => {
       const folders = page.getByRole("tab");
 
       await expect(folders).toHaveText([
@@ -225,7 +225,7 @@ test.describe("la galerie", () => {
       ).toContainText("Sans projet ·");
     });
 
-    await test.step("une galerie publiée s'ouvre dans le navigateur", async () => {
+    await test.step("a published gallery opens in the browser", async () => {
       await expect(
         page.getByRole("button", { name: "Ouvrir la galerie" })
       ).toBeVisible();
@@ -234,11 +234,11 @@ test.describe("la galerie", () => {
       ).toHaveCount(0);
     });
 
-    await test.step("l'écran tient l'accessibilité", async () => {
+    await test.step("the screen passes the accessibility check", async () => {
       await assertAccessible(page, "shots/grid");
     });
 
-    await test.step("une capture se supprime par son propre bouton, en deux gestes", async () => {
+    await test.step("a screenshot is deleted with its own button, in two gestures", async () => {
       const tile = page.locator(
         '[data-shot="boutique/2026-09-05/paiement.png"]'
       );
@@ -265,7 +265,7 @@ test.describe("la galerie", () => {
       expect(cleaned).toEqual([{ path: "boutique/2026-09-05/paiement.png" }]);
     });
 
-    await test.step("la visionneuse s'ouvre par-dessus et se ferme à Échap", async () => {
+    await test.step("the viewer opens on top and closes on Escape", async () => {
       await page
         .getByRole("button", { exact: true, name: "Voir panier.png" })
         .click();
@@ -282,7 +282,7 @@ test.describe("la galerie", () => {
       await expect(page.locator("[data-shot-viewer]")).toHaveCount(0);
     });
 
-    await test.step("la visionneuse dit tout de la capture et donne son adresse publique", async () => {
+    await test.step("the viewer tells everything about the screenshot and gives its public address", async () => {
       await page
         .getByRole("button", { exact: true, name: "Voir accueil.png" })
         .click();
@@ -308,7 +308,7 @@ test.describe("la galerie", () => {
       await assertAccessible(page, "shots/viewer");
     });
 
-    await test.step("la taille réelle se prend et se quitte", async () => {
+    await test.step("actual size can be entered and left", async () => {
       const stage = page.locator("[data-shot-zoom]");
 
       await expect(stage).toHaveAttribute("data-shot-zoom", "fit");
@@ -320,7 +320,7 @@ test.describe("la galerie", () => {
       await expect(stage).toHaveAttribute("data-shot-zoom", "fit");
     });
 
-    await test.step("la pellicule passe d'une capture à l'autre", async () => {
+    await test.step("the filmstrip moves from one screenshot to another", async () => {
       await page
         .locator('[data-shot-strip="boutique/2026-09-05/panier.png"]')
         .click();
@@ -334,7 +334,7 @@ test.describe("la galerie", () => {
       await expect(page.locator("[data-shot-viewer]")).toHaveCount(0);
     });
 
-    await test.step("Enregistrer… demande la boîte, puis écrit les octets où elle a pointé", async () => {
+    await test.step("Save… asks for the dialog, then writes the bytes where it pointed", async () => {
       // The native save dialog never opens under the harness: answer its path directly.
       await running.app.evaluate(({ ipcMain }, target: string) => {
         ipcMain.removeHandler("transfer:pick-save");
@@ -361,7 +361,7 @@ test.describe("la galerie", () => {
       ]);
     });
 
-    await test.step("une capture supprimée depuis la visionneuse laisse place à sa voisine", async () => {
+    await test.step("a screenshot deleted from the viewer gives way to its neighbour", async () => {
       const viewer = page.locator("[data-shot-viewer]");
 
       await viewer.getByRole("button", { name: "Supprimer" }).click();

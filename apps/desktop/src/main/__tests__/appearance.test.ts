@@ -7,12 +7,12 @@ import {
 } from "../../shared/appearance";
 
 describe("windowBackground", () => {
-  it("peint les bords avec le fond du thème résolu", () => {
+  it("paints the edges with the resolved theme background", () => {
     expect(windowBackground("light")).toBe(LIGHT.base);
     expect(windowBackground("dark")).toBe(DARK.base);
   });
 
-  it("ne tient aucune couleur qui ne vienne des tokens", () => {
+  it("holds no colour that does not come from the tokens", () => {
     const painted = [windowBackground("light"), windowBackground("dark")];
 
     expect(painted).toEqual([LIGHT.base, DARK.base]);
@@ -20,21 +20,21 @@ describe("windowBackground", () => {
 });
 
 describe("readAppearance", () => {
-  it("accepte un thème forcé contre le système", () => {
+  it("accepts a forced theme against the system", () => {
     expect(readAppearance({ preference: "light", resolved: "light" })).toEqual({
       preference: "light",
       resolved: "light",
     });
   });
 
-  it("accepte le suivi du système et le thème qu'il a donné", () => {
+  it("accepts following the system and the theme it gave", () => {
     expect(readAppearance({ preference: "system", resolved: "dark" })).toEqual({
       preference: "system",
       resolved: "dark",
     });
   });
 
-  it("refuse ce qu'une version plus ancienne aurait pu envoyer", () => {
+  it("refuses what an older version could have sent", () => {
     expect(readAppearance(null)).toBeNull();
     expect(
       readAppearance({ preference: "solarized", resolved: "dark" })
@@ -47,12 +47,12 @@ describe("readAppearance", () => {
 });
 
 describe("resolveTheme", () => {
-  it("ignore le système dès qu'un thème est forcé", () => {
+  it("ignores the system as soon as a theme is forced", () => {
     expect(resolveTheme("light", true)).toBe("light");
     expect(resolveTheme("dark", false)).toBe("dark");
   });
 
-  it("suit le système quand la préférence est system", () => {
+  it("follows the system when the preference is system", () => {
     expect(resolveTheme("system", true)).toBe("dark");
     expect(resolveTheme("system", false)).toBe("light");
   });

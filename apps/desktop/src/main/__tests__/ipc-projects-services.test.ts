@@ -13,13 +13,13 @@ registerServices();
 registerCatalog();
 registerInstall();
 
-describe("les canaux des projets", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the project channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("project:list", OTHER_PAGE, "srv")).toBe(true);
     expect(refused("project:logs-cancel", OTHER_PAGE, "token")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("project:list", OWN_PAGE, "srv", "extra")).toBe(true);
     expect(refused("github:repos", OWN_PAGE, true, "extra")).toBe(true);
     expect(refused("project:add", OWN_PAGE, "srv", {}, "extra")).toBe(true);
@@ -60,22 +60,22 @@ describe("les canaux des projets", () => {
     );
   });
 
-  it("refusent un rafraîchissement qui n'est pas un booléen", () => {
+  it("refuse a refresh that is not a boolean", () => {
     expect(refused("github:repos", OWN_PAGE, "yes")).toBe(true);
   });
 
-  it("refusent un environnement forcé par autre chose qu'un booléen", () => {
+  it("refuse an environment forced by anything other than a boolean", () => {
     expect(refused("project:env", OWN_PAGE, "srv", "app", "yes", null)).toBe(
       true
     );
   });
 
-  it("refusent un éditeur ouvert sans serveur ni éditeur nommés", () => {
+  it("refuse an editor opened without a named server or editor", () => {
     expect(refused("project:editor", OWN_PAGE, 3, "vscode", "/a")).toBe(true);
     expect(refused("project:editor", OWN_PAGE, "srv", null, "/a")).toBe(true);
   });
 
-  it("refusent un journal sans jeton ou suivi par autre chose qu'un booléen", () => {
+  it("refuse a log without a token or followed by anything other than a boolean", () => {
     expect(
       refused("project:logs", OWN_PAGE, 3, "srv", "app", "web", 100, true)
     ).toBe(true);
@@ -85,18 +85,18 @@ describe("les canaux des projets", () => {
     expect(refused("project:logs-cancel", OWN_PAGE, 3)).toBe(true);
   });
 
-  it("laissent passer l'arrêt d'un journal par son jeton", () => {
+  it("let a log be stopped by its token", () => {
     expect(refused("project:logs-cancel", OWN_PAGE, "token")).toBe(false);
   });
 });
 
-describe("les canaux des services", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the service channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("service:forwards", OTHER_PAGE, null)).toBe(true);
     expect(refused("service:logs-cancel", OTHER_PAGE, "token")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("service:detail", OWN_PAGE, "srv", "pg", "extra")).toBe(
       true
     );
@@ -126,7 +126,7 @@ describe("les canaux des services", () => {
     ).toBe(true);
   });
 
-  it("refusent un identifiant qui n'est pas un texte", () => {
+  it("refuse an identifier that is not a string", () => {
     expect(
       refused("service:credential-reveal", OWN_PAGE, 3, "pg", "password")
     ).toBe(true);
@@ -142,7 +142,7 @@ describe("les canaux des services", () => {
     expect(refused("service:forwards", OWN_PAGE, 3)).toBe(true);
   });
 
-  it("refusent un journal sans jeton ou suivi par autre chose qu'un booléen", () => {
+  it("refuse a log without a token or followed by anything other than a boolean", () => {
     expect(refused("service:logs", OWN_PAGE, 3, "srv", "pg", 100, true)).toBe(
       true
     );
@@ -152,18 +152,18 @@ describe("les canaux des services", () => {
     expect(refused("service:logs-cancel", OWN_PAGE, 3)).toBe(true);
   });
 
-  it("laissent passer la liste des redirections et l'arrêt d'un journal", () => {
+  it("let the list of redirects and the stopping of a log through", () => {
     expect(refused("service:forwards", OWN_PAGE, null)).toBe(false);
     expect(refused("service:logs-cancel", OWN_PAGE, "token")).toBe(false);
   });
 });
 
-describe("les canaux du catalogue", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the catalogue channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("catalog:secret-forget", OTHER_PAGE, "srv")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("catalog:list", OWN_PAGE, "srv", "extra")).toBe(true);
     expect(
       refused("catalog:secret-set", OWN_PAGE, "srv", "pg", "k", "v", "extra")
@@ -176,7 +176,7 @@ describe("les canaux du catalogue", () => {
     );
   });
 
-  it("refusent un module, une clé ou un secret qui n'est pas un texte", () => {
+  it("refuse a module, key or secret that is not a string", () => {
     expect(refused("catalog:secret-set", OWN_PAGE, "srv", 3, "k", "v")).toBe(
       true
     );
@@ -191,12 +191,12 @@ describe("les canaux du catalogue", () => {
   });
 });
 
-describe("les canaux de l'installation", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the installation channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("install:report", OTHER_PAGE, "srv")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(
       refused("install:start", OWN_PAGE, "token", "srv", ["pg"], {}, [], "x")
     ).toBe(true);
@@ -209,14 +209,14 @@ describe("les canaux de l'installation", () => {
     expect(refused("install:report", OWN_PAGE, "srv", "extra")).toBe(true);
   });
 
-  it("refusent un flux sans jeton", () => {
+  it("refuse a stream without a token", () => {
     expect(refused("install:start", OWN_PAGE, 3, "srv", ["pg"], {}, [])).toBe(
       true
     );
     expect(refused("install:agent-send", OWN_PAGE, null, "srv")).toBe(true);
   });
 
-  it("refusent une configuration qui n'est pas un objet", () => {
+  it("refuse a configuration that is not an object", () => {
     expect(
       refused("install:start", OWN_PAGE, "token", "srv", ["pg"], "x", [])
     ).toBe(true);
@@ -225,7 +225,7 @@ describe("les canaux de l'installation", () => {
     );
   });
 
-  it("refusent des modules différés qui ne sont pas des noms", () => {
+  it("refuse deferred modules that are not names", () => {
     expect(
       refused("install:start", OWN_PAGE, "token", "srv", ["pg"], {}, [3])
     ).toBe(true);

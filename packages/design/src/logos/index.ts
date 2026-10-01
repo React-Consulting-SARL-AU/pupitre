@@ -199,11 +199,10 @@ export const MARKS: Readonly<Record<string, Logo>> = {
 
 // A decision, not an oversight: the test refuses a catalogue module with neither a logo nor an exemption.
 export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
-  "core.system": "Socle système : aucun produit de marque à nommer.",
-  "core.hardening":
-    "Durcissement du système : aucun produit de marque à nommer.",
+  "core.system": "System base: no branded product to name.",
+  "core.hardening": "System hardening: no branded product to name.",
   "core.backup":
-    "Sauvegardes de Pupitre vers le bucket du client, quel qu'en soit le fournisseur : aucun produit de marque à nommer.",
+    "Pupitre's backups to the customer's bucket, whatever its provider: no branded product to name.",
 }
 
 // The catalogue is the agent's: a module id unknown here is an ordinary answer, not an error.

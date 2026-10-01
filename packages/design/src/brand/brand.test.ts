@@ -17,15 +17,15 @@ function inked(grow = 1, weight = 1) {
   }
 }
 
-describe("la marque", () => {
-  it("centre le glyphe dans son carré, capuchons compris", () => {
+describe("the brand", () => {
+  it("centres the glyph in its square, caps included", () => {
     const box = inked()
 
     expect(box.left + box.right).toBe(MARK.grid)
     expect(box.top + box.bottom).toBe(MARK.grid)
   })
 
-  it("garde la petite taille optique centrée et à l'intérieur du carré", () => {
+  it("keeps the small optical size centred and inside the square", () => {
     const box = inked(COMPACT.glyph, COMPACT.stroke)
 
     expect(box.left + box.right).toBeCloseTo(MARK.grid, 6)
@@ -34,7 +34,7 @@ describe("la marque", () => {
     expect(box.right).toBeLessThan(MARK.grid)
   })
 
-  it("dessine la petite taille plus grosse que la normale, jamais l'inverse", () => {
+  it("draws the small size bolder than the normal one, never the reverse", () => {
     const normal = inked()
     const small = inked(COMPACT.glyph, COMPACT.stroke)
 
@@ -42,7 +42,7 @@ describe("la marque", () => {
     expect(COMPACT.stroke).toBeGreaterThan(1)
   })
 
-  it("n'emploie que le noir et le blanc de la palette", () => {
+  it("uses only the palette's black and white", () => {
     const svgs = [
       markSvg({ colors: ON_LIGHT }),
       markSvg({ colors: ON_DARK }),
@@ -57,7 +57,7 @@ describe("la marque", () => {
     }
   })
 
-  it("laisse le favicon suivre le thème du lecteur", () => {
+  it("lets the favicon follow the reader's theme", () => {
     const svg = markSvg({ adaptive: true })
 
     expect(svg).toContain("prefers-color-scheme: dark")
@@ -65,14 +65,14 @@ describe("la marque", () => {
     expect(svg).not.toContain(`fill="${ON_LIGHT.square}"`)
   })
 
-  it("pose le carré sur la grille macOS quand on le lui demande", () => {
+  it("sets the square on the macOS grid when asked", () => {
     const svg = markSvg({ inset: 100, radius: 185 })
 
     expect(svg).toContain('x="100" y="100" width="824" height="824" rx="185"')
     expect(svg).toContain("scale(0.805)")
   })
 
-  it("sort un document autonome, pas un fragment", () => {
+  it("outputs a standalone document, not a fragment", () => {
     expect(markSvg()).toContain('xmlns="http://www.w3.org/2000/svg"')
     expect(markSvg()).toContain("<title>Pupitre</title>")
   })

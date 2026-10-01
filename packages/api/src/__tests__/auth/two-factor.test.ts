@@ -94,7 +94,7 @@ async function meWith(token: string) {
   return await apiRequest<{ user: { id: string } }>("/me", { bearer: token })
 }
 
-describe("second facteur", () => {
+describe("second factor", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -103,7 +103,7 @@ describe("second facteur", () => {
     await resetDb()
   })
 
-  it("s'active depuis une session, avec un QR code et des codes de récupération", async () => {
+  it("is enabled from a session, with a QR code and recovery codes", async () => {
     const { prisma } = await bootApiTestServer()
     const { userId, backupCodes } = await enableTwoFactor("ada@test.local")
 
@@ -122,7 +122,7 @@ describe("second facteur", () => {
     expect(stored.secret).not.toContain(backupCodes[0])
   })
 
-  it("est exigé après un lien magique, et la session n'arrive qu'avec le code", async () => {
+  it("is required after a magic link, and the session only arrives with the code", async () => {
     const { userId, secret } = await enableTwoFactor("grace@test.local")
     const jar = await challengeByMagicLink("grace@test.local")
 
@@ -141,7 +141,7 @@ describe("second facteur", () => {
     expect(me.json.user.id).toBe(userId)
   })
 
-  it("refuse un code invalide", async () => {
+  it("refuses an invalid code", async () => {
     const { secret } = await enableTwoFactor("hopper@test.local")
     const jar = await challengeByMagicLink("hopper@test.local")
 
@@ -165,7 +165,7 @@ describe("second facteur", () => {
     expect(accepted.status).toBe(200)
   })
 
-  it("n'accepte un code de récupération qu'une fois", async () => {
+  it("accepts a recovery code only once", async () => {
     const { backupCodes } = await enableTwoFactor("turing@test.local")
     const [code] = backupCodes
 
@@ -198,7 +198,7 @@ describe("second facteur", () => {
     expect(another.status).toBe(200)
   })
 
-  it("n'est pas exigé après une passkey, qui est déjà un second facteur", async () => {
+  it("is not required after a passkey, which is already a second factor", async () => {
     const { userId, token } = await enableTwoFactor("lovelace@test.local")
     const authenticator = new VirtualAuthenticator({
       rpId: RP_ID,
@@ -248,7 +248,7 @@ describe("second facteur", () => {
     expect(me.json.user.id).toBe(userId)
   })
 
-  it("se désactive depuis une session et rend le lien magique suffisant", async () => {
+  it("is disabled from a session and makes the magic link sufficient", async () => {
     const { prisma } = await bootApiTestServer()
     const { userId, token } = await enableTwoFactor("ada@test.local")
 

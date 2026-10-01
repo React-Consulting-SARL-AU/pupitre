@@ -4,7 +4,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 const FAMILY = "Bricolage Grotesque";
 const REMOTE = /^https?:/;
 
-test.describe("police d'affichage", () => {
+test.describe("display font", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -16,7 +16,7 @@ test.describe("police d'affichage", () => {
   });
 
   // The font is not installed and the harness is offline: only the bundled file can draw it.
-  test("un titre est dessiné dans la police embarquée, sans requête réseau", async () => {
+  test("a title is drawn in the bundled font, with no network request", async () => {
     const heading = running.page.getByRole("heading", { level: 1 }).first();
 
     await expect(heading).toBeVisible();

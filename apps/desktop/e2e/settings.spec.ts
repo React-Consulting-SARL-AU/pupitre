@@ -12,7 +12,7 @@ const VERSION = (
   ) as { version: string }
 ).version;
 
-test.describe("les réglages de l'app", () => {
+test.describe("the app's settings", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -23,7 +23,7 @@ test.describe("les réglages de l'app", () => {
     await running.app.close();
   });
 
-  test("À propos dit la version, et une mise à jour prête demande à redémarrer", async () => {
+  test("About says the version, and a ready update asks to restart", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -75,7 +75,7 @@ test.describe("les réglages de l'app", () => {
     ).toBeVisible();
   });
 
-  test("les notifications et le démarrage s'écrivent dans le fichier des préférences", async () => {
+  test("notifications and startup are written to the preferences file", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -115,7 +115,7 @@ test.describe("les réglages de l'app", () => {
     });
   });
 
-  test("un serveur dont l'agent répond après l'ouverture des réglages cesse d'offrir l'installation", async () => {
+  test("a server whose agent answers after the settings open stops offering installation", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
@@ -138,7 +138,7 @@ test.describe("les réglages de l'app", () => {
     ).toHaveCount(0);
   });
 
-  test("la section SSH écrit une ligne Include en tête du fichier du système, et la retire", async () => {
+  test("the SSH section writes an Include line at the top of the system file, and removes it", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();

@@ -25,8 +25,8 @@ function chord(
 const MAC = { altKey: true, metaKey: true };
 const ELSEWHERE = { altKey: true, ctrlKey: true };
 
-describe("les raccourcis des onglets d'un projet", () => {
-  it("vivent sur commande-option sur macOS, contrôle-alt ailleurs", () => {
+describe("a project's tab shortcuts", () => {
+  it("live on command-option on macOS, control-alt elsewhere", () => {
     expect(projectShortcutOf(chord("ArrowRight", MAC), true)).toEqual({
       kind: "next",
     });
@@ -40,7 +40,7 @@ describe("les raccourcis des onglets d'un projet", () => {
     expect(projectShortcutOf(chord("ArrowRight", MAC), false)).toBeNull();
   });
 
-  it("sautent à un onglet par son rang, même quand option a changé la touche", () => {
+  it("jump to a tab by its position, even when option changed the key", () => {
     expect(
       projectShortcutOf(chord("¡", { ...MAC, code: "Digit1" }), true)
     ).toEqual({ index: 0, kind: "tab" });
@@ -51,7 +51,7 @@ describe("les raccourcis des onglets d'un projet", () => {
     expect(projectShortcutOf(chord("0", MAC), true)).toBeNull();
   });
 
-  it("laissent passer les flèches de l'historique et des sessions", () => {
+  it("let the history and session arrows through", () => {
     expect(
       projectShortcutOf(chord("ArrowLeft", { altKey: true }), false)
     ).toBeNull();
@@ -66,12 +66,12 @@ describe("les raccourcis des onglets d'un projet", () => {
     ).toBeNull();
   });
 
-  it("s'écrivent avec les touches de la plateforme", () => {
+  it("are written with the platform's keys", () => {
     expect(projectChordLabel(true)).toBe("⌘⌥");
     expect(projectChordLabel(false)).toBe("Ctrl+Alt+");
   });
 
-  it("passent au voisin en bouclant, sautent au rang, ignorent un rang qui n'existe pas", () => {
+  it("move to the neighbour with wrap-around, jump to a position, ignore a position that does not exist", () => {
     const tabs = ["overview", "logs", "files"] as const;
 
     expect(tabAfter(tabs, "files", { kind: "next" })).toBe("overview");

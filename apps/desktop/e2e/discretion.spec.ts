@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 
 // A dozen windows dropped over an editor per run is why nobody would run the suite while working.
-test.describe("discrétion", () => {
+test.describe("discretion", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -13,7 +13,7 @@ test.describe("discrétion", () => {
     await running.app.close();
   });
 
-  test("ne montre aucune fenêtre et ne prend jamais la main", async () => {
+  test("shows no window and never takes focus", async () => {
     const seen = await running.app.evaluate(({ app, BrowserWindow }) => {
       const windows = BrowserWindow.getAllWindows();
 
@@ -32,7 +32,7 @@ test.describe("discrétion", () => {
     expect(seen.docked).toBe(false);
   });
 
-  test("dessine tout de même la page, sinon les captures ne vaudraient rien", async () => {
+  test("still paints the page, otherwise the screenshots would be worthless", async () => {
     const { page } = running;
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

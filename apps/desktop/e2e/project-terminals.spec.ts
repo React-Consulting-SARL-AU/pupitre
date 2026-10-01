@@ -8,7 +8,7 @@ const AGENTS_TAB = /^Agents/;
 const PROJECT_CHORD =
   process.platform === "darwin" ? "Meta+Alt" : "Control+Alt";
 
-test.describe("le clavier sur la page d'un projet", () => {
+test.describe("the keyboard on a project's page", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -45,7 +45,7 @@ test.describe("le clavier sur la page d'un projet", () => {
     );
   }
 
-  test("ouvre les sessions dans le projet affiché et marche dans ses onglets", async () => {
+  test("opens sessions in the displayed project and moves through its tabs", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
@@ -61,7 +61,7 @@ test.describe("le clavier sur la page d'un projet", () => {
     await expect(heading).toBeVisible();
     await selected("Vue d'ensemble");
 
-    await test.step("⌘T ouvre un shell du projet, sur son onglet des terminaux", async () => {
+    await test.step("⌘T opens a project shell, on its terminals tab", async () => {
       await menu("new-terminal");
 
       await expect(heading).toBeVisible();
@@ -79,7 +79,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       expect(calls[0]?.[3]).toBe("flyleaf-api");
     });
 
-    await test.step("⌘⇧T ouvre le premier agent de la machine, sur l'onglet des agents", async () => {
+    await test.step("⌘⇧T opens the machine's first agent, on the agents tab", async () => {
       await menu("new-agent");
 
       await selected(AGENTS_TAB);
@@ -96,7 +96,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       expect(calls[1]?.[3]).toBe("flyleaf-api");
     });
 
-    await test.step("⌘⌥← et ⌘⌥→ passent à l'onglet voisin, ⌘⌥1 saute au premier", async () => {
+    await test.step("⌘⌥← and ⌘⌥→ move to the neighbouring tab, ⌘⌥1 jumps to the first", async () => {
       await page.keyboard.press(`${PROJECT_CHORD}+ArrowLeft`);
       await selected(TERMINALS_TAB);
 
@@ -113,7 +113,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       await selected("Vue d'ensemble");
     });
 
-    await test.step("chaque onglet dit le raccourci qui y mène", async () => {
+    await test.step("each tab says the shortcut that leads to it", async () => {
       const chord = process.platform === "darwin" ? "⌘⌥" : "Ctrl+Alt+";
 
       await expect(
@@ -121,7 +121,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       ).toHaveAttribute("data-tooltip", `${chord}6`);
     });
 
-    await test.step("⌘/ ouvre la fiche des raccourcis, échap la ferme", async () => {
+    await test.step("⌘/ opens the shortcuts sheet, Escape closes it", async () => {
       await page.keyboard.press(`${PROJECT_CHORD}+Digit3`);
       await selected("Logs");
       await menu("shortcuts");

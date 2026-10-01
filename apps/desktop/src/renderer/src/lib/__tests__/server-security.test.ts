@@ -11,8 +11,8 @@ const SERVER: Server = {
   user: "dev",
 };
 
-describe("un serveur à sécuriser", () => {
-  it("est un serveur de l'app sur lequel l'app parle encore en root", () => {
+describe("a server to harden", () => {
+  it("is an app server the app still talks to as root", () => {
     expect(needsSecuring({ ...SERVER, user: "root" })).toBe("root");
     expect(needsSecuring({ ...SERVER, user: "root" }, "nopasswd_all")).toBe(
       "root"
@@ -20,12 +20,12 @@ describe("un serveur à sécuriser", () => {
     expect(needsSecuring(SERVER)).toBe(null);
   });
 
-  it("est un serveur où dev devient encore root sans mot de passe", () => {
+  it("is a server where dev still becomes root without a password", () => {
     expect(needsSecuring(SERVER, "nopasswd_all")).toBe("sudo");
     expect(needsSecuring(SERVER, "password")).toBe(null);
   });
 
-  it("n'est jamais un hôte du système, dont le compte n'est pas à l'app", () => {
+  it("is never a system host, whose account does not belong to the app", () => {
     expect(needsSecuring({ ...SERVER, origin: "system", user: "root" })).toBe(
       null
     );

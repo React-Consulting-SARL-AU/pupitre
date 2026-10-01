@@ -38,12 +38,12 @@ async function openPlatformOrganization(page: Page): Promise<void> {
   )
 }
 
-test.describe("la boîte de la plateforme", () => {
+test.describe("the platform inbox", () => {
   test.beforeAll(async ({ request }) => {
     await request.post(harnessUrl("/reset"))
   })
 
-  test("un administrateur lit un fil, répond, clôt un lot, ouvre une boîte et garde un brouillon", async ({
+  test("an administrator reads a thread, replies, closes a batch, opens an inbox and keeps a draft", async ({
     page,
     request,
   }) => {
@@ -66,7 +66,7 @@ test.describe("la boîte de la plateforme", () => {
     const menu = page.getByRole("navigation", { name: "Menu principal" })
     const main = page.getByRole("main")
 
-    await test.step("le rail nomme la boîte Support et compte ses non-lus", async () => {
+    await test.step("the rail names the Support inbox and counts its unread threads", async () => {
       await menu.getByRole("link", { name: "Boîte de réception" }).click()
 
       await expect(page).toHaveURL(INBOX_URL_RE)
@@ -77,7 +77,7 @@ test.describe("la boîte de la plateforme", () => {
       await expect(main.getByText(SECOND_SUBJECT).first()).toBeVisible()
     })
 
-    await test.step("un fil s'ouvre depuis la liste et montre son message", async () => {
+    await test.step("a thread opens from the list and shows its message", async () => {
       await main.getByRole("link", { name: new RegExp(FIRST_SUBJECT) }).click()
 
       await expect(page).toHaveURL(THREAD_URL_RE)
@@ -87,7 +87,7 @@ test.describe("la boîte de la plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("un brouillon survit au rechargement de la page", async () => {
+    await test.step("a draft survives a page reload", async () => {
       await page.getByRole("textbox", { name: "Réponse" }).fill(DRAFT)
 
       await expect(page.getByText("Brouillon enregistré")).toBeVisible()
@@ -99,7 +99,7 @@ test.describe("la boîte de la plateforme", () => {
       )
     })
 
-    await test.step("une note interne se range sous le fil", async () => {
+    await test.step("an internal note is filed under the thread", async () => {
       await page
         .getByRole("textbox", { name: "Ajouter une note interne" })
         .fill("Client du lancement.")
@@ -108,7 +108,7 @@ test.describe("la boîte de la plateforme", () => {
       await expect(main.getByText("Client du lancement.").first()).toBeVisible()
     })
 
-    await test.step("la réponse part depuis la boîte du fil", async () => {
+    await test.step("the reply goes out from the thread's inbox", async () => {
       await page.getByRole("textbox", { name: "Réponse" }).fill(REPLY)
       await page.getByRole("button", { name: "Envoyer" }).click()
 
@@ -118,7 +118,7 @@ test.describe("la boîte de la plateforme", () => {
       )
     })
 
-    await test.step("une sélection se ferme d'un seul geste", async () => {
+    await test.step("a selection is closed in a single action", async () => {
       await page.goto("/dashboard/admin/inbox")
 
       await page
@@ -136,7 +136,7 @@ test.describe("la boîte de la plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("une boîte ouverte apparaît dans le rail", async () => {
+    await test.step("an opened inbox appears in the rail", async () => {
       await page.goto("/dashboard/admin/inbox/mailboxes")
 
       await expect(page).toHaveURL(MAILBOXES_URL_RE)

@@ -62,8 +62,8 @@ function banner(
   );
 }
 
-describe("le bandeau de mise à jour", () => {
-  it("offre la mise à jour et porte les notes de la version", () => {
+describe("the update banner", () => {
+  it("offers the update and carries the version's notes", () => {
     const html = banner(ready("ahead"));
 
     expect(html).toContain("Mise à jour disponible");
@@ -74,7 +74,7 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain("Mettre l&#x27;agent à jour");
   });
 
-  it("dit de mettre l'app à jour sans rien barrer quand elle est derrière", () => {
+  it("says to update the app without blocking anything when it is behind", () => {
     const html = banner(ready("behind"));
 
     expect(html).toContain("Mettez l&#x27;app à jour");
@@ -82,7 +82,7 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain("ne connaît pas encore");
   });
 
-  it("dit qu'un serveur d'une autre génération se répare, et ouvre l'assistant qui le répare", () => {
+  it("says a server of another generation gets repaired, and opens the assistant that repairs it", () => {
     const html = banner({
       serverId: "srv-1",
       status: "ready",
@@ -106,12 +106,12 @@ describe("le bandeau de mise à jour", () => {
     expect(html).not.toContain("Mettre l&#x27;agent à jour");
   });
 
-  it("se tait quand les deux versions coïncident", () => {
+  it("stays silent when both versions match", () => {
     expect(banner(ready("same"))).toBe("");
     expect(banner({ status: "idle" })).toBe("");
   });
 
-  it("offre la mise à jour sans signature embarquée quand la console répond", () => {
+  it("offers the update without an embedded signature when the console answers", () => {
     const html = banner(ready("ahead", { ...OFFER, signed: false }, true));
 
     expect(html).toContain("Mettre l&#x27;agent à jour");
@@ -119,7 +119,7 @@ describe("le bandeau de mise à jour", () => {
     expect(html).not.toContain('disabled=""');
   });
 
-  it("désactive le bouton quand la console se tait et la signature manque", () => {
+  it("disables the button when the console is silent and the signature is missing", () => {
     const html = banner(ready("ahead", { ...OFFER, signed: false }, false));
 
     expect(html).toContain("l&#x27;agent refuserait la mise à jour");
@@ -127,14 +127,14 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain('disabled=""');
   });
 
-  it("n'exige pas la console quand l'app porte la signature", () => {
+  it("does not require the console when the app carries the signature", () => {
     const html = banner(ready("ahead", OFFER, false));
 
     expect(html).not.toContain("l&#x27;agent refuserait la mise à jour");
     expect(html).not.toContain('disabled=""');
   });
 
-  it("montre le refus de l'agent et son remède, sans annoncer de réussite", () => {
+  it("shows the agent's refusal and its fix, without announcing a success", () => {
     const html = banner(
       ready("ahead"),
       {
@@ -154,7 +154,7 @@ describe("le bandeau de mise à jour", () => {
     expect(html).not.toContain("remplacé par");
   });
 
-  it("dit ce que l'agent a remplacé quand il a réussi", () => {
+  it("says what the agent replaced when it succeeded", () => {
     const html = banner(ready("ahead"), {
       result: {
         migration: null,
@@ -173,7 +173,7 @@ describe("le bandeau de mise à jour", () => {
     );
   });
 
-  it("dit la révision atteinte quand la migration a porté quelque chose", () => {
+  it("states the revision reached when the migration carried something", () => {
     const html = banner(ready("ahead"), {
       result: {
         migration: {
@@ -198,17 +198,17 @@ describe("le bandeau de mise à jour", () => {
   });
 });
 
-describe("une configuration qui n'est pas la forme que l'agent lit", () => {
+describe("a configuration that is not the shape the agent reads", () => {
   const OWED: ConfigRevision = { expected: 4, revision: 3, state: "pending" };
 
-  it("passe devant toute question de version", () => {
+  it("takes precedence over any version question", () => {
     const html = banner(ready("ahead", OFFER, true, OWED));
 
     expect(html).toContain("Configuration à migrer");
     expect(html).not.toContain("Mise à jour disponible");
   });
 
-  it("dit la migration qui a refusé et ce qui a été remis en place", () => {
+  it("states the migration that refused and what was put back in place", () => {
     const html = banner(
       ready("ahead", OFFER, true, { ...OWED, state: "failed" }),
       { status: "idle" },
@@ -235,7 +235,7 @@ describe("une configuration qui n'est pas la forme que l'agent lit", () => {
     expect(html).toContain("ont été remis en place");
   });
 
-  it("renvoie vers la mise à jour quand l'agent est plus ancien que sa configuration", () => {
+  it("points to the update when the agent is older than its configuration", () => {
     const html = banner(
       ready("same", OFFER, true, { expected: 3, revision: 5, state: "ahead" })
     );
@@ -278,19 +278,19 @@ function panel(state: ModulesState, steps: ModuleProgress[] = []): string {
   );
 }
 
-describe("la mise à jour des modules", () => {
-  it("propose de rejouer ce que l'agent a posé", () => {
+describe("the module update", () => {
+  it("offers to replay what the agent installed", () => {
     expect(panel({ status: "idle" })).toContain("Tout mettre à jour");
   });
 
-  it("montre les étapes, l'échec et la commande de rejeu de l'agent", () => {
+  it("shows the steps, the failure and the agent's replay command", () => {
     const html = panel({ serverId: "srv-1", status: "running" }, STEPS);
 
     expect(html).toContain('data-module="db.postgres"');
     expect(html).toContain("pupitred install --only=db.postgres");
   });
 
-  it("rend le rapport avec son chemin, échecs et avertissements séparés", () => {
+  it("renders the report with its path, failures and warnings kept apart", () => {
     const html = panel(
       {
         result: {

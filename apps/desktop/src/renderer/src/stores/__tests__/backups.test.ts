@@ -203,8 +203,8 @@ beforeEach(() => {
   useInstall.getState().reset();
 });
 
-describe("la page des sauvegardes d'un serveur", () => {
-  it("lit l'état de l'agent, la liste de la plateforme et le formulaire du module", async () => {
+describe("a server's backups page", () => {
+  it("reads the agent's state, the platform's list and the module's form", async () => {
     server();
 
     await useBackups.getState().read(SERVER);
@@ -224,7 +224,7 @@ describe("la page des sauvegardes d'un serveur", () => {
     ]);
   });
 
-  it("sauvegarde maintenant, en suivant les étapes, puis relit la liste", async () => {
+  it("backs up now, following the steps, then rereads the list", async () => {
     const calls = server();
 
     await useBackups.getState().runNow(SERVER);
@@ -235,7 +235,7 @@ describe("la page des sauvegardes d'un serveur", () => {
     expect(useBackups.getState().list.status).toBe("read");
   });
 
-  it("envoie le nom donné à la sauvegarde, et rien d'autre", async () => {
+  it("sends the name given to the backup, and nothing else", async () => {
     const calls = server();
 
     await useBackups.getState().runNow(SERVER, "Avant la migration");
@@ -245,7 +245,7 @@ describe("la page des sauvegardes d'un serveur", () => {
     ]);
   });
 
-  it("supprime une sauvegarde par l'agent, qui efface le seau puis la plateforme", async () => {
+  it("deletes a backup through the agent, which erases the bucket and then the platform", async () => {
     const calls = server();
 
     await useBackups.getState().remove(SERVER, BACKUP_ID);
@@ -258,8 +258,8 @@ describe("la page des sauvegardes d'un serveur", () => {
   });
 });
 
-describe("revenir à une sauvegarde", () => {
-  it("reste sur la question quand la phrase est refusée, sans rien installer", async () => {
+describe("restoring a backup", () => {
+  it("stays on the question when the phrase is refused, installing nothing", async () => {
     const calls = server({
       restoreBackupSetup: () =>
         Promise.resolve({
@@ -282,7 +282,7 @@ describe("revenir à une sauvegarde", () => {
     expect(calls.installed).toEqual([]);
   });
 
-  it("installe ce que la sauvegarde tient, demande pour le reste, puis ramène les données", async () => {
+  it("installs what the backup holds, asks about the rest, then brings the data back", async () => {
     const calls = server();
 
     await useBackups.getState().revertTo(SERVER, BACKUP, "bonne phrase", true);
@@ -314,7 +314,7 @@ describe("revenir à une sauvegarde", () => {
     });
   });
 
-  it("s'arrête sur l'installation quand un service n'a pas pris", async () => {
+  it("stops at the installation when a service did not take", async () => {
     const calls = server(
       {},
       {
@@ -338,7 +338,7 @@ describe("revenir à une sauvegarde", () => {
   });
 });
 
-describe("l'état suivi pendant que la page est ouverte", () => {
+describe("the state tracked while the page is open", () => {
   function answering(answers: AgentResponse<typeof STATUS>[]): {
     listed: () => number;
   } {
@@ -359,7 +359,7 @@ describe("l'état suivi pendant que la page est ouverte", () => {
     return { listed: () => lists };
   }
 
-  it("relit la liste quand une sauvegarde en cours se termine", async () => {
+  it("rereads the list when a running backup finishes", async () => {
     useBackups.setState({
       state: {
         backup: { ...STATUS, running: true },
@@ -378,7 +378,7 @@ describe("l'état suivi pendant que la page est ouverte", () => {
     expect(beat.listed()).toBe(1);
   });
 
-  it("garde ce qui était lu quand un battement manque", async () => {
+  it("keeps what was read when a beat is missed", async () => {
     useBackups.setState({
       state: { backup: STATUS, serverId: SERVER, status: "read" },
     });

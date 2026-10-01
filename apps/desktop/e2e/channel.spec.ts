@@ -41,7 +41,7 @@ function cutDuringInstall(app: Running["app"]): Promise<void> {
   }, HELD_MS);
 }
 
-test.describe("un canal coupé pendant l'installation", () => {
+test.describe("a channel cut during installation", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -54,7 +54,7 @@ test.describe("un canal coupé pendant l'installation", () => {
     await running.app.close();
   });
 
-  test("le dit dans la coque, et l'installation lui survit", async () => {
+  test("says so in the shell, and the installation survives it", async () => {
     const { page } = running;
 
     await reachConfig(page);
@@ -67,7 +67,7 @@ test.describe("un canal coupé pendant l'installation", () => {
       .getByRole("button", { name: INSTALL })
       .click();
 
-    await test.step("la coque dit le lien perdu, l'étape tient", async () => {
+    await test.step("the shell reports the lost link, the step holds", async () => {
       await expect(page.getByText(LOST)).toBeVisible();
       await expect(page.getByText(RETRYING)).toBeVisible();
 
@@ -76,7 +76,7 @@ test.describe("un canal coupé pendant l'installation", () => {
       ).toHaveCount(1);
     });
 
-    await test.step("le lien revient et l'installation a fini", async () => {
+    await test.step("the link returns and the installation has finished", async () => {
       await expect(page.getByText(LOST)).toBeHidden();
       await expect(page.getByText("Tout est installé.")).toBeVisible();
     });

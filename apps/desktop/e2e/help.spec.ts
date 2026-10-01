@@ -27,7 +27,7 @@ function stubSshShare(app: ElectronApplication): Promise<void> {
   });
 }
 
-test.describe("l'aide", () => {
+test.describe("help", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -39,7 +39,7 @@ test.describe("l'aide", () => {
     await running.app.close();
   });
 
-  test("dit comment un agent de code et un éditeur joignent le serveur piloté", async () => {
+  test("says how a coding agent and an editor reach the managed server", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Aide" }).click();

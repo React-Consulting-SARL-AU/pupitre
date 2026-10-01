@@ -2,11 +2,11 @@ import { describe, expect, it } from "bun:test"
 import { inboxSort, parseInboxSearch } from "@/lib/domain/inbox-search"
 
 describe("parseInboxSearch", () => {
-  it("laisse l'adresse nue quand rien n'est choisi", () => {
+  it("leaves the address bare when nothing is chosen", () => {
     expect(parseInboxSearch({})).toEqual({})
   })
 
-  it("omet le tri, l'ordre, la page et les filtres vides par défaut", () => {
+  it("omits the sort, order, page and empty filters by default", () => {
     expect(
       parseInboxSearch({
         sort: "last_activity",
@@ -19,7 +19,7 @@ describe("parseInboxSearch", () => {
     ).toEqual({})
   })
 
-  it("garde ce que le lecteur a choisi", () => {
+  it("keeps what the reader chose", () => {
     expect(
       parseInboxSearch({
         mailbox: "mbx_support",
@@ -47,13 +47,13 @@ describe("parseInboxSearch", () => {
     })
   })
 
-  it("jette un tri et un statut que la boîte ne connaît pas", () => {
+  it("drops a sort and a status the inbox does not know", () => {
     expect(
       parseInboxSearch({ sort: "expediteur", status: "archivée" })
     ).toEqual({})
   })
 
-  it("ramène un tri absent ou inconnu à la dernière activité", () => {
+  it("brings a missing or unknown sort back to last activity", () => {
     expect(inboxSort(undefined)).toBe("last_activity")
     expect(inboxSort("expediteur")).toBe("last_activity")
     expect(inboxSort("subject")).toBe("subject")

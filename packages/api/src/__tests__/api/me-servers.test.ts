@@ -184,7 +184,7 @@ describe("GET /me/servers", () => {
   })
 })
 
-describe("l'organisation qui porte le serveur", () => {
+describe("the organization that holds the server", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -193,7 +193,7 @@ describe("l'organisation qui porte le serveur", () => {
     await resetDb()
   })
 
-  it("voyage avec chaque serveur attribué", async () => {
+  it("travels with each assigned server", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Flyleaf",
       roles: ["owner"],
@@ -214,7 +214,7 @@ describe("l'organisation qui porte le serveur", () => {
     })
   })
 
-  it("distingue les serveurs de deux organisations d'un même membre", async () => {
+  it("tells apart the servers of two organizations of the same member", async () => {
     const first = await createOrganizationWithMembers({
       name: "Flyleaf",
       roles: ["owner"],
@@ -244,7 +244,7 @@ describe("l'organisation qui porte le serveur", () => {
     ).toEqual(["Autre", "Flyleaf"])
   })
 
-  it("ne dit rien de plus de l'organisation", async () => {
+  it("says nothing more about the organization", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},

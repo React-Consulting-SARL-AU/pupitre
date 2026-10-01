@@ -23,27 +23,27 @@ const VIEW = {
   recipient: "ms1b2m6G3lR0b3v8C9W3dGdtS1XU9Qp3mM5o6f7g8h0=",
 };
 
-describe("le fournisseur d'un seau", () => {
-  it("se lit sur le point d'accès, R2 pour un seau encore vide", () => {
+describe("a bucket's provider", () => {
+  it("is read from the endpoint, R2 for a still-empty bucket", () => {
     expect(providerOf("")).toBe("r2");
     expect(providerOf(R2)).toBe("r2");
     expect(providerOf("https://s3.eu-west-3.amazonaws.com")).toBe("aws");
     expect(providerOf("https://s3.fr-par.scw.cloud")).toBe("other");
   });
 
-  it("déduit le point d'accès de R2 de l'identifiant, ou de l'adresse collée entière", () => {
+  it("derives the R2 endpoint from the account ID, or from the full pasted address", () => {
     expect(r2Endpoint(ACCOUNT)).toBe(R2);
     expect(r2Endpoint(`${R2}/`)).toBe(R2);
     expect(r2Endpoint(" ")).toBe("");
     expect(r2AccountOf(R2)).toBe(ACCOUNT);
   });
 
-  it("déduit celui d'AWS de la région", () => {
+  it("derives the AWS one from the region", () => {
     expect(awsEndpoint("eu-west-3")).toBe("https://s3.eu-west-3.amazonaws.com");
     expect(awsEndpoint("")).toBe("");
   });
 
-  it("change l'adresse et l'adressage en changeant de fournisseur, jamais le seau ni la clé", () => {
+  it("changes the address and addressing style on a provider switch, never the bucket or the key", () => {
     const aws = switchedTo("aws", VIEW);
 
     expect(aws).toMatchObject({
@@ -59,7 +59,7 @@ describe("le fournisseur d'un seau", () => {
     });
   });
 
-  it("refuse un identifiant de compte R2 qui ne peut pas en être un", () => {
+  it("refuses an R2 account ID that cannot be one", () => {
     const typed = { ...VIEW, endpoint: r2Endpoint("mon-compte") };
 
     expect(storageProblems("r2", typed).endpoint).toBe("r2Account");
@@ -68,8 +68,8 @@ describe("le fournisseur d'un seau", () => {
   });
 });
 
-describe("le seau que tient le serveur", () => {
-  it("dérive de la connexion de cet ordinateur dès qu'une valeur diffère", () => {
+describe("the bucket the server holds", () => {
+  it("drifts from this computer's connection as soon as a value differs", () => {
     expect(driftsFrom(VIEW, { ...VIEW, interval_hours: 24 })).toBe(false);
     expect(driftsFrom(VIEW, { ...VIEW, bucket: "ancien" })).toBe(true);
     expect(driftsFrom(VIEW, { interval_hours: 24 })).toBe(false);

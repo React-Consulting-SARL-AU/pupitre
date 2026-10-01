@@ -37,8 +37,8 @@ afterEach(() => {
   forgetProjects();
 });
 
-describe("les commandes d'un projet ouvert", () => {
-  it("refuse un projet que l'agent n'a jamais déclaré", async () => {
+describe("an open project's commands", () => {
+  it("refuses a project the agent never declared", async () => {
     const answer = await onProject(
       "project.git_status",
       SERVER,
@@ -52,13 +52,13 @@ describe("les commandes d'un projet ouvert", () => {
     });
   });
 
-  it("refuse un serveur qui n'est plus dans la liste", async () => {
+  it("refuses a server that is no longer in the list", async () => {
     const answer = await listProjects("srv-parti", deps());
 
     expect(answer).toMatchObject({ ok: false, error: { code: "bad_request" } });
   });
 
-  it("lit les branches, l'écart distant, l'arbre et un diff", async () => {
+  it("reads the branches, the remote gap, the tree and a diff", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
@@ -89,7 +89,7 @@ describe("les commandes d'un projet ouvert", () => {
     expect(diff).toMatchObject({ ok: true, result: { path: "src/tva.ts" } });
   });
 
-  it("préfère la racine que git a nommée au dossier du registre", async () => {
+  it("prefers the root git named over the registry folder", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
@@ -107,7 +107,7 @@ describe("les commandes d'un projet ouvert", () => {
     );
   });
 
-  it("transmet le refus de l'agent et son remède, sans les toucher", async () => {
+  it("passes on the agent's refusal and its fix, untouched", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
@@ -132,7 +132,7 @@ describe("les commandes d'un projet ouvert", () => {
     });
   });
 
-  it("refuse un nom de branche que le serveur n'aurait pas pu donner", async () => {
+  it("refuses a branch name the server could not have given", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
@@ -150,7 +150,7 @@ describe("les commandes d'un projet ouvert", () => {
     });
   });
 
-  it("refuse une action qui n'est pas une des trois", async () => {
+  it("refuses an action that is not one of the three", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);

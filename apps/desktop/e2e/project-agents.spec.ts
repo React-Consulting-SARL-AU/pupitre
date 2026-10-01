@@ -7,7 +7,7 @@ const CLAUDE_CARD = /Claude/;
 const AGENTS_TAB = /^Agents/;
 const CLOSE_AND_STOP = /^Fermer l'onglet et arrêter la session/;
 
-test.describe("l'onglet Agents d'un projet", () => {
+test.describe("a project's Agents tab", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -35,7 +35,7 @@ test.describe("l'onglet Agents d'un projet", () => {
     await running.app.close();
   });
 
-  test("propose les agents de la machine, lance celui qu'on presse, et ferme son onglet quand il quitte", async () => {
+  test("offers the machine's agents, launches the one pressed, and closes its tab when it exits", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
@@ -52,7 +52,7 @@ test.describe("l'onglet Agents d'un projet", () => {
 
     const picker = page.locator("[data-agents-picker]");
 
-    await test.step("aucune session ne s'ouvre à l'arrivée", async () => {
+    await test.step("no session opens on arrival", async () => {
       await expect(picker).toBeVisible();
       await expect(
         page.getByRole("region", { name: "Lancer un agent" })
@@ -68,7 +68,7 @@ test.describe("l'onglet Agents d'un projet", () => {
       await assertAccessible(page, "projects/agents");
     });
 
-    await test.step("presser Claude ouvre sa session dans la rangée des agents", async () => {
+    await test.step("pressing Claude opens its session in the agents row", async () => {
       await picker.getByRole("button", { name: CLAUDE_CARD }).click();
 
       const sessions = page.getByRole("tablist", { name: "Sessions" });
@@ -88,7 +88,7 @@ test.describe("l'onglet Agents d'un projet", () => {
       expect(opened[0]?.[3]).toBe("flyleaf-api");
     });
 
-    await test.step("l'agent qui quitte emporte son onglet, sans rien tuer", async () => {
+    await test.step("the agent that exits takes its tab with it, killing nothing", async () => {
       const id = await page
         .locator("[data-terminal-tab]")
         .first()
@@ -112,7 +112,7 @@ test.describe("l'onglet Agents d'un projet", () => {
       expect(ended).toEqual([[id, null]]);
     });
 
-    await test.step("fermer l'onglet d'un agent demande d'abord, puis arrête sa session", async () => {
+    await test.step("closing an agent's tab asks first, then stops its session", async () => {
       await picker.getByRole("button", { name: CLAUDE_CARD }).click();
 
       const sessions = page.getByRole("tablist", { name: "Sessions" });

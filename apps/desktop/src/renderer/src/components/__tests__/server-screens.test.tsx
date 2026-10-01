@@ -44,11 +44,11 @@ function text(html: string): string {
     .trim();
 }
 
-describe("le test d'une adresse", () => {
+describe("an address test", () => {
   const notice = (reach: ServerReach): string =>
     renderToStaticMarkup(<ServerReachNotice reach={reach} />);
 
-  it("distingue une adresse qui répond d'une qui refuse, par la forme", () => {
+  it("tells an address that answers from one that refuses, by shape", () => {
     const answered = notice({
       access: { access: "opens" },
       ms: 42,
@@ -68,7 +68,7 @@ describe("le test d'une adresse", () => {
     expect(refused).toContain('data-shape="struck"');
   });
 
-  it("nomme le logiciel qui a répondu et le temps qu'il a mis", () => {
+  it("names the software that answered and the time it took", () => {
     const html = notice({
       access: { access: "opens" },
       ms: 42,
@@ -79,7 +79,7 @@ describe("le test d'une adresse", () => {
     expect(text(html)).toContain("OpenSSH_9.6 a répondu en 42 ms");
   });
 
-  it("dit ce qui ouvrira le compte, par la forme et par la phrase", () => {
+  it("says what will open the account, by shape and by sentence", () => {
     const answered = (access: ServerReach & { reached: true }) =>
       notice(access);
     const opens = answered({
@@ -113,7 +113,7 @@ describe("le test d'une adresse", () => {
     expect(text(manual)).toContain("peut quand même être ajouté");
   });
 
-  it("rend le refus et son remède tels que le processus principal les a dits", () => {
+  it("renders the refusal and its fix as the main process said them", () => {
     const html = notice({
       code: "not-ssh",
       phrase: {
@@ -129,7 +129,7 @@ describe("le test d'une adresse", () => {
   });
 });
 
-describe("la suppression d'un serveur", () => {
+describe("deleting a server", () => {
   const row = (): string =>
     renderToStaticMarkup(
       <ServerRow
@@ -142,17 +142,17 @@ describe("la suppression d'un serveur", () => {
       />
     );
 
-  it("ne montre rien de destructeur tant qu'on n'a pas demandé", () => {
+  it("shows nothing destructive until asked", () => {
     expect(text(row())).not.toContain("Supprimer définitivement");
   });
 
-  it("offre la corbeille sur chaque ligne", () => {
+  it("offers the trash on each row", () => {
     expect(row()).toContain('aria-label="Supprimer atelier"');
   });
 });
 
-describe("le bouton d'un geste irréversible", () => {
-  it("se peint en plein plutôt que de se contenter d'un contour", () => {
+describe("an irreversible gesture button", () => {
+  it("is painted solid rather than settling for an outline", () => {
     const html = renderToStaticMarkup(
       <Button variant="destructive">Supprimer définitivement</Button>
     );
@@ -161,7 +161,7 @@ describe("le bouton d'un geste irréversible", () => {
     expect(html).toContain("text-base");
   });
 
-  it("laisse le contour au bouton qui ne fait qu'ouvrir la question", () => {
+  it("leaves the outline to the button that only opens the question", () => {
     const html = renderToStaticMarkup(
       <Button variant="danger">Supprimer</Button>
     );
@@ -170,7 +170,7 @@ describe("le bouton d'un geste irréversible", () => {
   });
 });
 
-describe("un bouton qui travaille", () => {
+describe("a working button", () => {
   const working = (): string =>
     renderToStaticMarkup(
       <Button icon={Trash2} loading variant="destructive">
@@ -178,7 +178,7 @@ describe("un bouton qui travaille", () => {
       </Button>
     );
 
-  it("tourne à la place de son icône, donc à gauche du libellé", () => {
+  it("spins in place of its icon, so to the left of the label", () => {
     const html = working();
 
     expect(html).toContain('data-spinner="true"');
@@ -188,14 +188,14 @@ describe("un bouton qui travaille", () => {
     );
   });
 
-  it("ne prend pas un second clic, et le dit à qui lit à voix haute", () => {
+  it("takes no second click, and says so to whoever reads aloud", () => {
     const html = working();
 
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain("disabled");
   });
 
-  it("garde son encre : une attente n'est pas un bouton éteint", () => {
+  it("keeps its ink: a wait is not a switched-off button", () => {
     expect(working()).not.toContain("opacity-40");
     expect(renderToStaticMarkup(<Button disabled>Supprimer</Button>)).toContain(
       "opacity-40"
@@ -203,7 +203,7 @@ describe("un bouton qui travaille", () => {
   });
 });
 
-describe("une attente en plusieurs étapes", () => {
+describe("a multi-step wait", () => {
   const notice = (): string =>
     renderToStaticMarkup(
       <WaitingNotice
@@ -225,7 +225,7 @@ describe("une attente en plusieurs étapes", () => {
       />
     );
 
-  it("dit où elle en est par la forme, pas par la couleur", () => {
+  it("says where it stands by shape, not by colour", () => {
     const html = notice();
 
     expect(html).toContain('data-state="done"');
@@ -236,12 +236,12 @@ describe("une attente en plusieurs étapes", () => {
     expect(html).toContain('data-shape="empty"');
   });
 
-  it("nomme l'étape en cours pour ce qui lit à voix haute", () => {
+  it("names the current step for whatever reads aloud", () => {
     expect(notice()).toContain('aria-current="step"');
     expect(text(notice())).toContain("On l'écrit dans authorized_keys");
   });
 
-  it("reste une attente quand aucune étape n'est nommée", () => {
+  it("stays a wait when no step is named", () => {
     const html = renderToStaticMarkup(
       <WaitingNotice detail="Ports, utilisateurs" title="Inspection" />
     );
@@ -251,26 +251,26 @@ describe("une attente en plusieurs étapes", () => {
   });
 });
 
-describe("le choix d'une machine dans l'assistant", () => {
+describe("choosing a machine in the wizard", () => {
   const choice = (server: Server): string =>
     renderToStaticMarkup(
       <OnboardingServerChoice onPick={NOOP} server={server} />
     );
 
-  it("fait de la carte entière le bouton, pour n'avoir rien à viser", () => {
+  it("makes the whole card the button, so there is nothing to aim at", () => {
     const html = choice(SERVER);
 
     expect(html.startsWith("<button")).toBe(true);
     expect(html).toContain('data-server="srv-1"');
   });
 
-  it("dit l'adresse et à qui appartient la configuration", () => {
+  it("says the address and who owns the configuration", () => {
     expect(text(choice(SERVER))).toContain(
       "root@203.0.113.10:22 · écrite par l'app"
     );
   });
 
-  it("nomme un hôte du système par son alias, sans compte ni port", () => {
+  it("names a system host by its alias, without account or port", () => {
     const html = choice({
       host: "atelier",
       id: "srv-2",
@@ -284,26 +284,26 @@ describe("le choix d'une machine dans l'assistant", () => {
   });
 });
 
-describe("l'étape que l'assistant ouvre", () => {
-  it("attend d'avoir lu la liste avant de montrer quoi que ce soit", () => {
+describe("the step the wizard opens", () => {
+  it("waits to have read the list before showing anything", () => {
     expect(serverStage(null, "loading", 0)).toBeNull();
   });
 
-  it("ouvre le formulaire quand cet ordinateur ne connaît aucune machine", () => {
+  it("opens the form when this computer knows no machine", () => {
     expect(serverStage(null, "ready", 0)).toBe("add");
   });
 
-  it("propose de choisir dès qu'il en connaît une", () => {
+  it("offers to choose as soon as it knows one", () => {
     expect(serverStage(null, "ready", 1)).toBe("pick");
   });
 
-  it("respecte l'étape qu'on a demandée", () => {
+  it("respects the step that was asked for", () => {
     expect(serverStage("add", "ready", 3)).toBe("add");
     expect(serverStage("pick", "ready", 0)).toBe("pick");
   });
 });
 
-describe("l'organisation de l'enrôlement", () => {
+describe("the enrolment organization", () => {
   const identity: AccountIdentity = {
     email: "ada@pupitre.studio",
     license: "valid",
@@ -326,7 +326,7 @@ describe("l'organisation de l'enrôlement", () => {
       />
     );
 
-  it("dit pour quelle organisation le serveur sera enrôlé, et le rôle en français", () => {
+  it("says which organization the server will be enrolled in, and the role in French", () => {
     const html = note(identity);
 
     expect(html).toContain('data-enrolling-for="org-1"');
@@ -335,7 +335,7 @@ describe("l'organisation de l'enrôlement", () => {
     expect(text(html)).not.toContain("admin");
   });
 
-  it("offre la bascule seulement quand il y a le choix", () => {
+  it("offers the switch only when there is a choice", () => {
     const several = note(identity);
     const one = note({
       ...identity,
@@ -348,14 +348,14 @@ describe("l'organisation de l'enrôlement", () => {
     expect(one).not.toContain('role="combobox"');
   });
 
-  it("prévient quand aucune organisation n'est active", () => {
+  it("warns when no organization is active", () => {
     const html = note({ ...identity, organization: null, role: null });
 
     expect(text(html)).toContain("Aucune organisation active");
   });
 });
 
-describe("l'offre d'installer sur la fiche d'un serveur", () => {
+describe("the offer to install on a server page", () => {
   const HELLO: HelloResult = {
     agent_version: "1.0.0",
     capabilities: [],
@@ -386,7 +386,7 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
     document.body.innerHTML = "";
   });
 
-  it("se retire quand l'agent répond après l'ouverture de la fiche, comme au relancement", async () => {
+  it("withdraws when the agent answers after the page opens, as on relaunch", async () => {
     agentGreets(null);
 
     const view = await mount(<OnboardingEntry server={SERVER} />);
@@ -400,7 +400,7 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
     view.unmount();
   });
 
-  it("ne revient pas quand le canal d'un agent qui a répondu se coupe", async () => {
+  it("does not come back when the channel of an agent that answered drops", async () => {
     agentGreets(null);
 
     const view = await mount(<OnboardingEntry server={SERVER} />);
@@ -412,7 +412,7 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
     view.unmount();
   });
 
-  it("se retire quand une inspection trouve l'agent", async () => {
+  it("withdraws when an inspection finds the agent", async () => {
     agentGreets(null);
 
     const view = await mount(<OnboardingEntry server={SERVER} />);
@@ -427,7 +427,7 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
     view.unmount();
   });
 
-  it("n'offre rien sur un serveur dont l'agent a déjà répondu", async () => {
+  it("offers nothing on a server whose agent already answered", async () => {
     agentGreets(HELLO);
 
     const view = await mount(<OnboardingEntry server={SERVER} />);
@@ -436,7 +436,7 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
     view.unmount();
   });
 
-  it("offre d'installer sur un serveur nu", async () => {
+  it("offers to install on a bare server", async () => {
     agentGreets(null);
     useInspection.setState({ probes: { [SERVER.id]: BARE } });
 

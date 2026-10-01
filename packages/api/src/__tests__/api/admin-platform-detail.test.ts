@@ -155,7 +155,7 @@ describe("GET /admin/users/:id", () => {
     await resetDb()
   })
 
-  it("dit les appareils, les serveurs attribués, le rôle plateforme et le journal", async () => {
+  it("lists the devices, assigned servers, platform role and log", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -203,7 +203,7 @@ describe("GET /admin/users/:id", () => {
     })
   })
 
-  it("nomme le rôle plateforme d'un membre de l'équipe", async () => {
+  it("names the platform role of a team member", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<UserDetailBody>(
       `/admin/users/${admin.session.userId}`,
@@ -216,7 +216,7 @@ describe("GET /admin/users/:id", () => {
     )
   })
 
-  it("rend not_found sur un identifiant inconnu", async () => {
+  it("returns not_found on an unknown identifier", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<ErrorBody>("/admin/users/inconnu", {
       session: admin,
@@ -236,7 +236,7 @@ describe("POST /admin/users/:id/ban", () => {
     await resetDb()
   })
 
-  it("coupe les sessions et les codes d'appareil, et garde la raison", async () => {
+  it("cuts sessions and device codes, and keeps the reason", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -284,7 +284,7 @@ describe("POST /admin/users/:id/ban", () => {
     expect(refused.status).toBe(401)
   })
 
-  it("protège un membre de l'organisation Pupitre", async () => {
+  it("protects a member of the Pupitre organization", async () => {
     const { user } = await createUser({ email: "equipe@pupitre.studio" })
 
     await joinPlatformOrganization(harness.prisma, user.id, "member")
@@ -303,7 +303,7 @@ describe("POST /admin/users/:id/ban", () => {
     ).toMatchObject({ banned: false })
   })
 
-  it("lève le bannissement et garde la ligne du journal", async () => {
+  it("lifts the ban and keeps the log row", async () => {
     const { user } = await createUser({ email: "client@test.local" })
     const admin = await platformAdmin()
 
@@ -328,7 +328,7 @@ describe("POST /admin/users/:id/ban", () => {
   })
 })
 
-describe("les organisations de la plateforme", () => {
+describe("the platform organizations", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -338,7 +338,7 @@ describe("les organisations de la plateforme", () => {
     useFakeBilling()
   })
 
-  it("liste chaque organisation avec ses compteurs, son abonnement et sa provenance", async () => {
+  it("lists each organization with its counters, subscription and origin", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner", "member"],
@@ -389,7 +389,7 @@ describe("les organisations de la plateforme", () => {
     expect(personal.json.data[0]?.personal).toBe(true)
   })
 
-  it("détaille les membres, les serveurs, tous les abonnements et le journal", async () => {
+  it("details the members, servers, all subscriptions and the log", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -440,7 +440,7 @@ describe("les organisations de la plateforme", () => {
     })
   })
 
-  it("ne garde que les organisations de l'état demandé", async () => {
+  it("keeps only the organizations in the requested state", async () => {
     const suspendue = await createOrganizationWithMembers({
       name: "Suspendue",
       roles: ["owner"],
@@ -504,7 +504,7 @@ describe("les organisations de la plateforme", () => {
     expect(unknown.status).toBe(422)
   })
 
-  it("rend not_found sur une organisation inconnue", async () => {
+  it("returns not_found on an unknown organization", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<ErrorBody>(
       "/admin/organizations/inconnue",
@@ -516,7 +516,7 @@ describe("les organisations de la plateforme", () => {
   })
 })
 
-describe("le détail d'un serveur et sa remise en service", () => {
+describe("a server's detail and its return to service", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -526,7 +526,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     useFakeBilling()
   })
 
-  it("dit l'appareil qui a enrôlé, la personne à qui il est attribué et son journal", async () => {
+  it("names the device that enrolled it, the person it is assigned to and its log", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -571,7 +571,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     expect(response.json.data.events).toEqual([])
   })
 
-  it("rend not_found sur un serveur inconnu", async () => {
+  it("returns not_found on an unknown server", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<ErrorBody>("/admin/servers/inconnu", {
       session: admin,
@@ -580,7 +580,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     expect(response.status).toBe(404)
   })
 
-  it("rend le serveur à son organisation et garde la ligne du journal", async () => {
+  it("returns the server to its organization and keeps the log row", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},
@@ -609,7 +609,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     ).toBe(1)
   })
 
-  it("laisse un serveur suspendu quand l'organisation dépasse ses serveurs gratuits sans licence", async () => {
+  it("leaves a server suspended when the organization exceeds its free servers without a licence", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -636,7 +636,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     expect(response.json.data.suspended_reason).toBe("billing")
   })
 
-  it("refuse de lever une suspension de facturation", async () => {
+  it("refuses to lift a billing suspension", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -663,7 +663,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
   })
 })
 
-describe("les abonnements, le journal, les liens et l'équipe", () => {
+describe("subscriptions, log, links and team", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -673,7 +673,7 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
     useFakeBilling()
   })
 
-  it("liste les abonnements en disant lequel compte", async () => {
+  it("lists subscriptions, saying which one counts", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -713,7 +713,7 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
     expect(filtered.json.data[0].status).toBe("canceled")
   })
 
-  it("filtre le journal par organisation, acteur, action et cible", async () => {
+  it("filters the log by organization, actor, action and target", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -766,7 +766,7 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
     expect(byTarget.json.data[0].organization?.id).toBe(organization.id)
   })
 
-  it("détaille un lien d'affiliation et les organisations venues par lui", async () => {
+  it("details an affiliate link and the organizations that came through it", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -803,7 +803,7 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
     expect(unknown.status).toBe(404)
   })
 
-  it("liste les versions publiées de l'agent et les membres de l'équipe", async () => {
+  it("lists the published agent versions and the team members", async () => {
     await harness.prisma.release.create({
       data: {
         version: "1.2.0",

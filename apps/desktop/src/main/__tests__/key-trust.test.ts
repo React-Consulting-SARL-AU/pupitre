@@ -47,8 +47,8 @@ const ENROLLED: AgentResponse<unknown> = {
   result: { enrolled: true, license: "valid" },
 };
 
-describe("la clé de l'appareil posée après l'enrôlement", () => {
-  it("pose la clé nue de l'appareil comme signataire", async () => {
+describe("the device key placed after enrolment", () => {
+  it("places the device's bare key as signer", async () => {
     const agent = client({ enroll: ENROLLED });
 
     const answer = await enrolAgent("srv-1", SUMMARY, {
@@ -68,7 +68,7 @@ describe("la clé de l'appareil posée après l'enrôlement", () => {
     ]);
   });
 
-  it("la pose aussi quand l'agent portait déjà son identité", async () => {
+  it("also places it when the agent already carried its identity", async () => {
     const agent = client({});
 
     const answer = await enrolAgent("srv-1", SUMMARY, {
@@ -82,7 +82,7 @@ describe("la clé de l'appareil posée après l'enrôlement", () => {
     expect(agent.calls.map((call) => call.cmd)).toEqual(["keys.trust"]);
   });
 
-  it("ne pose rien sans appareil, comme un build de développement sans compte", async () => {
+  it("places nothing without a device, like a development build without an account", async () => {
     const agent = client({ enroll: ENROLLED });
 
     const answer = await enrolAgent("srv-1", SUMMARY, {
@@ -96,7 +96,7 @@ describe("la clé de l'appareil posée après l'enrôlement", () => {
     expect(agent.calls.map((call) => call.cmd)).toEqual(["enroll"]);
   });
 
-  it("ne pose rien quand rien n'a été enrôlé", async () => {
+  it("places nothing when nothing was enrolled", async () => {
     const agent = client({});
 
     const answer = await enrolAgent("srv-1", null, {
@@ -110,7 +110,7 @@ describe("la clé de l'appareil posée après l'enrôlement", () => {
     expect(agent.calls).toEqual([]);
   });
 
-  it("passe sur un agent trop ancien pour connaître keys.trust", async () => {
+  it("moves on past an agent too old to know keys.trust", async () => {
     const agent = client({
       "keys.trust": {
         error: { code: "unknown_command", message: "keys.trust" },
@@ -126,7 +126,7 @@ describe("la clé de l'appareil posée après l'enrôlement", () => {
     expect(answer).toEqual({ ok: true, result: null });
   });
 
-  it("rend le refus de keys.trust, sans lequel personne n'autoriserait d'autre appareil", async () => {
+  it("returns the keys.trust refusal, without which no one could authorize another device", async () => {
     const refusal: AgentResponse<unknown> = {
       error: {
         code: "bad_request",

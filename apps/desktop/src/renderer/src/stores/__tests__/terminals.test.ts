@@ -8,8 +8,8 @@ beforeEach(() => {
   useTerminals.getState().reset();
 });
 
-describe("l'ouverture d'une session", () => {
-  it("retient la session que l'agent a nommée", async () => {
+describe("opening a session", () => {
+  it("retains the session the agent named", async () => {
     stubPupitre({
       openTerminal: () =>
         Promise.resolve({
@@ -28,7 +28,7 @@ describe("l'ouverture d'une session", () => {
     });
   });
 
-  it("garde le refus et son remède tels quels", async () => {
+  it("keeps the refusal and its fix as they are", async () => {
     stubPupitre({
       openTerminal: () =>
         Promise.resolve({
@@ -51,7 +51,7 @@ describe("l'ouverture d'une session", () => {
     });
   });
 
-  it("n'ouvre qu'une session, même si l'onglet est monté deux fois", async () => {
+  it("opens only one session, even if the tab is mounted twice", async () => {
     let asked = 0;
 
     stubPupitre({
@@ -73,8 +73,8 @@ describe("l'ouverture d'une session", () => {
   });
 });
 
-describe("la connexion d'un agent", () => {
-  it("n'expose que l'hôte de la page, jamais son adresse", () => {
+describe("an agent's login", () => {
+  it("exposes only the page's host, never its address", () => {
     useTerminals.getState().noteLink("t1", "claude.ai");
 
     expect(useTerminals.getState().links).toEqual({
@@ -82,7 +82,7 @@ describe("la connexion d'un agent", () => {
     });
   });
 
-  it("l'ouvre dans le navigateur en nommant la session, et le retient", async () => {
+  it("opens it in the browser naming the session, and retains it", async () => {
     const asked: string[] = [];
 
     stubPupitre({
@@ -103,7 +103,7 @@ describe("la connexion d'un agent", () => {
     });
   });
 
-  it("ne se dit pas ouverte quand le processus principal a refusé", async () => {
+  it("does not report itself open when the main process refused", async () => {
     stubPupitre({ openLogin: () => Promise.resolve(false) });
 
     useTerminals.getState().noteLink("t9", "claude.ai");
@@ -112,7 +112,7 @@ describe("la connexion d'un agent", () => {
     expect(useTerminals.getState().links.t9?.opened).toBe(false);
   });
 
-  it("repart de zéro quand la session imprime une adresse neuve", async () => {
+  it("starts over when the session prints a new address", async () => {
     stubPupitre({ openLogin: () => Promise.resolve(true) });
 
     useTerminals.getState().noteLink("t1", "claude.ai");
@@ -122,7 +122,7 @@ describe("la connexion d'un agent", () => {
     expect(useTerminals.getState().links.t1?.opened).toBe(false);
   });
 
-  it("s'oublie quand on l'ignore", () => {
+  it("forgets itself when dismissed", () => {
     useTerminals.getState().noteLink("t1", "claude.ai");
     useTerminals.getState().dismissLogin("t1");
 
@@ -130,8 +130,8 @@ describe("la connexion d'un agent", () => {
   });
 });
 
-describe("la fin d'une session", () => {
-  it("garde l'onglet avec son code de sortie", async () => {
+describe("the end of a session", () => {
+  it("keeps the tab with its exit code", async () => {
     stubPupitre({
       openTerminal: () =>
         Promise.resolve({ ok: true, result: { session: "claude-app" } }),
@@ -147,13 +147,13 @@ describe("la fin d'une session", () => {
     });
   });
 
-  it("ignore une sortie pour une session qui n'était pas ouverte", () => {
+  it("ignores an exit for a session that was not open", () => {
     useTerminals.getState().noteExit("t-ghost", 0);
 
     expect(useTerminals.getState().sessions["t-ghost"]).toBeUndefined();
   });
 
-  it("rouvre un processus neuf dans le même onglet", async () => {
+  it("reopens a fresh process in the same tab", async () => {
     let opened = 0;
 
     stubPupitre({
@@ -176,8 +176,8 @@ describe("la fin d'une session", () => {
   });
 });
 
-describe("la recherche dans une session", () => {
-  it("n'est ouverte que sur une session à la fois, et se ferme avec elle", () => {
+describe("searching within a session", () => {
+  it("is open on only one session at a time, and closes with it", () => {
     useTerminals.getState().openSearch("t1");
     useTerminals.getState().openSearch("t2");
 
@@ -189,8 +189,8 @@ describe("la recherche dans une session", () => {
   });
 });
 
-describe("la taille d'ouverture", () => {
-  it("ouvre le PTY à la taille mesurée, sinon au 80×24 classique", async () => {
+describe("the opening size", () => {
+  it("opens the PTY at the measured size, otherwise at the classic 80×24", async () => {
     const opened: { cols: number; rows: number }[] = [];
 
     stubPupitre({
