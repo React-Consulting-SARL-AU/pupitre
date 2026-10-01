@@ -44,7 +44,7 @@ describe("createMailUpload", () => {
     resetFakeMail()
   })
 
-  it("signe un dépôt sous l'utilisateur, avec un nom assaini et dix minutes de validité", async () => {
+  it("signs an upload under the user, with a sanitized name and ten minutes of validity", async () => {
     const grant = await createMailUpload(
       "user_1",
       {
@@ -69,7 +69,7 @@ describe("createMailUpload", () => {
     ])
   })
 
-  it("refuse un exécutable avant de signer quoi que ce soit", async () => {
+  it("refuses an executable before signing anything", async () => {
     expect(
       await refusal(() =>
         createMailUpload(
@@ -95,17 +95,17 @@ describe("assertMailAttachments", () => {
     size: 10,
   }
 
-  it("accepte des dépôts de l'appelant sous le plafond", () => {
+  it("accepts the caller's uploads under the ceiling", () => {
     expect(() => assertMailAttachments("user_1", [attachment])).not.toThrow()
   })
 
-  it("refuse un dépôt d'un autre utilisateur", async () => {
+  it("refuses another user's upload", async () => {
     expect(
       await refusal(() => assertMailAttachments("user_2", [attachment]))
     ).toBe("foreign")
   })
 
-  it("refuse une clé qui remonte hors du préfixe", async () => {
+  it("refuses a key that climbs out of the prefix", async () => {
     expect(
       await refusal(() =>
         assertMailAttachments("user_1", [
@@ -115,7 +115,7 @@ describe("assertMailAttachments", () => {
     ).toBe("foreign")
   })
 
-  it("refuse un total au-dessus de cinq mébioctets", async () => {
+  it("refuses a total above five mebibytes", async () => {
     expect(
       await refusal(() =>
         assertMailAttachments("user_1", [
@@ -126,7 +126,7 @@ describe("assertMailAttachments", () => {
     ).toBe("too_large")
   })
 
-  it("refuse un nom d'exécutable même sur une clé valide", async () => {
+  it("refuses an executable name even on a valid key", async () => {
     expect(
       await refusal(() =>
         assertMailAttachments("user_1", [{ ...attachment, filename: "a.js" }])
@@ -146,7 +146,7 @@ describe("readMailUploads", () => {
     resetFakeMail()
   })
 
-  it("lit les octets de chaque dépôt annoncé", async () => {
+  it("reads the bytes of each announced upload", async () => {
     mail.objects.set("mail/uploads/user_1/uuid/a.txt", {
       body: bytes("abc"),
       contentType: "text/plain",
@@ -166,7 +166,7 @@ describe("readMailUploads", () => {
     expect(read[0].mimeType).toBe("text/plain")
   })
 
-  it("refuse un dépôt absent du seau", async () => {
+  it("refuses an upload missing from the bucket", async () => {
     expect(
       await refusal(() =>
         readMailUploads([
@@ -181,7 +181,7 @@ describe("readMailUploads", () => {
     ).toBe("missing")
   })
 
-  it("refuse un dépôt plus gros qu'annoncé", async () => {
+  it("refuses an upload bigger than announced", async () => {
     mail.objects.set("mail/uploads/user_1/uuid/a.txt", {
       body: bytes("abcdef"),
       contentType: "text/plain",
@@ -213,7 +213,7 @@ describe("purgeStaleMailUploads", () => {
     resetFakeMail()
   })
 
-  it("efface les dépôts de plus de vingt-quatre heures et laisse le reste", async () => {
+  it("erases uploads older than twenty-four hours and leaves the rest", async () => {
     const stale = "mail/uploads/user_1/old/a.txt"
     const fresh = "mail/uploads/user_1/new/b.txt"
     const filed = "mail/thread_1/id/attachments/0/c.txt"
@@ -236,7 +236,7 @@ describe("purgeStaleMailUploads", () => {
     expect([...mail.objects.keys()].sort()).toEqual([filed, fresh].sort())
   })
 
-  it("ne fait rien sans dépôt en attente", async () => {
+  it("does nothing without a pending upload", async () => {
     expect(await purgeStaleMailUploads(NOW)).toEqual([])
   })
 })

@@ -12,7 +12,7 @@ import {
 
 const DIGEST = "a".repeat(64)
 
-describe("un listing", () => {
+describe("a listing", () => {
   const listing = {
     path: "projects",
     entries: [
@@ -27,17 +27,17 @@ describe("un listing", () => {
     truncated: false,
   }
 
-  it("porte le genre, la taille, la date et le mode de chaque entrée", () => {
+  it("carries each entry's kind, size, date and mode", () => {
     expect(FsListResultSchema.safeParse(listing).success).toBe(true)
   })
 
-  it("nomme la racine par un chemin vide", () => {
+  it("names the root with an empty path", () => {
     expect(FsListResultSchema.safeParse({ ...listing, path: "" }).success).toBe(
       true
     )
   })
 
-  it("refuse un genre hors du contrat et un mode qui n'est pas de l'octal", () => {
+  it("refuses a kind outside the contract and a mode that is not octal", () => {
     expect(
       FsListResultSchema.safeParse({
         ...listing,
@@ -53,7 +53,7 @@ describe("un listing", () => {
   })
 })
 
-describe("une fiche", () => {
+describe("a stat record", () => {
   const stat = {
     path: "notes.md",
     kind: "file",
@@ -62,11 +62,11 @@ describe("une fiche", () => {
     mode: "0644",
   }
 
-  it("se passe du type et de l'empreinte", () => {
+  it("does without the type and the fingerprint", () => {
     expect(FsStatResultSchema.safeParse(stat).success).toBe(true)
   })
 
-  it("les porte quand l'agent les connaît", () => {
+  it("carries them when the agent knows them", () => {
     expect(
       FsStatResultSchema.safeParse({
         ...stat,
@@ -77,7 +77,7 @@ describe("une fiche", () => {
   })
 })
 
-describe("une lecture", () => {
+describe("a read", () => {
   const read = {
     path: "notes.md",
     media_type: "text/plain",
@@ -86,11 +86,11 @@ describe("une lecture", () => {
     chunks: 1,
   }
 
-  it("rend de quoi vérifier ce qui vient de passer", () => {
+  it("returns what is needed to verify what just went through", () => {
     expect(FsReadResultSchema.safeParse(read).success).toBe(true)
   })
 
-  it("refuse un type que le canal ne porte pas et une taille au-delà du plafond", () => {
+  it("refuses a type the channel does not carry and a size beyond the ceiling", () => {
     expect(
       FsReadResultSchema.safeParse({ ...read, media_type: "application/pdf" })
         .success
@@ -104,8 +104,8 @@ describe("une lecture", () => {
   })
 })
 
-describe("une écriture", () => {
-  it("porte le contenu en base64 et l'empreinte de ce qui a été lu", () => {
+describe("a write", () => {
+  it("carries the content in base64 and the fingerprint of what was read", () => {
     expect(
       FsWriteParamsSchema.safeParse({
         path: "notes.md",
@@ -115,13 +115,13 @@ describe("une écriture", () => {
     ).toBe(true)
   })
 
-  it("se passe d'empreinte pour créer un fichier qui n'existait pas", () => {
+  it("does without a fingerprint to create a file that did not exist", () => {
     expect(
       FsWriteParamsSchema.safeParse({ path: "notes.md", content: "" }).success
     ).toBe(true)
   })
 
-  it("refuse un contenu qui n'est pas du base64", () => {
+  it("refuses content that is not base64", () => {
     expect(
       FsWriteParamsSchema.safeParse({ path: "notes.md", content: "hé !" })
         .success
@@ -129,8 +129,8 @@ describe("une écriture", () => {
   })
 })
 
-describe("une suppression", () => {
-  it("ne devient récursive que si on le demande", () => {
+describe("a deletion", () => {
+  it("only becomes recursive when asked", () => {
     expect(FsRemoveParamsSchema.safeParse({ path: "build" }).success).toBe(true)
     expect(
       FsRemoveParamsSchema.safeParse({ path: "build", recursive: true }).success
@@ -141,8 +141,8 @@ describe("une suppression", () => {
   })
 })
 
-describe("les plafonds", () => {
-  it("laissent une image peser plus qu'une écriture", () => {
+describe("the ceilings", () => {
+  it("let an image weigh more than a write", () => {
     expect(FILE_IMAGE_MAX_BYTES).toBeGreaterThan(FILE_WRITE_MAX_BYTES)
     expect(FILE_LIST_LIMIT).toBeGreaterThan(0)
   })

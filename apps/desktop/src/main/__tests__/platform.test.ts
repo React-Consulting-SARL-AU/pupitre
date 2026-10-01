@@ -8,37 +8,37 @@ import {
 
 const SIZE = { cols: 100, rows: 30 };
 
-describe("le multiplexage ssh", () => {
-  it("est refusé à Windows, dont l'OpenSSH ne le connaît pas", () => {
+describe("ssh multiplexing", () => {
+  it("is refused on Windows, whose OpenSSH does not know it", () => {
     expect(multiplexes("win32")).toBe(false);
   });
 
-  it("reste en place sur macOS et sur Linux", () => {
+  it("stays in place on macOS and Linux", () => {
     expect(multiplexes("darwin")).toBe(true);
     expect(multiplexes("linux")).toBe(true);
   });
 });
 
-describe("le dossier personnel", () => {
-  it("se lit dans USERPROFILE sur Windows, où HOME est vide", () => {
+describe("the home folder", () => {
+  it("is read from USERPROFILE on Windows, where HOME is empty", () => {
     expect(
       homeDirectory("win32", { HOME: "", USERPROFILE: "C:\\Users\\Jean" })
     ).toBe("C:\\Users\\Jean");
   });
 
-  it("se lit dans HOME ailleurs", () => {
+  it("is read from HOME elsewhere", () => {
     expect(homeDirectory("darwin", { HOME: "/Users/jean" })).toBe(
       "/Users/jean"
     );
   });
 });
 
-describe("le cadre de la fenêtre", () => {
-  it("garde les feux de circulation en retrait sur macOS", () => {
+describe("the window frame", () => {
+  it("keeps the traffic lights inset on macOS", () => {
     expect(windowChrome("darwin")).toEqual({ titleBarStyle: "hiddenInset" });
   });
 
-  it("rend ses boutons à Windows et à Linux, qui n'en dessinent aucun sans cela", () => {
+  it("gives its buttons back on Windows and Linux, which draw none otherwise", () => {
     for (const platform of ["win32", "linux"] as const) {
       expect(windowChrome(platform)).toEqual({
         titleBarOverlay: true,
@@ -48,8 +48,8 @@ describe("le cadre de la fenêtre", () => {
   });
 });
 
-describe("le pty d'un terminal", () => {
-  it("demande ConPTY sur Windows, jamais winpty", () => {
+describe("a terminal's pty", () => {
+  it("requests ConPTY on Windows, never winpty", () => {
     const options = terminalOptions(SIZE, "win32", {
       USERPROFILE: "C:\\Users\\Jean",
     });
@@ -62,7 +62,7 @@ describe("le pty d'un terminal", () => {
     });
   });
 
-  it("ne demande rien de tel ailleurs", () => {
+  it("requests nothing of the sort elsewhere", () => {
     const options = terminalOptions(SIZE, "linux", { HOME: "/home/jean" });
 
     expect(options).not.toHaveProperty("useConpty");

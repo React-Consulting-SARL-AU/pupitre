@@ -26,8 +26,8 @@ const SERVER: Server = {
   user: "root",
 };
 
-describe("une clé générée", () => {
-  it("est une ed25519 sans phrase de passe, dans le dossier de données de l'app", async () => {
+describe("a generated key", () => {
+  it("is an ed25519 without a passphrase, in the app's data folder", async () => {
     const dir = keysDir();
 
     const pair = await generateKey(dir, "srv-a");
@@ -37,7 +37,7 @@ describe("une clé générée", () => {
     expect(readFileSync(pair.keyPath, "utf8")).toContain("OPENSSH PRIVATE KEY");
   });
 
-  it("est en 0600 dans un dossier 0700", async () => {
+  it("is 0600 in a 0700 folder", async () => {
     const dir = keysDir();
 
     const pair = await generateKey(dir, "srv-a");
@@ -47,7 +47,7 @@ describe("une clé générée", () => {
     expect(statSync(pair.publicKeyPath).mode & 0o777).toBe(0o644);
   });
 
-  it("ne sort du dossier de l'app que par sa moitié publique", async () => {
+  it("only leaves the app folder through its public half", async () => {
     const dir = keysDir();
 
     await generateKey(dir, "srv-a");
@@ -58,13 +58,13 @@ describe("une clé générée", () => {
     expect(published).not.toContain("PRIVATE KEY");
   });
 
-  it("refuse un identifiant qui sortirait du dossier", async () => {
+  it("refuses an identifier that would escape the folder", async () => {
     const dir = keysDir();
 
     expect(generateKey(dir, "../../evil")).rejects.toBeInstanceOf(KeyError);
   });
 
-  it("disparaît avec le serveur", async () => {
+  it("disappears with the server", async () => {
     const dir = keysDir();
     const pair = await generateKey(dir, "srv-a");
 
@@ -75,8 +75,8 @@ describe("une clé générée", () => {
   });
 });
 
-describe("une clé importée", () => {
-  it("est recopiée dans le dossier de l'app, jamais référencée sur place", async () => {
+describe("an imported key", () => {
+  it("is copied into the app folder, never referenced in place", async () => {
     const dir = keysDir();
     const source = join(mkdtempSync(join(tmpdir(), "pupitre-src-")), "id");
     const generated = await generateKey(keysDir(), "elsewhere");
@@ -95,7 +95,7 @@ describe("une clé importée", () => {
     );
   });
 
-  it("dit ce qui manque quand le fichier n'est pas là", async () => {
+  it("says what is missing when the file is not there", async () => {
     const dir = keysDir();
 
     expect(importKey(dir, "srv-a", "/nowhere/id_ed25519")).rejects.toThrow(
@@ -103,7 +103,7 @@ describe("une clé importée", () => {
     );
   });
 
-  it("refuse ce qui n'est pas une clé privée, et dit quoi choisir", async () => {
+  it("refuses what is not a private key, and says what to choose", async () => {
     const dir = keysDir();
     const source = join(mkdtempSync(join(tmpdir(), "pupitre-src-")), "id.pub");
 
@@ -115,8 +115,8 @@ describe("une clé importée", () => {
   });
 });
 
-describe("la commande ssh-copy-id", () => {
-  it("porte la clé publique, le port et l'utilisateur du serveur", () => {
+describe("the ssh-copy-id command", () => {
+  it("carries the public key, the port and the server's user", () => {
     const command = copyIdCommand(SERVER, "/data/keys/srv-a.pub");
 
     expect(command).toBe(
@@ -124,13 +124,13 @@ describe("la commande ssh-copy-id", () => {
     );
   });
 
-  it("omet le port par défaut", () => {
+  it("omits the default port", () => {
     expect(copyIdCommand({ ...SERVER, port: 22 }, "/k.pub")).toBe(
       "ssh-copy-id -i /k.pub root@203.0.113.10"
     );
   });
 
-  it("protège un chemin à espaces, comme celui de l'app sur macOS", () => {
+  it("protects a path with spaces, like the app's on macOS", () => {
     const command = copyIdCommand(
       SERVER,
       "/Users/moi/Library/Application Support/@pupitre/desktop/keys/srv-a.pub"
@@ -141,7 +141,7 @@ describe("la commande ssh-copy-id", () => {
     );
   });
 
-  it("ferme, échappe et rouvre une apostrophe du chemin", () => {
+  it("closes, escapes and reopens an apostrophe in the path", () => {
     expect(copyIdCommand({ ...SERVER, port: 22 }, "/k'a.pub")).toBe(
       "ssh-copy-id -i '/k'\\''a.pub' root@203.0.113.10"
     );

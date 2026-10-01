@@ -20,8 +20,8 @@ function pieces(bytes: Bytes, size: number): Map<number, string> {
   return cut;
 }
 
-describe("les octets d'un fichier lu par morceaux", () => {
-  it("se recollent dans l'ordre des numéros et se vérifient contre le reçu", async () => {
+describe("the bytes of a file read in chunks", () => {
+  it("are glued back in chunk-number order and checked against the receipt", async () => {
     const bytes = bytesOf(TEXT);
     const chunks = pieces(bytes, 7);
 
@@ -35,7 +35,7 @@ describe("les octets d'un fichier lu par morceaux", () => {
     expect(textOf(whole as Bytes)).toBe(TEXT);
   });
 
-  it("ne rendent rien quand l'empreinte du reçu n'est pas celle des octets", async () => {
+  it("return nothing when the receipt's hash is not the bytes' hash", async () => {
     const bytes = bytesOf(TEXT);
     const chunks = pieces(bytes, 7);
 
@@ -48,7 +48,7 @@ describe("les octets d'un fichier lu par morceaux", () => {
     expect(whole).toBeNull();
   });
 
-  it("ne rendent rien quand un morceau manque ou que la taille diffère", async () => {
+  it("return nothing when a chunk is missing or the size differs", async () => {
     const bytes = bytesOf(TEXT);
     const chunks = pieces(bytes, 7);
     const sha256 = await fingerprint(bytes);
@@ -71,7 +71,7 @@ describe("les octets d'un fichier lu par morceaux", () => {
     ).toBeNull();
   });
 
-  it("encodent un texte en base64 sans retour à la ligne, et le retrouvent", () => {
+  it("encode a text in base64 without line breaks, and decode it back", () => {
     const encoded = base64Of(bytesOf("é ça va\n"));
 
     expect(encoded).toMatch(/^[A-Za-z0-9+/]*={0,2}$/);
@@ -80,7 +80,7 @@ describe("les octets d'un fichier lu par morceaux", () => {
     );
   });
 
-  it("encodent plus d'un pas de base64 sans perdre un octet", () => {
+  it("encode more than one base64 step without losing a byte", () => {
     const bytes = new Uint8Array(70_000).map((_, at) => at % 251) as Bytes;
 
     expect(atob(base64Of(bytes)).length).toBe(70_000);

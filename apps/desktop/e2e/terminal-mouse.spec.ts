@@ -10,7 +10,7 @@ const COPIED_BY_TMUX = "copié dans tmux";
 const CLICK_REPORTED = /\^\[\[<0;\d+;\d+M\^\[\[<0;\d+;\d+m/;
 const ANY_REPORT = /\^\[\[</;
 
-test.describe("la souris dans une session", () => {
+test.describe("the mouse in a session", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -56,7 +56,7 @@ test.describe("la souris dans une session", () => {
     return chunks.join("").replaceAll(ESC, "^[");
   }
 
-  test("un clic part au programme, une touche le garde pour la sélection, une copie de tmux arrive", async () => {
+  test("a click goes to the program, a modifier key keeps it for selection, a tmux copy arrives", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
@@ -85,13 +85,13 @@ test.describe("la souris dans une session", () => {
     const x = (box as { x: number }).x + 40;
     const y = (box as { y: number }).y + 12;
 
-    await test.step("un clic est rapporté au programme qui a demandé la souris", async () => {
+    await test.step("a click is reported to the program that asked for the mouse", async () => {
       await page.mouse.click(x, y);
 
       await expect.poll(written).toMatch(CLICK_REPORTED);
     });
 
-    await test.step("avec la touche de sélection, le glisser reste au terminal", async () => {
+    await test.step("with the selection key, the drag stays with the terminal", async () => {
       const before = (await written()).length;
 
       await page.keyboard.down(SELECT_MODIFIER);
@@ -106,7 +106,7 @@ test.describe("la souris dans une session", () => {
       expect(after.slice(before)).not.toMatch(ANY_REPORT);
     });
 
-    await test.step("ce que tmux copie arrive dans le presse-papiers", async () => {
+    await test.step("what tmux copies arrives in the clipboard", async () => {
       const encoded = Buffer.from(COPIED_BY_TMUX, "utf8").toString("base64");
       const held = await running.app.evaluate(({ clipboard }) =>
         clipboard.readText()

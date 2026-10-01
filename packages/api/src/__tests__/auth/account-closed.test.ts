@@ -48,7 +48,7 @@ async function magicLinkTokenFor(email: string): Promise<string> {
   return url.searchParams.get("token") ?? ""
 }
 
-describe("un compte fermé", () => {
+describe("a closed account", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -57,7 +57,7 @@ describe("un compte fermé", () => {
     await resetDb()
   })
 
-  it("n'ouvre plus de session par lien magique", async () => {
+  it("no longer opens a session by magic link", async () => {
     const { user } = await createUser({ email: "ferme@test.local" })
 
     await closeAccount(user.id)
@@ -76,7 +76,7 @@ describe("un compte fermé", () => {
     ).toBe(0)
   })
 
-  it("refuse un lien magique émis avant la fermeture", async () => {
+  it("refuses a magic link issued before the closure", async () => {
     const { user } = await createUser({ email: "lien-avant@test.local" })
     const token = await magicLinkTokenFor("lien-avant@test.local")
 
@@ -94,7 +94,7 @@ describe("un compte fermé", () => {
     ).toBe(0)
   })
 
-  it("n'ouvre plus de session par le device flow, et rend le code que l'app lit", async () => {
+  it("no longer opens a session through the device flow, and returns the code the app reads", async () => {
     const { user } = await createUser({ email: "ferme-desktop@test.local" })
     const { headers } = await createSession({ userId: user.id })
     const started = await startDeviceFlow(TEST_BASE_URL, {
@@ -128,7 +128,7 @@ describe("un compte fermé", () => {
     ).toBe(1)
   })
 
-  it("voit sa session déjà ouverte refusée, avec le remède", async () => {
+  it("sees its already open session refused, with the fix", async () => {
     const { user } = await createUser({ email: "encore-ouvert@test.local" })
     const session = await createSession({ userId: user.id })
 
@@ -146,7 +146,7 @@ describe("un compte fermé", () => {
   })
 })
 
-describe("un compte suspendu", () => {
+describe("a suspended account", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -155,7 +155,7 @@ describe("un compte suspendu", () => {
     await resetDb()
   })
 
-  it("lit le terme de sa suspension, pas une fermeture", async () => {
+  it("reads the end of its suspension, not a closure", async () => {
     const { user } = await createUser({ email: "suspendu@test.local" })
     const session = await createSession({ userId: user.id })
 
@@ -181,7 +181,7 @@ describe("un compte suspendu", () => {
     expect(refused.json.error.fix).toContain("support@pupitre.studio")
   })
 
-  it("lit une fermeture quand la suspension n'a pas de terme", async () => {
+  it("reads a closure when the suspension has no end", async () => {
     const { user } = await createUser({ email: "suspendu-sans-fin@test.local" })
     const session = await createSession({ userId: user.id })
 
@@ -199,7 +199,7 @@ describe("un compte suspendu", () => {
     expect(refused.json.error.message).toBe("Ce compte est fermé.")
   })
 
-  it("ouvre de nouveau quand le terme est passé", async () => {
+  it("opens again once the end date has passed", async () => {
     const { user } = await createUser({ email: "suspension-finie@test.local" })
     const session = await createSession({ userId: user.id })
 

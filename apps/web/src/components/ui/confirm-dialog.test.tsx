@@ -31,7 +31,7 @@ afterEach(() => {
 })
 
 describe("ConfirmDialog", () => {
-  it("demande deux fois, puis se ferme au clic sans attendre la réponse", async () => {
+  it("asks twice, then closes on click without waiting for the response", async () => {
     let confirmed = 0
     const view = await render(
       dialog({
@@ -56,7 +56,7 @@ describe("ConfirmDialog", () => {
     expect(confirmed).toBe(1)
   })
 
-  it("garde le déclencheur au travail tant que l'action court", async () => {
+  it("keeps the trigger busy while the action runs", async () => {
     const view = await render(dialog({ busy: true }))
 
     mounted.push(view.unmount)

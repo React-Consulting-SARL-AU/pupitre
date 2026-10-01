@@ -89,8 +89,8 @@ function row(partial: Partial<PortRow> & { port: number }): PortRow {
   };
 }
 
-describe("les libellés et les noms d'hôte", () => {
-  it("tiennent un libellé à une étiquette DNS, et un nom d'hôte à deux niveaux au moins", () => {
+describe("labels and hostnames", () => {
+  it("keep a label to one DNS label, and a hostname to at least two levels", () => {
     expect(validLabel("web")).toBe(true);
     expect(validLabel("api-v2")).toBe(true);
     expect(validLabel("Web")).toBe(false);
@@ -102,27 +102,27 @@ describe("les libellés et les noms d'hôte", () => {
     expect(validHostname("-shop.example.org")).toBe(false);
   });
 
-  it("replient un nom de workspace en libellé", () => {
+  it("fold a workspace name into a label", () => {
     expect(labelFrom("@atlas/Web App")).toBe("atlas-web-app");
     expect(labelFrom("--docs--")).toBe("docs");
   });
 });
 
-describe("le nom proposé sur le web", () => {
-  it("est le nom du projet sur la première ligne, préfixé du libellé ensuite", () => {
+describe("the suggested web name", () => {
+  it("is the project name on the first line, prefixed with the label after that", () => {
     expect(proposedWeb("my.site", "web", true, [])).toBe("my-site");
     expect(proposedWeb("my.site", "api", false, [])).toBe("api-my-site");
     expect(proposedWeb("", "api", false, [])).toBe("");
   });
 
-  it("évite ce que les autres projets tiennent déjà", () => {
+  it("avoids what other projects already hold", () => {
     expect(proposedWeb("shop", "web", true, ["shop"])).toBe("shop-2");
     expect(
       heldSubdomains(["shop.example.org", "api-shop.example.org"])
     ).toEqual(["shop", "api-shop"]);
   });
 
-  it("suit le nom du projet sur chaque ligne que le lecteur n'a pas reprise", () => {
+  it("follows the project name on every line the reader has not edited", () => {
     const rows = followName(
       [
         row({ port: 3000 }),
@@ -145,8 +145,8 @@ describe("le nom proposé sur le web", () => {
   });
 });
 
-describe("les lignes de ports", () => {
-  it("commencent sur une ligne principale, et s'ajoutent sur un port et un libellé libres", () => {
+describe("port lines", () => {
+  it("start on a main line, and are added on a free port and label", () => {
     const first = firstRow(3000, true);
     const held = { hostnames: [], ports: [3001, 3002] };
     const added = addedRow([first], held, true);
@@ -160,7 +160,7 @@ describe("les lignes de ports", () => {
     });
   });
 
-  it("se lisent dans ce que l'agent a détecté, et dans un projet déclaré", () => {
+  it("are read from what the agent detected, and from a declared project", () => {
     expect(
       rowsFromDetection(
         [
@@ -191,7 +191,7 @@ describe("les lignes de ports", () => {
     ]);
   });
 
-  it("gardent le port principal en tête quand aucune route ne le porte", () => {
+  it("keep the main port first when no route carries it", () => {
     const rows = rowsFromProcess({
       ...TURBO,
       routes: [{ label: "api", port: 3101 }],
@@ -201,10 +201,10 @@ describe("les lignes de ports", () => {
   });
 });
 
-describe("ce qu'une ligne refuse avant l'agent", () => {
+describe("what a line refuses before the agent does", () => {
   const held = heldBy([SHOP, OTHER], "shop");
 
-  it("lit ce que les autres projets tiennent, sans le projet lui-même", () => {
+  it("reads what other projects hold, excluding the project itself", () => {
     expect(held).toEqual({
       hostnames: ["other.example.org"],
       ports: [4000, 4000, 4010],
@@ -215,7 +215,7 @@ describe("ce qu'une ligne refuse avant l'agent", () => {
     ]);
   });
 
-  it("nomme le libellé, le port ou le nom en cause", () => {
+  it("names the label, port or name at fault", () => {
     const rows = [
       row({ port: 3000, web: "shop" }),
       row({ label: "web", port: 4000, web: "api-shop" }),
@@ -242,7 +242,7 @@ describe("ce qu'une ligne refuse avant l'agent", () => {
     ).toBe("webTaken");
   });
 
-  it("ne juge un nom que s'il est publié, et un nom entier contre les noms entiers", () => {
+  it("judges a name only when it is published, and a full name against full names", () => {
     expect(
       rowProblem(
         [row({ port: 3000, publish: false, web: "-bad" })],
@@ -284,7 +284,7 @@ describe("ce qu'une ligne refuse avant l'agent", () => {
   });
 });
 
-describe("ce qui part à l'agent", () => {
+describe("what is sent to the agent", () => {
   const rows = [
     row({ port: 3000, web: "shop" }),
     row({ label: "api", port: 3001, publish: false, web: "api-shop" }),
@@ -296,7 +296,7 @@ describe("ce qui part à l'agent", () => {
     }),
   ];
 
-  it("ne nomme un sous-domaine que pour ce qui est publié", () => {
+  it("names a subdomain only for what is published", () => {
     expect(routeRequests(rows, true)).toEqual([
       { label: "web", port: 3000, subdomain: "shop" },
       { label: "api", port: 3001 },
@@ -309,7 +309,7 @@ describe("ce qui part à l'agent", () => {
     ]);
   });
 
-  it("renvoie entier le nom qu'un serveur gardait, et en sous-domaine un nom nouveau", () => {
+  it("returns in full a name a server kept, and as a subdomain a new name", () => {
     expect(routePatches(rows, true)).toEqual([
       { label: "web", port: 3000, subdomain: "shop" },
       { label: "api", port: 3001 },

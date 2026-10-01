@@ -48,7 +48,7 @@ function stubAccount(
   }, account);
 }
 
-test.describe("premier lancement", () => {
+test.describe("first launch", () => {
   let running: Running;
 
   test.beforeEach(async () => {
@@ -59,7 +59,7 @@ test.describe("premier lancement", () => {
     await running.app.close();
   });
 
-  test("un build sans compte n'ouvre ni onboarding, ni serveur, ni terminal", async () => {
+  test("a build without an account opens no onboarding, no server and no terminal", async () => {
     const { app, page } = running;
 
     await stubAccount(app, NO_ACCOUNT);
@@ -96,7 +96,7 @@ test.describe("premier lancement", () => {
     ).toBeVisible();
   });
 
-  test("au-delà de sept jours l'app revient au compte et dit le refus tel quel", async () => {
+  test("past seven days the app returns to the account and states the refusal as is", async () => {
     const { app, page } = running;
 
     await stubAccount(app, EIGHTH_DAY);

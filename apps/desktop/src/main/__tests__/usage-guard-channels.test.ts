@@ -90,7 +90,7 @@ afterEach(() => {
 });
 
 describe("project:act", () => {
-  it("refuse d'arrêter un projet et ne lance pas l'agent", async () => {
+  it("refuses to stop a project and does not launch the agent", async () => {
     const deps = projectDeps();
 
     const stopped = await actOnProject(
@@ -106,7 +106,7 @@ describe("project:act", () => {
     expect(agent?.written()).toEqual([]);
   });
 
-  it("refuse aussi de démarrer et de redémarrer", async () => {
+  it("also refuses to start and restart", async () => {
     const deps = projectDeps();
 
     const started = await actOnProject("project.up", SERVER, "all", null, deps);
@@ -124,8 +124,8 @@ describe("project:act", () => {
   });
 });
 
-describe("project:on et project:checkout", () => {
-  it("laisse lire la liste, puis refuse d'y toucher", async () => {
+describe("project:on and project:checkout", () => {
+  it("lets the list be read, then refuses to touch it", async () => {
     const deps = projectDeps("usage-guard-projects.jsonl");
 
     const listed = await listProjects(SERVER, deps);
@@ -144,7 +144,7 @@ describe("project:on et project:checkout", () => {
 });
 
 describe("install", () => {
-  it("refuse l'installation, et le secret ne quitte jamais l'app", async () => {
+  it("refuses the install, and the secret never leaves the app", async () => {
     const guarded = client();
 
     const installed = await guarded.request(
@@ -161,7 +161,7 @@ describe("install", () => {
 });
 
 describe("service:*", () => {
-  it("refuse la désinstallation, le dump et l'import d'une base", async () => {
+  it("refuses uninstalling, and dumping or importing a database", async () => {
     const guarded = client();
 
     const removed = await guarded.request(SERVER, "uninstall", {
@@ -184,7 +184,7 @@ describe("service:*", () => {
 });
 
 describe("terminal-open", () => {
-  it("refuse d'ouvrir une session d'agent sur le serveur", async () => {
+  it("refuses to open an agent session on the server", async () => {
     const deps: TerminalDeps = {
       client: client(),
       declares: () => true,
@@ -207,7 +207,7 @@ describe("terminal-open", () => {
     expect(agent?.started()).toBe(0);
   });
 
-  it("laisse toujours ouvrir un shell, qui ne demande rien à l'agent", async () => {
+  it("always lets a shell open, since it asks the agent for nothing", async () => {
     const deps: TerminalDeps = {
       client: client(),
       declares: () => true,
@@ -232,7 +232,7 @@ describe("terminal-open", () => {
 });
 
 describe("agent-update:*", () => {
-  it("refuse la mise à jour des modules sans rien envoyer", async () => {
+  it("refuses the module update without sending anything", async () => {
     const guarded = client();
 
     const upgraded = await runModuleUpgrade(
@@ -246,7 +246,7 @@ describe("agent-update:*", () => {
     expect(agent?.started()).toBe(0);
   });
 
-  it("lit la machine puis refuse de remplacer le binaire de l'agent", async () => {
+  it("reads the machine then refuses to replace the agent binary", async () => {
     const guarded = client();
 
     const upgraded = await runAgentUpgrade(

@@ -109,8 +109,8 @@ afterEach(() => {
   fake = null;
 });
 
-describe("un serveur restreint au jeton révoqué", () => {
-  it("redevient valide après l'action, sans passer par la console", async () => {
+describe("a server restricted to the revoked token", () => {
+  it("becomes valid again after the action, without going through the console", async () => {
     const client = agent(RESTRICTED);
 
     const before = await client.request(SERVER, "project.down", {
@@ -158,7 +158,7 @@ describe("un serveur restreint au jeton révoqué", () => {
   });
 
   // `enroll` rides the privileged session since it rewrites where the server reports.
-  it("ne demande au serveur que de quoi lire la machine et refaire l'échange", async () => {
+  it("only asks the server for what it takes to read the machine and redo the exchange", async () => {
     const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(SERVER, deps(client));
@@ -175,7 +175,7 @@ describe("un serveur restreint au jeton révoqué", () => {
     client.closeAll();
   });
 
-  it("enrôle sur l'architecture que la machine a déclarée, sans sonde", async () => {
+  it("enrols on the architecture the machine declared, without a probe", async () => {
     const client = agent(RESTRICTED);
     const asked: string[] = [];
     let probed = 0;
@@ -206,8 +206,8 @@ describe("un serveur restreint au jeton révoqué", () => {
   });
 });
 
-describe("le jeton d'enrôlement", () => {
-  it("ne paraît dans aucun params, aucun journal, aucun résultat", async () => {
+describe("the enrolment token", () => {
+  it("appears in no params, no journal, no result", async () => {
     const client = agent(RESTRICTED);
     const held = vault();
 
@@ -237,7 +237,7 @@ describe("le jeton d'enrôlement", () => {
     client.closeAll();
   });
 
-  it("n'envoie rien au serveur quand la plateforme n'a accordé aucun jeton", async () => {
+  it("sends nothing to the server when the platform granted no token", async () => {
     const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(
@@ -255,8 +255,8 @@ describe("le jeton d'enrôlement", () => {
   });
 });
 
-describe("un compte sans droit d'usage", () => {
-  it("refuse la réparation dans les mots du compte, sans toucher la plateforme", async () => {
+describe("an account without a right of use", () => {
+  it("refuses the repair in the account's words, without touching the platform", async () => {
     const client = agent(RESTRICTED, ABSENT);
     let asked = 0;
 
@@ -285,7 +285,7 @@ describe("un compte sans droit d'usage", () => {
     expect(fake?.written()).toEqual([]);
   });
 
-  it("s'accorde avec le garde des canaux, qui tient enroll comme toute commande mutante", async () => {
+  it("agrees with the channel guard, which treats enroll like any mutating command", async () => {
     const client = agent(RESTRICTED, ABSENT);
 
     const refused = await client.request(SERVER, "enroll", {
@@ -300,7 +300,7 @@ describe("un compte sans droit d'usage", () => {
     expect(fake?.started()).toBe(0);
   });
 
-  it("rend le refus de la plateforme tel quel quand c'est elle qui refuse", async () => {
+  it("returns the platform's refusal as is when it is the one refusing", async () => {
     const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(

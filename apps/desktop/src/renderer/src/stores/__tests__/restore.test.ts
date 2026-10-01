@@ -122,15 +122,15 @@ beforeEach(() => {
   useOnboarding.getState().reset();
 });
 
-describe("repartir d'une sauvegarde pendant l'onboarding", () => {
-  it("compte les sauvegardes de l'organisation", async () => {
+describe("starting from a backup during onboarding", () => {
+  it("counts the organization's backups", async () => {
     server();
 
     expect(await useRestore.getState().list()).toBe(1);
     expect(useRestore.getState().backups).toMatchObject({ status: "read" });
   });
 
-  it("ouvre le catalogue sur le choix de la sauvegarde, sans rien regénérer", async () => {
+  it("opens the catalogue on the backup choice, regenerating nothing", async () => {
     const { generated } = server();
 
     const taken = await useRestore
@@ -156,7 +156,7 @@ describe("repartir d'une sauvegarde pendant l'onboarding", () => {
     });
   });
 
-  it("garde le catalogue intact quand la phrase est refusée", async () => {
+  it("keeps the catalogue intact when the passphrase is refused", async () => {
     server({
       restoreBackupSetup: () =>
         Promise.resolve({
@@ -178,7 +178,7 @@ describe("repartir d'une sauvegarde pendant l'onboarding", () => {
     expect(useCatalog.getState().catalog.status).toBe("idle");
   });
 
-  it("mène l'onboarding au catalogue une fois la configuration posée", async () => {
+  it("leads onboarding to the catalogue once the configuration is in place", async () => {
     server();
 
     const store = useOnboarding.getState();
@@ -198,7 +198,7 @@ describe("repartir d'une sauvegarde pendant l'onboarding", () => {
     });
   });
 
-  it("ramène les parties cochées et suit leurs étapes", async () => {
+  it("restores the ticked parts and follows their steps", async () => {
     let asked: readonly string[] = [];
 
     server({

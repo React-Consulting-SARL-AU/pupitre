@@ -5,6 +5,8 @@ Pupitre turns any Ubuntu VPS into a workshop for AI agents. A desktop app for ma
 - Site and documentation: [pupitre.studio](https://pupitre.studio)
 - Console: [app.pupitre.studio](https://app.pupitre.studio)
 
+Pupitre is sponsored and funded by [React Consulting](https://react-consulting.ma), which pays for the hosted platform so that it stays free.
+
 ## Source-available, not open source
 
 The code of this repository is public under the **Apache License 2.0 with the Commons Clause License Condition v1.0** ([`LICENSE`](./LICENSE), [`NOTICE`](./NOTICE)). The licensor is React Consulting SARL AU (Morocco).
@@ -62,7 +64,9 @@ bun run test
 bun run build
 ```
 
-`bun dev` first runs `dev:prepare`, which writes `.env.local` from [`.env.example`](./.env.example), draws the per-workstation secrets and fills the shared ones from the maintainers' 1Password when the `op` CLI is signed in; without it, those values stay empty and the features that need them (mail, Stripe test mode, the agent tunnel) stay off. The console runs locally on a SQLite file standing in for Cloudflare D1, migrated by the same step; `bun run db:seed` fills it. The agent is tested on a throwaway VPS or container, never on your own machine: see [`apps/agent/CLAUDE.md`](./apps/agent/CLAUDE.md). The rest of the tooling, the branch model and the release chain are in [`docs/monorepo.md`](./docs/monorepo.md).
+No account, secret or paid service is needed: `bun dev` first runs `dev:prepare`, which writes `.env.local` from [`.env.example`](./.env.example), generates the per-machine secrets and creates the local database. What needs a shared secret (mail, social sign-in, storage) stays off; maintainers fill those values from 1Password. The agent is tried on a disposable server in a container, never on a machine you care about.
+
+The full guide — prerequisites, every part of the project, the test server, the checks — is [`docs/getting-started.md`](./docs/getting-started.md).
 
 ## Read next
 
@@ -72,6 +76,7 @@ bun run build
 
 ## Contributing
 
-Issues and pull requests are welcome. Pull requests go to `staging`, never to `main`, follow the rules of [`CLAUDE.md`](./CLAUDE.md) and the [pull request template](./.github/PULL_REQUEST_TEMPLATE.md), and pass `bun run lint`, `bun run check:types` and `bun run test`. A contribution is accepted under the licence of the repository, as section 5 of the Apache License states.
+Issues and pull requests are welcome — read [`CONTRIBUTING.md`](./CONTRIBUTING.md) first. Pull requests go to `staging`, never to `main`, and a contribution is accepted under the licence of the repository, as section 5 of the Apache License states. Everyone taking part follows the [code of conduct](./CODE_OF_CONDUCT.md).
 
-Security vulnerabilities are not reported in public issues: write to `security@pupitre.studio`.
+- Questions and help: [`SUPPORT.md`](./SUPPORT.md)
+- Security vulnerabilities, never in public: [`SECURITY.md`](./SECURITY.md)

@@ -93,7 +93,7 @@ describe("replyToMailThread", () => {
     )
   }
 
-  it("répond au dernier message humain et saute l'automatique", async () => {
+  it("replies to the last human message and skips the automatic one", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -113,7 +113,7 @@ describe("replyToMailThread", () => {
     expect(mail.sent[0].to).toEqual(["camille@exemple.fr"])
   })
 
-  it("porte la réponse partie comme dernier extrait du fil, rangée sous la boîte", async () => {
+  it("carries the sent reply as the thread's last snippet, filed under the mailbox", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -132,7 +132,7 @@ describe("replyToMailThread", () => {
     expect(stored.address).toBe(LEGAL_CONTACTS.support)
   })
 
-  it("refuse quand le seul entrant se fait passer pour une de nos adresses", async () => {
+  it("refuses when the only incoming message impersonates one of our addresses", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: LEGAL_CONTACTS.support })
@@ -143,7 +143,7 @@ describe("replyToMailThread", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("refuse quand le fil ne porte qu'un message automatique", async () => {
+  it("refuses when the thread only carries an automatic message", async () => {
     const threadId = await thread()
 
     await message(threadId, {
@@ -156,7 +156,7 @@ describe("replyToMailThread", () => {
     )
   })
 
-  it("reprend les copies du message répondu, moins les nôtres", async () => {
+  it("reuses the copies of the replied-to message, minus our own", async () => {
     const threadId = await thread()
 
     await message(threadId, {
@@ -171,7 +171,7 @@ describe("replyToMailThread", () => {
     expect(sent?.cc).toEqual(["direction@exemple.fr", "equipe@exemple.fr"])
   })
 
-  it("range chaque dépôt sous le message, l'inscrit, et efface le dépôt", async () => {
+  it("files each upload under the message, records it, and erases the upload", async () => {
     const threadId = await thread()
     const uploadKey = `mail/uploads/${actor.userId}/uuid/rapport.pdf`
 
@@ -205,7 +205,7 @@ describe("replyToMailThread", () => {
     expect(mail.sent[0].raw).toContain('filename="rapport.pdf"')
   })
 
-  it("refuse un dépôt absent sans rien envoyer ni écrire", async () => {
+  it("refuses a missing upload without sending or writing anything", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -228,7 +228,7 @@ describe("replyToMailThread", () => {
     ).toBe(0)
   })
 
-  it("signe la réponse du prénom de qui répond, et de la boîte du fil", async () => {
+  it("signs the reply with the first name of whoever replies, and the thread's mailbox", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -248,7 +248,7 @@ describe("replyToMailThread", () => {
     )
   })
 
-  it("prend les destinataires demandés plutôt que ceux du message répondu", async () => {
+  it("takes the requested recipients rather than those of the replied-to message", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -267,7 +267,7 @@ describe("replyToMailThread", () => {
     expect(sent?.cc).toEqual(["copie@exemple.fr"])
   })
 
-  it("efface le brouillon du fil une fois la réponse partie", async () => {
+  it("erases the thread's draft once the reply is sent", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -280,7 +280,7 @@ describe("replyToMailThread", () => {
     expect(await getPrisma().mailDraft.count({ where: { threadId } })).toBe(0)
   })
 
-  it("refuse de répondre depuis un fil qu'aucune boîte ne déclare", async () => {
+  it("refuses to reply from a thread that no mailbox declares", async () => {
     const threadId = await thread(null)
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -291,7 +291,7 @@ describe("replyToMailThread", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("refuse de répondre depuis une boîte désactivée", async () => {
+  it("refuses to reply from a deactivated mailbox", async () => {
     const threadId = await thread()
 
     await message(threadId, { fromEmail: "camille@exemple.fr" })
@@ -306,7 +306,7 @@ describe("replyToMailThread", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("écrit au destinataire de notre dernier message quand personne n'a répondu", async () => {
+  it("writes to the recipient of our last message when nobody has replied", async () => {
     const threadId = await thread()
 
     await message(threadId, {

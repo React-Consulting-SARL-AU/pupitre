@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { piecesOf } from "../addresses";
 
-describe("les adresses d'une ligne", () => {
-  it("découpent la ligne autour de chaque adresse, dans l'ordre", () => {
+describe("a line's addresses", () => {
+  it("split the line around each address, in order", () => {
     expect(
       piecesOf(
         "ready on https://atlas.example.com/ (see http://127.0.0.1:3100)."
@@ -16,14 +16,14 @@ describe("les adresses d'une ligne", () => {
     ]);
   });
 
-  it("laissent une ligne sans adresse en un seul morceau", () => {
+  it("leave a line without an address in a single piece", () => {
     expect(piecesOf("plain text")).toEqual([
       { kind: "text", text: "plain text" },
     ]);
     expect(piecesOf("")).toEqual([{ kind: "text", text: "" }]);
   });
 
-  it("gardent la parenthèse qui ferme celle ouverte dans l'adresse", () => {
+  it("keep the parenthesis that closes the one opened in the address", () => {
     expect(piecesOf("https://en.wikipedia.org/wiki/Foo_(bar)")).toEqual([
       { kind: "address", text: "https://en.wikipedia.org/wiki/Foo_(bar)" },
     ]);

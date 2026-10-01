@@ -27,8 +27,8 @@ beforeEach(() => {
   useKeyApprovals.getState().forget();
 });
 
-describe("les demandes d'autorisation", () => {
-  it("lit les demandes que cet ordinateur peut signer", async () => {
+describe("authorisation requests", () => {
+  it("reads the requests this computer can sign", async () => {
     stubPupitre({
       keyApprovals: () => Promise.resolve({ ok: true, result: [APPROVAL] }),
     });
@@ -41,7 +41,7 @@ describe("les demandes d'autorisation", () => {
     });
   });
 
-  it("garde le refus de la lecture tel quel", async () => {
+  it("keeps the read refusal as is", async () => {
     stubPupitre({
       keyApprovals: () => Promise.resolve({ error: REFUSED, ok: false }),
     });
@@ -54,7 +54,7 @@ describe("les demandes d'autorisation", () => {
     });
   });
 
-  it("ne nomme au main que le serveur et l'appareil, et marque la ligne autorisée", async () => {
+  it("names only the server and the device to the main process, and marks the row authorised", async () => {
     const named: string[][] = [];
     const whileSigning: unknown[] = [];
 
@@ -86,7 +86,7 @@ describe("les demandes d'autorisation", () => {
     });
   });
 
-  it("pose le refus sous la ligne refusée seulement", async () => {
+  it("puts the refusal under the refused row only", async () => {
     const other = { ...APPROVAL, device: { ...APPROVAL.device, id: "d-3" } };
 
     stubPupitre({

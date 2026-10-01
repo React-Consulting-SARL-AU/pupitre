@@ -14,8 +14,8 @@ afterEach(() => {
   }
 });
 
-describe("un champ à copier", () => {
-  it("ne laisse aucun minuteur courir après son démontage", async () => {
+describe("a field to copy", () => {
+  it("leaves no timer running after it unmounts", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: () => Promise.resolve() },

@@ -37,8 +37,8 @@ const SERVICES: readonly Service[] = [
   },
 ];
 
-describe("les comptes lus pour le tableau de bord", () => {
-  it("joignent ce que les CLI ont dit et le compte que l'ordinateur tient", () => {
+describe("the accounts read for the dashboard", () => {
+  it("join what the CLIs reported and the account the computer holds", () => {
     expect(
       serviceAccountsOf(
         SERVICES,
@@ -57,7 +57,7 @@ describe("les comptes lus pour le tableau de bord", () => {
     ).toEqual({ "ai.claude": "signed_in", "exposure.cloudflare": "signed_in" });
   });
 
-  it("disent le tunnel non connecté sans compte tenu, et rien des CLI d'un autre serveur", () => {
+  it("report the tunnel as not connected without a held account, and nothing of another server's CLIs", () => {
     expect(
       serviceAccountsOf(
         SERVICES,

@@ -13,7 +13,7 @@ const STRAINED = {
   ram_used_mb: 7680,
 };
 
-test.describe("le tableau de bord", () => {
+test.describe("the dashboard", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -108,7 +108,7 @@ test.describe("le tableau de bord", () => {
     await running.app.close();
   });
 
-  test("une carte de service ouvre sa fiche", async () => {
+  test("a service card opens its page", async () => {
     const { page } = running;
 
     await expect(
@@ -131,7 +131,7 @@ test.describe("le tableau de bord", () => {
     );
   });
 
-  test("chaque jauge en alerte porte son remède", async () => {
+  test("each gauge in alert carries its fix", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Tableau de bord" }).click();
@@ -167,7 +167,7 @@ test.describe("le tableau de bord", () => {
     await expect(page.locator("[data-remedy]")).toHaveCount(0);
   });
 
-  test("un redémarrage est attendu par son nom, puis le tableau de bord revient", async () => {
+  test("a restart is awaited by name, then the dashboard returns", async () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Redémarrer le serveur" }).click();

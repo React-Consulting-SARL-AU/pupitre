@@ -53,8 +53,8 @@ afterEach(() => {
   forgetCredentials();
 });
 
-describe("révéler un identifiant", () => {
-  it("montre la valeur du serveur, pas le nom de la variable", async () => {
+describe("revealing a credential", () => {
+  it("shows the server's value, not the variable name", async () => {
     const { agent, deps } = client(REVEALED);
 
     const detail = await readService(SERVER, MODULE, deps);
@@ -70,7 +70,7 @@ describe("révéler un identifiant", () => {
     agent.closeAll();
   });
 
-  it("ne nomme ni la variable ni la valeur dans ce qui traverse le pont", async () => {
+  it("names neither the variable nor the value in what crosses the bridge", async () => {
     const { agent, deps } = client("service-secret.jsonl");
 
     const detail = await readService(SERVER, MODULE, deps);
@@ -81,7 +81,7 @@ describe("révéler un identifiant", () => {
     agent.closeAll();
   });
 
-  it("redemande la valeur à chaque fois, l'app n'en garde aucune", async () => {
+  it("asks for the value again each time, the app keeps none", async () => {
     const { agent, deps, fake } = client(REVEALED);
 
     await readService(SERVER, MODULE, deps);
@@ -98,7 +98,7 @@ describe("révéler un identifiant", () => {
     agent.closeAll();
   });
 
-  it("ne demande rien pour un libellé que l'agent n'a pas donné", async () => {
+  it("asks for nothing for a label the agent did not give", async () => {
     const { agent, deps, fake } = client("service-secret.jsonl");
 
     await readService(SERVER, MODULE, deps);
@@ -109,7 +109,7 @@ describe("révéler un identifiant", () => {
     agent.closeAll();
   });
 
-  it("rend rien quand l'agent refuse la clé", async () => {
+  it("returns nothing when the agent refuses the key", async () => {
     const { agent, deps } = client([
       "service-secret.jsonl",
       "service-secret-refused.jsonl",
@@ -123,8 +123,8 @@ describe("révéler un identifiant", () => {
   });
 });
 
-describe("le chemin que la valeur ne prend pas", () => {
-  it("sort sur son événement, jamais sur le flux d'événements générique", async () => {
+describe("the path the value does not take", () => {
+  it("leaves on its own event, never on the generic event stream", async () => {
     const { agent } = client("service-secret-only.jsonl");
 
     const events: Event[] = [];
@@ -150,11 +150,11 @@ describe("le chemin que la valeur ne prend pas", () => {
     agent.closeAll();
   });
 
-  it("ne passe pas par le pont générique du renderer", () => {
+  it("does not go through the renderer's generic bridge", () => {
     expect(carriesCredential("service.secret")).toBe(true);
   });
 
-  it("n'apparaît dans aucune ligne écrite ni dans aucun fichier", async () => {
+  it("appears in no written line and no file", async () => {
     const { agent, deps, fake } = client(REVEALED);
 
     const written: string[] = [];

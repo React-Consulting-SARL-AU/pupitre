@@ -188,8 +188,8 @@ function panel(
   );
 }
 
-describe("le formulaire d'un nouveau projet", () => {
-  it("ouvre sur la source seule, et finit sur sa lecture", () => {
+describe("the new project form", () => {
+  it("opens on the source alone, and ends on reading it", () => {
     const rendered = panel({ status: "idle" }, { step: "source" });
 
     expect(text(rendered)).toContain("Ajouter un projet");
@@ -209,7 +209,7 @@ describe("le formulaire d'un nouveau projet", () => {
     ).toContain("Lire le dossier");
   });
 
-  it("ne lit rien sans source, ni un projet que le serveur déclare déjà", () => {
+  it("reads nothing without a source, nor a project the server already declares", () => {
     const empty = panel(
       { status: "idle" },
       { draft: { source: "" }, step: "source" }
@@ -239,7 +239,7 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(text(declared)).toContain("Ouvrir le projet");
   });
 
-  it("garde la source en vue sur la configuration, et offre d'y revenir", () => {
+  it("keeps the source in view on the configuration, and offers to go back to it", () => {
     const rendered = panel({ status: "idle" });
     const own = text(panel({ status: "idle" }, { draft: { branch: "" } }));
     const folder = text(
@@ -263,7 +263,7 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(folder).not.toContain("Branche");
   });
 
-  it("liste les ports en lignes, et ne demande un nom sur le web que si une exposition est installée et que l'on publie", () => {
+  it("lists the ports in rows, and only asks for a web name if an exposure is installed and the reader publishes", () => {
     const local = panel({ status: "idle" });
     const published = panel({ status: "idle" }, { exposure: TUNNEL });
 
@@ -282,7 +282,7 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(published).not.toContain('aria-label="Retirer le port web"');
   });
 
-  it("dit sous la ligne pourquoi un nom serait refusé, et le lie au champ", () => {
+  it("says under the row why a name would be refused, and binds it to the field", () => {
     const refused = panel(
       { status: "idle" },
       { exposure: TUNNEL, rowProblems: ["web", null] }
@@ -295,7 +295,7 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(text(refused)).toContain("les points séparent les niveaux");
   });
 
-  it("dit sous le nom du projet pourquoi il est refusé, et le lie au champ", () => {
+  it("says under the project name why it is refused, and binds it to the field", () => {
     const refused = panel({ status: "idle" }, { draft: { name: "Mon Site" } });
 
     expect(refused).toContain('id="project.name-problem"');
@@ -309,7 +309,7 @@ describe("le formulaire d'un nouveau projet", () => {
     );
   });
 
-  it("dit, derrière Caddy, l'adresse à écrire dans le DNS", () => {
+  it("says, behind Caddy, the address to write in the DNS", () => {
     const caddy = text(panel({ status: "idle" }, { exposure: CADDY }));
 
     expect(caddy).toContain("192.0.2.10");
@@ -319,7 +319,7 @@ describe("le formulaire d'un nouveau projet", () => {
     );
   });
 
-  it("montre entière l'adresse qu'un serveur garde déjà pour un port", () => {
+  it("shows in full the address a server already keeps for a port", () => {
     const stored = panel(
       { status: "idle" },
       {
@@ -338,7 +338,7 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(stored).toContain('value="shop.example.org"');
   });
 
-  it("tient un processus par carte, chacun avec son dossier, sa commande et ses ports, et ne retire que s'il en reste un", () => {
+  it("holds one process per card, each with its folder, its command and its ports, and only removes one if another remains", () => {
     const one = panel({ status: "idle" });
     const two = panel(
       { status: "idle" },
@@ -379,7 +379,7 @@ describe("le formulaire d'un nouveau projet", () => {
     );
   });
 
-  it("dit sous la source ce que l'agent y a lu, ou pourquoi il n'a pas pu", () => {
+  it("says under the source what the agent read there, or why it could not", () => {
     const read = panel(
       { status: "idle" },
       {
@@ -468,7 +468,7 @@ describe("le formulaire d'un nouveau projet", () => {
   });
 });
 
-describe("un projet qui ne démarre pas", () => {
+describe("a project that does not start", () => {
   const run: ProjectAddState = {
     error: {
       code: "internal",
@@ -481,7 +481,7 @@ describe("un projet qui ne démarre pas", () => {
     status: "failed",
   };
 
-  it("garde l'erreur de l'agent et son remède, et offre de reprendre", () => {
+  it("keeps the agent's error and its fix, and offers to resume", () => {
     const rendered = text(panel(run, { logs: ["exit status 1"] }));
 
     expect(rendered).toContain("shop : bun run dev s'est arrêté aussitôt");
@@ -492,7 +492,7 @@ describe("un projet qui ne démarre pas", () => {
   });
 
   // Nothing exists on the server yet: Cancel would drop a draft the reader only has to fix.
-  it("offre de revenir au formulaire quand la déclaration est refusée", () => {
+  it("offers to go back to the form when the declaration is refused", () => {
     const rendered = text(
       panel({
         ...run,
@@ -511,7 +511,7 @@ describe("un projet qui ne démarre pas", () => {
   });
 
   // Failed sources leave a declared project behind, so the way back names it.
-  it("offre de revenir au formulaire quand les sources n'ont pas pu venir", () => {
+  it("offers to go back to the form when the sources could not arrive", () => {
     const rendered = text(
       panel({
         ...run,
@@ -529,8 +529,8 @@ describe("un projet qui ne démarre pas", () => {
   });
 });
 
-describe("un projet que le serveur déclare déjà", () => {
-  it("le nomme et offre de l'ouvrir plutôt que de le créer", () => {
+describe("a project the server already declares", () => {
+  it("names it and offers to open it rather than create it", () => {
     const declared = {
       boot: false,
       dir: "shop",
@@ -546,8 +546,8 @@ describe("un projet que le serveur déclare déjà", () => {
   });
 });
 
-describe("un projet en ligne", () => {
-  it("dit son adresse et offre de l'ouvrir", () => {
+describe("an online project", () => {
+  it("says its address and offers to open it", () => {
     const rendered = panel({
       name: "vite-starter",
       serverId: "srv-1",
@@ -563,7 +563,7 @@ describe("un projet en ligne", () => {
     expect(rendered).toContain('data-outcome="online"');
   });
 
-  it("n'offre d'ouvrir qu'une adresse publique", () => {
+  it("only offers to open a public address", () => {
     const rendered = panel({
       name: "vite-starter",
       serverId: "srv-1",
@@ -576,8 +576,8 @@ describe("un projet en ligne", () => {
   });
 });
 
-describe("les phases", () => {
-  it("disent chaque réserve de l'agent sous la phase, sans la tenir pour un échec", () => {
+describe("the phases", () => {
+  it("state each agent reservation under the phase, without treating it as a failure", () => {
     const html = renderToStaticMarkup(
       <ProjectAddSteps
         phases={[
@@ -597,7 +597,7 @@ describe("les phases", () => {
     expect(html).toContain('data-warning=""');
   });
 
-  it("portent leur état par la forme, et ce que l'agent en a dit", () => {
+  it("carry their state by shape, and what the agent said about it", () => {
     const html = renderToStaticMarkup(<ProjectAddSteps phases={PHASES} />);
 
     expect(html).toContain('data-phase="add" data-status="ok"');
@@ -609,8 +609,8 @@ describe("les phases", () => {
   });
 });
 
-describe("le journal", () => {
-  it("n'apparaît qu'avec une ligne à montrer", () => {
+describe("the journal", () => {
+  it("only appears with a line to show", () => {
     expect(renderToStaticMarkup(<ProjectAddJournal lines={[]} />)).toBe("");
     expect(
       text(renderToStaticMarkup(<ProjectAddJournal lines={["a", "b"]} />))
@@ -618,7 +618,7 @@ describe("le journal", () => {
   });
 });
 
-describe("les dépôts du compte GitHub", () => {
+describe("the GitHub account repositories", () => {
   const REPOS: ReposState = {
     repos: [
       {
@@ -655,7 +655,7 @@ describe("les dépôts du compte GitHub", () => {
     );
   }
 
-  it("offre une recherche et garde la liste repliée tant qu'on n'y regarde pas", () => {
+  it("offers a search and keeps the list folded until the reader looks at it", () => {
     const html = repos("");
 
     expect(html).toContain('id="project.repoFilter"');
@@ -664,7 +664,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(text(html)).not.toContain("ada/atlas-web");
   });
 
-  it("ne montre que le dépôt choisi, et la voie pour en changer", () => {
+  it("shows only the chosen repository, and the way to change it", () => {
     const html = repos("https://github.com/ada/atlas-web.git");
 
     expect(html).toContain('data-repo="ada/atlas-web"');
@@ -676,7 +676,7 @@ describe("les dépôts du compte GitHub", () => {
     expect(text(html)).not.toContain("ada/my.site");
   });
 
-  it("mène aux réglages quand aucun compte n'est connecté", () => {
+  it("leads to the settings when no account is connected", () => {
     const html = renderToStaticMarkup(
       <ProjectAddRepos
         onConnect={() => undefined}

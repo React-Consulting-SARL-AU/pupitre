@@ -18,8 +18,8 @@ function neverAnswers(): { fetch: typeof fetch; calls: () => number } {
   };
 }
 
-describe("un appel à la plateforme", () => {
-  it("renonce plutôt que de pendre, et rend un refus lisible", async () => {
+describe("a call to the platform", () => {
+  it("gives up rather than hanging, and returns a readable refusal", async () => {
     const silent = neverAnswers();
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
@@ -44,7 +44,7 @@ describe("un appel à la plateforme", () => {
     expect(silent.calls()).toBe(1);
   });
 
-  it("laisse au binaire le temps d'un téléchargement, pas celui d'un appel", async () => {
+  it("gives the binary the time of a download, not that of a call", async () => {
     let storageDeadline = 0;
 
     const redirecting = ((input: unknown, init?: RequestInit) => {
@@ -83,7 +83,7 @@ describe("un appel à la plateforme", () => {
     expect(storageDeadline).toBeGreaterThan(200);
   });
 
-  it("nomme le stockage qui refuse le binaire, avec sa raison", async () => {
+  it("names the storage that refuses the binary, with its reason", async () => {
     const refusing = ((input: unknown) => {
       if (String(input).includes("/releases/agent/")) {
         return Promise.resolve(

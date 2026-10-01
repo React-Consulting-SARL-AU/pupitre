@@ -4,93 +4,93 @@
 
 product
 
-## Ce qu'est Pupitre
+## What Pupitre is
 
-Une app desktop qui transforme n'importe quel VPS Ubuntu en atelier pour agents IA, et un agent compilé posé sur ce serveur. Le client apporte la machine ; Pupitre l'inspecte, installe les services qu'il choisit, la durcit, et devient la fenêtre sur cette machine : projets, terminaux, agents, bases de données, éditeurs distants.
+A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server. The customer brings the machine; Pupitre inspects it, installs the services they choose, hardens it, and becomes the window onto that machine: projects, terminals, agents, databases, remote editors.
 
-Le laptop d'un développeur qui fait travailler des agents sature : builds, navigateurs headless, worktrees en parallèle. La réponse est une machine Linux à soi, persistante, accessible en SSH. Pupitre la rend utilisable en dix minutes par quelqu'un qui n'a pas envie d'administrer un serveur, et agréable au quotidien pour quelqu'un qui sait le faire.
+The laptop of a developer who puts agents to work saturates: builds, headless browsers, parallel worktrees. The answer is a Linux machine of one's own, persistent, reachable over SSH. Pupitre makes it usable in ten minutes for someone who does not want to administer a server, and pleasant day to day for someone who knows how.
 
 ## Users
 
-**Primaire — l'indépendant.** Sur Mac, abonnement Claude Max ou Codex, deux à six projets clients. Son laptop chauffe, ses agents s'arrêtent quand il ferme le capot, chaque nouveau projet lui coûte une heure de configuration. Il veut zéro administration et une machine qui travaille la nuit.
+**Primary — the freelancer.** On a Mac, a Claude Max or Codex subscription, two to six client projects. Their laptop runs hot, their agents stop when they close the lid, every new project costs them an hour of setup. They want zero administration and a machine that works at night.
 
-**Primaire — la petite agence.** Trois à dix développeurs. Chacun bricole sa machine, personne ne sait ce qui tourne où, un départ laisse des accès ouverts. Elle veut un serveur par développeur, une seule organisation, une configuration reproductible, et la révocation en un clic.
+**Primary — the small agency.** Three to ten developers. Everyone tinkers with their own machine, nobody knows what runs where, a departure leaves open access behind. They want one server per developer, a single organization, a reproducible configuration, and one-click revocation.
 
-**Tertiaire — le propriétaire de Pupitre.** Support et opérations depuis la console d'administration : voir les serveurs enrôlés, les versions, révoquer, impersonner pour aider. Jamais l'accès aux machines des clients.
+**Tertiary — the owner of Pupitre.** Support and operations from the admin console: see enrolled servers, versions, revoke, impersonate to help. Never access to customers' machines.
 
-Jobs-to-be-done :
-- **Indépendant** : avoir une machine où mes agents travaillent sans moi, mes projets en URL, mes bases à portée, sans lire trois guides tmux.
-- **Agence** : donner à chaque développeur sa machine, savoir ce qui tourne, couper l'accès de quelqu'un qui part, une licence pour toute l'équipe au-delà des serveurs gratuits.
-- **Propriétaire** : faire adopter, accorder les licences, mettre à jour, aider, sans jamais entrer sur un serveur client.
+Jobs-to-be-done:
+- **Freelancer**: have a machine where my agents work without me, my projects as URLs, my databases within reach, without reading three tmux guides.
+- **Agency**: give each developer their own machine, know what runs, cut off someone who leaves, one licence for the whole team beyond the free servers.
+- **Owner**: drive adoption, grant licences, update, help, without ever entering a customer server.
 
-## Ce que le client fait, ce que Pupitre fait
+## What the customer does, what Pupitre does
 
-| Le client | Pupitre |
+| The customer | Pupitre |
 | --- | --- |
-| Loue un VPS Ubuntu 22.04 ou 24.04 où il veut, 4 Go de RAM minimum, root ou sudo | L'inspecte, dit ce qui va et ce qui manque, refuse clairement ce qu'il ne sait pas gérer |
-| Choisit ses services dans le catalogue | Les installe, les configure, les surveille, les met à jour, les désinstalle |
-| Ajoute ses projets par URL git ou dossier | Clone, installe les dépendances, démarre dans tmux, expose l'URL, montre les logs |
-| Se connecte à ses agents avec ses propres abonnements | Ouvre Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode ou Hermes dans le bon dossier, avec le contexte du projet et des skills |
-| Enrôle jusqu'à trois serveurs gratuitement, demande une licence au-delà | Fournit l'app, l'agent, les mises à jour et les alertes |
+| Rents an Ubuntu 22.04 or 24.04 VPS wherever they like, 4 GB of RAM minimum, root or sudo | Inspects it, says what fits and what is missing, clearly refuses what it cannot manage |
+| Chooses their services from the catalogue | Installs, configures, monitors, updates and uninstalls them |
+| Adds their projects by git URL or folder | Clones, installs the dependencies, starts in tmux, exposes the URL, shows the logs |
+| Connects to their agents with their own subscriptions | Opens Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode or Hermes in the right folder, with the project context and skills |
+| Enrols up to three servers for free, asks for a licence beyond that | Provides the app, the agent, the updates and the alerts |
 
-## Offre
+## Offer
 
-Pupitre est **gratuit pour toute organisation jusqu'à trois serveurs** (`FREE_SERVERS` de `@pupitre/shared/plans`) : ni carte, ni essai, ni abonnement, ni limite de durée. Tout le catalogue et tout ce que l'app sait faire viennent avec, membres, rôles et audit compris : il n'y a ni édition payante ni fonction réservée. React Consulting SARL AU paie l'hébergement de la plateforme.
+Pupitre is **free for any organization up to three servers** (`FREE_SERVERS` of `@pupitre/shared/plans`): no card, no trial, no subscription, no time limit. The whole catalogue and everything the app can do come with it, members, roles and audit included: there is no paid edition and no reserved feature. React Consulting SARL AU pays for hosting the platform.
 
-Au-delà de trois serveurs, une organisation a besoin d'une **licence**. Une licence ajoute des places aux serveurs gratuits ; aujourd'hui, elle s'obtient en écrivant à `support@pupitre.studio`, et l'équipe l'accorde depuis la console d'administration (produit `granted`). Rien ne se vend : la plateforme tourne en `BILLING_MODE=off`, et le code Stripe dort ([décision 0018](../decisions/0018-source-disponible-et-gratuit.md)). Aucun prix n'est fixé, et le site n'en affiche aucun.
+Beyond three servers, an organization needs a **licence**. A licence adds seats to the free servers; today, it is obtained by writing to `support@pupitre.studio`, and the team grants it from the admin console (`granted` product). Nothing is sold: the platform runs with `BILLING_MODE=off`, and the Stripe code lies dormant ([decision 0018](../decisions/0018-source-available-and-free.md)). No price is set, and the site displays none.
 
-Le **code source est public**, sous licence Apache 2.0 assortie de la Commons Clause. On dit « code source disponible », jamais « open source » : chacun peut lire, modifier et auto-héberger Pupitre, personne ne peut le vendre, ni vendre un service qui en tire l'essentiel de sa valeur — un hébergeur qui facture l'installation de Pupitre en un clic, par exemple.
+The **source code is public**, under the Apache 2.0 licence with the Commons Clause. We say "source available" (in French, « code source disponible »), never "open source": anyone can read, modify and self-host Pupitre, nobody can sell it, nor sell a service that draws the essence of its value from it — a host that charges for a one-click Pupitre installation, for example.
 
-Quand un serveur quitte Pupitre — licence retirée, agent désinstallé —, il continue de fonctionner comme un serveur normal : ses projets, ses bases, ses services restent. Il perd Pupitre, rien d'autre. C'est écrit dans les conditions et sur le site.
+When a server leaves Pupitre — licence withdrawn, agent uninstalled —, it keeps working as a normal server: its projects, its databases, its services remain. It loses Pupitre, nothing else. This is written in the terms and on the site.
 
-L'organisation Pupitre elle-même n'a ni licence ni onboarding : la sienne est permanente, avec `PLATFORM_ORGANIZATION_SEATS` machines.
+The Pupitre organization itself has neither a licence nor an onboarding: its own is permanent, with `PLATFORM_ORGANIZATION_SEATS` machines.
 
-**Liens d'affiliation.** Le propriétaire crée des liens `pupitre.studio/?ref=<code>` depuis la console d'administration. Le site pose le code en cookie sur le domaine, et la console l'attache à l'organisation à l'inscription. Un lien ne sert qu'au suivi d'un projet au code public : visites par jour, inscriptions, et serveurs enrôlés par les organisations qu'il a amenées. Aucune offre ne s'y attache. Un lien se désactive, jamais ne s'efface : ses inscrits restent comptés.
+**Affiliate links.** The owner creates `pupitre.studio/?ref=<code>` links from the admin console. The site sets the code as a cookie on the domain, and the console attaches it to the organization at sign-up. A link serves only to track a project with a public code: visits per day, sign-ups, and servers enrolled by the organizations it brought in. No offer is attached to it. A link is deactivated, never deleted: its sign-ups stay counted.
 
-**Console d'administration.** L'accès vient de l'appartenance à l'organisation Pupitre (`org_pupitre`), que le propriétaire gère depuis sa page Membres comme n'importe quelle organisation : un membre lit tout, un `admin` ou `owner` agit. La console y montre les compteurs (comptes, organisations, serveurs et licences par statut, liens et parrainages), la boîte de réception des emails de `pupitre.studio` avec réponse depuis les adresses de contact, les fiches détaillées des comptes, organisations et serveurs, les licences, le journal de la plateforme, les versions à promouvoir, l'équipe, et les liens d'affiliation. Suspendre ou rétablir un serveur, bannir un compte, créer un lien, répondre à un mail sont réservés à `admin` et `owner`. L'équipe accorde aussi une licence — un produit `granted`, aux places et à l'échéance qu'elle choisit —, arrête ou efface une licence, et supprime un serveur ou révoque un appareil, chaque geste avec sa raison au journal. Jamais l'accès aux machines.
+**Admin console.** Access comes from membership of the Pupitre organization (`org_pupitre`), which the owner manages from its Members page like any other organization: a member reads everything, an `admin` or `owner` acts. The console shows there the counters (accounts, organizations, servers and licences by status, links and referrals), the inbox of `pupitre.studio` emails with replies from the contact addresses, the detailed records of accounts, organizations and servers, the licences, the platform log, the versions to promote, the team, and the affiliate links. Suspending or restoring a server, banning an account, creating a link, replying to a mail are reserved to `admin` and `owner`. The team also grants a licence — a `granted` product, with the seats and expiry it chooses —, stops or deletes a licence, and deletes a server or revokes a device, each gesture with its reason in the log. Never access to the machines.
 
-## Le parcours
+## The journey
 
-1. **Le site.** Le visiteur lit ce que Pupitre fait, qu'il est gratuit jusqu'à trois serveurs, et que son code est public.
-2. **Le compte.** Il s'inscrit sur `app.pupitre.studio` ; une organisation personnelle naît avec lui, déjà licenciée pour ses trois premiers serveurs.
-3. **Le téléchargement.** La console lui donne l'app pour son système.
-4. **La liaison.** Il ouvre l'app, la lie à son compte par le code affiché sur `/auth/device`.
-5. **Le serveur.** Il enrôle son VPS, et l'onboarding commence.
+1. **The site.** The visitor reads what Pupitre does, that it is free up to three servers, and that its code is public.
+2. **The account.** They sign up on `app.pupitre.studio`; a personal organization is born with them, already licensed for its first three servers.
+3. **The download.** The console gives them the app for their system.
+4. **The link.** They open the app, link it to their account with the code displayed on `/auth/device`.
+5. **The server.** They enrol their VPS, and the onboarding begins.
 
-L'ordre ne se contourne pas : chaque étape suppose la précédente.
+The order cannot be bypassed: each step assumes the previous one.
 
-## Le MVP
+## The MVP
 
-Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et dans ses serveurs gratuits, comme n'importe quel client. L'onboarding en six étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`. Les projets se créent ensuite, au fil des besoins. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
+A complete desktop app, which the owner uses on their own VPS with their real projects, from an account and within their free servers, like any customer. The six-step onboarding: add a server, inspect, choose the services, configure, install, harden and switch from root to `dev`. Projects are created afterwards, as needs arise. Then day to day: dashboard, projects, terminals, agents, services, update.
 
-Le MVP est réussi quand le propriétaire travaille tous les jours avec ses projets sur un serveur que l'app a entièrement installé, sans ouvrir un terminal hors de l'app.
+The MVP is successful when the owner works every day with their projects on a server the app installed entirely, without opening a terminal outside the app.
 
 ## Brand Personality
 
-**Voix.** Précise, calme, technique sans jargon. On nomme les choses par leur nom réel : tmux, `authorized_keys`, PostgreSQL 17. On ne dit jamais « AI-powered », « seamless », « blazing fast ».
+**Voice.** Precise, calm, technical without jargon. Things are called by their real name: tmux, `authorized_keys`, PostgreSQL 17. We never say "AI-powered", "seamless", "blazing fast".
 
-**Ton.** Celui d'un outil sérieux pour des gens qui travaillent, dans le registre de Linear, Raycast ou Zed. Le produit parle de ce qu'il fait, jamais de ce qu'il promet.
+**Tone.** That of a serious tool for people who work, in the register of Linear, Raycast or Zed. The product talks about what it does, never about what it promises.
 
-**Trois mots.** Précis. Sobre. Fiable.
+**Three words.** Precise. Sober. Reliable.
 
-**Objectif émotionnel.** « Ma machine est prête, mes agents travaillent, je vois tout. »
+**Emotional goal.** "My machine is ready, my agents are working, I see everything."
 
-**Raisons de croire.**
-- Construit par quelqu'un qui fait tourner ses propres agents sur un VPS tous les jours. Une phrase, une fois, jamais un badge.
-- Le client garde tout s'il quitte Pupitre, et peut lire chaque ligne du code qu'il installe. Aucune connexion entrante, aucune clé privée hors de son laptop, aucun accès du support à sa machine.
-- Les vrais standards nommés : SSH ed25519, ufw, fail2ban, tmux, systemd. Jamais « bank-grade ».
+**Reasons to believe.**
+- Built by someone who runs their own agents on a VPS every day. One sentence, once, never a badge.
+- The customer keeps everything if they leave Pupitre, and can read every line of the code they install. No inbound connection, no private key outside their laptop, no support access to their machine.
+- The real standards named: SSH ed25519, ufw, fail2ban, tmux, systemd. Never "bank-grade".
 
-## Anti-références
+## Anti-references
 
-- Le SaaS IA générique : dégradés violets, cartes icône-titre identiques, faux témoignages, bannières d'urgence, « AI-powered » partout.
-- Le théâtre de la confiance : cadenas, « sécurité militaire », imagerie de coffre-fort.
-- Le terminal cosplay : fond noir avec du vert néon, curseur clignotant en décoration.
-- L'hébergeur discount : prix barrés, compteurs de stock, badges « meilleur choix ».
+- Generic AI SaaS: purple gradients, identical icon-title cards, fake testimonials, urgency banners, "AI-powered" everywhere.
+- Trust theatre: padlocks, "military-grade security", vault imagery.
+- Terminal cosplay: black background with neon green, a blinking cursor as decoration.
+- The discount host: struck-through prices, stock counters, "best choice" badges.
 
 ## Design Principles
 
-1. **L'état se lit à la forme.** Un serveur en ligne, un projet arrêté, une installation en échec : la forme le dit avant la couleur.
-2. **Le serveur est la vérité.** L'app montre ce que l'agent renvoie. Elle ne devine rien et n'invente pas de donnée.
-3. **Chaque attente dit ce qui se passe.** « Installation de PostgreSQL, étape 3 sur 7, 40 s », jamais un spinner seul.
-4. **Chaque échec dit le remède.** Une vérification qui échoue affiche la commande qui la répare.
-5. **Rien de décoratif.** Une ligne, un pas de gris, une graisse. Pas d'ombre, pas de dégradé, pas d'illustration.
+1. **State is read from shape.** A server online, a project stopped, an installation failed: the shape says so before the colour.
+2. **The server is the truth.** The app shows what the agent returns. It guesses nothing and invents no data.
+3. **Every wait says what is happening.** "Installing PostgreSQL, step 3 of 7, 40 s", never a spinner alone.
+4. **Every failure says the remedy.** A check that fails displays the command that repairs it.
+5. **Nothing decorative.** One line, one step of grey, one weight. No shadow, no gradient, no illustration.

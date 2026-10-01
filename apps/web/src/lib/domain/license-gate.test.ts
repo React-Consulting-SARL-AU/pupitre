@@ -5,8 +5,8 @@ import {
   sendsToLicense,
 } from "./license-gate"
 
-describe("la porte de la licence", () => {
-  it("laisse passer une organisation qui a le droit d'usage", () => {
+describe("the licence gate", () => {
+  it("lets through an organization that has the right of use", () => {
     expect(
       sendsToLicense({ license: "valid", pathname: "/dashboard/members" })
     ).toBe(false)
@@ -15,7 +15,7 @@ describe("la porte de la licence", () => {
     ).toBe(false)
   })
 
-  it("renvoie sur la licence une organisation qui n'a plus le droit d'usage", () => {
+  it("sends an organization that no longer has the right of use to the licence", () => {
     for (const pathname of [
       "/dashboard",
       "/dashboard/start",
@@ -30,7 +30,7 @@ describe("la porte de la licence", () => {
     }
   })
 
-  it("laisse ouverts la licence, les serveurs, le profil et la plateforme", () => {
+  it("leaves the licence, servers, profile and platform open", () => {
     for (const pathname of [
       "/dashboard/billing",
       "/dashboard/servers",
@@ -51,13 +51,13 @@ describe("la porte de la licence", () => {
     }
   })
 
-  it("ne prend pas une page voisine pour la liste des serveurs", () => {
+  it("does not mistake a neighbouring page for the server list", () => {
     expect(opensWithoutLicense("/dashboard/serversx")).toBe(false)
   })
 })
 
 describe("isAdminRoute", () => {
-  it("reconnaît les pages de la plateforme, et elles seules", () => {
+  it("recognizes the platform pages, and only those", () => {
     expect(isAdminRoute("/dashboard/admin")).toBe(true)
     expect(isAdminRoute("/dashboard/admin/users")).toBe(true)
     expect(isAdminRoute("/dashboard/administration")).toBe(false)

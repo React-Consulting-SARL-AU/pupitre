@@ -19,8 +19,8 @@ const ELSEWHERE = { ...OWN, url: "https://evil.example/" };
 
 trustPage(PAGE);
 
-describe("le cadre qui appelle", () => {
-  it("est la page de l'app, dans son cadre du haut", () => {
+describe("the calling frame", () => {
+  it("is the app page, in its top frame", () => {
     expect(fromOwnPage(OWN)).toBe(true);
     expect(fromOwnPage(ELSEWHERE)).toBe(false);
     expect(fromOwnPage({ ...OWN, parent: OWN })).toBe(false);
@@ -28,7 +28,7 @@ describe("le cadre qui appelle", () => {
   });
 });
 
-describe("un canal gardé", () => {
+describe("a guarded channel", () => {
   const ran: unknown[][] = [];
   const rename = guarded(
     "server-rename",
@@ -40,12 +40,12 @@ describe("un canal gardé", () => {
     }
   );
 
-  it("répond quand la forme est la bonne", () => {
+  it("answers when the shape is right", () => {
     expect(rename({ senderFrame: OWN }, "srv-1", "Atelier")).toBe("renamed");
     expect(ran).toEqual([["srv-1", "Atelier"]]);
   });
 
-  it("refuse une autre forme ou un autre cadre, sans rien faire", () => {
+  it("refuses another shape or another frame, doing nothing", () => {
     expect(() => rename({ senderFrame: OWN }, "srv-1", 42)).toThrow(IpcRefused);
     expect(() => rename({ senderFrame: OWN }, "srv-1", "a", "b")).toThrow(
       IpcRefused
@@ -57,7 +57,7 @@ describe("un canal gardé", () => {
   });
 });
 
-describe("ce que le formulaire d'ajout envoie", () => {
+describe("what the add form sends", () => {
   const DRAFT = {
     host: "203.0.113.10",
     key: { mode: "generate" },
@@ -66,7 +66,7 @@ describe("ce que le formulaire d'ajout envoie", () => {
     user: "root",
   };
 
-  it("passe quand il a la forme d'un brouillon", () => {
+  it("passes when it has the shape of a draft", () => {
     expect(isServerDraft(DRAFT)).toBe(true);
     expect(
       isServerDraft({
@@ -77,7 +77,7 @@ describe("ce que le formulaire d'ajout envoie", () => {
     ).toBe(true);
   });
 
-  it("est refusé quand un champ manque ou n'a pas son type", () => {
+  it("is refused when a field is missing or has the wrong type", () => {
     expect(isServerDraft({ ...DRAFT, port: "22" })).toBe(false);
     expect(isServerDraft({ ...DRAFT, port: 70_000 })).toBe(false);
     expect(isServerDraft({ ...DRAFT, key: { mode: "import" } })).toBe(false);
@@ -86,7 +86,7 @@ describe("ce que le formulaire d'ajout envoie", () => {
     expect(isServerDraft(null)).toBe(false);
   });
 
-  it("frappe à une adresse qui a la forme d'une adresse", () => {
+  it("knocks at an address shaped like an address", () => {
     const knock = {
       host: "203.0.113.10",
       keyFile: null,

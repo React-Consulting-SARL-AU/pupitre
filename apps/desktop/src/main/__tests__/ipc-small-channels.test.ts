@@ -13,13 +13,13 @@ registerHelp();
 registerShots();
 registerSignInCancel();
 
-describe("les canaux de l'apparence, de l'aide, des captures et de la connexion", () => {
-  it("refusent un autre cadre que la page de l'app", () => {
+describe("the appearance, help, capture and sign-in channels", () => {
+  it("refuse a frame other than the app's page", () => {
     expect(refused("help:open", OTHER_PAGE, "docs", "fr")).toBe(true);
     expect(refused("account:sign-in-cancel", OTHER_PAGE)).toBe(true);
   });
 
-  it("refusent une apparence qui n'en a pas la forme", () => {
+  it("refuse an appearance that does not have the right shape", () => {
     expect(
       refused("appearance:set", OWN_PAGE, {
         preference: "system",
@@ -35,17 +35,17 @@ describe("les canaux de l'apparence, de l'aide, des captures et de la connexion"
     ).toBe(true);
   });
 
-  it("refusent un lien d'aide inconnu ou une langue absente", () => {
+  it("refuse an unknown help link or a missing language", () => {
     expect(refused("help:open", OWN_PAGE, "nowhere", "fr")).toBe(true);
     expect(refused("help:open", OWN_PAGE, "docs")).toBe(true);
   });
 
-  it("refusent une capture sans chemin ou sans octets", () => {
+  it("refuse a capture without a path or without bytes", () => {
     expect(refused("shots:save", OWN_PAGE, 3, new Uint8Array(1))).toBe(true);
     expect(refused("shots:save", OWN_PAGE, "/tmp/a.png", "bytes")).toBe(true);
   });
 
-  it("refusent un argument de trop", () => {
+  it("refuse one argument too many", () => {
     expect(refused("account:sign-in-cancel", OWN_PAGE, "extra")).toBe(true);
   });
 });

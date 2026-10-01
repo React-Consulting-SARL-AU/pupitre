@@ -16,12 +16,12 @@ interface MeBody {
   active_organization: { id: string; name: string; state: string } | null
 }
 
-test.describe("organisation retenue par la plateforme", () => {
+test.describe("organization held by the platform", () => {
   test.beforeAll(async ({ request }) => {
     await request.post(harnessUrl("/reset"))
   })
 
-  test("la console dit la suspension, son motif et le remède", async ({
+  test("the console states the suspension, its reason and the remedy", async ({
     page,
     request,
   }) => {
@@ -34,13 +34,13 @@ test.describe("organisation retenue par la plateforme", () => {
 
     expect(organization).not.toBeNull()
 
-    await test.step("aucun bandeau sur une organisation active", async () => {
+    await test.step("no banner on an active organization", async () => {
       await page.goto("/dashboard/servers")
 
       await expect(page.locator(BANNER)).toHaveCount(0)
     })
 
-    await test.step("la suspension apparaît dès le rechargement", async () => {
+    await test.step("the suspension appears on reload", async () => {
       const suspended = await page.request.post(
         `/api/v1/admin/organizations/${organization?.id}/suspend`,
         { data: { reason: REASON } }
@@ -57,13 +57,13 @@ test.describe("organisation retenue par la plateforme", () => {
       await expect(banner).toContainText("support@pupitre.studio")
     })
 
-    await test.step("une suspension ne propose pas de changer d'organisation", async () => {
+    await test.step("a suspension does not offer switching organization", async () => {
       await expect(
         page.locator(BANNER).getByRole("button", { name: SWITCH_LABEL })
       ).toHaveCount(0)
     })
 
-    await test.step("le rétablissement fait tomber le bandeau", async () => {
+    await test.step("reinstatement removes the banner", async () => {
       const restored = await page.request.post(
         `/api/v1/admin/organizations/${organization?.id}/restore`
       )
@@ -75,7 +75,7 @@ test.describe("organisation retenue par la plateforme", () => {
       await expect(page.locator(BANNER)).toHaveCount(0)
     })
 
-    await test.step("un second rétablissement est refusé, l'organisation n'étant plus suspendue", async () => {
+    await test.step("a second reinstatement is refused, the organization no longer being suspended", async () => {
       const again = await page.request.post(
         `/api/v1/admin/organizations/${organization?.id}/restore`
       )
@@ -83,7 +83,7 @@ test.describe("organisation retenue par la plateforme", () => {
       expect(again.status()).toBe(409)
     })
 
-    await test.step("une organisation fermée ouvre le choix d'une autre", async () => {
+    await test.step("a closed organization opens the choice of another", async () => {
       const closed = await page.request.post(
         `/api/v1/admin/organizations/${organization?.id}/close`,
         { data: { reason: REASON } }

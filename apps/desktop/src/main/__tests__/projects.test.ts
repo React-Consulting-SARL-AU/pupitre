@@ -113,8 +113,8 @@ afterEach(() => {
   agent = null;
 });
 
-describe("un dépôt du formulaire au journal", () => {
-  it("passe de l'adresse à online avec ses lignes de journal", async () => {
+describe("a repository from the form to the journal", () => {
+  it("goes from the address to online with its journal lines", async () => {
     const calls = deps([
       "first-project-control.jsonl",
       "first-project-work.jsonl",
@@ -157,8 +157,8 @@ describe("un dépôt du formulaire au journal", () => {
   });
 });
 
-describe("un projet à plusieurs ports", () => {
-  it("retient chaque nom d'hôte, relâche ceux qu'une configuration retire, puis tous au retrait", async () => {
+describe("a project with several ports", () => {
+  it("remembers each host name, releases those a configuration removes, then all on removal", async () => {
     const released: string[] = [];
     const calls = deps(
       ["project-routes-control.jsonl", "project-routes-work.jsonl"],
@@ -253,7 +253,7 @@ describe("un projet à plusieurs ports", () => {
     expect(projectHostnames(SERVER, "shop")).toEqual([]);
   });
 
-  it("refuse une configuration pour un projet que l'agent n'a pas nommé, et une forme hors contrat", async () => {
+  it("refuses a configuration for a project the agent did not name, and a shape outside the contract", async () => {
     const calls = deps(["project-routes-control.jsonl"]);
 
     const unknown = await updateProject(
@@ -272,8 +272,8 @@ describe("un projet à plusieurs ports", () => {
   });
 });
 
-describe("un journal suivi", () => {
-  it("porte le signal de qui le suit jusqu'au canal", async () => {
+describe("a followed journal", () => {
+  it("carries the follower's signal through to the channel", async () => {
     const seen: (AbortSignal | undefined)[] = [];
     const control = new AbortController();
 
@@ -308,8 +308,8 @@ describe("un journal suivi", () => {
   });
 });
 
-describe("un port déjà pris", () => {
-  it("rend le remède de l'agent, qui porte le port libre", async () => {
+describe("a port already taken", () => {
+  it("returns the agent's fix, which carries the free port", async () => {
     const calls = deps([
       "first-project-port-control.jsonl",
       "first-project-port-work.jsonl",
@@ -330,7 +330,7 @@ describe("un port déjà pris", () => {
     });
   });
 
-  it("aboutit au second essai sur le port que le remède donne", async () => {
+  it("succeeds on the second attempt on the port the fix gives", async () => {
     const calls = deps([
       "first-project-port-control.jsonl",
       "first-project-port-work.jsonl",
@@ -345,8 +345,8 @@ describe("un port déjà pris", () => {
   });
 });
 
-describe("ce que le renderer nomme", () => {
-  it("refuse un projet que l'agent n'a jamais déclaré, sans rien lui demander", async () => {
+describe("what the renderer names", () => {
+  it("refuses a project the agent never declared, asking it nothing", async () => {
     const calls = deps([
       "first-project-control.jsonl",
       "first-project-work.jsonl",
@@ -361,7 +361,7 @@ describe("ce que le renderer nomme", () => {
     expect(agent?.started()).toBe(0);
   });
 
-  it("tient pour déclaré un projet qu'un snapshot a nommé", () => {
+  it("treats as declared a project a snapshot named", () => {
     expect(declaresProject(SERVER, "react-box")).toBe(false);
 
     noteProjects(SERVER, "snapshot", {
@@ -405,7 +405,7 @@ describe("ce que le renderer nomme", () => {
     expect(declaresProject(SERVER, "ghost")).toBe(false);
   });
 
-  it("n'ouvre dans un éditeur qu'un dossier que l'agent a nommé", () => {
+  it("only opens in an editor a folder the agent named", () => {
     noteProjects(SERVER, "snapshot", {
       ok: true,
       result: {
@@ -433,7 +433,7 @@ describe("ce que le renderer nomme", () => {
     expect(editorFolder(SERVER, 42, "/home/dev")).toBeNull();
   });
 
-  it("refuse un serveur qui n'est plus dans la configuration", async () => {
+  it("refuses a server that is no longer in the configuration", async () => {
     const calls = deps([
       "first-project-control.jsonl",
       "first-project-work.jsonl",

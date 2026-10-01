@@ -82,8 +82,8 @@ const STALE: AccountState = {
   },
 };
 
-describe("un pont qui ne répond pas", () => {
-  it("garde l'échec et ce qui a été levé, puis relit quand on le lui demande", async () => {
+describe("a bridge that does not answer", () => {
+  it("keeps the failure and what was thrown, then rereads when asked", async () => {
     stubPupitre({
       account: () => Promise.reject(new Error("keychain locked")),
     });
@@ -108,8 +108,8 @@ describe("un pont qui ne répond pas", () => {
   });
 });
 
-describe("la lecture du compte", () => {
-  it("porte la licence tel que le processus principal l'a rendue, sans la relire", async () => {
+describe("reading the account", () => {
+  it("carries the licence as the main process returned it, without rereading it", async () => {
     const licensed: AccountState = {
       ...SIGNED_IN,
       identity: SIGNED_IN.identity && {
@@ -141,7 +141,7 @@ describe("la lecture du compte", () => {
     ).toBeNull();
   });
 
-  it("garde l'état que le processus principal a rendu", async () => {
+  it("keeps the state the main process returned", async () => {
     stubPupitre({ account: () => Promise.resolve(SIGNED_IN) });
 
     await useAccount.getState().read();
@@ -149,12 +149,12 @@ describe("la lecture du compte", () => {
     expect(accountOf(useAccount.getState().view)).toEqual(SIGNED_IN);
   });
 
-  it("part d'un état inconnu, jamais d'un refus supposé", () => {
+  it("starts from an unknown state, never from an assumed refusal", () => {
     expect(useAccount.getState().view).toEqual({ status: "unknown" });
     expect(accountOf(useAccount.getState().view)).toBeNull();
   });
 
-  it("ouvre l'app sur une session en cache et dit de quand date la réponse", async () => {
+  it("opens the app on a cached session and tells how old the answer is", async () => {
     stubPupitre({ account: () => Promise.resolve(CACHED) });
 
     await useAccount.getState().read();
@@ -169,7 +169,7 @@ describe("la lecture du compte", () => {
     expect(account?.refusal).toBeNull();
   });
 
-  it("garde le refus du garde tel quel au-delà des sept jours", async () => {
+  it("keeps the guard's refusal as is beyond seven days", async () => {
     stubPupitre({ account: () => Promise.resolve(STALE) });
 
     await useAccount.getState().read();
@@ -179,7 +179,7 @@ describe("la lecture du compte", () => {
     );
   });
 
-  it("garde le refus après une actualisation qui n'a rien rapporté", async () => {
+  it("keeps the refusal after a refresh that brought nothing back", async () => {
     stubPupitre({
       account: () => Promise.resolve(SIGNED_IN),
       refreshAccount: () => Promise.resolve(STALE),
@@ -192,8 +192,8 @@ describe("la lecture du compte", () => {
   });
 });
 
-describe("la connexion", () => {
-  it("affiche le code, puis passe à l'attente, puis à l'état connecté", async () => {
+describe("signing in", () => {
+  it("shows the code, then moves to waiting, then to the signed-in state", async () => {
     const seen: string[] = [];
 
     stubPupitre({
@@ -226,7 +226,7 @@ describe("la connexion", () => {
     );
   });
 
-  it("garde le code affiché tant que l'approbation n'est pas venue", async () => {
+  it("keeps the code displayed until the approval comes", async () => {
     stubPupitre({
       signIn: (onProgress: (progress: SignInProgress) => void) => {
         onProgress({
@@ -251,7 +251,7 @@ describe("la connexion", () => {
     });
   });
 
-  it("annule l'attente : le main arrête d'attendre, l'écran revient au bouton, et une connexion suivante n'est pas effacée par l'ancienne", async () => {
+  it("cancels the wait: main stops waiting, the screen goes back to the button, and a following sign-in is not erased by the old one", async () => {
     let cancelled = 0;
     const answers: ((value: AccountResponse<AccountState>) => void)[] = [];
 
@@ -303,7 +303,7 @@ describe("la connexion", () => {
     expect(accountOf(useAccount.getState().view)?.identity?.name).toBe("Ada");
   });
 
-  it("garde le refus de la console avec son remède", async () => {
+  it("keeps the console's refusal with its fix", async () => {
     stubPupitre({
       signIn: () =>
         Promise.resolve({
@@ -325,8 +325,8 @@ describe("la connexion", () => {
   });
 });
 
-describe("la déconnexion", () => {
-  it("revient à l'état sans compte", async () => {
+describe("signing out", () => {
+  it("returns to the no-account state", async () => {
     stubPupitre({
       account: () => Promise.resolve(SIGNED_IN),
       signOut: () => Promise.resolve(SIGNED_OUT),
@@ -339,8 +339,8 @@ describe("la déconnexion", () => {
   });
 });
 
-describe("les appareils du compte", () => {
-  it("liste ce que la plateforme tient, et relit après une révocation", async () => {
+describe("the account's devices", () => {
+  it("lists what the platform holds, and rereads after a revocation", async () => {
     const revoked: string[] = [];
     let held = [
       {
@@ -384,7 +384,7 @@ describe("les appareils du compte", () => {
     });
   });
 
-  it("garde le refus d'une révocation, la liste telle quelle", async () => {
+  it("keeps a revocation refusal, the list as is", async () => {
     stubPupitre({
       accountDevices: () => Promise.resolve({ ok: true, result: [] }),
       revokeDevice: () =>

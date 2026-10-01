@@ -5,14 +5,14 @@ import { LOCAL_PLATFORM_URL } from "../platform-client";
 
 const APP_DATA = "/Users/dev/Library/Application Support";
 
-describe("le dossier de données d'un build de développement", () => {
-  it("est le sien, à côté de celui de l'app installée", () => {
+describe("the data folder of a development build", () => {
+  it("is its own, next to the installed app's", () => {
     expect(
       developmentDataFolder(APP_DATA, false, false, LOCAL_PLATFORM_URL)
     ).toBe(join(APP_DATA, "Pupitre Dev"));
   });
 
-  it("change avec la plateforme visée : un compte de la console hébergée ne se mêle pas à celui de la console locale", () => {
+  it("changes with the targeted platform: an account on the hosted console never mixes with one on the local console", () => {
     expect(
       developmentDataFolder(
         APP_DATA,
@@ -26,7 +26,7 @@ describe("le dossier de données d'un build de développement", () => {
     ).toBe(join(APP_DATA, "Pupitre Dev"));
   });
 
-  it("ne bouge ni pour l'app empaquetée ni sous le harnais", () => {
+  it("stays put for the packaged app and under the harness", () => {
     expect(
       developmentDataFolder(APP_DATA, true, false, "https://app.pupitre.studio")
     ).toBeNull();

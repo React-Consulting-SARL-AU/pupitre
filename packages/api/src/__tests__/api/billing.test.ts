@@ -124,7 +124,7 @@ async function enrollMany(session: Session, count: number, prefix: string) {
   return { deviceId: device.json.data.id, statuses }
 }
 
-describe("facturation d'une organisation", () => {
+describe("an organization's billing", () => {
   let billing: FakeBilling
   let organizationId: string
   let owner: Session
@@ -148,7 +148,7 @@ describe("facturation d'une organisation", () => {
     member = created.members[2].session
   })
 
-  it("ouvre un checkout sans essai, à la quantité demandée", async () => {
+  it("opens a checkout without a trial, at the requested quantity", async () => {
     const response = await apiRequest<UrlBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 3, interval: "month" }, session: owner }
@@ -166,7 +166,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.checkouts[0]).not.toHaveProperty("trialDays")
   })
 
-  it("reprend le client Stripe connu d'un abonnement arrêté", async () => {
+  it("reuses the known Stripe customer of a stopped subscription", async () => {
     await paySeats(billing, organizationId, 2, "canceled")
 
     await apiRequest(`/orgs/${organizationId}/checkout`, {
@@ -180,7 +180,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("refuse un second checkout tant qu'un abonnement payé court, vers les sièges ou le portail", async () => {
+  it("refuses a second checkout while a paid subscription is running, pointing to the seats or the portal", async () => {
     await paySeats(billing, organizationId, 2)
 
     const response = await apiRequest<ErrorBody>(
@@ -195,7 +195,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.checkouts).toHaveLength(0)
   })
 
-  it("ouvre un checkout annuel", async () => {
+  it("opens an annual checkout", async () => {
     await apiRequest(`/orgs/${organizationId}/checkout`, {
       body: { quantity: 1, interval: "year" },
       session: owner,
@@ -207,7 +207,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("ramène le checkout sur la facturation par défaut", async () => {
+  it("returns the checkout to billing by default", async () => {
     await apiRequest(`/orgs/${organizationId}/checkout`, {
       body: { quantity: 1, interval: "month" },
       session: owner,
@@ -219,7 +219,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("ramène le checkout sur l'onboarding quand il en vient", async () => {
+  it("returns the checkout to onboarding when it comes from there", async () => {
     await apiRequest(`/orgs/${organizationId}/checkout`, {
       body: { quantity: 1, interval: "month", return_to: "start" },
       session: owner,
@@ -231,7 +231,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("refuse une destination de retour inconnue", async () => {
+  it("refuses an unknown return destination", async () => {
     const response = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/checkout`,
       {
@@ -248,7 +248,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.checkouts).toHaveLength(0)
   })
 
-  it("réserve le checkout au propriétaire", async () => {
+  it("reserves the checkout to the owner", async () => {
     const byAdmin = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 1, interval: "month" }, session: admin }
@@ -268,7 +268,7 @@ describe("facturation d'une organisation", () => {
     expect(anonymous.status).toBe(401)
   })
 
-  it("ignore une organisation qui n'est pas l'active", async () => {
+  it("ignores an organization that is not the active one", async () => {
     const other = await createOrganizationWithMembers({ roles: ["owner"] })
     const response = await apiRequest<ErrorBody>(
       `/orgs/${other.organization.id}/checkout`,
@@ -279,7 +279,7 @@ describe("facturation d'une organisation", () => {
     expect(response.json.error.code).toBe("not_found")
   })
 
-  it("refuse le portail sans client Stripe, avec un remède", async () => {
+  it("refuses the portal without a Stripe customer, with a fix", async () => {
     const response = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/portal`,
       { method: "POST", session: owner }
@@ -290,7 +290,7 @@ describe("facturation d'une organisation", () => {
     expect(response.json.error.fix).toContain("checkout")
   })
 
-  it("ouvre le portail une fois le client connu", async () => {
+  it("opens the portal once the customer is known", async () => {
     await paySeats(billing, organizationId, 2)
 
     const response = await apiRequest<UrlBody>(
@@ -303,7 +303,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.portals[0].customerId).toBe("cus_seat")
   })
 
-  it("montre le miroir de l'abonnement", async () => {
+  it("shows the subscription mirror", async () => {
     const before = await apiRequest<SubscriptionBody>(
       `/orgs/${organizationId}/subscription`,
       { session: owner }
@@ -327,7 +327,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("ajoute les sièges payés aux serveurs gratuits, et refuse le suivant", async () => {
+  it("adds the paid seats to the free servers, and refuses the next one", async () => {
     await paySeats(billing, organizationId, 2)
 
     const { statuses } = await enrollMany(owner, FREE_SERVERS + 3, "vps")
@@ -336,7 +336,7 @@ describe("facturation d'une organisation", () => {
     expect(statuses.slice(0, -1).every((status) => status === 201)).toBe(true)
   })
 
-  it("passe en tolérance au-delà des serveurs gratuits quand l'abonnement s'arrête, puis suspend, puis rétablit une fois revenu aux serveurs gratuits", async () => {
+  it("goes into grace beyond the free servers when the subscription stops, then suspends, then restores once back to the free servers", async () => {
     await paySeats(billing, organizationId, 1)
 
     const servers: Awaited<ReturnType<typeof createServer>>[] = []
@@ -408,7 +408,7 @@ describe("facturation d'une organisation", () => {
     expect(restored.json.license).toBe("valid")
   })
 
-  it("compare les sièges payés aux serveurs au-delà des gratuits", async () => {
+  it("compares the paid seats to the servers beyond the free ones", async () => {
     await paySeats(billing, organizationId, 4)
     await enrollMany(owner, FREE_SERVERS + 1, "vps")
 
@@ -425,7 +425,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("aligne la quantité Stripe quand on le demande", async () => {
+  it("aligns the Stripe quantity when asked to", async () => {
     await paySeats(billing, organizationId, 4)
     await enrollMany(owner, FREE_SERVERS + 1, "vps")
 
@@ -444,7 +444,7 @@ describe("facturation d'une organisation", () => {
     expect(after.json.data?.quantity).toBe(1)
   })
 
-  it("verrouille les sièges d'une licence accordée par l'équipe", async () => {
+  it("locks the seats of a licence granted by the team", async () => {
     const { prisma } = await bootApiTestServer()
 
     await prisma.subscription.create({
@@ -469,7 +469,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("ajoute un siège une fois l'abonnement payé, et l'enrôlement suivant passe", async () => {
+  it("adds a seat once the subscription is paid, and the next enrolment goes through", async () => {
     await paySeats(billing, organizationId, 1)
 
     const { deviceId, statuses } = await enrollMany(
@@ -496,7 +496,7 @@ describe("facturation d'une organisation", () => {
     ).toBe(201)
   })
 
-  it("garde la trace du changement dans le journal", async () => {
+  it("keeps a trace of the change in the log", async () => {
     await paySeats(billing, organizationId, 1)
     await apiRequest(`/orgs/${organizationId}/seats`, {
       body: { quantity: 3 },
@@ -515,7 +515,7 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("descend jusqu'aux serveurs en place au-delà des gratuits, jamais en dessous", async () => {
+  it("goes down to the servers in place beyond the free ones, never below", async () => {
     await paySeats(billing, organizationId, 4)
     await enrollMany(owner, FREE_SERVERS + 2, "vps")
 
@@ -539,7 +539,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(1)
   })
 
-  it("refuse de changer les sièges sans licence en cours, vers le support", async () => {
+  it("refuses to change the seats without a running licence, pointing to support", async () => {
     const response = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/seats`,
       { body: { quantity: 2 }, session: owner }
@@ -550,7 +550,7 @@ describe("facturation d'une organisation", () => {
     expect(response.json.error.fix).toContain(LEGAL_CONTACTS.support)
   })
 
-  it("réserve le changement de sièges au propriétaire", async () => {
+  it("reserves the seat change to the owner", async () => {
     await paySeats(billing, organizationId, 2)
 
     const byAdmin = await apiRequest<ErrorBody>(
@@ -578,7 +578,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("borne la quantité demandée", async () => {
+  it("bounds the requested quantity", async () => {
     await paySeats(billing, organizationId, 2)
 
     const none = await apiRequest<ErrorBody>(`/orgs/${organizationId}/seats`, {
@@ -595,7 +595,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("ne réconcilie rien sans abonnement", async () => {
+  it("reconciles nothing without a subscription", async () => {
     expect(await reconcileSeats()).toEqual([])
   })
 })

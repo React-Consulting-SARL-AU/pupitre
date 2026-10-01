@@ -41,7 +41,7 @@ const GATED = {
   ],
 };
 
-test.describe("l'accès aux adresses publiées", () => {
+test.describe("access to published addresses", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -62,10 +62,10 @@ test.describe("l'accès aux adresses publiées", () => {
     await running.app.close();
   });
 
-  test("protège le projet, laisse public un récepteur de webhooks, et crée une clé", async () => {
+  test("protects the project, leaves a webhook receiver public, and creates a key", async () => {
     const { page } = running;
 
-    await test.step("la configuration se range en parties, l'accès parmi elles", async () => {
+    await test.step("the configuration is split into parts, access among them", async () => {
       await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
       await page.getByRole("tab", { name: "Configuration" }).click();
       await page.getByRole("tab", { name: "Accès" }).click();
@@ -81,7 +81,7 @@ test.describe("l'accès aux adresses publiées", () => {
       await assertAccessible(page, "projects/configuration/access");
     });
 
-    await test.step("une nouvelle clé s'ouvre sur ce projet, puis se copie", async () => {
+    await test.step("a new key opens on this project, then is copied", async () => {
       await page.getByRole("button", { name: "Nouvelle clé" }).click();
       await page.getByLabel("Nom de la clé").fill("Simulateur iPhone");
       await page.getByRole("button", { name: "Créer la clé" }).click();
@@ -95,7 +95,7 @@ test.describe("l'accès aux adresses publiées", () => {
       await page.getByRole("button", { name: "Terminé" }).click();
     });
 
-    await test.step("la page Accès du serveur liste toutes ses clés", async () => {
+    await test.step("the server's Access page lists all its keys", async () => {
       await openServerPage(page, "Accès");
 
       await expect(

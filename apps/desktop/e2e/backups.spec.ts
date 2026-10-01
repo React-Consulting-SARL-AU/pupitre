@@ -44,7 +44,7 @@ function filesUnder(dir: string): string[] {
   });
 }
 
-test.describe("sauvegardes", () => {
+test.describe("backups", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -62,7 +62,7 @@ test.describe("sauvegardes", () => {
     await running.app.close();
   });
 
-  test("la mise en place garde le seau et la clé publique, jamais la phrase, puis active les sauvegardes", async () => {
+  test("setup keeps the bucket and the public key, never the passphrase, then enables backups", async () => {
     const { app, page } = running;
 
     await openServerPage(page, "Sauvegardes");
@@ -75,7 +75,7 @@ test.describe("sauvegardes", () => {
     ).toHaveCount(0);
     await assertAccessible(page, "backups-setup");
 
-    await test.step("un point d'accès en http est refusé, pour sa raison", async () => {
+    await test.step("an http endpoint is refused, with its reason", async () => {
       await page.getByRole("radio", { name: "Autre service S3" }).click();
       await page
         .locator("#backup-endpoint")
@@ -91,7 +91,7 @@ test.describe("sauvegardes", () => {
         .fill("https://acme.r2.cloudflarestorage.com");
     });
 
-    await test.step("un seau qui refuse l'écriture d'essai arrête à la première étape", async () => {
+    await test.step("a bucket that refuses the test write stops at the first step", async () => {
       await answerBucket(app, { code: "AccessDenied", status: 403 });
       await next.click();
 
@@ -104,7 +104,7 @@ test.describe("sauvegardes", () => {
       await next.click();
     });
 
-    await test.step("deux phrases qui diffèrent sont refusées sur place", async () => {
+    await test.step("two passphrases that differ are refused in place", async () => {
       await page.locator("#backup-passphrase").fill(PASSPHRASE);
       await page
         .locator("#backup-passphrase-confirm")
@@ -117,7 +117,7 @@ test.describe("sauvegardes", () => {
       await next.click();
     });
 
-    await test.step("la fréquence se choisit en mots, la rétention se dit en temps", async () => {
+    await test.step("frequency is chosen in words, retention is stated in time", async () => {
       await setup.getByRole("combobox", { name: "Fréquence" }).click();
       await page.getByRole("option", { name: "Chaque semaine" }).click();
 
@@ -157,7 +157,7 @@ test.describe("sauvegardes", () => {
     await expect(setup).toHaveCount(0);
   });
 
-  test("la page d'un serveur dit où en sont ses sauvegardes et en fait une", async () => {
+  test("a server's page says where its backups stand and takes one", async () => {
     const { app, page } = running;
 
     await answerBackups(app, { docker: true });
@@ -165,7 +165,7 @@ test.describe("sauvegardes", () => {
     await page.getByRole("button", { name: "Services" }).click();
     await openServerPage(page, "Sauvegardes");
 
-    await test.step("le tableau de bord montre ce qui tourne, la dernière et la prochaine", async () => {
+    await test.step("the dashboard shows what is running, the last backup and the next", async () => {
       await expect(
         page.getByRole("tab", { name: "Vue d'ensemble" })
       ).toHaveAttribute("aria-selected", "true");
@@ -186,7 +186,7 @@ test.describe("sauvegardes", () => {
       await markRunning(app, false);
     });
 
-    await test.step("le contenu se choisit base par base et projet par projet", async () => {
+    await test.step("content is chosen database by database and project by project", async () => {
       await page.getByRole("tab", { name: "Contenu" }).click();
 
       const content = page.locator('[data-section="backup-contents"]');
@@ -227,7 +227,7 @@ test.describe("sauvegardes", () => {
       expect(sent?.config["core.backup"]?.projects).toBe(true);
     });
 
-    await test.step("une sauvegarde manuelle se nomme, ou garde sa date", async () => {
+    await test.step("a manual backup is named, or keeps its date", async () => {
       await page
         .getByRole("button", { name: "Sauvegarder maintenant" })
         .click();
@@ -249,7 +249,7 @@ test.describe("sauvegardes", () => {
     });
   });
 
-  test("revenir à une sauvegarde vérifie la phrase, puis mène jusqu'aux données", async () => {
+  test("restoring a backup checks the passphrase, then leads to the data", async () => {
     const { page } = running;
 
     await page
@@ -266,7 +266,7 @@ test.describe("sauvegardes", () => {
       })
     ).toBeChecked();
 
-    await test.step("une mauvaise phrase reste dans la question", async () => {
+    await test.step("a wrong passphrase stays in the question", async () => {
       await dialog
         .locator("#backup-revert-passphrase")
         .fill("pas la bonne phrase");
@@ -294,7 +294,7 @@ test.describe("sauvegardes", () => {
 
     const progress = page.locator('[data-dialog="backup-revert-progress"]');
 
-    await test.step("le retour tient la fenêtre : Échap ne le ferme pas", async () => {
+    await test.step("the restore holds the window: Escape does not close it", async () => {
       await page.keyboard.press("Escape");
 
       await expect(progress).toBeVisible();
@@ -311,7 +311,7 @@ test.describe("sauvegardes", () => {
     await expect(progress).toBeHidden();
   });
 
-  test("la destination dit ce que tient le serveur, l'aligne, et tout peut recommencer", async () => {
+  test("the destination says what the server holds, aligns it, and everything can start over", async () => {
     const { app, page } = running;
 
     await answerBackups(app, { docker: true });
@@ -330,7 +330,7 @@ test.describe("sauvegardes", () => {
       .click();
     await expect.poll(async () => (await installedConfigs(app)).length).toBe(1);
 
-    await test.step("réinitialiser retire le module et reprend la mise en place", async () => {
+    await test.step("resetting removes the module and restarts setup", async () => {
       await page
         .getByRole("button", { name: "Réinitialiser les sauvegardes" })
         .click();

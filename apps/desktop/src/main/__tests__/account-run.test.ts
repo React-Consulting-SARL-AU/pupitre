@@ -73,8 +73,8 @@ afterEach(() => {
   }
 });
 
-describe("la connexion", () => {
-  it("affiche le code, ouvre le navigateur et attend l'approbation", async () => {
+describe("sign-in", () => {
+  it("shows the code, opens the browser and waits for approval", async () => {
     const { account, opened } = harness({
       polls: ["authorization_pending", "slow_down", "authorized"],
     });
@@ -99,7 +99,7 @@ describe("la connexion", () => {
     ]);
   });
 
-  it("enregistre la clé publique de l'appareil, et une seule fois", async () => {
+  it("registers the device's public key, once only", async () => {
     const { account, platform } = harness();
     const { report } = progressOf();
 
@@ -110,7 +110,7 @@ describe("la connexion", () => {
     expect(account.state().device?.publicKey).toBe(FAKE_KEY);
   });
 
-  it("reprend l'appareil que la plateforme connaît déjà", async () => {
+  it("reuses the device the platform already knows", async () => {
     const { account, platform } = harness({ devices: [DEVICE] });
     const { report } = progressOf();
 
@@ -120,7 +120,7 @@ describe("la connexion", () => {
     expect(account.state().device?.id).toBe(DEVICE.id);
   });
 
-  it("dit le refus du navigateur avec son remède", async () => {
+  it("states the browser's refusal with its fix", async () => {
     const { account } = harness({ polls: ["denied"] });
     const { report } = progressOf();
 
@@ -132,7 +132,7 @@ describe("la connexion", () => {
     });
   });
 
-  it("dit l'expiration du code", async () => {
+  it("states the code's expiry", async () => {
     const { account } = harness({ polls: ["expired"] });
     const { report } = progressOf();
 
@@ -142,7 +142,7 @@ describe("la connexion", () => {
     });
   });
 
-  it("s'arrête quand on l'annule, sans garder de jeton, et la suivante repart", async () => {
+  it("stops when cancelled, keeping no token, and the next one starts afresh", async () => {
     const { deps } = harness({
       polls: ["authorization_pending", "authorization_pending", "authorized"],
     });
@@ -173,8 +173,8 @@ describe("la connexion", () => {
   });
 });
 
-describe("le jeton", () => {
-  it("ne traverse ni le disque, ni un journal, ni ce que le renderer reçoit", async () => {
+describe("the token", () => {
+  it("crosses neither the disk, nor a log, nor what the renderer receives", async () => {
     const { account, dir } = harness();
     const { report, seen } = progressOf();
     const logged: unknown[] = [];
@@ -210,7 +210,7 @@ describe("le jeton", () => {
     }
   });
 
-  it("part avec la déconnexion", async () => {
+  it("goes away with sign-out", async () => {
     const { account, dir } = harness();
     const { report } = progressOf();
 
@@ -224,8 +224,8 @@ describe("le jeton", () => {
   });
 });
 
-describe("la licence", () => {
-  it("tient sept jours sans la plateforme, et pas huit", async () => {
+describe("the licence", () => {
+  it("holds seven days without the platform, and not eight", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
     const { account } = harness({ build: "production", now: () => clock });
     const { report } = progressOf();
@@ -252,7 +252,7 @@ describe("la licence", () => {
     });
   });
 
-  it("refuse tout de suite une session que la plateforme ne reconnaît plus", async () => {
+  it("refuses at once a session the platform no longer recognizes", async () => {
     const { account, deps, platform } = harness({ build: "production" });
     const { report } = progressOf();
 
@@ -276,7 +276,7 @@ describe("la licence", () => {
     });
   });
 
-  it("garde le droit en cache quand la plateforme est seulement injoignable", async () => {
+  it("keeps the cached licence when the platform is merely unreachable", async () => {
     const { account, deps, platform } = harness({ build: "production" });
     const { report } = progressOf();
 
@@ -294,7 +294,7 @@ describe("la licence", () => {
     expect(deps.vault.token()).toBe(FAKE_TOKEN);
   });
 
-  it("refuse tout de suite une organisation suspendue", async () => {
+  it("refuses a suspended organization at once", async () => {
     const { account } = harness({
       build: "production",
       identity: { ...IDENTITY, license: "suspended" },
@@ -310,7 +310,7 @@ describe("la licence", () => {
     });
   });
 
-  it("distingue l'organisation au-delà de ses serveurs gratuits de celle que la plateforme suspend", async () => {
+  it("tells an organization beyond its free servers from one the platform suspends", async () => {
     const { account } = harness({
       build: "production",
       identity: {
@@ -340,7 +340,7 @@ describe("la licence", () => {
     });
   });
 
-  it("refuse un build de production sans compte, avec le lien vers la console", () => {
+  it("refuses a production build without an account, with the link to the console", () => {
     const { account } = harness({ build: "production" });
 
     expect(account.state().usage).toEqual({
@@ -359,7 +359,7 @@ describe("la licence", () => {
     });
   });
 
-  it("laisse travailler un build de développement sans compte", () => {
+  it("lets a development build work without an account", () => {
     const { account } = harness();
 
     expect(account.state().usage).toMatchObject({
@@ -369,7 +369,7 @@ describe("la licence", () => {
     expect(account.guard().ok).toBe(true);
   });
 
-  it("porte dans son état le refus que le garde oppose aux canaux", async () => {
+  it("carries in its state the refusal the guard opposes to channels", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
     const { account } = harness({ build: "production", now: () => clock });
     const { report } = progressOf();
@@ -396,7 +396,7 @@ describe("la licence", () => {
     );
   });
 
-  it("porte le refus d'une organisation suspendue tel que le garde le dit", async () => {
+  it("carries a suspended organization's refusal as the guard states it", async () => {
     const { account } = harness({
       build: "production",
       identity: { ...IDENTITY, license: "suspended" },
@@ -414,8 +414,8 @@ describe("la licence", () => {
   });
 });
 
-describe("l'enrôlement", () => {
-  it("envoie l'appareil, l'adresse et l'architecture sondée", async () => {
+describe("enrolment", () => {
+  it("sends the device, the address and the probed architecture", async () => {
     const { account, platform } = harness();
     const { report } = progressOf();
 
@@ -444,7 +444,7 @@ describe("l'enrôlement", () => {
     });
   });
 
-  it("garde le jeton d'enrôlement du côté du processus principal, une fois", async () => {
+  it("keeps the enrolment token on the main process side, once", async () => {
     const { account } = harness();
     const { report } = progressOf();
 
@@ -458,7 +458,7 @@ describe("l'enrôlement", () => {
     expect(account.takeEnrollmentToken("srv-platform-1")).toBe("enrol-secret");
     expect(account.takeEnrollmentToken("srv-platform-1")).toBeNull();
   });
-  it("refuse l'enrôlement sans session, même sur un build de développement", async () => {
+  it("refuses enrolment without a session, even on a development build", async () => {
     const { account, platform } = harness({
       build: "development" as BuildKind,
     });
@@ -483,8 +483,8 @@ describe("l'enrôlement", () => {
   });
 });
 
-describe("la suppression d'un serveur sur la plateforme", () => {
-  it("demande les deux temps : révoquer, puis effacer la ligne", async () => {
+describe("deleting a server on the platform", () => {
+  it("asks for both steps: revoke, then erase the row", async () => {
     const { account, platform } = harness();
     const { report } = progressOf();
 
@@ -496,7 +496,7 @@ describe("la suppression d'un serveur sur la plateforme", () => {
     expect(platform.deletions).toEqual(["srv-platform-1", "srv-platform-1"]);
   });
 
-  it("n'efface rien de plus quand la plateforme refuse le premier temps", async () => {
+  it("erases nothing more when the platform refuses the first step", async () => {
     const { account, platform } = harness();
 
     const forgotten = await account.forgetServer("srv-platform-1");
@@ -506,8 +506,8 @@ describe("la suppression d'un serveur sur la plateforme", () => {
   });
 });
 
-describe("l'organisation active de cet appareil", () => {
-  it("bascule, et l'identité en cache suit le rôle de la nouvelle", async () => {
+describe("this device's active organization", () => {
+  it("switches, and the cached identity follows the new one's role", async () => {
     const { account, platform } = harness({
       identity: {
         ...IDENTITY,
@@ -527,7 +527,7 @@ describe("l'organisation active de cet appareil", () => {
     expect(state.identity?.role).toBe("member");
   });
 
-  it("ne demande rien sans session", async () => {
+  it("asks for nothing without a session", async () => {
     const { account, platform } = harness();
 
     await account.switchOrganization("org-2");
@@ -536,8 +536,8 @@ describe("l'organisation active de cet appareil", () => {
   });
 });
 
-describe("les appareils du compte", () => {
-  it("liste ce que la plateforme tient, et révoque un autre appareil", async () => {
+describe("the account's devices", () => {
+  it("lists what the platform holds, and revokes another device", async () => {
     const other = { ...DEVICE, id: "device-2", name: "Vieux portable" };
     const { account, platform } = harness({ devices: [DEVICE, other] });
 
@@ -561,7 +561,7 @@ describe("les appareils du compte", () => {
     ]);
   });
 
-  it("refuse que cet ordinateur se révoque lui-même", async () => {
+  it("refuses that this computer revokes itself", async () => {
     const { account, platform } = harness({ devices: [DEVICE] });
 
     await account.signIn(() => undefined);
@@ -575,7 +575,7 @@ describe("les appareils du compte", () => {
     expect(platform.revokedDevices).toEqual([]);
   });
 
-  it("ne demande rien sans session", async () => {
+  it("asks for nothing without a session", async () => {
     const { account } = harness({ devices: [DEVICE] });
 
     const listed = await account.devices();

@@ -32,8 +32,8 @@ import {
 
 const MODULES = CATALOG.modules;
 
-describe("dépendances", () => {
-  it("coche ce qu'un module exige, de proche en proche", () => {
+describe("dependencies", () => {
+  it("ticks what a module requires, step by step", () => {
     const chosen = select(MODULES, [], "editor.jetbrains");
 
     expect([...chosen].sort()).toEqual([
@@ -43,25 +43,25 @@ describe("dépendances", () => {
     ]);
   });
 
-  it("retire ce qui dépendait du module décoché", () => {
+  it("removes what depended on the unticked module", () => {
     const chosen = select(MODULES, [], "editor.jetbrains");
 
     expect(deselect(MODULES, chosen, "runtime.java")).toEqual(["core.system"]);
   });
 
-  it("ne décoche pas un module obligatoire", () => {
+  it("does not untick a mandatory module", () => {
     const chosen = select(MODULES, [], "core.hardening");
 
     expect(deselect(MODULES, chosen, "core.system")).toEqual(chosen);
   });
 
-  it("garde les obligatoires du catalogue quoi qu'il arrive", () => {
+  it("keeps the catalogue's mandatory modules no matter what", () => {
     expect(mandatory(MODULES)).toEqual(["core.system", "core.hardening"]);
   });
 });
 
 describe("conflits", () => {
-  it("grise le module en conflit avec la raison, dans les deux sens", () => {
+  it("greys out the conflicting module with the reason, in both directions", () => {
     const chosen = select(MODULES, [], "exposure.cloudflare");
     const why = blocked(MODULES, chosen, SMALL_MACHINE);
 
@@ -71,13 +71,13 @@ describe("conflits", () => {
     expect(why.has("exposure.cloudflare")).toBe(false);
   });
 
-  it("refuse de cocher un module bloqué", () => {
+  it("refuses to tick a blocked module", () => {
     const chosen = select(MODULES, [], "exposure.cloudflare");
 
     expect(select(MODULES, chosen, "exposure.caddy")).toEqual(chosen);
   });
 
-  it("grise un module que l'architecture de la machine ne porte pas", () => {
+  it("greys out a module the machine's architecture does not support", () => {
     const why = blocked(MODULES, [], ARM_MACHINE);
 
     expect(why.get("tool.legacy")).toBe(
@@ -87,8 +87,8 @@ describe("conflits", () => {
   });
 });
 
-describe("préréglages", () => {
-  it("part du préréglage et complète ses dépendances", () => {
+describe("presets", () => {
+  it("starts from the preset and completes its dependencies", () => {
     const preset = CATALOG.presets.find((p) => p.id === "web-js") ?? {
       id: "web-js" as const,
       name: "Web JavaScript",
@@ -105,11 +105,11 @@ describe("préréglages", () => {
   });
 });
 
-describe("un préréglage contre la machine qui le reçoit", () => {
+describe("a preset against the machine receiving it", () => {
   const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
   const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
 
-  it("porte le module exclusif choisi, et aucun autre", () => {
+  it("carries the chosen exclusive module, and no other", () => {
     expect(withChoice(FULL, "exposure.caddy").modules).toContain(
       "exposure.caddy"
     );
@@ -119,7 +119,7 @@ describe("un préréglage contre la machine qui le reçoit", () => {
     expect(withChoice(FULL, "tool.legacy")).toBe(FULL);
   });
 
-  it("nomme ce qu'appliquer un préréglage retirerait de la sélection", () => {
+  it("names what applying a preset would remove from the selection", () => {
     const chosen = fromPreset(MODULES, FULL, [], LARGE_MACHINE);
 
     expect(
@@ -130,7 +130,7 @@ describe("un préréglage contre la machine qui le reçoit", () => {
     expect(droppedBy(MODULES, FULL, chosen, [], LARGE_MACHINE)).toEqual([]);
   });
 
-  it("laisse de côté ce que l'architecture ne porte pas", () => {
+  it("leaves out what the architecture does not support", () => {
     const wide: Preset = { ...FULL, modules: [...FULL.modules, "tool.legacy"] };
 
     expect(fromPreset(MODULES, wide, [], LARGE_MACHINE)).toContain(
@@ -141,7 +141,7 @@ describe("un préréglage contre la machine qui le reçoit", () => {
     );
   });
 
-  it("laisse de côté ce qui se dispute la machine avec un module déjà posé", () => {
+  it("leaves out what competes for the machine with an already placed module", () => {
     const exposing: Preset = {
       ...WEB,
       choose_one: undefined,
@@ -153,7 +153,7 @@ describe("un préréglage contre la machine qui le reçoit", () => {
     ).not.toContain("exposure.cloudflare");
   });
 
-  it("refuse un module entier quand ce qu'il exige est hors de portée", () => {
+  it("refuses a whole module when what it requires is out of reach", () => {
     const dashboard: Manifest = {
       arch: ["amd64", "arm64"],
       category: "tool",
@@ -179,11 +179,11 @@ describe("un préréglage contre la machine qui le reçoit", () => {
   });
 });
 
-describe("ce qu'un préréglage vaut ici", () => {
+describe("what a preset is worth here", () => {
   const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
   const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
 
-  it("nomme ce qu'il ajoute, sans le socle que tout serveur reçoit", () => {
+  it("names what it adds, without the base every server receives", () => {
     const offer = presetOffer(MODULES, WEB, [], [], LARGE_MACHINE);
 
     expect(offer.adds.map((one) => one.id)).toEqual([
@@ -193,7 +193,7 @@ describe("ce qu'un préréglage vaut ici", () => {
     ]);
   });
 
-  it("ne promet pas ce que le serveur fait déjà tourner", () => {
+  it("does not promise what the server already runs", () => {
     const offer = presetOffer(
       MODULES,
       WEB,
@@ -208,7 +208,7 @@ describe("ce qu'un préréglage vaut ici", () => {
     ]);
   });
 
-  it("dit qu'il n'apporte rien quand tout est déjà là", () => {
+  it("says it brings nothing when everything is already there", () => {
     const offer = presetOffer(
       MODULES,
       WEB,
@@ -226,7 +226,7 @@ describe("ce qu'un préréglage vaut ici", () => {
     expect(bringsNothing(offer)).toBe(true);
   });
 
-  it("n'oppose que les exclusifs que cette machine peut encore prendre", () => {
+  it("pits only the exclusives this machine can still take", () => {
     const offer = presetOffer(
       MODULES,
       FULL,
@@ -238,7 +238,7 @@ describe("ce qu'un préréglage vaut ici", () => {
     expect(offer.choices).toEqual([]);
   });
 
-  it("se sait appliqué, avec ou sans l'exclusif choisi", () => {
+  it("knows it is applied, with or without the chosen exclusive", () => {
     const base = fromPreset(MODULES, FULL, [], LARGE_MACHINE);
     const withOne = select(MODULES, base, "exposure.caddy", [], LARGE_MACHINE);
 
@@ -254,12 +254,12 @@ describe("ce qu'un préréglage vaut ici", () => {
   });
 });
 
-describe("chercher un service", () => {
-  it("rend tout le catalogue quand la phrase est vide", () => {
+describe("searching for a service", () => {
+  it("returns the whole catalogue when the phrase is empty", () => {
     expect(matching(MODULES, "   ")).toHaveLength(MODULES.length);
   });
 
-  it("trouve par le nom, sans casse ni accents", () => {
+  it("finds by name, ignoring case and accents", () => {
     expect(matching(MODULES, "MYSQL").map((one) => one.id)).toEqual([
       "db.mysql",
     ]);
@@ -268,7 +268,7 @@ describe("chercher un service", () => {
     ]);
   });
 
-  it("trouve par le résumé et par l'identifiant", () => {
+  it("finds by summary and by ID", () => {
     expect(matching(MODULES, "fail2ban").map((one) => one.id)).toEqual([
       "core.hardening",
     ]);
@@ -278,29 +278,29 @@ describe("chercher un service", () => {
     ]);
   });
 
-  it("resserre à chaque mot au lieu d'élargir", () => {
+  it("narrows with each word instead of widening", () => {
     expect(matching(MODULES, "base de donnees").length).toBeLessThan(
       matching(MODULES, "base").length
     );
   });
 
-  it("ne rend rien plutôt que de deviner", () => {
+  it("returns nothing rather than guessing", () => {
     expect(matching(MODULES, "kubernetes")).toEqual([]);
   });
 });
 
-describe("ressources cumulées", () => {
+describe("cumulative resources", () => {
   const base = select(MODULES, [], "core.hardening");
   const withJetbrains = select(MODULES, base, "editor.jetbrains");
 
-  it("additionne ce que les modules choisis demandent", () => {
+  it("adds up what the chosen modules ask for", () => {
     expect(totals(MODULES, withJetbrains)).toEqual({
       ram_mb: 3904,
       disk_mb: 6150,
     });
   });
 
-  it("avertit quand la mémoire cumulée dépasse celle de la machine", () => {
+  it("warns when the cumulative memory exceeds the machine's", () => {
     const chosen = select(MODULES, withJetbrains, "db.postgres");
 
     expect(resourceWarnings(MODULES, withJetbrains, SMALL_MACHINE)).toEqual([]);
@@ -314,7 +314,7 @@ describe("ressources cumulées", () => {
     );
   });
 
-  it("avertit sur le disque avec les chiffres de la sonde", () => {
+  it("warns about disk with the probe's figures", () => {
     const warnings = resourceWarnings(
       MODULES,
       withJetbrains,
@@ -328,17 +328,17 @@ describe("ressources cumulées", () => {
     );
   });
 
-  it("se tait sur une machine large", () => {
+  it("stays silent on a large machine", () => {
     expect(resourceWarnings(MODULES, withJetbrains, LARGE_MACHINE)).toEqual([]);
   });
 
-  it("se tait quand aucune sonde n'a mesuré la machine", () => {
+  it("stays silent when no probe has measured the machine", () => {
     expect(resourceWarnings(MODULES, withJetbrains, null)).toEqual([]);
   });
 });
 
-describe("un catalogue plus récent", () => {
-  it("pèse et configure un module que l'app ne connaît pas", () => {
+describe("a newer catalogue", () => {
+  it("weighs and configures a module the app does not know", () => {
     const chosen = select(CATALOG_NEXT.modules, [], "db.clickhouse");
 
     expect([...chosen].sort()).toEqual(["core.system", "db.clickhouse"]);
@@ -348,7 +348,7 @@ describe("un catalogue plus récent", () => {
     ).toEqual(["core.system", "db.clickhouse"]);
   });
 
-  it("le range dans sa catégorie, sans que l'app la déclare", () => {
+  it("files it in its category, without the app declaring it", () => {
     const databases = byCategory(CATALOG_NEXT.modules).find(
       (group) => group.category === "database"
     );
@@ -362,40 +362,40 @@ describe("un catalogue plus récent", () => {
 });
 
 describe("carriesSecret", () => {
-  it("reconnaît un module dont le manifeste déclare un secret", () => {
+  it("recognises a module whose manifest declares a secret", () => {
     const postgres = CATALOG.modules.find((m) => m.id === "db.postgres");
 
     expect(postgres && carriesSecret(postgres)).toBe(true);
   });
 
-  it("laisse passer un module qui n'en déclare aucun", () => {
+  it("lets through a module that declares none", () => {
     const node = CATALOG.modules.find((m) => m.id === "runtime.node");
 
     expect(node && carriesSecret(node)).toBe(false);
   });
 });
 
-describe("un catalogue ouvert sur un serveur déjà installé", () => {
+describe("a catalogue opened on an already installed server", () => {
   const INSTALLED = ["core.system", "core.hardening", "runtime.node"];
 
-  it("ne repropose pas les modules obligatoires déjà en place", () => {
+  it("does not offer again the mandatory modules already in place", () => {
     expect(mandatory(CATALOG.modules, INSTALLED)).toEqual([]);
   });
 
-  it("n'entraîne pas les dépendances que le serveur satisfait déjà", () => {
+  it("does not pull in dependencies the server already satisfies", () => {
     expect(select(CATALOG.modules, [], "db.postgres", INSTALLED)).toEqual([
       "db.postgres",
     ]);
   });
 
-  it("entraîne celles qui manquent encore", () => {
+  it("pulls in those still missing", () => {
     expect(select(CATALOG.modules, [], "editor.jetbrains", INSTALLED)).toEqual([
       "runtime.java",
       "editor.jetbrains",
     ]);
   });
 
-  it("grise ce qui se dispute la machine avec un module déjà en place", () => {
+  it("greys out what competes for the machine with an already placed module", () => {
     const running = [...INSTALLED, "exposure.caddy"];
     const why = blocked(CATALOG.modules, [], null, running);
 
@@ -407,13 +407,13 @@ describe("un catalogue ouvert sur un serveur déjà installé", () => {
     );
   });
 
-  it("dit d'un module présent qu'il est déjà là, plutôt que de le proposer", () => {
+  it("says a present module is already there, rather than offering it", () => {
     expect(
       blocked(CATALOG.modules, [], null, INSTALLED).get("runtime.node")
     ).toBe("Déjà installé sur ce serveur.");
   });
 
-  it("réduit un préréglage à ce qu'il reste à poser", () => {
+  it("reduces a preset to what remains to be placed", () => {
     const preset = CATALOG.presets.find((p) => p.id === "web-js");
 
     expect(preset && fromPreset(CATALOG.modules, preset, INSTALLED)).toEqual([
@@ -423,31 +423,31 @@ describe("un catalogue ouvert sur un serveur déjà installé", () => {
   });
 });
 
-describe("une sélection reprise après coup", () => {
+describe("a selection resumed after the fact", () => {
   const RUNNING = ["core.system", "core.hardening", "runtime.node"];
 
-  it("garde l'ordre du catalogue, quel que soit celui du brouillon", () => {
+  it("keeps the catalogue order, whatever the draft's order", () => {
     expect(
       restored(CATALOG.modules, ["editor.vscode", "runtime.node"])
     ).toEqual(["runtime.node", "editor.vscode"]);
   });
 
-  it("laisse tomber ce que le catalogue ne déclare plus", () => {
+  it("drops what the catalogue no longer declares", () => {
     expect(
       restored(CATALOG.modules, ["db.clickhouse", "runtime.node"])
     ).toEqual(["runtime.node"]);
   });
 
-  it("laisse tomber ce que la machine fait déjà tourner", () => {
+  it("drops what the machine already runs", () => {
     expect(
       restored(CATALOG.modules, ["runtime.node", "db.mysql"], RUNNING)
     ).toEqual(["db.mysql"]);
   });
 });
 
-describe("ce que la sélection refuse", () => {
+describe("what the selection refuses", () => {
   // Like the agent, a field with a manifest default is never missing.
-  it("nomme le module et le champ qu'aucune valeur ne remplit", () => {
+  it("names the module and the field that no value fills", () => {
     const problems = problemsOf(
       MODULES,
       ["core.system"],
@@ -461,7 +461,7 @@ describe("ce que la sélection refuse", () => {
     ]);
   });
 
-  it("ne réclame rien quand tout est rempli", () => {
+  it("asks for nothing when everything is filled", () => {
     const problems = problemsOf(
       MODULES,
       ["core.system", "core.hardening"],
@@ -479,7 +479,7 @@ describe("ce que la sélection refuse", () => {
     expect(problems).toEqual([]);
   });
 
-  it("compte un secret sur la marque que le processus principal a rendue", () => {
+  it("counts a secret on the mark the main process returned", () => {
     const values = { "db.postgres": {} };
     const before = problemsOf(MODULES, ["db.postgres"], values, {});
 
@@ -498,7 +498,7 @@ describe("ce que la sélection refuse", () => {
   });
 
   // Same format rules as the agent, so both refuse the same shapes.
-  it("refuse une valeur qui n'a pas la forme que le manifeste déclare", () => {
+  it("refuses a value that does not have the shape the manifest declares", () => {
     const problems = problemsOf(
       MODULES,
       ["core.system"],
@@ -520,7 +520,7 @@ describe("ce que la sélection refuse", () => {
   });
 
   // A missing connection is reported alone, before any field it would unlock.
-  it("réclame la connexion d'un module qui en déclare une", () => {
+  it("asks for the connection of a module that declares one", () => {
     const problems = problemsOf(
       MODULES,
       ["exposure.cloudflare"],
@@ -533,12 +533,12 @@ describe("ce que la sélection refuse", () => {
   });
 });
 
-describe("ce qui est demandé, et ce qui est déjà réglé", () => {
+describe("what is asked, and what is already settled", () => {
   const core = CATALOG.modules.find((one) => one.id === "core.system");
   const postgres = CATALOG.modules.find((one) => one.id === "db.postgres");
   const node = CATALOG.modules.find((one) => one.id === "runtime.node");
 
-  it("demande un champ requis sans valeur, laisse ce qui a un défaut", () => {
+  it("asks for a required field with no value, leaves what has a default", () => {
     if (!core) {
       throw new Error("core.system manque au catalogue de test");
     }
@@ -555,7 +555,7 @@ describe("ce qui est demandé, et ce qui est déjà réglé", () => {
     ]);
   });
 
-  it("demande toujours un secret, généré ou non", () => {
+  it("always asks for a secret, generated or not", () => {
     if (!postgres) {
       throw new Error("db.postgres manque au catalogue de test");
     }
@@ -569,7 +569,7 @@ describe("ce qui est demandé, et ce qui est déjà réglé", () => {
     expect(split.kept).toEqual([]);
   });
 
-  it("ne demande rien d'un runtime dont tout a un défaut", () => {
+  it("asks nothing of a runtime whose fields all have a default", () => {
     if (!node) {
       throw new Error("runtime.node manque au catalogue de test");
     }
@@ -580,7 +580,7 @@ describe("ce qui est demandé, et ce qui est déjà réglé", () => {
     expect(split.kept.length).toBe(node.fields.length);
   });
 
-  it("ne déplace pas une question une fois répondue", () => {
+  it("does not move a question once answered", () => {
     if (!core) {
       throw new Error("core.system manque au catalogue de test");
     }

@@ -8,8 +8,8 @@ import {
   LOCAL_PLATFORM_URL,
 } from "../platform-client";
 
-describe("la plateforme visée en développement", () => {
-  it("reconnaît une console servie sur cette machine", () => {
+describe("the platform targeted in development", () => {
+  it("recognises a console served on this machine", () => {
     expect(isLocalPlatform(LOCAL_PLATFORM_URL)).toBe(true);
     expect(isLocalPlatform("http://127.0.0.1:3000")).toBe(true);
     expect(isLocalPlatform("http://[::1]:3000")).toBe(true);
@@ -17,13 +17,13 @@ describe("la plateforme visée en développement", () => {
     expect(isLocalPlatform("pas une url")).toBe(false);
   });
 
-  it("se conduit en production dès que la plateforme n'est pas la console locale", () => {
+  it("behaves as production as soon as the platform is not the local console", () => {
     expect(buildKindOf(false, LOCAL_PLATFORM_URL)).toBe("development");
     expect(buildKindOf(false, "https://app.pupitre.studio")).toBe("production");
     expect(buildKindOf(true, LOCAL_PLATFORM_URL)).toBe("production");
   });
 
-  it("dit quoi lancer quand la console locale ne répond pas", async () => {
+  it("says what to run when the local console does not respond", async () => {
     const client = createPlatformClient({
       baseUrl: LOCAL_PLATFORM_URL,
       fetch: () => Promise.reject(new Error("fetch failed")),
@@ -39,7 +39,7 @@ describe("la plateforme visée en développement", () => {
     }
   });
 
-  it("garde le remède habituel pour la plateforme hébergée", async () => {
+  it("keeps the usual fix for the hosted platform", async () => {
     const client = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
       fetch: () => Promise.reject(new Error("fetch failed")),
@@ -53,13 +53,13 @@ describe("la plateforme visée en développement", () => {
   });
 });
 
-describe("la plateforme donnée à l'agent", () => {
-  it("remplace une console locale par le tunnel qui la publie", () => {
+describe("the platform given to the agent", () => {
+  it("replaces a local console with the tunnel that publishes it", () => {
     expect(agentBaseUrl(LOCAL_PLATFORM_URL)).toBe(DEV_AGENT_PLATFORM_URL);
     expect(agentBaseUrl("http://127.0.0.1:3000")).toBe(DEV_AGENT_PLATFORM_URL);
   });
 
-  it("laisse passer une plateforme que le serveur peut joindre", () => {
+  it("lets through a platform the server can reach", () => {
     expect(agentBaseUrl("https://app.pupitre.studio")).toBe(
       "https://app.pupitre.studio"
     );

@@ -59,8 +59,8 @@ beforeEach(() => {
   useProject.getState().close();
 });
 
-describe("une réponse tardive d'un projet quitté", () => {
-  it("ne se pose pas sur le projet ouvert depuis", async () => {
+describe("a late response from a project that was left", () => {
+  it("does not land on the project opened since", async () => {
     const a = project();
     const b = project();
 
@@ -87,7 +87,7 @@ describe("une réponse tardive d'un projet quitté", () => {
     expect(git).toMatchObject({ git: { subject: "b-commit" }, status: "read" });
   });
 
-  it("ne repeint pas l'arbre d'un projet fermé", async () => {
+  it("does not repaint the tree of a closed project", async () => {
     const a = project();
 
     agent({ a });
@@ -104,8 +104,8 @@ describe("une réponse tardive d'un projet quitté", () => {
   });
 });
 
-describe("l'ouverture d'un projet", () => {
-  it("lit ses branches et son écart, et les garde tels quels", async () => {
+describe("opening a project", () => {
+  it("reads its branches and its drift, and keeps them as they are", async () => {
     const a = project();
 
     agent({ a });
@@ -130,8 +130,8 @@ describe("l'ouverture d'un projet", () => {
   });
 });
 
-describe("le fichier d'environnement", () => {
-  it("garde les clés, jamais une valeur, et réécrit quand on force", async () => {
+describe("the environment file", () => {
+  it("keeps the keys, never a value, and rewrites when forced", async () => {
     const forced: boolean[] = [];
 
     stubPupitre({
@@ -173,7 +173,7 @@ describe("le fichier d'environnement", () => {
     });
   });
 
-  it("garde le refus de l'agent tel quel", async () => {
+  it("keeps the agent's refusal as is", async () => {
     stubPupitre({
       projectEnv: () =>
         Promise.resolve({

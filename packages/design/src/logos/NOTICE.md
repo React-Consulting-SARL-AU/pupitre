@@ -1,28 +1,28 @@
-# Logos de services
+# Service logos
 
-Un fichier par module du catalogue qui nomme un produit de marque. La plupart des
-tracés viennent de [Simple Icons](https://simpleicons.org) 16.29.0,
-publié sous CC0-1.0 ; la couleur de chaque fichier est la couleur de marque que
-Simple Icons tient de la source citée.
+One file per catalogue module that names a branded product. Most of the
+paths come from [Simple Icons](https://simpleicons.org) 16.29.0,
+published under CC0-1.0; the colour of each file is the brand colour that
+Simple Icons holds from the cited source.
 
-Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel qu'un
-collecteur le republie — [svgl.app](https://svgl.app),
-[lobehub](https://lobehub.com/icons) — la colonne Source disant lequel pour
-chaque fichier. L'original est committé sous
-`scripts/vendor`, le générateur le réduit à ce que l'app inline — une racine, un
-`viewBox`, un titre, des identifiants préfixés pour que deux logos posés côte à
-côte ne se peignent pas l'un l'autre. Ces tracés-là sont en `marque déposée, usage nominatif`, pas
-sous CC0-1.0.
+The brands that Simple Icons does not publish come from the holder's SVG as an
+aggregator republishes it — [svgl.app](https://svgl.app),
+[lobehub](https://lobehub.com/icons) — the Source column saying which one for
+each file. The original is committed under
+`scripts/vendor`, and the generator reduces it to what the app inlines — a root, a
+`viewBox`, a title, prefixed identifiers so that two logos placed side by
+side do not paint over each other. Those paths are under `trademark, nominative use`, not
+under CC0-1.0.
 
-Les fichiers sont committés ; `bun scripts/generate-logos.ts` les régénère.
+The files are committed; `bun scripts/generate-logos.ts` regenerates them.
 
-**Usage nominatif.** Ces marques appartiennent à leurs titulaires. Pupitre les
-affiche pour nommer un logiciel que le client installe sur son propre serveur,
-ce que le droit des marques autorise. Pupitre ne s'en sert jamais pour suggérer
-un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en
-filigrane derrière du texte.
+**Nominative use.** These brands belong to their holders. Pupitre displays
+them to name software that the customer installs on their own server, which
+trademark law allows. Pupitre never uses them to suggest a partnership, an
+affiliation or an endorsement, nor as an action icon, nor as a watermark
+behind text.
 
-| Fichier | Module | Marque | Source | Licence du tracé | Récupéré le |
+| File | Module | Brand | Source | Path licence | Retrieved on |
 | --- | --- | --- | --- | --- | --- |
 | `runtime-node.svg` | `runtime.node` | Node.js | https://nodejs.org/en/about/branding | CC0-1.0 | 2026-09-04 |
 | `runtime-python.svg` | `runtime.python` | Python | https://www.python.org/community/logos/ | CC0-1.0 | 2026-09-04 |
@@ -53,27 +53,28 @@ filigrane derrière du texte.
 | `tool-stripe.svg` | `tool.stripe` | Stripe | https://stripe.com/newsroom/information | CC0-1.0 | 2026-09-04 |
 | `exposure-tailscale.svg` | `exposure.tailscale` | Tailscale | https://tailscale.com/press | CC0-1.0 | 2026-09-04 |
 | `runtime-rust.svg` | `runtime.rust` | Rust | https://www.rust-lang.org | CC0-1.0 | 2026-09-04 |
-| `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
-| `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | marque déposée, usage nominatif | 2026-09-04 |
-| `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |
-| `db-mailpit.svg` | `db.mailpit` | Mailpit | https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg | marque déposée, usage nominatif | 2026-09-13 |
-| `ai-openclaw.svg` | `ai.openclaw` | OpenClaw | https://svgl.app/library/openclaw.svg | marque déposée, usage nominatif | 2026-09-13 |
-| `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | marque déposée, usage nominatif | 2026-09-07 |
+| `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | trademark, nominative use | 2026-09-04 |
+| `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | trademark, nominative use | 2026-09-04 |
+| `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | trademark, nominative use | 2026-09-04 |
+| `db-mailpit.svg` | `db.mailpit` | Mailpit | https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg | trademark, nominative use | 2026-09-13 |
+| `ai-openclaw.svg` | `ai.openclaw` | OpenClaw | https://svgl.app/library/openclaw.svg | trademark, nominative use | 2026-09-13 |
+| `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | trademark, nominative use | 2026-09-07 |
 
-## Marques hors catalogue
+## Brands outside the catalogue
 
-Un produit que le site nomme sans qu'il porte le nom de son module : `runtime.node`
-installe aussi Bun.
+A product that the site names without it carrying the name of its module: `runtime.node`
+also installs Bun.
 
-| Fichier | Marque | Source | Licence du tracé | Récupéré le |
+| File | Brand | Source | Path licence | Retrieved on |
 | --- | --- | --- | --- | --- |
-| `mark-bun.svg` | Bun | https://svgl.app/library/bun.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `mark-bun.svg` | Bun | https://svgl.app/library/bun.svg | trademark, nominative use | 2026-09-04 |
 
-## Modules sans logo
+## Modules without a logo
 
-Le catalogue retombe sur une icône Lucide.
+The catalogue falls back to a Lucide icon.
 
-| Module | Raison |
+| Module | Reason |
 | --- | --- |
-| `core.system` | Socle système : aucun produit de marque à nommer. |
-| `core.hardening` | Durcissement du système : aucun produit de marque à nommer. |
+| `core.system` | System base: no branded product to name. |
+| `core.hardening` | System hardening: no branded product to name. |
+| `core.backup` | Pupitre's backups to the customer's bucket, whatever its provider: no branded product to name. |

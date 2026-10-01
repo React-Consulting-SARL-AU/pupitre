@@ -130,8 +130,8 @@ function recorder(
   return { calls, spawn };
 }
 
-describe("le binaire embarqué dans l'app", () => {
-  it("est copié depuis la construction de l'agent, exécutable", () => {
+describe("the binary embedded in the app", () => {
+  it("is copied from the agent build, executable", () => {
     const resources = tempDir();
 
     const result = embedAgent({ from: builtAgent(), to: resources });
@@ -145,7 +145,7 @@ describe("le binaire embarqué dans l'app", () => {
     expect(result.missing).toEqual([]);
   });
 
-  it("écrit la somme de contrôle de ce qu'il a copié", () => {
+  it("writes the checksum of what it copied", () => {
     const resources = tempDir();
 
     const result = embedAgent({ from: builtAgent(), to: resources });
@@ -159,7 +159,7 @@ describe("le binaire embarqué dans l'app", () => {
     expect(result.manifest).toEqual(manifest);
   });
 
-  it("ne laisse pas un manifeste périmé quand l'agent n'est pas construit", () => {
+  it("leaves no stale manifest when the agent is not built", () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
 
@@ -171,8 +171,8 @@ describe("le binaire embarqué dans l'app", () => {
   });
 });
 
-describe("le binaire choisi pour la machine", () => {
-  it("suit l'architecture que la sonde a rapportée", () => {
+describe("the binary chosen for the machine", () => {
+  it("follows the architecture the probe reported", () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
 
@@ -183,7 +183,7 @@ describe("le binaire choisi pour la machine", () => {
     expect(answer.ok && answer.result.sha256).toBe(digest(ARM64));
   });
 
-  it("dit clairement qu'il n'y a pas de binaire, plutôt que d'échouer plus loin", () => {
+  it("says plainly there is no binary, rather than failing further on", () => {
     const answer = agentPayload(tempDir(), "amd64");
 
     expect(answer).toMatchObject({ ok: false, error: { code: "internal" } });
@@ -194,7 +194,7 @@ describe("le binaire choisi pour la machine", () => {
     }
   });
 
-  it("nomme l'architecture que l'app ne porte pas", () => {
+  it("names the architecture the app does not carry", () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
 
@@ -206,7 +206,7 @@ describe("le binaire choisi pour la machine", () => {
     }
   });
 
-  it("refuse un binaire qui ne correspond plus à sa somme de contrôle", () => {
+  it("refuses a binary that no longer matches its checksum", () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
     const file = join(resources, agentFileName("amd64"));
@@ -222,8 +222,8 @@ describe("le binaire choisi pour la machine", () => {
   });
 });
 
-describe("l'envoi du binaire par le canal SSH", () => {
-  it("pousse les octets sur l'entrée standard et vérifie l'empreinte reçue", async () => {
+describe("sending the binary over the SSH channel", () => {
+  it("pushes the bytes to standard input and verifies the received fingerprint", async () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
@@ -258,7 +258,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
   });
 
   // A hardened server lets `dev` sudo `pupitred` and nothing else, so no shell ever runs as root.
-  it("passe par pupitred, qui vérifie la signature, quand le compte de connexion n'est pas root", async () => {
+  it("goes through pupitred, which verifies the signature, when the login account is not root", async () => {
     const resources = tempDir();
     embedAgent({ from: publishedAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
@@ -301,7 +301,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
   });
 
   // An agent older than the command exits 2 with its usage; there dev still holds NOPASSWD:ALL.
-  it("ne retombe sur l'installation d'avant que devant un agent qui ne connaît pas la commande", () => {
+  it("falls back to the previous installation only for an agent that does not know the command", () => {
     const line =
       installCommandAs("dev", {
         signature: "c2lnbmF0dXJl",
@@ -317,7 +317,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
   });
 
   // An unsigned dev build is only placed behind the sudo password, which rides stdin, never the command line.
-  it("pose un agent de développement sur la ligne que le mot de passe ouvre", async () => {
+  it("places a development agent on the line the password opens", async () => {
     const { calls, spawn } = recorder(() => ({
       out: `${digest("elf")}  /usr/local/bin/pupitred\n`,
     }));
@@ -355,7 +355,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     expect(line).not.toContain("k7mp");
   });
 
-  it("refuse une version ou une signature qui sortirait de ses guillemets", async () => {
+  it("refuses a version or signature that would escape its quotes", async () => {
     expect(
       installCommandAs("dev", {
         signature: null,
@@ -387,7 +387,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     expect(calls.length).toBe(0);
   });
 
-  it("refuse un serveur qui n'a pas reçu les mêmes octets", async () => {
+  it("refuses a server that did not receive the same bytes", async () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
@@ -413,7 +413,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     }
   });
 
-  it("remonte ce que le serveur a dit quand l'envoi échoue", async () => {
+  it("surfaces what the server said when the send fails", async () => {
     const resources = tempDir();
     embedAgent({ from: builtAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
@@ -443,8 +443,8 @@ describe("l'envoi du binaire par le canal SSH", () => {
   });
 });
 
-describe("la construction de l'app", () => {
-  it("range le binaire là où le processus principal le cherche", () => {
+describe("the app build", () => {
+  it("places the binary where the main process looks for it", () => {
     const resources = join(tempDir(), "agent");
     mkdirSync(resources, { recursive: true });
 
@@ -455,8 +455,8 @@ describe("la construction de l'app", () => {
   });
 });
 
-describe("la release que l'app porte", () => {
-  it("recopie la version, les notes et la signature de chaque architecture", () => {
+describe("the release the app carries", () => {
+  it("copies the version, notes and signature of each architecture", () => {
     const resources = embedded(publishedAgent());
 
     expect(carriedRelease(resources, "amd64")).toEqual({
@@ -470,7 +470,7 @@ describe("la release que l'app porte", () => {
     });
   });
 
-  it("porte l'architecture sans signature comme non signée", () => {
+  it("carries an architecture without a signature as unsigned", () => {
     const carried = carriedRelease(embedded(publishedAgent()), "arm64");
 
     expect(carried).toMatchObject({
@@ -479,7 +479,7 @@ describe("la release que l'app porte", () => {
     });
   });
 
-  it("n'offre rien quand la construction n'a publié aucune version", () => {
+  it("offers nothing when the build published no version", () => {
     expect(carriedRelease(embedded(builtAgent()), "amd64")).toBeNull();
   });
 });

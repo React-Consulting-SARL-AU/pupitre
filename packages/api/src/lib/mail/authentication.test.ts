@@ -11,13 +11,13 @@ const CLOUDFLARE_PASS = header(
 )
 
 describe("isAuthenticatedSender", () => {
-  it("vérifie un expéditeur dont le DMARC passe au MX de Cloudflare", () => {
+  it("verifies a sender whose DMARC passes at Cloudflare's MX", () => {
     expect(isAuthenticatedSender([CLOUDFLARE_PASS], "camille@exemple.fr")).toBe(
       true
     )
   })
 
-  it("vérifie une signature DKIM alignée sans DMARC publié", () => {
+  it("verifies an aligned DKIM signature without a published DMARC", () => {
     const results = header(
       "authentication-results",
       "mx.cloudflare.net; dkim=pass header.d=exemple.fr; dmarc=none header.from=mail.exemple.fr; spf=softfail smtp.mailfrom=bounce@ailleurs.example"
@@ -28,7 +28,7 @@ describe("isAuthenticatedSender", () => {
     )
   })
 
-  it("vérifie un SPF aligné sur le domaine de l'enveloppe", () => {
+  it("verifies an SPF aligned with the envelope domain", () => {
     const results = header(
       "authentication-results",
       "mx.cloudflare.net; dkim=none; spf=pass smtp.mailfrom=bounce@envois.exemple.fr"
@@ -37,7 +37,7 @@ describe("isAuthenticatedSender", () => {
     expect(isAuthenticatedSender([results], "camille@exemple.fr")).toBe(true)
   })
 
-  it("ne vérifie pas un From que seul un autre domaine a signé", () => {
+  it("does not verify a From that only another domain signed", () => {
     const results = header(
       "authentication-results",
       "mx.cloudflare.net; dkim=pass header.d=pirate.example; dmarc=none header.from=banque.example; spf=pass smtp.mailfrom=x@pirate.example"
@@ -48,7 +48,7 @@ describe("isAuthenticatedSender", () => {
     )
   })
 
-  it("ignore un résultat qu'un autre serveur que le MX de Cloudflare a écrit", () => {
+  it("ignores a result written by a server other than Cloudflare's MX", () => {
     const forged = header(
       "authentication-results",
       "mx.pirate.example; dmarc=pass header.from=banque.example"
@@ -59,7 +59,7 @@ describe("isAuthenticatedSender", () => {
     )
   })
 
-  it("ne croit pas un résultat recopié sous celui que Cloudflare a posé en tête", () => {
+  it("does not trust a result copied below the one Cloudflare put at the top", () => {
     const cloudflare = header(
       "arc-authentication-results",
       "i=2; mx.cloudflare.net; dkim=none; dmarc=fail header.from=banque.example; spf=pass smtp.mailfrom=x@pirate.example"
@@ -81,11 +81,11 @@ describe("isAuthenticatedSender", () => {
     ).toBe(false)
   })
 
-  it("ne vérifie rien sans résultat d'authentification", () => {
+  it("verifies nothing without an authentication result", () => {
     expect(isAuthenticatedSender([], "camille@exemple.fr")).toBe(false)
   })
 
-  it("ne vérifie rien sans expéditeur lisible", () => {
+  it("verifies nothing without a readable sender", () => {
     expect(isAuthenticatedSender([CLOUDFLARE_PASS], null)).toBe(false)
   })
 })

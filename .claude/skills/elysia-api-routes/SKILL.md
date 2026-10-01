@@ -1,94 +1,94 @@
 ---
 name: elysia-api-routes
-description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireLicense`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais SQLite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
+description: Write or modify an Elysia route of `/api/v1` in `packages/api/src/lib/api/routes` — flat router or folder, colocated `t` schemas, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireLicense`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, `{ error: { code, message, fix? } }` errors, registration in `routes/index.ts`, admin routes hidden by `hiddenRoutes`, integration test on the SQLite harness. Use whenever an API endpoint is added, moved or touched.
 ---
 
-# Routes Elysia — `/api/v1`
+# Elysia routes — `/api/v1`
 
-L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/web`), l'app desktop et l'agent. Elle est consommée par Eden Treaty (`@pupitre/api/client`) ; ses types partent du code des routes, donc une route mal typée casse ses trois consommateurs.
+The API lives in `packages/api` and remains the single contract for the console (`apps/web`), the desktop app and the agent. It is consumed through Eden Treaty (`@pupitre/api/client`); its types come from the route code, so a badly typed route breaks all three consumers.
 
-## Fichiers gouvernés
+## Governed files
 
-| Fichier | Rôle |
+| File | Role |
 | --- | --- |
-| `packages/api/src/server.ts` | `createApi(routes)`, l'app `app` montée sur `/api/v1` : openapi, gestion d'erreurs, limitation de débit, `handleApiRequest`, `configureApi({ prisma, auth })` |
-| `packages/api/src/lib/api/routes/index.ts` | monte `authPlugin` puis chaque routeur ; `hiddenRoutes(router)` pour le groupe admin |
-| `packages/api/src/lib/api/routes/<ressource>.ts` | un routeur |
-| `packages/api/src/lib/api/routes/<ressource>-schemas.ts` | les schémas `t` colocalisés de ce routeur |
+| `packages/api/src/server.ts` | `createApi(routes)`, the `app` mounted on `/api/v1`: openapi, error handling, rate limiting, `handleApiRequest`, `configureApi({ prisma, auth })` |
+| `packages/api/src/lib/api/routes/index.ts` | mounts `authPlugin` then each router; `hiddenRoutes(router)` for the admin group |
+| `packages/api/src/lib/api/routes/<resource>.ts` | a router |
+| `packages/api/src/lib/api/routes/<resource>-schemas.ts` | the colocated `t` schemas of that router |
 | `packages/api/src/lib/api/plugins/auth.ts` | `authPlugin`, `resolveAuthContext`, `AuthContext` |
 | `packages/api/src/lib/api/plugins/guards.ts` | `requireAuth`, `requireOrg`, `requireRole`, `requireLicense`, `requireServer`, `requirePlatformAdmin`, `hasPermission`, `ROLE_RANK` |
 | `packages/api/src/lib/api/prisma.ts` | `getPrisma`, `configurePrisma`, `ApiPrisma`, `serializeData`, `withOrganization` |
 | `packages/api/src/lib/api/errors.ts` | `apiError`, `createErrorRef` |
 | `packages/api/src/lib/api/openapi-models.ts` | `errorResponse`, `withAuthErrors`, `dataResponse`, `paginatedResponse`, `dateTime` |
-| `packages/api/src/lib/api/validation-errors.ts` | traduction des erreurs `t` (appelée par `server.ts`) |
+| `packages/api/src/lib/api/validation-errors.ts` | translation of `t` errors (called by `server.ts`) |
 | `packages/api/src/lib/api/rate-limit.ts` | `createRateLimiter`, `GLOBAL_RATE_LIMIT` |
-| `packages/api/src/lib/i18n/` | `resolveLocale(headers)`, `translate(locale, key, params)`, dictionnaire fr/en |
-| `packages/api/src/lib/<domaine>/` | la logique métier : `me/`, `servers/`, puis `devices/`, `billing/` (dont `license.ts`), `releases/`, `audit/`, `emails/` |
-| `packages/api/src/testing/` | harnais SQLite : `bootApiTestServer`, `resetDb`, `request` (`apiRequest`, `authRequest`), `session` (`createUser`, `createSession`), `factories` (`createOrganizationWithMembers`, `createServer`) |
-| `packages/api/src/__tests__/api/` | tests d'intégration des routes |
-| `packages/shared/src/api/errors.ts` | `API_ERROR_CODES`, les codes stables, `ApiErrorBodySchema` |
-| `packages/shared/src/permissions/` | rôles `owner`, `admin`, `member` et slugs `<scope>:<action>` |
-| `docs/contracts/platform-api.md` | le contrat : routes, corps, réponses, guards, modèle |
+| `packages/api/src/lib/i18n/` | `resolveLocale(headers)`, `translate(locale, key, params)`, fr/en dictionary |
+| `packages/api/src/lib/<domain>/` | the business logic: `me/`, `servers/`, then `devices/`, `billing/` (including `license.ts`), `releases/`, `audit/`, `emails/` |
+| `packages/api/src/testing/` | SQLite harness: `bootApiTestServer`, `resetDb`, `request` (`apiRequest`, `authRequest`), `session` (`createUser`, `createSession`), `factories` (`createOrganizationWithMembers`, `createServer`) |
+| `packages/api/src/__tests__/api/` | route integration tests |
+| `packages/shared/src/api/errors.ts` | `API_ERROR_CODES`, the stable codes, `ApiErrorBodySchema` |
+| `packages/shared/src/permissions/` | roles `owner`, `admin`, `member` and `<scope>:<action>` slugs |
+| `docs/contracts/platform-api.md` | the contract: routes, bodies, responses, guards, model |
 
-## État du dépôt
+## State of the repository
 
-Le socle existe : `GET /health`, `GET /me` (les guards, et la licence de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `licenseForOrganization` — gratuite jusqu'à `FREE_SERVERS` serveurs, au-delà il faut une licence en cours), les guards (dont `requireLicense` : une organisation suspendue par l'équipe, ou au-delà de ses serveurs gratuits sans licence, n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais SQLite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
+The foundation exists: `GET /health`, `GET /me` (the guards, and the active organization's licence: `none` without an organization, otherwise `valid`, `grace` or `suspended`, through `licenseForOrganization` — free up to `FREE_SERVERS` servers, beyond that a live licence is needed), the guards (including `requireLicense`: an organization suspended by the team, or beyond its free servers without a licence, enrols and assigns nothing), `serializeData`, `withOrganization`, `apiError`, the openapi at `/api/v1/openapi` (document at `/api/v1/openapi/json`), the SQLite harness and the Eden client. This skill describes what is delivered; a pass that changes a name updates this skill at the same time.
 
-## Règles
+## Rules
 
-- **Le contrat d'abord.** Une route absente de `docs/contracts/platform-api.md` n'existe pas. Un besoin nouveau se signale au propriétaire et le contrat est amendé d'abord ; on n'ajoute pas une route « en passant ».
-- **Le routeur ne fait que brancher** : HTTP → fonction de domaine dans `src/lib/<domaine>/` → `serializeData`. Aucun appel Prisma dans un routeur. Le domaine lit le client par `getPrisma()` (`src/lib/api/prisma.ts`), jamais en l'instanciant.
-- **Les codes d'erreur viennent de `@pupitre/shared/api/errors`.** Un code nouveau se déclare là, jamais comme une chaîne libre dans un handler. `apiError` refuse un code inconnu à la compilation.
-- **Les messages d'erreur sont traduits** : une clé dans `src/lib/i18n/index.ts` (fr et en dans la même passe), `translate(resolveLocale(request.headers), clé)` dans le handler. Pas de phrase en dur.
-- **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit un projet, un secret ou un fichier client. Une PR qui ajoute un tel champ est refusée (`apps/web/CLAUDE.md`).
-- **Les webhooks Stripe sont la seule entrée de la facturation Stripe.** Une route ne crée jamais une licence ou un siège à la fin d'un checkout. Une exception, hors Stripe (`PLATFORM_PRODUCTS` de `@pupitre/shared/plans`) : la licence `granted` que l'équipe accorde depuis `/admin` (`lib/billing/admin.ts`). En `BILLING_MODE=off` (la production), checkout, portail, sièges et webhook refusent en 409 `conflict` (`BillingOffError`, `assertBillingOn` de `lib/billing/runtime.ts`) et rien n'appelle Stripe. Rien d'autre n'écrit `Subscription` hors du webhook, et un abonnement Stripe ne s'arrête que par l'API Stripe (`cancelSubscription` du fournisseur), jamais par une ligne.
-- **Types inférés**, jamais redéclarés : Prisma pour les entités, `t` pour les entrées et sorties, Eden côté client.
-- **Imports relatifs** dans `packages/api` : pas d'alias `@/`. `@pupitre/api/lib/*` est interdit hors du package (`scripts/assert-package-boundaries.ts`). Le client Prisma s'importe depuis `@pupitre/db/cloudflare/client` (`ApiPrisma`), jamais depuis `@pupitre/db/client` hors des tests.
-- Style Biome du monorepo : guillemets doubles, pas de point-virgule, lignes vides entre les blocs, pas de commentaire qui répète le code, pas de `export … from` (Biome `noBarrelFile`).
+- **Contract first.** A route absent from `docs/contracts/platform-api.md` does not exist. A new need is flagged to the owner and the contract is amended first; a route is not added "in passing".
+- **The router only wires**: HTTP → domain function in `src/lib/<domain>/` → `serializeData`. No Prisma call in a router. The domain reads the client through `getPrisma()` (`src/lib/api/prisma.ts`), never by instantiating it.
+- **Error codes come from `@pupitre/shared/api/errors`.** A new code is declared there, never as a free string in a handler. `apiError` refuses an unknown code at compile time.
+- **Error messages are translated**: a key in `src/lib/i18n/index.ts` (fr and en in the same pass), `translate(resolveLocale(request.headers), key)` in the handler. No hard-coded sentence.
+- **The platform does not know the content of a server.** No route receives a project, a secret or a customer file. A PR that adds such a field is refused (`apps/web/CLAUDE.md`).
+- **Stripe webhooks are the only entry of Stripe billing.** A route never creates a licence or a seat at the end of a checkout. One exception, outside Stripe (`PLATFORM_PRODUCTS` of `@pupitre/shared/plans`): the `granted` licence that the team grants from `/admin` (`lib/billing/admin.ts`). Under `BILLING_MODE=off` (production), checkout, portal, seats and webhook refuse with 409 `conflict` (`BillingOffError`, `assertBillingOn` of `lib/billing/runtime.ts`) and nothing calls Stripe. Nothing else writes `Subscription` outside the webhook, and a Stripe subscription only stops through the Stripe API (the provider's `cancelSubscription`), never through a row.
+- **Inferred types**, never redeclared: Prisma for entities, `t` for inputs and outputs, Eden on the client side.
+- **Relative imports** in `packages/api`: no `@/` alias. `@pupitre/api/lib/*` is forbidden outside the package (`scripts/assert-package-boundaries.ts`). The Prisma client is imported from `@pupitre/db/cloudflare/client` (`ApiPrisma`), never from `@pupitre/db/client` outside tests.
+- Monorepo Biome style: double quotes, no semicolon, blank lines between blocks, no comment that repeats the code, no `export … from` (Biome `noBarrelFile`).
 
-## Structure des routes
+## Route structure
 
-Un routeur plat pour la plupart des ressources, un dossier quand le domaine a plusieurs sous-routeurs :
+A flat router for most resources, a folder when the domain has several sub-routers:
 
 ```
 routes/health.ts                  GET /health
 routes/me.ts · me-schemas.ts      GET /me
-routes/devices.ts                 le routeur
-routes/device-schemas.ts          les schémas t colocalisés
+routes/devices.ts                 the router
+routes/device-schemas.ts          the colocated t schemas
 
 routes/servers/
-├── index.ts                      compose les sous-routeurs, porte prefix et tags
-├── enroll.ts · assign.ts         sous-routeurs sans prefix propre
-└── schemas.ts                    schémas partagés du domaine
+├── index.ts                      composes the sub-routers, carries prefix and tags
+├── enroll.ts · assign.ts         sub-routers without their own prefix
+└── schemas.ts                    the domain's shared schemas
 ```
 
-Un routeur porte un `name`, ses `tags` et, s'il en a besoin, son `prefix` ; les sous-routeurs d'un dossier n'ont ni prefix ni tags. Un routeur d'une seule route (`me`) écrit le chemin en entier plutôt qu'un prefix, pour que l'openapi liste `/api/v1/me` et non `/api/v1/me/`.
+A router carries a `name`, its `tags` and, if it needs one, its `prefix`; the sub-routers of a folder have neither prefix nor tags. A single-route router (`me`) writes the whole path rather than a prefix, so that the openapi lists `/api/v1/me` and not `/api/v1/me/`.
 
 ## Guards
 
-Composition, jamais réimplémentation. Le guard se monte **une fois**, juste après `new Elysia(...)`. Chaque guard résout lui-même la session par `resolveAuthContext(request)` (mémorisée par requête), donc il ne dépend ni de l'ordre de montage ni d'`authPlugin`. Elysia déduplique un plugin nommé monté plusieurs fois.
+Composition, never reimplementation. The guard is mounted **once**, right after `new Elysia(...)`. Each guard resolves the session itself through `resolveAuthContext(request)` (memoized per request), so it depends neither on mount order nor on `authPlugin`. Elysia deduplicates a named plugin mounted several times.
 
-| Guard | Ce qu'il injecte | Ce qu'il refuse | Pour |
+| Guard | What it injects | What it refuses | For |
 | --- | --- | --- | --- |
-| `authPlugin` | `user`, `session`, `organizationId`, `role`, `platformRole` (le rôle tenu dans l'organisation Pupitre, `PLATFORM_ORGANIZATION_ID`), `isPlatformAdmin` (`platformRole !== null`), tous nullables sauf le dernier | rien : l'anonyme passe avec `user: null` | `routes/index.ts` le monte en premier ; une route à session optionnelle |
-| `requireAuth` | idem, `user` et `session` non nuls | 401 `unauthenticated` | tout ce qui parle à un humain : `/me`, `/me/devices` |
-| `requireOrg` | idem, `organizationId` et `role` non nuls (le rôle vient de la table `member`) | 401 `unauthenticated` ; 403 `forbidden` avec `fix` sans organisation active ; 403 `forbidden` si l'utilisateur n'est plus membre | `/servers`, `/orgs/:id/*` |
-| `requireRole("admin")` | idem `requireOrg` | 403 `forbidden` si le rôle est sous celui demandé ; `owner` > `admin` > `member` (`ROLE_RANK`) | `/servers/:id/assign`, `/orgs/:id/invitations`, la facturation en `owner` |
-| `requireLicense` | idem `requireOrg` | 403 `license_required` quand l'organisation dépasse ses serveurs gratuits sans licence en cours ; 403 `server_suspended` quand l'équipe la tient suspendue ou fermée ; `fix` vers le support dans les deux cas | tout ce qui suppose une licence utilisable : `POST /servers/enroll`, les routes d'attribution |
-| `requireServer` | `currentServer` : le `Server` dont `serverTokenHash` est le SHA-256 du bearer, quel que soit son statut sauf `revoked` | 401 `unauthenticated` sans bearer, jeton inconnu, ou serveur `revoked` (avec `fix`) | `/agent/state`, `/agent/heartbeat`, `/agent/release/:version` |
-| `requirePlatformAdmin` | `user`, `session` non nuls, `platformRole` non nul : tout membre de l'organisation Pupitre | 401 `unauthenticated` ; 403 `forbidden` (`platform_admin_required`) | **lire** sous `/admin/**` : listes, fiches, boîte de réception |
-| `requirePlatformRole("admin")` | idem, `platformRole` valant `admin` ou `owner` dans l'organisation Pupitre | 403 `forbidden` (`platform_role_required`) pour un simple `member` | **agir** sous `/admin/**` : suspendre, bannir, créer un lien, répondre à un mail ; un routeur `/admin` se scinde en une instance lecture et une instance écriture |
-| `requirePublisher` | `actor` : `{ userId, source: "console" }` pour une session `admin`/`owner` de l'organisation Pupitre, `PIPELINE_ACTOR` pour le jeton `PUPITRE_PUBLISH_TOKEN` | 401 `publish_token_invalid` ; 403 comme `requirePlatformRole("admin")` | publier et promouvoir une version |
+| `authPlugin` | `user`, `session`, `organizationId`, `role`, `platformRole` (the role held in the Pupitre organization, `PLATFORM_ORGANIZATION_ID`), `isPlatformAdmin` (`platformRole !== null`), all nullable except the last | nothing: the anonymous passes with `user: null` | `routes/index.ts` mounts it first; a route with an optional session |
+| `requireAuth` | same, `user` and `session` non-null | 401 `unauthenticated` | everything that talks to a human: `/me`, `/me/devices` |
+| `requireOrg` | same, `organizationId` and `role` non-null (the role comes from the `member` table) | 401 `unauthenticated`; 403 `forbidden` with `fix` without an active organization; 403 `forbidden` if the user is no longer a member | `/servers`, `/orgs/:id/*` |
+| `requireRole("admin")` | same as `requireOrg` | 403 `forbidden` if the role is below the one requested; `owner` > `admin` > `member` (`ROLE_RANK`) | `/servers/:id/assign`, `/orgs/:id/invitations`, billing as `owner` |
+| `requireLicense` | same as `requireOrg` | 403 `license_required` when the organization exceeds its free servers without a live licence; 403 `server_suspended` when the team holds it suspended or closed; `fix` towards support in both cases | everything that presupposes a usable licence: `POST /servers/enroll`, the assignment routes |
+| `requireServer` | `currentServer`: the `Server` whose `serverTokenHash` is the SHA-256 of the bearer, whatever its status except `revoked` | 401 `unauthenticated` without a bearer, unknown token, or `revoked` server (with `fix`) | `/agent/state`, `/agent/heartbeat`, `/agent/release/:version` |
+| `requirePlatformAdmin` | `user`, `session` non-null, `platformRole` non-null: any member of the Pupitre organization | 401 `unauthenticated`; 403 `forbidden` (`platform_admin_required`) | **reading** under `/admin/**`: lists, sheets, inbox |
+| `requirePlatformRole("admin")` | same, `platformRole` equal to `admin` or `owner` in the Pupitre organization | 403 `forbidden` (`platform_role_required`) for a plain `member` | **acting** under `/admin/**`: suspend, ban, create a link, answer a mail; an `/admin` router is split into a read instance and a write instance |
+| `requirePublisher` | `actor`: `{ userId, source: "console" }` for an `admin`/`owner` session of the Pupitre organization, `PIPELINE_ACTOR` for the `PUPITRE_PUBLISH_TOKEN` token | 401 `publish_token_invalid`; 403 like `requirePlatformRole("admin")` | publishing and promoting a version |
 
-`currentServer` et non `server` : Elysia réserve `server` dans son contexte (l'instance Bun). Un serveur `suspended` passe `requireServer` : c'est `/agent/state` qui lui dit `license: "suspended"` (et `entitlement`, le même, pour les agents d'avant 2.0.0). Les jetons de serveur sont préfixés `pupitre_srv_` (`src/lib/servers/tokens.ts` : `generateServerToken`, `hashServerToken`, `isServerToken`) ; `authPlugin` ne cherche pas de session Better Auth derrière un tel bearer.
+`currentServer` and not `server`: Elysia reserves `server` in its context (the Bun instance). A `suspended` server passes `requireServer`: it is `/agent/state` that tells it `license: "suspended"` (and `entitlement`, the same, for agents from before 2.0.0). Server tokens are prefixed `pupitre_srv_` (`src/lib/servers/tokens.ts`: `generateServerToken`, `hashServerToken`, `isServerToken`); `authPlugin` does not look for a Better Auth session behind such a bearer.
 
-`POST /agent/exchange` et `POST /webhooks/stripe` n'ont aucun guard de session : le premier vérifie le jeton d'enrôlement, le second la signature Stripe, dans leur domaine respectif.
+`POST /agent/exchange` and `POST /webhooks/stripe` have no session guard: the first verifies the enrolment token, the second the Stripe signature, in their respective domains.
 
-Les permissions fines de la console (`usePermission(slug)`) ne sont pas des guards : un handler qui doit distinguer plus finement que le rôle appelle `hasPermission(role, "servers:assign")` (réexporté par `guards.ts` depuis `@pupitre/shared/permissions`) et refuse en 403 `forbidden`.
+The console's fine-grained permissions (`usePermission(slug)`) are not guards: a handler that must distinguish more finely than the role calls `hasPermission(role, "servers:assign")` (re-exported by `guards.ts` from `@pupitre/shared/permissions`) and refuses with 403 `forbidden`.
 
-## Erreurs
+## Errors
 
-Forme unique, celle du contrat : `{ error: { code, message, fix? } }`. `code` est un `ApiErrorCode`, `message` s'adresse à l'humain dans sa langue (`Accept-Language`, français par défaut), `fix` dit le remède quand il existe et l'app l'affiche tel quel.
+A single shape, the contract's: `{ error: { code, message, fix? } }`. `code` is an `ApiErrorCode`, `message` addresses the human in their language (`Accept-Language`, French by default), `fix` says the remedy when there is one and the app displays it as is.
 
 ```ts
 const device = await findDevice(user.id, params.id)
@@ -99,7 +99,7 @@ if (!device) {
 }
 ```
 
-Une erreur de domaine connue se mappe sur un statut ; le reste remonte :
+A known domain error maps to a status; the rest bubbles up:
 
 ```ts
 try {
@@ -118,19 +118,19 @@ try {
 }
 ```
 
-`apiError` (`packages/api/src/lib/api/errors.ts`) construit l'objet et contraint `code` au type `ApiErrorCode` ; `errorResponse` (`openapi-models.ts`) est le schéma `t` correspondant, à déclarer dans `response` pour chaque statut d'erreur ; `withAuthErrors({ 200: … })` ajoute 401 et 403.
+`apiError` (`packages/api/src/lib/api/errors.ts`) builds the object and constrains `code` to the `ApiErrorCode` type; `errorResponse` (`openapi-models.ts`) is the matching `t` schema, to be declared in `response` for each error status; `withAuthErrors({ 200: … })` adds 401 and 403.
 
-`server.ts` traite seul, dans la langue de la requête : la validation `t` (422 `validation`, message avec le chemin du champ, `fix` avec la raison), un corps illisible (400 `validation`), une route inconnue (404 `not_found`), une exception (500 `internal` avec une référence journalisée, jamais la cause ni la pile), le dépassement de débit (429 `rate_limited`, `retry-after`, 300 requêtes par minute et par `cf-connecting-ip` en mémoire).
+`server.ts` handles on its own, in the request's language: `t` validation (422 `validation`, message with the field's path, `fix` with the reason), an unreadable body (400 `validation`), an unknown route (404 `not_found`), an exception (500 `internal` with a logged reference, never the cause nor the stack), rate overflow (429 `rate_limited`, `retry-after`, 300 requests per minute and per `cf-connecting-ip` in memory).
 
-## `serializeData` et `withOrganization`
+## `serializeData` and `withOrganization`
 
-Toute valeur qui vient de Prisma passe par `serializeData` avant de sortir : `Date` → chaîne ISO, `BigInt` → chaîne, `Decimal` → chaîne, objets et tableaux parcourus, `null` gardé. Le type `Serialized<T>` suit la même règle, donc un schéma de réponse déclare les dates en `dateTime` (`t.String({ format: "date-time" })`). Une liste sort enveloppée dans `{ data }` (`dataResponse`, `paginatedResponse`), un élément seul aussi, parce que le contrat le dit.
+Every value that comes from Prisma goes through `serializeData` before leaving: `Date` → ISO string, `BigInt` → string, `Decimal` → string, objects and arrays traversed, `null` kept. The `Serialized<T>` type follows the same rule, so a response schema declares dates as `dateTime` (`t.String({ format: "date-time" })`). A list leaves wrapped in `{ data }` (`dataResponse`, `paginatedResponse`), a single item too, because the contract says so.
 
-Une fonction de domaine qui lit ou écrit les tables d'une organisation (`Member`, `Invitation`, `Server`, `Subscription`, `OrganizationBilling`, `Event`) passe par `withOrganization(getPrisma(), organizationId)` : chaque `where` reçoit `organizationId`, chaque `create` aussi, et une requête qui pointe une autre organisation lève `OrganizationScopeViolationError`. Les tables sans colonne `organizationId` (`User`, `Device`, `Release`…) ne sont pas touchées. Les filtres imbriqués dans `OR` ou `AND` ne sont pas inspectés : on n'y met pas d'`organizationId`.
+A domain function that reads or writes an organization's tables (`Member`, `Invitation`, `Server`, `Subscription`, `OrganizationBilling`, `Event`) goes through `withOrganization(getPrisma(), organizationId)`: every `where` receives `organizationId`, every `create` too, and a query that points at another organization throws `OrganizationScopeViolationError`. Tables without an `organizationId` column (`User`, `Device`, `Release`…) are not touched. Filters nested in `OR` or `AND` are not inspected: no `organizationId` goes in them.
 
-## Validation `t`
+## `t` validation
 
-`t` d'Elysia pilote la validation, l'OpenAPI et les types Eden. Les corps vivent dans le fichier `*-schemas.ts` colocalisé ; un schéma de réponse porte un `$id` pour être réutilisé dans l'OpenAPI.
+Elysia's `t` drives validation, OpenAPI and the Eden types. Bodies live in the colocated `*-schemas.ts` file; a response schema carries an `$id` to be reused in the OpenAPI.
 
 ```ts
 {
@@ -140,11 +140,11 @@ Une fonction de domaine qui lit ou écrit les tables d'une organisation (`Member
 }
 ```
 
-Les noms de champs du contrat sont en `snake_case` (`public_key`, `device_id`, `enrollment_token`, `active_organization`) : le schéma `t` les reprend tels quels, la fonction de domaine traduit vers le modèle Prisma.
+The contract's field names are in `snake_case` (`public_key`, `device_id`, `enrollment_token`, `active_organization`): the `t` schema takes them as they are, the domain function translates to the Prisma model.
 
-## Enregistrement
+## Registration
 
-`routes/index.ts` monte `authPlugin` en premier, puis chaque routeur, puis le groupe admin caché :
+`routes/index.ts` mounts `authPlugin` first, then each router, then the hidden admin group:
 
 ```ts
 import { type AnyElysia, Elysia } from "elysia"
@@ -170,13 +170,13 @@ export const routes = new Elysia({ name: "routes" })
   .use(adminRoutes)
 ```
 
-`server.ts` monte `routes` par `createApi(routes)` sous `/api/v1` avec l'openapi et la gestion d'erreurs ; `createApi` accepte un autre routeur, ce qui sert aux tests de mécanisme. L'app est construite avec `aot: false` : Cloudflare Workers interdit `new Function`, dont dépend la compilation anticipée d'Elysia. En mode dynamique, un corps JSON illisible remonte comme `SyntaxError` et non comme le code `PARSE` ; `onError` traite les deux. Les routes `/admin/**` restent joignables mais n'apparaissent jamais dans le document OpenAPI : `hiddenRoutes` pose `{ detail: { hide: true } }` une fois sur le groupe, et `requirePlatformAdmin` va sur chaque routeur admin.
+`server.ts` mounts `routes` through `createApi(routes)` under `/api/v1` with the openapi and error handling; `createApi` accepts another router, which serves the mechanism tests. The app is built with `aot: false`: Cloudflare Workers forbids `new Function`, on which Elysia's ahead-of-time compilation depends. In dynamic mode, an unreadable JSON body bubbles up as a `SyntaxError` and not as the `PARSE` code; `onError` handles both. The `/admin/**` routes remain reachable but never appear in the OpenAPI document: `hiddenRoutes` sets `{ detail: { hide: true } }` once on the group, and `requirePlatformAdmin` goes on each admin router.
 
-## Exemple complet : `devices`
+## Complete example: `devices`
 
-Le contrat (`platform-api.md`, section « Moi ») : `GET /me/devices` → `{ data: Device[] }`, `POST /me/devices` `{ name, public_key }` → `{ data: Device }`, `DELETE /me/devices/:id` → 204. La clé est ed25519 uniquement, l'empreinte est calculée côté serveur, la clé est poussée sur les serveurs que l'utilisateur peut ouvrir. Tout cela vit dans le domaine, pas dans la route.
+The contract (`platform-api.md`, "Me" section): `GET /me/devices` → `{ data: Device[] }`, `POST /me/devices` `{ name, public_key }` → `{ data: Device }`, `DELETE /me/devices/:id` → 204. The key is ed25519 only, the fingerprint is computed server-side, the key is pushed to the servers the user can open. All of this lives in the domain, not in the route.
 
-`packages/api/src/lib/api/routes/device-schemas.ts` :
+`packages/api/src/lib/api/routes/device-schemas.ts`:
 
 ```ts
 import { t } from "elysia"
@@ -199,7 +199,7 @@ export const deviceInputBody = t.Object({
 })
 ```
 
-`packages/api/src/lib/devices/devices.ts` expose le domaine, sans HTTP :
+`packages/api/src/lib/devices/devices.ts` exposes the domain, without HTTP:
 
 ```ts
 export class PublicKeyNotEd25519Error extends Error {}
@@ -209,7 +209,7 @@ export function addDevice(userId: string, input: { name: string; public_key: str
 export function removeDevice(userId: string, deviceId: string): Promise<boolean>
 ```
 
-`packages/api/src/lib/api/routes/devices.ts` :
+`packages/api/src/lib/api/routes/devices.ts`:
 
 ```ts
 import { Elysia, t } from "elysia"
@@ -236,7 +236,7 @@ export const devicesRoutes = new Elysia({
     "/",
     async ({ user }) => ({ data: serializeData(await listDevices(user.id)) }),
     {
-      detail: { summary: "Les appareils de l'utilisateur" },
+      detail: { summary: "The user's devices" },
       response: {
         200: t.Object({ data: t.Array(deviceSchema) }),
         401: errorResponse,
@@ -268,7 +268,7 @@ export const devicesRoutes = new Elysia({
     },
     {
       body: deviceInputBody,
-      detail: { summary: "Ajouter un appareil" },
+      detail: { summary: "Add a device" },
       response: {
         201: dataResponse(deviceSchema),
         401: errorResponse,
@@ -293,7 +293,7 @@ export const devicesRoutes = new Elysia({
     },
     {
       params: t.Object({ id: t.String() }),
-      detail: { summary: "Retirer un appareil" },
+      detail: { summary: "Remove a device" },
       response: {
         204: t.Void(),
         401: errorResponse,
@@ -303,13 +303,13 @@ export const devicesRoutes = new Elysia({
   )
 ```
 
-Puis `.use(devicesRoutes)` dans `routes/index.ts`, comme ci-dessus, et les clés `device_not_found`, `key_not_ed25519`, `key_not_ed25519_fix` dans `src/lib/i18n/index.ts`.
+Then `.use(devicesRoutes)` in `routes/index.ts`, as above, and the keys `device_not_found`, `key_not_ed25519`, `key_not_ed25519_fix` in `src/lib/i18n/index.ts`.
 
-## Test d'intégration
+## Integration test
 
-Le harnais (`@pupitre/api/testing`) démarre la même app Elysia sur un SQLite construit par les migrations de D1, en quelques dizaines de millisecondes (`boot.test.ts` le mesure et exige moins de trois). Modèle : `bootApiTestServer` une fois par fichier, `resetDb` avant chaque test, un utilisateur par `createUser`, une session par `createSession` (organisation personnelle active par défaut, `activeOrganizationId: null` pour une session nue), des requêtes par `apiRequest(path, { method, body, session, bearer, headers, locale })`. Une organisation partagée avec ses membres et leurs sessions vient de `createOrganizationWithMembers({ roles })`, un serveur enrôlé avec son jeton en clair de `createServer({ organizationId, status })`. Les tests écrivent le comportement attendu, avant le code.
+The harness (`@pupitre/api/testing`) starts the same Elysia app on a SQLite built from D1's migrations, in a few dozen milliseconds (`boot.test.ts` measures it and requires less than three). Pattern: `bootApiTestServer` once per file, `resetDb` before each test, a user through `createUser`, a session through `createSession` (personal organization active by default, `activeOrganizationId: null` for a bare session), requests through `apiRequest(path, { method, body, session, bearer, headers, locale })`. An organization shared with its members and their sessions comes from `createOrganizationWithMembers({ roles })`, an enrolled server with its plain-text token from `createServer({ organizationId, status })`. Tests write the expected behaviour, before the code.
 
-`packages/api/src/__tests__/api/devices.test.ts` :
+`packages/api/src/__tests__/api/devices.test.ts`:
 
 ```ts
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
@@ -317,7 +317,7 @@ import { bootApiTestServer, resetDb } from "../../testing"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
 
-const ED25519_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExempleDeClePubliqueEd25519 laptop"
+const ED25519_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleOfEd25519PublicKey laptop"
 
 describe("POST /me/devices", () => {
   let session: { token: string }
@@ -334,7 +334,7 @@ describe("POST /me/devices", () => {
     session = await createSession({ userId: user.id })
   })
 
-  it("enregistre une clé ed25519 et calcule son empreinte", async () => {
+  it("registers an ed25519 key and computes its fingerprint", async () => {
     const response = await apiRequest<{ data: { fingerprint: string } }>(
       "/me/devices",
       { body: { name: "MacBook", public_key: ED25519_KEY }, session }
@@ -344,11 +344,11 @@ describe("POST /me/devices", () => {
     expect(response.json.data.fingerprint).toMatch(/^SHA256:/)
   })
 
-  it("refuse une clé RSA avec un remède", async () => {
+  it("refuses an RSA key with a remedy", async () => {
     const response = await apiRequest<{ error: { code: string; fix: string } }>(
       "/me/devices",
       {
-        body: { name: "Vieux PC", public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABExemple pc" },
+        body: { name: "Old PC", public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABExample pc" },
         session,
       }
     )
@@ -358,7 +358,7 @@ describe("POST /me/devices", () => {
     expect(response.json.error.fix).toContain("ed25519")
   })
 
-  it("refuse sans session", async () => {
+  it("refuses without a session", async () => {
     const response = await apiRequest("/me/devices")
 
     expect(response.status).toBe(401)
@@ -366,16 +366,16 @@ describe("POST /me/devices", () => {
 })
 ```
 
-Un test de mécanisme (guard, erreur, openapi) construit sa propre app avec `createApi(routes)` et l'appelle par `api.handle(new Request(...))` ; `guards.test.ts` et `errors.test.ts` en sont les modèles. Le client Eden se teste avec `createApiClient(TEST_BASE_URL, { fetch: server.fetch, headers })` et `unwrap(...)`, qui lève `ApiError` de shared.
+A mechanism test (guard, error, openapi) builds its own app with `createApi(routes)` and calls it through `api.handle(new Request(...))`; `guards.test.ts` and `errors.test.ts` are the models. The Eden client is tested with `createApiClient(TEST_BASE_URL, { fetch: server.fetch, headers })` and `unwrap(...)`, which throws shared's `ApiError`.
 
-Les fichiers `*.test.ts` et `testing/**` ont leurs propres règles Biome (`biome.jsonc`, `overrides`) : `useAwait` et `noVoid` désactivés, types par `type` ou `interface` au choix.
+`*.test.ts` files and `testing/**` have their own Biome rules (`biome.jsonc`, `overrides`): `useAwait` and `noVoid` disabled, types through `type` or `interface` at will.
 
-## Avant de rendre la main
+## Before handing back
 
-1. La route existe dans `docs/contracts/platform-api.md`, avec le même corps et la même réponse.
-2. Le routeur ne contient ni Prisma ni règle métier ; le domaine est dans `src/lib/<domaine>/` et lit `getPrisma()` ou `withOrganization(...)`.
-3. Chaque code d'erreur renvoyé existe dans `packages/shared/src/api/errors.ts` ; chaque message a sa clé fr et en dans `src/lib/i18n` ; chaque `fix` dit un remède.
-4. Chaque statut renvoyé est déclaré dans `response`, et `errorResponse` couvre les statuts d'erreur.
-5. Le routeur est monté dans `routes/index.ts` ; une route admin est sous `hiddenRoutes` et derrière `requirePlatformAdmin`.
-6. Un test d'intégration sur SQLite couvre chaque comportement attendu, le cas sans session, et le cas d'un autre utilisateur ou d'une autre organisation qui ne voit pas la ressource.
-7. `bun --cwd=packages/api run lint`, `check:types`, `test` verts, puis les mêmes à la racine.
+1. The route exists in `docs/contracts/platform-api.md`, with the same body and the same response.
+2. The router contains neither Prisma nor business rule; the domain is in `src/lib/<domain>/` and reads `getPrisma()` or `withOrganization(...)`.
+3. Every error code returned exists in `packages/shared/src/api/errors.ts`; every message has its fr and en key in `src/lib/i18n`; every `fix` says a remedy.
+4. Every status returned is declared in `response`, and `errorResponse` covers the error statuses.
+5. The router is mounted in `routes/index.ts`; an admin route is under `hiddenRoutes` and behind `requirePlatformAdmin`.
+6. A SQLite integration test covers every expected behaviour, the no-session case, and the case of another user or another organization that does not see the resource.
+7. `bun --cwd=packages/api run lint`, `check:types`, `test` green, then the same at the root.

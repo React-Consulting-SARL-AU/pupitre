@@ -19,15 +19,15 @@ function folded(url: string, width: number, margin = 0): string[] {
   return rows;
 }
 
-describe("les lignes pliées d'un écran", () => {
-  it("recollent une ligne pleine jusqu'au bord avec celle qui la suit", () => {
+describe("the wrapped lines of a screen", () => {
+  it("rejoin a line full to the edge with the one that follows", () => {
     expect(unwrap(["a".repeat(COLS), "bcd", "e"], COLS)).toEqual([
       `${"a".repeat(COLS)}bcd`,
       "e",
     ]);
   });
 
-  it("recollent une ligne en retrait que le terminal a pliée lui-même au bord", () => {
+  it("rejoin an indented line that the terminal itself wrapped at the edge", () => {
     const rows = [`  ${"a".repeat(COLS - 2)}`, "b".repeat(COLS), "cd", "e"];
 
     expect(unwrap(rows, COLS)).toEqual([
@@ -36,13 +36,13 @@ describe("les lignes pliées d'un écran", () => {
     ]);
   });
 
-  it("recollent une ligne qui s'arrête à la marge d'un cadre symétrique", () => {
+  it("rejoin a line that stops at the margin of a symmetric frame", () => {
     const rows = [` ${"a".repeat(COLS - 2)}`, " bcd", "e"];
 
     expect(unwrap(rows, COLS)).toEqual([` ${"a".repeat(COLS - 2)}bcd`, "e"]);
   });
 
-  it("laissent seules une ligne courte, une suite en retrait, et une ligne vide", () => {
+  it("leave alone a short line, an indented continuation, and an empty line", () => {
     expect(unwrap(["abc", "def"], COLS)).toEqual(["abc", "def"]);
     expect(unwrap(["a".repeat(COLS), " def"], COLS)).toEqual([
       "a".repeat(COLS),
@@ -56,8 +56,8 @@ describe("les lignes pliées d'un écran", () => {
   });
 });
 
-describe("l'adresse de connexion d'un agent", () => {
-  it("se lit sur une seule ligne, au milieu de ce que l'agent dessine", () => {
+describe("an agent's login address", () => {
+  it("reads on a single line, amid what the agent draws", () => {
     const rows = [
       "Ouvre https://claude.ai/oauth/authorize?code=true&state=abc",
       "Paste code here if prompted >",
@@ -69,21 +69,21 @@ describe("l'adresse de connexion d'un agent", () => {
     });
   });
 
-  it("se relit entière quand l'écran la plie sur plusieurs lignes", () => {
+  it("is read back whole when the screen wraps it over several lines", () => {
     expect(loginAddress(folded(CLAUDE, COLS), COLS)).toEqual({
       host: "claude.ai",
       url: CLAUDE,
     });
   });
 
-  it("se relit entière dans un cadre à marges", () => {
+  it("is read back whole inside a frame with margins", () => {
     expect(loginAddress(folded(CLAUDE, COLS - 2, 1), COLS)).toEqual({
       host: "claude.ai",
       url: CLAUDE,
     });
   });
 
-  it("se relit entière telle que Codex l'écrit, en retrait puis pliée au bord", () => {
+  it("is read back whole as Codex writes it, indented then wrapped at the edge", () => {
     const rows = [
       "  If the link doesn't open automatically, open the following link to authenticate:",
       " ",
@@ -99,7 +99,7 @@ describe("l'adresse de connexion d'un agent", () => {
     });
   });
 
-  it("ne prend pas pour une nouvelle adresse un morceau de celle déjà connue", () => {
+  it("does not mistake a piece of the already known address for a new one", () => {
     const known = { host: "claude.ai", url: CLAUDE };
     const [first] = folded(CLAUDE, COLS);
 
@@ -111,7 +111,7 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress(["Rien."], COLS, known)).toEqual(known);
   });
 
-  it("garde la dernière quand l'agent en réimprime une", () => {
+  it("keeps the last one when the agent reprints one", () => {
     const rows = [
       "https://claude.ai/oauth/authorize?state=un",
       "https://claude.ai/oauth/authorize?state=deux",
@@ -120,7 +120,7 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress(rows, 80)?.url).toContain("state=deux");
   });
 
-  it("reconnaît un flux qui revient sur un port de la machine, quel que soit l'hôte", () => {
+  it("recognises a flow that returns on a port of the machine, whatever the host", () => {
     const neon =
       "Auth Url: https://oauth2.neon.tech/oauth2/auth?client_id=neonctl&redirect_uri=http%3A%2F%2F127.0.0.1%3A41233%2Fcallback&state=x";
     const other =
@@ -134,14 +134,14 @@ describe("l'adresse de connexion d'un agent", () => {
     });
   });
 
-  it("reconnaît la connexion de Cursor", () => {
+  it("recognises Cursor's login", () => {
     const cursor =
       "Open a browser and navigate to this link: https://cursor.com/loginDeepControl?challenge=abc&uuid=67d2eb92&mode=login&redirectTarget=cli";
 
     expect(loginAddress([cursor], 200)).toMatchObject({ host: "cursor.com" });
   });
 
-  it("reconnaît la connexion de Gemini par son compte Google", () => {
+  it("recognises Gemini's login through its Google account", () => {
     const gemini =
       "Please visit the following URL to authorize the application:\n\nhttps://accounts.google.com/o/oauth2/v2/auth?client_id=abc&redirect_uri=https%3A%2F%2Fcodeassist.google.com%2Fauthcode&scope=x&state=y";
 
@@ -150,7 +150,7 @@ describe("l'adresse de connexion d'un agent", () => {
     });
   });
 
-  it("n'en fait pas une d'une adresse quelconque", () => {
+  it("does not make one out of an arbitrary address", () => {
     expect(loginAddress(["https://exemple.test/connexion"], 80)).toBeNull();
     expect(
       loginAddress(
@@ -164,8 +164,8 @@ describe("l'adresse de connexion d'un agent", () => {
   });
 });
 
-describe("le port sur lequel une connexion revient", () => {
-  it("se lit dans le redirect_uri quand il vise la boucle locale", () => {
+describe("the port a login returns on", () => {
+  it("is read from the redirect_uri when it targets the loopback", () => {
     expect(
       loopbackRedirect(
         "https://claude.ai/oauth/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A54545%2Fcallback&state=x"
@@ -178,7 +178,7 @@ describe("le port sur lequel une connexion revient", () => {
     ).toBe(41_233);
   });
 
-  it("n'existe pas pour un retour ailleurs, ni sans port", () => {
+  it("does not exist for a return elsewhere, nor without a port", () => {
     expect(
       loopbackRedirect(
         "https://claude.ai/oauth/authorize?redirect_uri=https%3A%2F%2Fconsole.anthropic.com%2Foauth%2Fcode%2Fcallback"

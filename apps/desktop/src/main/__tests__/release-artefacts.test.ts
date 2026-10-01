@@ -16,7 +16,7 @@ import {
 const BASE = "https://dl.pupitre.studio";
 
 describe("artefactOf", () => {
-  it("lit le système, l'architecture et le format dans le nom du fichier", () => {
+  it("reads the system, architecture and format from the file name", () => {
     expect(artefactOf("Pupitre-1.4.0-arm64.dmg")).toEqual({
       arch: "arm64",
       file: "Pupitre-1.4.0-arm64.dmg",
@@ -34,7 +34,7 @@ describe("artefactOf", () => {
     });
   });
 
-  it("traduit l'architecture Debian que porte un .deb", () => {
+  it("translates the Debian architecture a .deb carries", () => {
     expect(artefactOf("pupitre_1.4.0_amd64.deb")).toMatchObject({
       arch: "x64",
       format: "deb",
@@ -42,7 +42,7 @@ describe("artefactOf", () => {
     });
   });
 
-  it("traduit l'architecture qu'electron-builder donne à une AppImage", () => {
+  it("translates the architecture electron-builder gives an AppImage", () => {
     expect(artefactOf("Pupitre-1.4.0-x86_64.AppImage")).toMatchObject({
       arch: "x64",
       format: "AppImage",
@@ -50,7 +50,7 @@ describe("artefactOf", () => {
     });
   });
 
-  it("ne publie ni un flux, ni une carte de blocs, ni l'archive de mise à jour, ni un nom muet", () => {
+  it("publishes neither a feed, nor a block map, nor the update archive, nor an unrecognised name", () => {
     expect(artefactOf("latest-mac.yml")).toBeNull();
     expect(artefactOf("Pupitre-1.4.0-arm64.dmg.blockmap")).toBeNull();
     expect(artefactOf("Pupitre-1.4.0-arm64.zip")).toBeNull();
@@ -58,13 +58,13 @@ describe("artefactOf", () => {
     expect(artefactOf("../etc/passwd.dmg")).toBeNull();
   });
 
-  it("nomme les flux et les cartes de blocs pour ce qu'ils sont", () => {
+  it("names feeds and block maps for what they are", () => {
     expect(isFeed("latest.yml")).toBe(true);
     expect(isFeed("Pupitre-1.4.0-x64.dmg")).toBe(false);
     expect(isBlockmap("Pupitre-1.4.0-x64.dmg.blockmap")).toBe(true);
   });
 
-  it("rattache à son installateur ce que l'app télécharge à côté", () => {
+  it("ties to its installer what the app downloads alongside it", () => {
     expect(installerOf("Pupitre-1.4.0-x64.dmg")).toBe("Pupitre-1.4.0-x64.dmg");
     expect(installerOf("Pupitre-1.4.0-x64.dmg.blockmap")).toBe(
       "Pupitre-1.4.0-x64.dmg"
@@ -82,7 +82,7 @@ describe("artefactOf", () => {
     expect(isCompanion("notes.zip")).toBe(false);
   });
 
-  it("signe ce que l'updater télécharge, sous le système et la puce de son installateur", () => {
+  it("signs what the updater downloads, under its installer's system and chip", () => {
     expect(signedArtefactOf("Pupitre-1.4.0-arm64.zip")).toMatchObject({
       arch: "arm64",
       os: "macos",
@@ -104,8 +104,8 @@ describe("artefactOf", () => {
   });
 });
 
-describe("les emplacements", () => {
-  it("range une version dans son propre dossier", () => {
+describe("the locations", () => {
+  it("files a version in its own folder", () => {
     expect(objectKey("1.4.0", "Pupitre-1.4.0-x64.dmg")).toBe(
       "app/1.4.0/Pupitre-1.4.0-x64.dmg"
     );
@@ -116,7 +116,7 @@ describe("les emplacements", () => {
 });
 
 describe("signedAppMessage", () => {
-  it("se distingue d'une signature d'agent, ligne à ligne", () => {
+  it("differs from an agent signature, line by line", () => {
     expect(signedAppMessage("1.4.0", "macos", "arm64", "abc").toString()).toBe(
       "pupitre-app\n1.4.0\nmacos\narm64\nabc\n"
     );
@@ -124,7 +124,7 @@ describe("signedAppMessage", () => {
 });
 
 describe("absoluteFeed", () => {
-  it("envoie le flux d'un canal chercher les fichiers de leur version", () => {
+  it("sends a channel's feed to fetch the files of their version", () => {
     const feed = [
       "version: 1.4.0",
       "files:",
@@ -147,7 +147,7 @@ describe("absoluteFeed", () => {
     expect(rewritten).toContain("size: 118000000");
   });
 
-  it("laisse une URL déjà absolue telle quelle", () => {
+  it("leaves an already absolute URL as is", () => {
     const feed = `  - url: ${BASE}/app/1.4.0/Pupitre.dmg`;
 
     expect(absoluteFeed(feed, BASE, "1.4.0")).toBe(feed);

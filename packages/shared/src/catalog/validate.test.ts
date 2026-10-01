@@ -28,8 +28,8 @@ function manifest(over: Partial<Manifest> = {}): Manifest {
   }
 }
 
-describe("les cas partagés avec l'agent", () => {
-  it("déclare un champ valide pour chaque cas", () => {
+describe("the cases shared with the agent", () => {
+  it("declares a valid field for each case", () => {
     for (const single of fixtures.cases) {
       const parsed = FieldSchema.safeParse(single.field)
 
@@ -50,7 +50,7 @@ describe("les cas partagés avec l'agent", () => {
   }
 })
 
-describe("une liste de secrets", () => {
+describe("a list of secrets", () => {
   const providers = FieldSchema.parse({
     items: "secret",
     key: "providers",
@@ -62,7 +62,7 @@ describe("une liste de secrets", () => {
     required: true,
   })
 
-  it("pèse les valeurs contre le motif quand l'appelant les tient", () => {
+  it("weighs the values against the pattern when the caller holds them", () => {
     const wrong = validateField(MODULE, providers, undefined, () => [
       "openai:sk-1",
       "sk-2",
@@ -71,7 +71,7 @@ describe("une liste de secrets", () => {
     expect(wrong?.code).toBe("pattern")
   })
 
-  it("ne juge qu'un compte quand c'est tout ce que l'appelant sait", () => {
+  it("judges only a count when that is all the caller knows", () => {
     expect(validateField(MODULE, providers, undefined, () => 2)).toBeNull()
     expect(validateField(MODULE, providers, undefined, () => 0)?.code).toBe(
       "required"
@@ -79,14 +79,14 @@ describe("une liste de secrets", () => {
   })
 })
 
-describe("les formats", () => {
-  it("refuse une valeur vide pour chacun", () => {
+describe("the formats", () => {
+  it("refuses an empty value for each", () => {
     for (const format of FIELD_FORMATS) {
       expect(matchesFormat(format, "")).toBe(false)
     }
   })
 
-  it("accepte un port dans ses bornes et refuse au-delà", () => {
+  it("accepts a port within its bounds and refuses beyond", () => {
     expect(matchesFormat("port", "1")).toBe(true)
     expect(matchesFormat("port", "65535")).toBe(true)
     expect(matchesFormat("port", "65536")).toBe(false)
@@ -94,7 +94,7 @@ describe("les formats", () => {
   })
 })
 
-describe("une sélection entière", () => {
+describe("a whole selection", () => {
   const port = FieldSchema.parse({
     key: "port",
     kind: "number",
@@ -104,7 +104,7 @@ describe("une sélection entière", () => {
     required: true,
   })
 
-  it("ne dit rien d'un module qui n'est pas choisi", () => {
+  it("says nothing about a module that is not chosen", () => {
     const problems = validateConfig(
       [manifest({ fields: [port] })],
       [],
@@ -115,7 +115,7 @@ describe("une sélection entière", () => {
     expect(problems).toEqual([])
   })
 
-  it("nomme le module et le champ d'un problème", () => {
+  it("names the module and the field of a problem", () => {
     const problems = validateConfig(
       [manifest({ fields: [port] })],
       [MODULE],
@@ -128,7 +128,7 @@ describe("une sélection entière", () => {
     ])
   })
 
-  it("saute un champ géré quand l'appelant le remplit lui-même", () => {
+  it("skips a managed field when the caller fills it in itself", () => {
     const managed = FieldSchema.parse({
       key: "tunnel_id",
       kind: "text",
@@ -148,7 +148,7 @@ describe("une sélection entière", () => {
     expect(asked).toEqual([])
   })
 
-  it("réclame la connexion avant les champs du module", () => {
+  it("asks for the login before the module's fields", () => {
     const problems = validateConfig(
       [manifest({ connection: "cloudflare", fields: [port] })],
       [MODULE],
@@ -167,7 +167,7 @@ describe("une sélection entière", () => {
     ])
   })
 
-  it("revient aux champs une fois la connexion donnée", () => {
+  it("returns to the fields once the login is given", () => {
     const problems = validateConfig(
       [manifest({ connection: "cloudflare", fields: [port] })],
       [MODULE],
@@ -179,7 +179,7 @@ describe("une sélection entière", () => {
     expect(problems.map((one) => one.code)).toEqual(["required"])
   })
 
-  it("ne pèse ni les champs ni le compte d'un module remis à plus tard", () => {
+  it("weighs neither the fields nor the count of a module postponed", () => {
     const problems = validateConfig(
       [manifest({ connection: "cloudflare", fields: [port] })],
       [MODULE],
@@ -192,7 +192,7 @@ describe("une sélection entière", () => {
   })
 })
 
-describe("la valeur qu'un module lira", () => {
+describe("the value a module will read", () => {
   const version = FieldSchema.parse({
     default: "22",
     key: "node_version",
@@ -211,7 +211,7 @@ describe("la valeur qu'un module lira", () => {
     required: true,
   })
 
-  it("prend le défaut du manifeste quand rien n'a été envoyé", () => {
+  it("takes the manifest's default when nothing was sent", () => {
     const problems = validateConfig(
       [manifest({ fields: [version, port] })],
       [MODULE],
@@ -222,7 +222,7 @@ describe("la valeur qu'un module lira", () => {
     expect(problems).toEqual([])
   })
 
-  it("juge la valeur envoyée quand il y en a une", () => {
+  it("judges the value sent when there is one", () => {
     const problems = validateConfig(
       [manifest({ fields: [port] })],
       [MODULE],
@@ -233,7 +233,7 @@ describe("la valeur qu'un module lira", () => {
     expect(problems.map((one) => one.code)).toEqual(["min"])
   })
 
-  it("retombe sur le défaut plutôt que sur une valeur nulle", () => {
+  it("falls back to the default rather than a null value", () => {
     const problems = validateConfig(
       [manifest({ fields: [port] })],
       [MODULE],

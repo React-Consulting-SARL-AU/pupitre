@@ -69,7 +69,7 @@ describe("GET /status", () => {
     await resetDb()
   })
 
-  it("répond sans session", async () => {
+  it("answers without a session", async () => {
     const response = await statusRequest()
 
     expect(response.status).toBe(200)
@@ -78,7 +78,7 @@ describe("GET /status", () => {
     expect(response.json.data.checked_at).toMatch(ISO_DATE_RE)
   })
 
-  it("dit le mode de facturation", async () => {
+  it("states the billing mode", async () => {
     useBillingOff()
 
     const off = await statusRequest()
@@ -92,7 +92,7 @@ describe("GET /status", () => {
     expect(stripe.json.data.billing).toEqual({ mode: "stripe" })
   })
 
-  it("répond quand même quand le mode de facturation est illisible", async () => {
+  it("still answers when the billing mode is unreadable", async () => {
     const previous = process.env.BILLING_MODE
 
     resetBilling()
@@ -116,7 +116,7 @@ describe("GET /status", () => {
     }
   })
 
-  it("compte les serveurs actifs sans rien dire d'eux", async () => {
+  it("counts the active servers without saying anything about them", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -144,7 +144,7 @@ describe("GET /status", () => {
     expect(body).not.toContain(members[0].user.id)
   })
 
-  it("nomme la dernière release publiée sur le canal stable", async () => {
+  it("names the latest release published on the stable channel", async () => {
     for (const version of ["1.4.0", "1.6.0"]) {
       await harness.prisma.release.create({
         data: {
@@ -175,7 +175,7 @@ describe("GET /status", () => {
     expect(response.json.data.latest_release?.channel).toBe("stable")
   })
 
-  it("ne dit rien de plus que l'état du service", async () => {
+  it("says nothing more than the service state", async () => {
     const response = await statusRequest()
 
     expect(Object.keys(response.json.data).sort()).toEqual([
@@ -192,7 +192,7 @@ describe("GET /status", () => {
   })
 })
 
-describe("GET /status — la fraîcheur", () => {
+describe("GET /status — freshness", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -201,14 +201,14 @@ describe("GET /status — la fraîcheur", () => {
     await resetDb()
   })
 
-  it("ne prétend rien savoir quand aucun serveur n'a jamais parlé", async () => {
+  it("claims to know nothing when no server has ever reported", async () => {
     const response = await statusRequest()
 
     expect(response.json.data.freshness).toBe("unknown")
     expect(response.json.data.last_observation_at).toBeNull()
   })
 
-  it("dit fraîche une observation plus jeune que le seuil", async () => {
+  it("calls an observation younger than the threshold fresh", async () => {
     const now = new Date("2026-09-04T12:00:00.000Z")
 
     await activeServerLastSeen(new Date(now.getTime() - STATUS_STALE_AFTER_MS))
@@ -218,7 +218,7 @@ describe("GET /status — la fraîcheur", () => {
     expect(status.freshness).toBe("fresh")
   })
 
-  it("dit périmée une observation plus vieille que le seuil", async () => {
+  it("calls an observation older than the threshold stale", async () => {
     const now = new Date("2026-09-04T12:00:00.000Z")
     const lastSeen = new Date(now.getTime() - STATUS_STALE_AFTER_MS - 60_000)
 
@@ -232,7 +232,7 @@ describe("GET /status — la fraîcheur", () => {
     )
   })
 
-  it("garde le heartbeat le plus récent de la flotte", async () => {
+  it("keeps the most recent heartbeat of the fleet", async () => {
     const now = new Date("2026-09-04T12:00:00.000Z")
     const recent = new Date(now.getTime() - 60_000)
 
@@ -245,7 +245,7 @@ describe("GET /status — la fraîcheur", () => {
     expect(status.last_observation_at?.toISOString()).toBe(recent.toISOString())
   })
 
-  it("ne dit rien du serveur qui a produit l'observation", async () => {
+  it("says nothing about the server that produced the observation", async () => {
     const now = new Date("2026-09-04T12:00:00.000Z")
     const { organization, server } = await activeServerLastSeen(
       new Date(now.getTime() - 60_000)
@@ -262,7 +262,7 @@ describe("GET /status — la fraîcheur", () => {
   })
 })
 
-describe("GET /status — les fournisseurs de connexion montés", () => {
+describe("GET /status — the mounted sign-in providers", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -289,14 +289,14 @@ describe("GET /status — les fournisseurs de connexion montés", () => {
     }
   }
 
-  it("n'annonce aucun fournisseur quand l'environnement n'en configure pas", async () => {
+  it("announces no provider when the environment configures none", async () => {
     const response = await statusRequest()
 
     expect(response.status).toBe(200)
     expect(response.json.data.social_providers).toEqual([])
   })
 
-  it("annonce le fournisseur dont les deux variables sont là", async () => {
+  it("announces the provider whose two variables are present", async () => {
     const response = await withAuthEnv(
       {
         GOOGLE_CLIENT_ID: "google-client-id",
@@ -308,7 +308,7 @@ describe("GET /status — les fournisseurs de connexion montés", () => {
     expect(response.json.data.social_providers).toEqual(["google"])
   })
 
-  it("tait le fournisseur à moitié configuré", async () => {
+  it("keeps quiet about the half-configured provider", async () => {
     const response = await withAuthEnv(
       {
         GOOGLE_CLIENT_ID: "google-client-id",
@@ -321,7 +321,7 @@ describe("GET /status — les fournisseurs de connexion montés", () => {
     expect(response.json.data.social_providers).toEqual(["github"])
   })
 
-  it("ne divulgue aucun identifiant ni secret de fournisseur", async () => {
+  it("discloses no provider identifier or secret", async () => {
     const response = await withAuthEnv(
       {
         GOOGLE_CLIENT_ID: "google-client-id",

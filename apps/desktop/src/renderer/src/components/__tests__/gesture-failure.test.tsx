@@ -4,8 +4,8 @@ import { mount } from "../../__tests__/dom";
 import { useGestureFailure } from "../../stores/gesture-failure";
 import { GestureFailureNotice } from "../shell/gesture-failure-notice";
 
-describe("un geste qui échoue sans que l'écran le dise", () => {
-  it("se lit au pied de la fenêtre jusqu'à ce qu'on le range", async () => {
+describe("a gesture that fails without the screen saying so", () => {
+  it("is read at the foot of the window until it is dismissed", async () => {
     useGestureFailure.getState().dismiss();
 
     const view = await mount(<GestureFailureNotice />);

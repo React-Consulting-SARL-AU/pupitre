@@ -14,8 +14,8 @@ function storage(encryption: boolean, backend: Backend) {
   };
 }
 
-describe("le trousseau qui garde les secrets", () => {
-  it("sert sous macOS et Windows dès que le chiffrement répond", () => {
+describe("the keychain that holds the secrets", () => {
+  it("serves on macOS and Windows as soon as encryption responds", () => {
     expect(keychainSealer(storage(true, "unknown"), "darwin").available()).toBe(
       true
     );
@@ -27,7 +27,7 @@ describe("le trousseau qui garde les secrets", () => {
     ).toBe(false);
   });
 
-  it("sert sous Linux derrière GNOME Keyring ou KWallet", () => {
+  it("serves on Linux behind GNOME Keyring or KWallet", () => {
     expect(
       keychainSealer(storage(true, "gnome_libsecret"), "linux").available()
     ).toBe(true);
@@ -36,7 +36,7 @@ describe("le trousseau qui garde les secrets", () => {
     );
   });
 
-  it("ne compte pas pour un trousseau la clé écrite en dur de basic_text", () => {
+  it("does not count basic_text's hardcoded key as a keychain", () => {
     expect(
       keychainSealer(storage(true, "basic_text"), "linux").available()
     ).toBe(false);
@@ -48,7 +48,7 @@ describe("le trousseau qui garde les secrets", () => {
     ).toBe(false);
   });
 
-  it("chiffre et déchiffre par le stockage du système", () => {
+  it("encrypts and decrypts through the system storage", () => {
     const sealer = keychainSealer(storage(true, "gnome_libsecret"), "linux");
 
     expect(sealer.decrypt(sealer.encrypt("jeton"))).toBe("jeton");

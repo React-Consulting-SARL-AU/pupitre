@@ -22,7 +22,7 @@ async function mount(element: Parameters<typeof render>[0]) {
 }
 
 describe("FreshnessNotice", () => {
-  it("se tait quand l'observation est fraîche", async () => {
+  it("stays silent when the observation is fresh", async () => {
     const { container } = await mount(
       <FreshnessNotice
         freshness="fresh"
@@ -36,7 +36,7 @@ describe("FreshnessNotice", () => {
     ).toBeNull()
   })
 
-  it("dit que les chiffres sont périmés et depuis quand", async () => {
+  it("says the figures are stale and since when", async () => {
     const { container } = await mount(
       <FreshnessNotice
         freshness="stale"
@@ -59,7 +59,7 @@ describe("FreshnessNotice", () => {
     ).toBe("hollow")
   })
 
-  it("avoue l'absence d'observation au lieu de rassurer", async () => {
+  it("admits the absence of an observation instead of reassuring", async () => {
     const { container } = await mount(
       <FreshnessNotice freshness="unknown" lastObservationAt={null} now={NOW} />
     )

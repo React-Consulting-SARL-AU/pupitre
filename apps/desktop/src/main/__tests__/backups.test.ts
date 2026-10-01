@@ -99,8 +99,8 @@ function connectDeps(
   };
 }
 
-describe("la connexion des sauvegardes", () => {
-  it("dérive la phrase et ne garde que la clé publique et le sel", async () => {
+describe("the backups connection", () => {
+  it("derives the passphrase and keeps only the public key and the salt", async () => {
     const deps = connectDeps();
 
     const answer = await connectBackup(
@@ -116,7 +116,7 @@ describe("la connexion des sauvegardes", () => {
     expect(deps.kept[0]?.secret).toBe("s3-secret");
   });
 
-  it("reprend l'identité de l'organisation sans demander la phrase", async () => {
+  it("reuses the organization's identity without asking for the passphrase", async () => {
     const adopted: OrganizationIdentity = {
       ...(await identity()),
       created_at: "2026-09-19T03:15:00Z",
@@ -134,7 +134,7 @@ describe("la connexion des sauvegardes", () => {
     expect(answer).toMatchObject({ ok: true, result: await identity() });
   });
 
-  it("refuse une première connexion sans phrase quand l'organisation n'a rien", async () => {
+  it("refuses a first connection without a passphrase when the organization has nothing", async () => {
     const answer = await connectBackup(
       { ...STORAGE, secret_access_key: "s3-secret" },
       connectDeps()
@@ -146,7 +146,7 @@ describe("la connexion des sauvegardes", () => {
     });
   });
 
-  it("refuse une phrase trop courte, avant toute dérivation", async () => {
+  it("refuses a passphrase that is too short, before any derivation", async () => {
     let derived = 0;
     const answer = await connectBackup(
       { ...STORAGE, passphrase: "court", secret_access_key: "s3-secret" },
@@ -166,7 +166,7 @@ describe("la connexion des sauvegardes", () => {
     expect(derived).toBe(0);
   });
 
-  it("garde la clé secrète et l'identité tenues quand on ne change que le seau", async () => {
+  it("keeps the held secret key and identity when only the bucket changes", async () => {
     const before = await held();
     const deps = connectDeps({ held: () => before });
 
@@ -182,7 +182,7 @@ describe("la connexion des sauvegardes", () => {
     expect(deps.kept[0]?.secret).toBe("s3-secret");
   });
 
-  it("refuse un point d'accès qui n'est pas une adresse", async () => {
+  it("refuses an endpoint that is not an address", async () => {
     const answer = await connectBackup(
       { ...STORAGE, endpoint: "acme", secret_access_key: "s3-secret" },
       connectDeps()
@@ -196,7 +196,7 @@ describe("la connexion des sauvegardes", () => {
     });
   });
 
-  it("ne garde rien quand le seau refuse l'écriture d'essai", async () => {
+  it("keeps nothing when the bucket refuses the trial write", async () => {
     const deps = connectDeps({
       probe: () =>
         Promise.resolve({
@@ -221,7 +221,7 @@ describe("la connexion des sauvegardes", () => {
     expect(deps.kept).toEqual([]);
   });
 
-  it("refuse un point d'accès en http, les signatures y passeraient en clair", async () => {
+  it("refuses an http endpoint, as signatures would travel in plaintext", async () => {
     const answer = await connectBackup(
       {
         ...STORAGE,
@@ -237,7 +237,7 @@ describe("la connexion des sauvegardes", () => {
     });
   });
 
-  it("nomme l'identité de la sauvegarde la plus récente", async () => {
+  it("names the identity of the most recent backup", async () => {
     const older = { ...(await backup()), created_at: "2026-09-01T03:15:00Z" };
     const newer = {
       ...(await backup()),
@@ -250,8 +250,8 @@ describe("la connexion des sauvegardes", () => {
   });
 });
 
-describe("l'écriture d'essai seule", () => {
-  it("éprouve le seau avec la clé tenue quand aucune n'est tapée, et ne garde rien", async () => {
+describe("the trial write alone", () => {
+  it("tests the bucket with the held key when none is typed, and keeps nothing", async () => {
     const before = await held();
     const probed: string[] = [];
     const deps = connectDeps({
@@ -273,7 +273,7 @@ describe("l'écriture d'essai seule", () => {
     expect(deps.kept).toEqual([]);
   });
 
-  it("refuse sans clé secrète, ni tapée ni tenue, sans rien écrire", async () => {
+  it("refuses without a secret key, neither typed nor held, writing nothing", async () => {
     let probes = 0;
     const answer = await probeConnection(
       STORAGE,
@@ -294,8 +294,8 @@ describe("l'écriture d'essai seule", () => {
   });
 });
 
-describe("les valeurs gérées de core.backup", () => {
-  it("donne le seau en configuration et la clé secrète sur la ligne de secrets", async () => {
+describe("the managed values of core.backup", () => {
+  it("gives the bucket as configuration and the secret key on the secrets line", async () => {
     const answer = backupManaged(["core.backup"], await held(), false);
 
     expect(answer).toEqual({
@@ -307,7 +307,7 @@ describe("les valeurs gérées de core.backup", () => {
     });
   });
 
-  it("refuse l'installation sans connexion, sauf sur une machine restaurée", () => {
+  it("refuses installation without a connection, except on a restored machine", () => {
     expect(backupManaged(["core.backup"], null, false)).toMatchObject({
       error: { phrase: { values: { kind: "backup" } } },
       ok: false,
@@ -319,8 +319,8 @@ describe("les valeurs gérées de core.backup", () => {
   });
 });
 
-describe("revenir à une sauvegarde", () => {
-  it("refuse une mauvaise phrase sur ce laptop, sans rien demander à la machine", async () => {
+describe("restoring a backup", () => {
+  it("refuses a wrong passphrase on this laptop, asking nothing of the machine", async () => {
     const listed = await backup();
     const asked: string[] = [];
 
@@ -347,7 +347,7 @@ describe("revenir à une sauvegarde", () => {
     expect(asked).toEqual([]);
   });
 
-  it("sauvegarde d'abord, pose la configuration, puis ramène les données", async () => {
+  it("backs up first, places the configuration, then brings the data back", async () => {
     const fake = fakeAgent([
       "backup-revert-work.jsonl",
       "backup-sync-control.jsonl",
@@ -432,7 +432,7 @@ describe("revenir à une sauvegarde", () => {
     agent.closeAll();
   });
 
-  it("demande la phrase à nouveau quand ce lancement ne tient plus la clé", async () => {
+  it("asks for the passphrase again when this launch no longer holds the key", async () => {
     const listed = await backup();
 
     const answer = await restoreData(

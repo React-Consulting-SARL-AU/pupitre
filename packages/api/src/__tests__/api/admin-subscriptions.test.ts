@@ -127,7 +127,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     billing = useFakeBilling()
   })
 
-  it("accorde un abonnement hors Stripe, ramène les serveurs et garde la note au journal", async () => {
+  it("grants a subscription outside Stripe, restores the servers and keeps the note in the log", async () => {
     const { organization, owner } = await atelier()
     const { server } = await createServer({
       organizationId: organization.id,
@@ -190,7 +190,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     expect(me.json.servers).toMatchObject({ limit: FREE_SERVERS + 3 })
   })
 
-  it("accorde sans date de fin ni note", async () => {
+  it("grants without an end date or note", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const response = await grant(organization.id, admin, { seats: 1 })
@@ -200,7 +200,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     expect(response.json.data.note).toBeNull()
   })
 
-  it("refuse quand l'organisation a déjà un abonnement en cours", async () => {
+  it("refuses when the organization already has a running subscription", async () => {
     const { organization } = await atelier()
 
     await subscribeOrganization({
@@ -221,7 +221,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     ).toBe(1)
   })
 
-  it("accorde par-dessus un abonnement résilié", async () => {
+  it("grants on top of a cancelled subscription", async () => {
     const { organization } = await atelier()
 
     await subscribeOrganization({
@@ -236,7 +236,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     expect(response.json.data.live).toBe(true)
   })
 
-  it("refuse l'organisation Pupitre, qui n'a besoin de rien", async () => {
+  it("refuses the Pupitre organization, which needs nothing", async () => {
     const admin = await platformAdmin()
     const response = await grant(PLATFORM_ORGANIZATION_ID, admin)
 
@@ -245,7 +245,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
     expect(response.json.error.message).toContain("Pupitre")
   })
 
-  it("rend not_found sur une organisation inconnue, et validation sur des sièges hors bornes", async () => {
+  it("returns not_found on an unknown organization, and validation on out-of-range seats", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const unknown = await grant("inconnue", admin)
@@ -258,7 +258,7 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
   })
 })
 
-describe("GET et PATCH /admin/subscriptions/:id", () => {
+describe("GET and PATCH /admin/subscriptions/:id", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -268,7 +268,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     billing = useFakeBilling()
   })
 
-  it("détaille un abonnement avec son organisation et son journal", async () => {
+  it("details a subscription with its organization and log", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 2 })
@@ -300,7 +300,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     expect(missing.json.error.code).toBe("not_found")
   })
 
-  it("liste les abonnements accordés par leur produit, avec note et platform", async () => {
+  it("lists granted subscriptions by their product, with note and platform", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
 
@@ -319,7 +319,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     })
   })
 
-  it("redimensionne un abonnement accordé et déplace sa fin", async () => {
+  it("resizes a granted subscription and moves its end", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 2 })
@@ -361,7 +361,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("refuse de redimensionner sous les serveurs qui occupent un siège", async () => {
+  it("refuses to resize below the servers that occupy a seat", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 3 })
@@ -380,7 +380,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     expect(response.json.error.message).toContain("2")
   })
 
-  it("ne redimensionne qu'un abonnement accordé", async () => {
+  it("resizes only a granted subscription", async () => {
     const { organization } = await atelier()
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -420,7 +420,7 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     useFakeBilling()
   })
 
-  it("arrête un abonnement accordé sur-le-champ et met en tolérance les serveurs au-delà des gratuits", async () => {
+  it("stops a granted subscription immediately and puts the servers beyond the free ones in grace", async () => {
     const { organization, owner } = await atelier()
     const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
@@ -463,7 +463,7 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     expect(me.json.license_grant).toBeNull()
   })
 
-  it("arrête un abonnement accordé sans toucher aux serveurs gratuits", async () => {
+  it("stops a granted subscription without touching the free servers", async () => {
     const { organization } = await atelier()
     const { server } = await createServer({ organizationId: organization.id })
     const admin = await platformAdmin()
@@ -482,7 +482,7 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     ).toMatchObject({ status: "active" })
   })
 
-  it("résilie chez Stripe, reflète la réponse et ouvre la tolérance au-delà des serveurs gratuits", async () => {
+  it("cancels at Stripe, mirrors the response and opens the grace beyond the free servers", async () => {
     const { organization } = await atelier()
     const { server } = await serversBeyondFree(organization.id)
     const periodEnd = new Date(Date.now() + 12 * DAY_MS)
@@ -532,7 +532,7 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     ).toBe(1)
   })
 
-  it("refuse un abonnement déjà résilié, et rend not_found sans ligne", async () => {
+  it("refuses an already cancelled subscription, and returns not_found without a row", async () => {
     const { organization } = await atelier()
     const canceled = await subscribeOrganization({
       organizationId: organization.id,
@@ -567,7 +567,7 @@ describe("DELETE /admin/subscriptions/:id", () => {
     billing = useFakeBilling()
   })
 
-  it("efface un abonnement accordé encore en cours, et les serveurs au-delà des gratuits suivent", async () => {
+  it("erases a granted subscription still running, and the servers beyond the free ones follow", async () => {
     const { organization, owner } = await atelier()
     const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
@@ -603,7 +603,7 @@ describe("DELETE /admin/subscriptions/:id", () => {
     expect(me.json.license_grant).toBeNull()
   })
 
-  it("efface une ligne Stripe résiliée sans toucher aux serveurs que l'abonnement vivant couvre", async () => {
+  it("erases a cancelled Stripe row without touching the servers the live subscription covers", async () => {
     const { organization } = await atelier()
     const { server } = await createServer({ organizationId: organization.id })
     const old = await subscribeOrganization({
@@ -631,7 +631,7 @@ describe("DELETE /admin/subscriptions/:id", () => {
     expect(billing.cancellations).toHaveLength(0)
   })
 
-  it("refuse une ligne Stripe encore vivante : on la résilie d'abord", async () => {
+  it("refuses a Stripe row that is still live: cancel it first", async () => {
     const { organization } = await atelier()
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -659,7 +659,7 @@ describe("DELETE /admin/subscriptions/:id", () => {
   })
 })
 
-describe("l'échéance d'un abonnement accordé", () => {
+describe("the expiry of a granted subscription", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -669,7 +669,7 @@ describe("l'échéance d'un abonnement accordé", () => {
     useFakeBilling()
   })
 
-  it("ferme ce qui est arrivé à échéance et ouvre la tolérance des serveurs au-delà des gratuits", async () => {
+  it("closes what has expired and opens the grace of the servers beyond the free ones", async () => {
     const { organization } = await atelier()
     const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
@@ -725,7 +725,7 @@ describe("l'échéance d'un abonnement accordé", () => {
     expect(await expireGrantedSubscriptions(now)).toEqual([])
   })
 
-  it("laisse les serveurs actifs quand un abonnement Stripe compte déjà pour l'organisation", async () => {
+  it("leaves the servers active when a Stripe subscription already counts for the organization", async () => {
     const { organization } = await atelier()
     const { server } = await createServer({ organizationId: organization.id })
     const ended = new Date(Date.now() - DAY_MS)
@@ -757,7 +757,7 @@ describe("l'échéance d'un abonnement accordé", () => {
   })
 })
 
-describe("GET /admin/subscriptions, filtres et tris", () => {
+describe("GET /admin/subscriptions, filters and sorts", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -794,7 +794,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     return { atelierOrg, bureau, counted, dropped, other }
   }
 
-  it("filtre par organisation", async () => {
+  it("filters by organization", async () => {
     const { bureau, other } = await twoOrganizations()
     const admin = await platformAdmin()
     const response = await apiRequest<SubscriptionsBody>(
@@ -806,7 +806,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(response.json.data.map((row) => row.id)).toEqual([other.id])
   })
 
-  it("garde ou écarte celui qui compte pour son organisation", async () => {
+  it("keeps or drops the one that counts for its organization", async () => {
     const { counted, dropped, other } = await twoOrganizations()
     const admin = await platformAdmin()
     const live = await apiRequest<SubscriptionsBody>(
@@ -826,7 +826,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(past.json.data.map((row) => row.id)).toEqual([dropped.id])
   })
 
-  it("cherche par nom, par slug et par identifiant Stripe", async () => {
+  it("searches by name, by slug and by Stripe identifier", async () => {
     const { bureau, other } = await twoOrganizations()
     const admin = await platformAdmin()
     const byName = await apiRequest<SubscriptionsBody>(
@@ -852,7 +852,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(nothing.json).toEqual({ data: [], total: 0 })
   })
 
-  it("porte les sièges payés, les sièges occupés et la dérive sur chaque ligne", async () => {
+  it("carries the paid seats, the occupied seats and the drift on each row", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier serré",
       roles: ["owner"],
@@ -882,7 +882,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(byId.get(other.id)?.drifted).toBe(false)
   })
 
-  it("trie par fin de période dans les deux sens, et refuse un tri inconnu", async () => {
+  it("sorts by period end in both directions, and refuses an unknown sort", async () => {
     const { counted, dropped } = await twoOrganizations()
     const admin = await platformAdmin()
     const ascending = await apiRequest<SubscriptionsBody>(
@@ -904,7 +904,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(unknown.status).toBe(422)
   })
 
-  it("trie par création et par modification dans les deux sens", async () => {
+  it("sorts by creation and by modification in both directions", async () => {
     const { counted, dropped, other } = await twoOrganizations()
     const admin = await platformAdmin()
     const order = [counted.id, dropped.id, other.id]
@@ -937,7 +937,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(touched.json.data.map((row) => row.id)).toEqual(order)
   })
 
-  it("ne marque en dérive que l'abonnement qui compte, et le filtre ne garde que lui", async () => {
+  it("flags as drifting only the subscription that counts, and the filter keeps only it", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier serré",
       roles: ["owner"],
@@ -983,7 +983,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(covered.json.data.map((row) => row.id)).not.toContain(tight.id)
   })
 
-  it("garde tout produit hors plateforme sous le filtre stripe", async () => {
+  it("keeps every non-platform product under the stripe filter", async () => {
     const { organization } = await atelier()
     const granted = await subscribeOrganization({
       organizationId: organization.id,
@@ -1014,7 +1014,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
   })
 })
 
-describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
+describe("GET /admin/subscriptions/:id, seats, drift and Stripe", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -1024,7 +1024,7 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
     useFakeBilling()
   })
 
-  it("compte les sièges occupés, signale la dérive et pointe le tableau de bord Stripe", async () => {
+  it("counts the occupied seats, reports the drift and points to the Stripe dashboard", async () => {
     const { organization } = await atelier()
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -1080,7 +1080,7 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
     expect(response.json.data.stripe_events[0]?.status).toBe("failed")
   })
 
-  it("ne dérive pas quand les sièges couvrent, et n'a pas d'adresse Stripe sur un produit de la plateforme", async () => {
+  it("does not drift when the seats cover, and has no Stripe address on a platform product", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 3 })
@@ -1100,7 +1100,7 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
   })
 })
 
-describe("les gestes de l'équipe quand la facturation est coupée", () => {
+describe("the team's actions when billing is switched off", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -1114,7 +1114,7 @@ describe("les gestes de l'équipe quand la facturation est coupée", () => {
     useFakeBilling()
   })
 
-  it("n'a plus de route pour prolonger un essai", async () => {
+  it("has no route left to extend a trial", async () => {
     const { organization } = await atelier()
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -1131,7 +1131,7 @@ describe("les gestes de l'équipe quand la facturation est coupée", () => {
     expect(response.status).toBe(404)
   })
 
-  it("accorde, redimensionne et arrête une licence accordée sans Stripe", async () => {
+  it("grants, resizes and stops a granted licence without Stripe", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 2 })
@@ -1150,7 +1150,7 @@ describe("les gestes de l'équipe quand la facturation est coupée", () => {
     expect(billing.cancellations).toHaveLength(0)
   })
 
-  it("refuse d'arrêter ou de reprendre une ligne Stripe, sans appeler Stripe", async () => {
+  it("refuses to stop or resume a Stripe row, without calling Stripe", async () => {
     const { organization } = await atelier()
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -1217,7 +1217,7 @@ describe("POST /admin/subscriptions/:id/resume", () => {
     return { organization, stripe, periodEnd }
   }
 
-  it("reprend l'abonnement chez Stripe et le miroir cesse d'annoncer la fin", async () => {
+  it("resumes the subscription at Stripe and the mirror stops announcing the end", async () => {
     const { stripe, periodEnd } = await endingAtPeriodEnd()
     const admin = await platformAdmin()
     const response = await apiRequest<SubscriptionBody>(
@@ -1252,7 +1252,7 @@ describe("POST /admin/subscriptions/:id/resume", () => {
     })
   })
 
-  it("refuse un abonnement qui ne se termine pas, un abonnement arrêté et un produit de la plateforme", async () => {
+  it("refuses a subscription that is not ending, a stopped subscription and a platform product", async () => {
     const { organization } = await atelier()
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 1 })
@@ -1288,7 +1288,7 @@ describe("POST /admin/subscriptions/:id/resume", () => {
     expect(billing.resumptions).toHaveLength(0)
   })
 
-  it("refuse un abonnement absent, un membre et un anonyme", async () => {
+  it("refuses a missing subscription, a member and an anonymous user", async () => {
     const { organization, stripe } = await endingAtPeriodEnd()
     const [owner] = (await createOrganizationWithMembers({ roles: ["owner"] }))
       .members

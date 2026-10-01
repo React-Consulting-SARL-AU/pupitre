@@ -89,7 +89,7 @@ async function platformAdmin() {
   return await createSession({ userId: user.id })
 }
 
-describe("la licence d'une organisation", () => {
+describe("an organization's licence", () => {
   let harness: ApiTestServer
   let billing: FakeBilling
   let organizationId: string
@@ -114,7 +114,7 @@ describe("la licence d'une organisation", () => {
     useFakeBilling()
   })
 
-  it("enrôle les serveurs gratuits sans carte ni licence, et refuse le suivant vers le support", async () => {
+  it("enrols the free servers without a card or licence, and refuses the next one, pointing to support", async () => {
     const { responses } = await enrollUpTo(owner, FREE_SERVERS + 1)
     const refused = responses.at(-1)
 
@@ -128,7 +128,7 @@ describe("la licence d'une organisation", () => {
     expect(billing.checkouts).toHaveLength(0)
   })
 
-  it("dit les serveurs gratuits dans les deux langues", async () => {
+  it("states the free servers in both languages", async () => {
     const { deviceId } = await enrollUpTo(owner, FREE_SERVERS)
     const french = await apiRequest<ErrorBody>("/servers/enroll", {
       body: {
@@ -156,7 +156,7 @@ describe("la licence d'une organisation", () => {
     expect(english.json.error.fix).toContain(LEGAL_CONTACTS.support)
   })
 
-  it("lève le quota d'une licence accordée par l'équipe", async () => {
+  it("lifts the quota of a licence granted by the team", async () => {
     const admin = await platformAdmin()
     const granted = await apiRequest(
       `/admin/organizations/${organizationId}/subscriptions`,
@@ -174,7 +174,7 @@ describe("la licence d'une organisation", () => {
     )
   })
 
-  it("rend /me avec la licence, les serveurs et l'octroi, plus les anciens champs", async () => {
+  it("returns /me with the licence, the servers and the grant, plus the old fields", async () => {
     await createServer({ organizationId })
 
     const free = await apiRequest<MeBody>("/me", { session: owner })
@@ -210,7 +210,7 @@ describe("la licence d'une organisation", () => {
     })
   })
 
-  it("rend none sans organisation active, et aucun compte de serveurs", async () => {
+  it("returns none without an active organization, and no server count", async () => {
     const { user } = await createUser({ email: "solo@example.test" })
     const bare = await createSession({
       userId: user.id,
@@ -228,7 +228,7 @@ describe("la licence d'une organisation", () => {
     })
   })
 
-  it("tient l'organisation Pupitre pour valide, avec ses propres sièges", async () => {
+  it("treats the Pupitre organization as valid, with its own seats", async () => {
     const { user } = await createUser({
       email: "team@pupitre.studio",
       role: "platform_admin",
@@ -257,7 +257,7 @@ describe("la licence d'une organisation", () => {
   })
 })
 
-describe("l'état de la licence", () => {
+describe("the licence state", () => {
   let harness: ApiTestServer
 
   beforeAll(async () => {
@@ -282,7 +282,7 @@ describe("l'état de la licence", () => {
     return created.id
   }
 
-  it("est valide sans licence jusqu'aux serveurs gratuits", async () => {
+  it("is valid without a licence up to the free servers", async () => {
     const id = await organization()
 
     for (let index = 0; index < FREE_SERVERS; index += 1) {
@@ -292,7 +292,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id)).state).toBe("valid")
   })
 
-  it("est valide avec une licence en cours, au-delà des serveurs gratuits", async () => {
+  it("is valid with a running licence, beyond the free servers", async () => {
     const id = await organization()
 
     await subscribeOrganization({ organizationId: id, quantity: 2 })
@@ -304,7 +304,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id)).state).toBe("valid")
   })
 
-  it("passe en tolérance quand la licence est impayée", async () => {
+  it("goes into grace when the licence is unpaid", async () => {
     const id = await organization()
 
     await subscribeOrganization({ organizationId: id, status: "past_due" })
@@ -312,7 +312,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id)).state).toBe("grace")
   })
 
-  it("est suspendue au-delà des serveurs gratuits sans licence ni tolérance ouverte", async () => {
+  it("is suspended beyond the free servers without a licence or open grace", async () => {
     const id = await organization()
 
     for (let index = 0; index <= FREE_SERVERS; index += 1) {
@@ -322,7 +322,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id)).state).toBe("suspended")
   })
 
-  it("court la tolérance d'une licence échue au-delà des serveurs gratuits, puis suspend", async () => {
+  it("runs the grace of an expired licence beyond the free servers, then suspends", async () => {
     const id = await organization()
     const graceUntil = new Date(Date.now() + DAY_MS)
 
@@ -346,7 +346,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id, later)).state).toBe("suspended")
   })
 
-  it("est suspendue quand l'équipe tient l'organisation, quelle que soit sa licence", async () => {
+  it("is suspended when the team holds the organization, whatever its licence", async () => {
     const id = await organization()
 
     await subscribeOrganization({ organizationId: id })
@@ -358,7 +358,7 @@ describe("l'état de la licence", () => {
     expect((await licenseForOrganization(id)).state).toBe("suspended")
   })
 
-  it("est toujours valide pour l'organisation Pupitre", async () => {
+  it("is always valid for the Pupitre organization", async () => {
     await createUser({ email: "ops@pupitre.studio", role: "platform_admin" })
 
     for (let index = 0; index <= FREE_SERVERS; index += 1) {
@@ -371,7 +371,7 @@ describe("l'état de la licence", () => {
   })
 })
 
-describe("la facturation coupée", () => {
+describe("billing switched off", () => {
   let billing: FakeBilling
   let organizationId: string
   let owner: Session
@@ -395,7 +395,7 @@ describe("la facturation coupée", () => {
     useFakeBilling()
   })
 
-  it("refuse le checkout, le portail et les sièges sans jamais appeler Stripe", async () => {
+  it("refuses the checkout, the portal and the seats without ever calling Stripe", async () => {
     const checkout = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 1, interval: "month" }, session: owner }
@@ -423,7 +423,7 @@ describe("la facturation coupée", () => {
     expect(billing.quantities).toHaveLength(0)
   })
 
-  it("refuse un webhook Stripe, même signé", async () => {
+  it("refuses a Stripe webhook, even signed", async () => {
     const response = await postStripeWebhook<ErrorBody>(
       stripeEvent(
         "customer.subscription.updated",

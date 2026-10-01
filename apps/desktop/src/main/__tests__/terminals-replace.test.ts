@@ -65,8 +65,8 @@ afterEach(() => {
   sent.length = 0;
 });
 
-describe("un onglet rouvert sous le même identifiant", () => {
-  it("ne reçoit ni les derniers octets ni la fin de l'ancien shell", async () => {
+describe("a tab reopened under the same id", () => {
+  it("receives neither the last bytes nor the end of the old shell", async () => {
     open(REQUEST, window);
     open(REQUEST, window);
 
@@ -87,7 +87,7 @@ describe("un onglet rouvert sous le même identifiant", () => {
     expect(states().t1).not.toBe("finished");
   });
 
-  it("dit encore la fin d'un shell fermé sans remplaçant", () => {
+  it("still reports the end of a shell closed with no replacement", () => {
     open(REQUEST, window);
     spawned[0]?.emitExit(0);
 

@@ -29,8 +29,8 @@ function vault(sealer: Sealer = SEALED) {
   return { dir, vault: createSudoVault({ dir, sealer }) };
 }
 
-describe("le coffre des mots de passe sudo", () => {
-  it("garde le mot de passe d'un serveur au trousseau, jamais en clair sur le disque", () => {
+describe("the sudo password vault", () => {
+  it("keeps a server's password in the keychain, never in clear on disk", () => {
     const { dir, vault: held } = vault();
 
     held.keep("srv-1", PASSWORD);
@@ -47,7 +47,7 @@ describe("le coffre des mots de passe sudo", () => {
     );
   });
 
-  it("sans trousseau, le garde le temps de la session et le dit", () => {
+  it("without a keychain, keeps it for the session and says so", () => {
     const { dir, vault: held } = vault(OPEN);
 
     held.keep("srv-1", PASSWORD);
@@ -58,7 +58,7 @@ describe("le coffre des mots de passe sudo", () => {
     expect(createSudoVault({ dir, sealer: OPEN }).password("srv-1")).toBe(null);
   });
 
-  it("ne sait rien d'un serveur qu'on ne lui a pas confié, et oublie celui qu'on retire", () => {
+  it("knows nothing of a server it was not entrusted with, and forgets one that is removed", () => {
     const { dir, vault: held } = vault();
 
     expect(held.state("srv-2")).toEqual({ held: false, kept: false });
@@ -70,7 +70,7 @@ describe("le coffre des mots de passe sudo", () => {
     expect(existsSync(join(dir, "srv-1.password"))).toBe(false);
   });
 
-  it("refuse un identifiant qui sortirait de son dossier", () => {
+  it("refuses an id that would escape its folder", () => {
     const { vault: held } = vault();
 
     expect(() => held.keep("../account", PASSWORD)).toThrow();

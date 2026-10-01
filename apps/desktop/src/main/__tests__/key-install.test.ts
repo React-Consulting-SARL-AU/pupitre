@@ -57,15 +57,15 @@ function install(
   };
 }
 
-describe("la ligne posée sur le serveur", () => {
-  it("n'ajoute la clé que si elle n'y est pas déjà", () => {
+describe("the line placed on the server", () => {
+  it("only adds the key if it is not already there", () => {
     const script = authorizeScript(PUBLIC_KEY);
 
     expect(script).toContain(`grep -qxF '${PUBLIC_KEY}'`);
     expect(script).toContain('>> "$HOME/.ssh/authorized_keys"');
   });
 
-  it("ferme le dossier et le fichier avant d'écrire dedans", () => {
+  it("locks down the folder and the file before writing into them", () => {
     const script = authorizeScript(PUBLIC_KEY);
 
     expect(script).toContain("umask 077");
@@ -73,25 +73,25 @@ describe("la ligne posée sur le serveur", () => {
     expect(script).toContain('chmod 600 "$HOME/.ssh/authorized_keys"');
   });
 
-  it("ne colle pas sa clé au bout d'une ligne sans retour à la ligne", () => {
+  it("does not glue its key onto a line with no trailing newline", () => {
     expect(authorizeScript(PUBLIC_KEY)).toContain('tail -c 1 "$HOME/.ssh');
   });
 
-  it("refuse tout ce qui n'est pas une ligne de clé publique", () => {
+  it("refuses anything that is not a public key line", () => {
     expect(() => authorizeScript("ssh-ed25519 AAA'; rm -rf /")).toThrow();
     expect(() => authorizeScript("pas une clé")).toThrow();
   });
 });
 
-describe("la lecture d'un refus de ssh", () => {
-  it("distingue une machine qui veut un mot de passe d'une qui n'en veut pas", () => {
+describe("reading an ssh refusal", () => {
+  it("tells a machine that wants a password from one that does not", () => {
     expect(rebuffOf("Permission denied (publickey,password).")).toBe(
       "password"
     );
     expect(rebuffOf("Permission denied (publickey).")).toBe("no-password");
   });
 
-  it("reconnaît une empreinte qui a changé et une adresse muette", () => {
+  it("recognises a changed fingerprint and a silent address", () => {
     expect(rebuffOf("Host key verification failed.")).toBe("host-key");
     expect(rebuffOf("ssh: connect to host: Connection refused")).toBe(
       "unreachable"
@@ -99,8 +99,8 @@ describe("la lecture d'un refus de ssh", () => {
   });
 });
 
-describe("l'installation de la clé", () => {
-  it("n'écrit rien quand la machine s'ouvre déjà", async () => {
+describe("installing the key", () => {
+  it("writes nothing when the machine already opens", async () => {
     const phases: KeyInstallPhase[] = [];
     const { answer, calls } = install([{ code: 0 }], { phases });
 
@@ -113,7 +113,7 @@ describe("l'installation de la clé", () => {
     expect(phases).toEqual(["reaching"]);
   });
 
-  it("pose la clé avec ce que l'ordinateur détient déjà, puis la vérifie", async () => {
+  it("places the key with what the computer already holds, then verifies it", async () => {
     const phases: KeyInstallPhase[] = [];
     const { answer, calls } = install(
       [
@@ -134,7 +134,7 @@ describe("l'installation de la clé", () => {
     expect(phases).toEqual(["reaching", "authorizing", "verifying"]);
   });
 
-  it("ne frappe pas d'abord avec une clé qui vient d'être faite", async () => {
+  it("does not knock first with a key that was just created", async () => {
     const phases: KeyInstallPhase[] = [];
     const { calls, spawn } = recorder([{ code: 0 }, { code: 0 }]);
 
@@ -158,7 +158,7 @@ describe("l'installation de la clé", () => {
     expect(phases).toEqual(["authorizing", "verifying"]);
   });
 
-  it("demande le mot de passe quand la machine en offre un", async () => {
+  it("asks for the password when the machine offers one", async () => {
     const { answer } = install([
       { code: 255, stderr: "Permission denied (publickey,password)." },
       { code: 255, stderr: "Permission denied (publickey,password)." },
@@ -170,7 +170,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("redemande le mot de passe quand celui qu'on a donné est refusé", async () => {
+  it("asks for the password again when the one given is refused", async () => {
     const { answer } = install(
       [
         { code: 255, stderr: "Permission denied (publickey)." },
@@ -185,7 +185,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("ne met jamais le mot de passe sur la ligne de commande", async () => {
+  it("never puts the password on the command line", async () => {
     const { answer, calls } = install(
       [
         { code: 255, stderr: "Permission denied (publickey,password)." },
@@ -207,7 +207,7 @@ describe("l'installation de la clé", () => {
     expect(calls[1].args).toContain("PubkeyAuthentication=no");
   });
 
-  it("rend la main quand le serveur n'accepte que des clés", async () => {
+  it("hands control back when the server only accepts keys", async () => {
     const { answer } = install([
       { code: 255, stderr: "Permission denied (publickey)." },
       { code: 255, stderr: "Permission denied (publickey)." },
@@ -219,7 +219,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("refuse de croire une clé posée que la machine n'accepte pas", async () => {
+  it("refuses to believe in a placed key the machine does not accept", async () => {
     const { answer } = install([
       { code: 255, stderr: "Permission denied (publickey,password)." },
       { code: 0 },
@@ -232,7 +232,7 @@ describe("l'installation de la clé", () => {
     });
   });
 
-  it("n'installe rien sur un hôte qui vient de la configuration du système", async () => {
+  it("installs nothing on a host that comes from the system configuration", async () => {
     const { spawn } = recorder([]);
 
     const answer = await installKey({
@@ -245,7 +245,7 @@ describe("l'installation de la clé", () => {
     expect(answer).toMatchObject({ ok: false });
   });
 
-  it("rend la ligne à coller plutôt qu'un mot de passe sous Windows", async () => {
+  it("returns the line to paste instead of a password on Windows", async () => {
     const { spawn } = recorder([]);
 
     const answer = await installKey({
@@ -267,8 +267,8 @@ describe("l'installation de la clé", () => {
   });
 });
 
-describe("les arguments de chaque tentative", () => {
-  it("ne réutilise jamais une session déjà ouverte, ni n'en laisse une", () => {
+describe("the arguments of each attempt", () => {
+  it("never reuses an already open session, nor leaves one behind", () => {
     for (const args of [
       opensArgs(SERVER, PATHS),
       offeredArgs(SERVER, PATHS),
@@ -279,7 +279,7 @@ describe("les arguments de chaque tentative", () => {
     }
   });
 
-  it("n'ouvre la machine qu'avec la clé de l'app, sans jamais demander", () => {
+  it("only opens the machine with the app's key, never asking", () => {
     const args = opensArgs(SERVER, PATHS);
 
     expect(args).toContain("BatchMode=yes");
@@ -287,7 +287,7 @@ describe("les arguments de chaque tentative", () => {
     expect(args.at(-1)).toBe("true");
   });
 
-  it("laisse l'agent et ~/.ssh tenter avant qu'on demande un mot de passe", () => {
+  it("lets the agent and ~/.ssh try before a password is asked", () => {
     const args = offeredArgs(SERVER, PATHS, ["/home/moi/.ssh/id_ed25519"]);
 
     expect(args).toContain("IdentitiesOnly=no");
@@ -295,7 +295,7 @@ describe("les arguments de chaque tentative", () => {
     expect(args.join(" ")).toContain("-i /home/moi/.ssh/id_ed25519");
   });
 
-  it("nomme les clés de ~/.ssh que ssh n'offrirait plus de lui-même", () => {
+  it("names the ~/.ssh keys that ssh would no longer offer on its own", () => {
     const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
 
     mkdirSync(join(home, ".ssh"));
@@ -304,7 +304,7 @@ describe("les arguments de chaque tentative", () => {
     expect(ownIdentities(home)).toEqual([join(home, ".ssh", "id_ed25519")]);
   });
 
-  it("n'offre que le mot de passe quand c'est lui qu'on essaie", () => {
+  it("only offers the password when it is the one being tried", () => {
     const args = passwordArgs(SERVER, PATHS);
 
     expect(args).toContain("PubkeyAuthentication=no");
@@ -315,8 +315,8 @@ describe("les arguments de chaque tentative", () => {
   });
 });
 
-describe("l'aide qui répond à ssh", () => {
-  it("ne contient aucun mot de passe et n'est lisible que par nous", () => {
+describe("the helper that answers ssh", () => {
+  it("contains no password and is readable only by us", () => {
     const dir = join(mkdtempSync(join(tmpdir(), "pupitre-askpass-")), "ssh");
 
     const file = writeAskpass(dir);
@@ -325,7 +325,7 @@ describe("l'aide qui répond à ssh", () => {
     expect(statSync(file).mode & 0o777).toBe(0o700);
   });
 
-  it("n'existe pas là où ssh ne sait pas s'en servir", () => {
+  it("does not exist where ssh cannot use it", () => {
     expect(installsWithPassword("win32")).toBe(false);
     expect(installsWithPassword("darwin")).toBe(true);
     expect(installsWithPassword("linux")).toBe(true);

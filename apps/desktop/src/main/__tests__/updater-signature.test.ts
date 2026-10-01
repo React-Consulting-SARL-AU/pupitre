@@ -46,15 +46,15 @@ function signed(
   };
 }
 
-describe("la signature d'une mise à jour de l'app", () => {
+describe("the signature of an app update", () => {
   const key = releaseKey();
   const sha256 = digest("an AppImage, allegedly");
 
-  it("tient pour l'artefact que la clé de release a signé", () => {
+  it("holds for the artefact the release key signed", () => {
     expect(checkAppArtefact(signed(key, sha256), key.publicKey)).toBe(true);
   });
 
-  it("tient sur les trois systèmes, l'archive macOS comprise", () => {
+  it("holds on all three systems, the macOS archive included", () => {
     const zip = digest("a zip, allegedly");
     const exe = digest("an installer, allegedly");
 
@@ -79,7 +79,7 @@ describe("la signature d'une mise à jour de l'app", () => {
     ).toBe(true);
   });
 
-  it("tombe pour des octets qui ont changé", () => {
+  it("fails for bytes that changed", () => {
     expect(
       checkAppArtefact(
         { ...signed(key, sha256), sha256: digest("an AppImage, altered") },
@@ -88,7 +88,7 @@ describe("la signature d'une mise à jour de l'app", () => {
     ).toBe(false);
   });
 
-  it("tombe pour une autre version, un autre système ou une autre puce", () => {
+  it("fails for another version, another system or another chip", () => {
     expect(
       checkAppArtefact(
         { ...signed(key, sha256), version: "1.2.4" },
@@ -106,7 +106,7 @@ describe("la signature d'une mise à jour de l'app", () => {
     ).toBe(false);
   });
 
-  it("tombe pour une autre clé, et pour un fichier qui ne dit pas sa puce", () => {
+  it("fails for another key, and for a file that does not name its chip", () => {
     const other = releaseKey();
 
     expect(checkAppArtefact(signed(key, sha256), other.publicKey)).toBe(false);
@@ -118,7 +118,7 @@ describe("la signature d'une mise à jour de l'app", () => {
     ).toBe(false);
   });
 
-  it("cherche la signature à côté de l'artefact, quel que soit le flux", () => {
+  it("looks for the signature next to the artefact, whatever the feed", () => {
     expect(
       signatureUrl(
         "https://dl.pupitre.studio/app/1.2.3/Pupitre-1.2.3-x64.AppImage",
@@ -138,7 +138,7 @@ describe("la signature d'une mise à jour de l'app", () => {
   });
 });
 
-describe("l'installation d'une mise à jour vérifiée", () => {
+describe("installing a verified update", () => {
   const verified: VerifiedUpdate = {
     file: "/cache/pending/Pupitre-1.2.3-x64.AppImage",
     sha256: digest("the verified bytes"),
@@ -147,13 +147,13 @@ describe("l'installation d'une mise à jour vérifiée", () => {
   const onDisk = (content: string | null) => () =>
     content === null ? null : digest(content);
 
-  it("installe le fichier vérifié, tel qu'il a été vérifié", () => {
+  it("installs the verified file, exactly as it was verified", () => {
     expect(
       installable(verified, verified.file, onDisk("the verified bytes"))
     ).toBe(true);
   });
 
-  it("refuse sans vérification, ou sans fichier en attente", () => {
+  it("refuses without verification, or without a pending file", () => {
     expect(installable(null, verified.file, onDisk("the verified bytes"))).toBe(
       false
     );
@@ -162,7 +162,7 @@ describe("l'installation d'une mise à jour vérifiée", () => {
     );
   });
 
-  it("refuse un autre fichier que celui qui a été vérifié", () => {
+  it("refuses a file other than the one that was verified", () => {
     expect(
       installable(
         verified,
@@ -172,7 +172,7 @@ describe("l'installation d'une mise à jour vérifiée", () => {
     ).toBe(false);
   });
 
-  it("refuse un fichier qui a changé depuis, ou qui ne se lit plus", () => {
+  it("refuses a file that changed since, or that can no longer be read", () => {
     expect(installable(verified, verified.file, onDisk("other bytes"))).toBe(
       false
     );

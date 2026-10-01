@@ -8,8 +8,8 @@ function folder(): string {
   return join(mkdtempSync(join(tmpdir(), "pupitre-log-")), "logs");
 }
 
-describe("le journal des pannes du processus principal", () => {
-  it("écrit la panne, sa pile, en 0600", () => {
+describe("the main process crash log", () => {
+  it("writes the crash and its stack with mode 0600", () => {
     const dir = folder();
     const log = appLog({ dir, now: () => Date.UTC(2026, 8, 25, 10) });
 
@@ -23,7 +23,7 @@ describe("le journal des pannes du processus principal", () => {
     expect(statSync(log.path).mode & 0o777).toBe(0o600);
   });
 
-  it("n'écrit ni jeton ni mot de passe glissés dans un message", () => {
+  it("writes no token or password slipped into a message", () => {
     const log = appLog({ dir: folder() });
 
     log.failure(
@@ -37,7 +37,7 @@ describe("le journal des pannes du processus principal", () => {
     expect(text).not.toContain("hunter2");
   });
 
-  it("tourne passé sa taille et ne garde que les derniers", () => {
+  it("rotates past its size and keeps only the latest", () => {
     const dir = folder();
     const log = appLog({ dir, kept: 2, maxBytes: 200 });
 

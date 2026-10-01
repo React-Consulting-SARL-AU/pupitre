@@ -48,8 +48,8 @@ beforeEach(() => {
   useNavigation.getState().reset();
 });
 
-describe("l'historique de navigation", () => {
-  it("part du tableau de bord sans rien derrière", () => {
+describe("the navigation history", () => {
+  it("starts from the dashboard with nothing behind it", () => {
     expect(where()).toEqual({
       cursor: 0,
       length: 1,
@@ -59,7 +59,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("revient en arrière puis en avant sur les vues traversées", () => {
+  it("goes back then forward over the views it passed through", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -85,7 +85,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("compte la page d'un service comme une page de plus que la liste", () => {
+  it("counts a service's page as one page more than the list", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -115,7 +115,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("revient à la liste des services par un pas de plus, pas un pas en arrière", () => {
+  it("returns to the service list by one more step, not a step back", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -134,7 +134,7 @@ describe("l'historique de navigation", () => {
     expect(where().service).toBe("db.postgres");
   });
 
-  it("ouvre le même service deux fois sur une seule page", () => {
+  it("opens the same service twice on a single page", () => {
     const nav = useNavigation.getState();
 
     nav.openService("db.postgres");
@@ -151,7 +151,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("quitte la page d'un service en changeant de vue", () => {
+  it("leaves a service's page when changing view", () => {
     const nav = useNavigation.getState();
 
     nav.openService("db.postgres");
@@ -167,7 +167,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("ne dépasse ni le début ni la fin", () => {
+  it("goes past neither the start nor the end", () => {
     useNavigation.getState().back();
 
     expect(where().cursor).toBe(0);
@@ -178,7 +178,7 @@ describe("l'historique de navigation", () => {
     expect(where()).toMatchObject({ cursor: 1, view: "shots" });
   });
 
-  it("oublie ce qui était devant quand on repart d'un point du passé", () => {
+  it("forgets what was ahead when restarting from a point in the past", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -193,7 +193,7 @@ describe("l'historique de navigation", () => {
     expect(where().view).toBe("shots");
   });
 
-  it("n'écrit pas deux fois la même page", () => {
+  it("does not write the same page twice", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -204,7 +204,7 @@ describe("l'historique de navigation", () => {
     expect(where()).toMatchObject({ cursor: 2, length: 3 });
   });
 
-  it("distingue deux projets mais pas deux fois le tableau de bord", () => {
+  it("tells two projects apart but not the dashboard twice", () => {
     const nav = useNavigation.getState();
 
     nav.select("flyleaf-api");
@@ -218,7 +218,7 @@ describe("l'historique de navigation", () => {
     expect(where()).toMatchObject({ selection: "atlas-web", view: "project" });
   });
 
-  it("retire de l'historique un projet qui a quitté le registre", () => {
+  it("removes from the history a project that left the registry", () => {
     const nav = useNavigation.getState();
 
     nav.select("flyleaf-api");
@@ -237,7 +237,7 @@ describe("l'historique de navigation", () => {
     expect(where().view).toBe("dashboard");
   });
 
-  it("garde la sélection courante quand le projet ouvert est toujours là", () => {
+  it("keeps the current selection when the open project is still there", () => {
     useNavigation.getState().select("flyleaf-api");
 
     const before = useNavigation.getState();
@@ -247,7 +247,7 @@ describe("l'historique de navigation", () => {
     expect(useNavigation.getState().history).toBe(before.history);
   });
 
-  it("recommence sur un autre serveur", () => {
+  it("starts over on another server", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
@@ -263,7 +263,7 @@ describe("l'historique de navigation", () => {
     });
   });
 
-  it("compte un terminal du serveur ouvert comme une page", () => {
+  it("counts an open server terminal as a page", () => {
     useNavigation.getState().openTerminal(null, "shell");
 
     expect(where()).toMatchObject({ cursor: 1, view: "terminals" });
@@ -274,8 +274,8 @@ describe("l'historique de navigation", () => {
   });
 });
 
-describe("les onglets d'un lancement à l'autre", () => {
-  it("relit les onglets, leurs titres, leur session et celui qui était devant", () => {
+describe("tabs from one launch to the next", () => {
+  it("rereads the tabs, their titles, their session and the one that was in front", () => {
     remembered({
       terminal: "t2",
       terminalTabs: { "@server": "t2", "flyleaf-api:agents": "t1" },
@@ -310,7 +310,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(state.activeTerminal).toBe("t2");
   });
 
-  it("oublie l'onglet devant d'un groupe qu'aucun onglet ne forme", () => {
+  it("forgets the front tab of a group that no tab forms", () => {
     remembered({
       terminalTabs: { "@server": "t1", "flyleaf-api:claude": "t1" },
       terminals: [tab({})],
@@ -321,7 +321,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(useNavigation.getState().activeTabs).toEqual({ "@server": "t1" });
   });
 
-  it("oublie l'onglet devant d'une rangée où il ne siège pas", () => {
+  it("forgets the front tab of a row it does not belong to", () => {
     remembered({
       terminalTabs: { "flyleaf-api": "t1" },
       terminals: [tab({ kind: "claude", project: "flyleaf-api" })],
@@ -332,7 +332,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(useNavigation.getState().activeTabs).toEqual({});
   });
 
-  it("les rend fermés, et c'est y revenir qui les rouvre", () => {
+  it("returns them closed, and going back to them is what reopens them", () => {
     remembered({ terminals: [tab({}), tab({ id: "t2" })] });
 
     useNavigation.setState(restoredTerminals());
@@ -351,7 +351,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(opened.find((terminal) => terminal.id === "t2")?.dormant).toBe(true);
   });
 
-  it("laisse tomber ce qu'elle ne sait pas relire, sans perdre le reste", () => {
+  it("drops what it cannot reread, without losing the rest", () => {
     remembered({
       terminal: "t9",
       terminalTabs: { "@server": "t9" },
@@ -372,7 +372,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(state.activeTerminal).toBeNull();
   });
 
-  it("écrit les onglets ouverts, pour le lancement suivant", () => {
+  it("writes the open tabs, for the next launch", () => {
     useNavigation.getState().openTerminal(null, "shell");
     useNavigation
       .getState()
@@ -385,7 +385,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     ]);
   });
 
-  it("retire l'onglet remémoré d'un projet que le registre ne déclare plus", () => {
+  it("removes the remembered tab of a project the registry no longer declares", () => {
     remembered({
       terminalTabs: { "@server": "t2", "flyleaf-api:agents": "t1" },
       terminals: [
@@ -403,7 +403,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(state.activeTabs).toEqual({ "@server": "t2" });
   });
 
-  it("met les shells d'un projet dans une rangée et ses agents dans l'autre", () => {
+  it("puts a project's shells in one row and its agents in the other", () => {
     const store = useNavigation.getState();
     const shell = store.openTerminal("flyleaf-api", "shell");
     const claude = store.openTerminal("flyleaf-api", "claude");
@@ -439,7 +439,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(useNavigation.getState().terminals).toHaveLength(3);
   });
 
-  it("ferme l'onglet d'un agent qui a quitté, sans rien tuer sur la machine", () => {
+  it("closes the tab of an agent that exited, without killing anything on the machine", () => {
     const ends: unknown[] = [];
 
     stubPupitre({
@@ -469,7 +469,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     useServers.setState({ config: null });
   });
 
-  it("ferme sans demander un shell au repos, et demande avant d'arrêter un agent ou un shell qui travaille", () => {
+  it("closes an idle shell without asking, and asks before stopping an agent or a shell that is working", () => {
     const shell = useNavigation.getState().openTerminal(null, "shell");
     const busy = useNavigation.getState().openTerminal(null, "shell");
     const claude = useNavigation
@@ -515,7 +515,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     ).toEqual([busy]);
   });
 
-  it("ferme sans demander un onglet dont la session est finie ou n'a jamais été nommée", () => {
+  it("closes without asking a tab whose session is over or was never named", () => {
     const claude = useNavigation
       .getState()
       .openTerminal("flyleaf-api", "claude");
@@ -531,7 +531,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(useNavigation.getState().terminals).toHaveLength(0);
   });
 
-  it("garde l'onglet d'un shell qui a quitté, et celui d'un agent dont la liaison a rompu", () => {
+  it("keeps the tab of a shell that exited, and that of an agent whose link broke", () => {
     const shell = useNavigation.getState().openTerminal("flyleaf-api", "shell");
     const claude = useNavigation
       .getState()
@@ -545,7 +545,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     ).toEqual([shell, claude]);
   });
 
-  it("n'ouvre un shell à l'arrivée que si la rangée des shells est vide, jamais un agent", () => {
+  it("opens a shell on arrival only if the shell row is empty, never an agent", () => {
     useNavigation.getState().openTerminal("flyleaf-api", "claude");
     useNavigation.getState().ensureTerminal("flyleaf-api");
 
@@ -560,14 +560,14 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(useNavigation.getState().terminals).toHaveLength(2);
   });
 
-  it("garde l'onglet ouvert d'un projet disparu : c'est le travail du lecteur", () => {
+  it("keeps the open tab of a vanished project: that is the reader's job", () => {
     useNavigation.getState().openTerminal("flyleaf-api", "shell");
     useNavigation.getState().settle(["atlas-web"]);
 
     expect(useNavigation.getState().terminals).toHaveLength(1);
   });
 
-  it("ouvre le terminal du raccourci dans le projet affiché, sur son onglet des terminaux", () => {
+  it("opens the shortcut's terminal in the displayed project, on its terminals tab", () => {
     useNavigation.getState().select("flyleaf-api");
     useNavigation.getState().setProjectTab("flyleaf-api", "files");
     useNavigation.getState().openTerminalHere();
@@ -584,7 +584,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     });
   });
 
-  it("ouvre le terminal du raccourci sur le serveur hors d'un projet", () => {
+  it("opens the shortcut's terminal on the server outside a project", () => {
     useNavigation.getState().goTo("services");
     useNavigation.getState().openTerminalHere();
 
@@ -594,7 +594,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     expect(where().view).toBe("terminals");
   });
 
-  it("ouvre l'agent du raccourci dans le projet affiché, sur son onglet des agents, jamais sur le serveur", () => {
+  it("opens the shortcut's agent in the displayed project, on its agents tab, never on the server", () => {
     useNavigation.getState().select("flyleaf-api");
     useNavigation.getState().openTerminalHere("claude");
 

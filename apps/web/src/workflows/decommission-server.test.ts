@@ -28,7 +28,7 @@ async function serverDueForDecommission(): Promise<string> {
   return server.id
 }
 
-describe("le workflow DecommissionServer", () => {
+describe("the DecommissionServer workflow", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -37,7 +37,7 @@ describe("le workflow DecommissionServer", () => {
     await resetDb()
   })
 
-  it("appelle decommissionDueServers dans une étape nommée", async () => {
+  it("calls decommissionDueServers in a named step", async () => {
     const serverId = await serverDueForDecommission()
     const recorder = recordSteps()
 

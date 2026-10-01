@@ -66,7 +66,7 @@ beforeEach(() => {
   useCatalog.getState().reset();
 });
 
-describe("un préréglage installé de bout en bout", () => {
+describe("a preset installed end to end", () => {
   const script: InstallUpdate[] = [
     step("core.system", "paquets", "start", 0),
     step("core.system", "paquets", "ok", 12_400),
@@ -74,7 +74,7 @@ describe("un préréglage installé de bout en bout", () => {
     step("runtime.node", "mise", "ok", 31_000),
   ];
 
-  it("rend chaque module, ses étapes et leur durée", async () => {
+  it("returns each module, its steps and their duration", async () => {
     agent(script, { failed: [], warned: [], report_path: REPORT });
 
     await useInstall.getState().start(SERVER, ["core.system", "runtime.node"], {
@@ -98,7 +98,7 @@ describe("un préréglage installé de bout en bout", () => {
     ]);
   });
 
-  it("finit sur le rapport de l'agent, sans échec", async () => {
+  it("ends on the agent's report, without failure", async () => {
     agent(script, {
       failed: [],
       warned: ["runtime.node"],
@@ -117,7 +117,7 @@ describe("un préréglage installé de bout en bout", () => {
     expect(useInstall.getState().counts()).toEqual({ done: 2, total: 2 });
   });
 
-  it("compte les modules pendant que l'installation avance", async () => {
+  it("counts the modules while the installation progresses", async () => {
     const seen: { done: number; total: number }[] = [];
 
     stubPupitre({
@@ -147,8 +147,8 @@ describe("un préréglage installé de bout en bout", () => {
   });
 });
 
-describe("l'envoi de l'agent avant l'installation", () => {
-  it("dit ce qui se passe pendant que le binaire part", async () => {
+describe("sending the agent before the installation", () => {
+  it("says what is happening while the binary is sent", async () => {
     const seen: string[] = [];
 
     stubPupitre({
@@ -173,7 +173,7 @@ describe("l'envoi de l'agent avant l'installation", () => {
   });
 });
 
-describe("un module en échec", () => {
+describe("a failed module", () => {
   const script: InstallUpdate[] = [
     step("core.system", "paquets", "start", 0),
     step("core.system", "paquets", "ok", 12_400),
@@ -189,7 +189,7 @@ describe("un module en échec", () => {
     report_path: REPORT,
   };
 
-  it("garde l'échec sur son module et laisse les autres réussir", async () => {
+  it("keeps the failure on its module and lets the others succeed", async () => {
     agent(script, result);
 
     await useInstall
@@ -205,7 +205,7 @@ describe("un module en échec", () => {
     });
   });
 
-  it("garde la commande de rejeu que l'agent a donnée", async () => {
+  it("keeps the replay command the agent gave", async () => {
     agent(script, result);
 
     await useInstall
@@ -219,7 +219,7 @@ describe("un module en échec", () => {
     expect(failed?.steps.at(-1)?.replay).toBe("pupitred install db.mysql");
   });
 
-  it("rejoue ce seul module, avec sa seule configuration", async () => {
+  it("replays that module alone, with its own configuration only", async () => {
     const { sent } = agent(script, result);
 
     await useInstall
@@ -262,7 +262,7 @@ describe("un module en échec", () => {
     });
   });
 
-  it("garde les autres échecs quand un seul module est rejoué", async () => {
+  it("keeps the other failures when only one module is replayed", async () => {
     agent(script, { ...result, failed: ["db.mysql", "runtime.node"] });
 
     await useInstall
@@ -281,7 +281,7 @@ describe("un module en échec", () => {
     expect(useInstall.getState().warned()).toEqual(["db.mysql"]);
   });
 
-  it("rejoue tout ce qui a échoué, avec la configuration donnée", async () => {
+  it("replays everything that failed, with the given configuration", async () => {
     const { sent } = agent(script, {
       ...result,
       failed: ["db.mysql", "runtime.node"],
@@ -313,7 +313,7 @@ describe("un module en échec", () => {
     expect(useInstall.getState().failed()).toEqual([]);
   });
 
-  it("passe le seul module et sa configuration au processus principal", async () => {
+  it("passes only the module and its configuration to the main process", async () => {
     const relayed: Sent[] = [];
 
     stubPupitre({
@@ -341,7 +341,7 @@ describe("un module en échec", () => {
   });
 });
 
-describe("ce qu'un rejeu emporte", () => {
+describe("what a replay carries", () => {
   type Deferred = Sent & { defer: readonly string[] | undefined };
 
   function deferringAgent(result: InstallResult): { sent: Deferred[] } {
@@ -358,7 +358,7 @@ describe("ce qu'un rejeu emporte", () => {
     return { sent };
   }
 
-  it("remet à plus tard ce qui l'était, et seulement parmi les modules rejoués", async () => {
+  it("postpones what was postponed, and only among the replayed modules", async () => {
     const { sent } = deferringAgent({
       failed: ["db.mysql", "runtime.node"],
       report_path: REPORT,
@@ -385,7 +385,7 @@ describe("ce qu'un rejeu emporte", () => {
     ]);
   });
 
-  it("retient la configuration retapée pour le rejeu suivant", async () => {
+  it("retains the retyped configuration for the next replay", async () => {
     const { sent } = deferringAgent({
       failed: ["db.mysql"],
       report_path: REPORT,
@@ -409,7 +409,7 @@ describe("ce qu'un rejeu emporte", () => {
   });
 });
 
-describe("les secrets après un install refusé", () => {
+describe("secrets after a refused install", () => {
   function marks(): void {
     useCatalog.setState({
       catalog: { catalog: CATALOG, serverId: SERVER, status: "ready" },
@@ -422,7 +422,7 @@ describe("les secrets après un install refusé", () => {
     });
   }
 
-  it("efface les marques du catalogue et le dit, quand rien ne dit qu'ils sont encore tenus", async () => {
+  it("clears the catalogue marks and says so, when nothing says they are still held", async () => {
     marks();
     stubPupitre({
       startInstall: () =>
@@ -438,7 +438,7 @@ describe("les secrets après un install refusé", () => {
     expect(useInstall.getState().secretsDropped).toBe(true);
   });
 
-  it("garde les marques quand le processus principal dit tenir encore les secrets", async () => {
+  it("keeps the marks when the main process says it still holds the secrets", async () => {
     marks();
     stubPupitre({
       startInstall: (_serverId, _modules, _config, onUpdate) => {
@@ -459,7 +459,7 @@ describe("les secrets après un install refusé", () => {
     expect(useInstall.getState().secretsDropped).toBe(false);
   });
 
-  it("ne dit rien quand aucun secret n'avait été tapé", async () => {
+  it("says nothing when no secret had been typed", async () => {
     stubPupitre({
       startInstall: () =>
         Promise.resolve({
@@ -474,8 +474,8 @@ describe("les secrets après un install refusé", () => {
   });
 });
 
-describe("ce que l'installation refuse de rejouer", () => {
-  it("ignore un module qui n'était pas de la sélection", async () => {
+describe("what the installation refuses to replay", () => {
+  it("ignores a module that was not part of the selection", async () => {
     const { sent } = agent([], { failed: [], warned: [], report_path: REPORT });
 
     await useInstall.getState().start(SERVER, ["core.system"], {});
@@ -485,8 +485,8 @@ describe("ce que l'installation refuse de rejouer", () => {
   });
 });
 
-describe("ce que l'agent renvoie en échec", () => {
-  it("garde le message et le remède tels quels", async () => {
+describe("what the agent returns on failure", () => {
+  it("keeps the message and the fix as they are", async () => {
     stubPupitre({
       startInstall: () =>
         Promise.resolve({
@@ -512,7 +512,7 @@ describe("ce que l'agent renvoie en échec", () => {
     });
   });
 
-  it("pose sur les champs du catalogue ce que l'installation a refusé", async () => {
+  it("puts on the catalogue fields what the installation refused", async () => {
     useCatalog.setState({
       attempted: false,
       catalog: { catalog: CATALOG, serverId: SERVER, status: "ready" },
@@ -550,8 +550,8 @@ describe("ce que l'agent renvoie en échec", () => {
   });
 });
 
-describe("la reprise après une coupure", () => {
-  it("relit le rapport et redessine ce que la machine a fait", async () => {
+describe("resuming after an interruption", () => {
+  it("rereads the report and redraws what the machine did", async () => {
     stubPupitre({
       installReport: () =>
         Promise.resolve({
@@ -596,7 +596,7 @@ describe("la reprise après une coupure", () => {
     });
   });
 
-  it("dit qu'aucune installation n'a encore eu lieu", async () => {
+  it("says no installation has taken place yet", async () => {
     stubPupitre({
       installReport: () =>
         Promise.resolve({
@@ -617,8 +617,8 @@ describe("la reprise après une coupure", () => {
   });
 });
 
-describe("ce que le renderer garde d'une installation", () => {
-  it("n'en garde aucun secret : ni dans l'état, ni dans le journal", async () => {
+describe("what the renderer keeps of an installation", () => {
+  it("keeps no secret of it: neither in the state nor in the journal", async () => {
     const script: InstallUpdate[] = [
       step("db.postgres", "apt", "ok", 4200),
       step("db.postgres", "cluster", "ok", 900),
@@ -647,8 +647,8 @@ describe("ce que le renderer garde d'une installation", () => {
   });
 });
 
-describe("ce que l'installation a touché", () => {
-  it("ne compte rien tant qu'aucun module n'a commencé", async () => {
+describe("what the installation touched", () => {
+  it("counts nothing until a module has started", async () => {
     stubPupitre({
       startInstall: () =>
         Promise.resolve({
@@ -663,7 +663,7 @@ describe("ce que l'installation a touché", () => {
     expect(useInstall.getState().touched()).toBe(false);
   });
 
-  it("ne laisse pas tourner un module dont la dernière étape n'est jamais revenue", async () => {
+  it("does not leave running a module whose last step never came back", async () => {
     agent(
       [
         step("tool.neon", "install-neonctl", "start", 0),
@@ -686,7 +686,7 @@ describe("ce que l'installation a touché", () => {
     expect(useInstall.getState().counts()).toEqual({ done: 1, total: 1 });
   });
 
-  it("donne à un module resté ouvert l'échec que le rapport lui donne", async () => {
+  it("gives a module left open the failure the report gives it", async () => {
     agent([step("exposure.cloudflare", "verify-tunnel", "start", 0)], {
       failed: ["exposure.cloudflare"],
       report_path: REPORT,
@@ -698,7 +698,7 @@ describe("ce que l'installation a touché", () => {
     expect(useInstall.getState().modules[0]?.status).toBe("fail");
   });
 
-  it("compte dès la première étape ouverte", async () => {
+  it("counts from the first open step", async () => {
     agent([step("core.system", "paquets", "start", 0)], {
       failed: [],
       report_path: REPORT,
@@ -711,8 +711,8 @@ describe("ce que l'installation a touché", () => {
   });
 });
 
-describe("une liaison qui revient", () => {
-  it("relit le rapport de ce qui s'est fait sans elle", async () => {
+describe("a link that comes back", () => {
+  it("rereads the report of what was done without it", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -763,8 +763,8 @@ describe("une liaison qui revient", () => {
   });
 });
 
-describe("un agent qui finit sans avoir rien dit", () => {
-  it("ne laisse aucun module en attente une fois le résultat arrivé", async () => {
+describe("an agent that finishes without having said anything", () => {
+  it("leaves no module pending once the result has arrived", async () => {
     agent([], { failed: ["db.mysql"], warned: [], report_path: REPORT });
 
     await useInstall.getState().start(SERVER, ["core.system", "db.mysql"], {});
@@ -779,7 +779,7 @@ describe("un agent qui finit sans avoir rien dit", () => {
   });
 });
 
-describe("un rapport que la machine écrit encore", () => {
+describe("a report the machine is still writing", () => {
   function report(finishedAt: string, steps: readonly string[]) {
     return {
       ok: true as const,
@@ -808,7 +808,7 @@ describe("un rapport que la machine écrit encore", () => {
     };
   }
 
-  it("se relit jusqu'à ce qu'il soit fini, sans se dire terminé avant", async () => {
+  it("is reread until it is finished, without calling itself done before", async () => {
     const answers = [
       report("", ["paquets", "fuseau"]),
       report("", ["paquets", "fuseau"]),
@@ -844,7 +844,7 @@ describe("un rapport que la machine écrit encore", () => {
     expect(useInstall.getState().counts()).toEqual({ done: 1, total: 1 });
   });
 
-  it("suit l'installation qu'un agent occupé mène déjà, au lieu d'échouer", async () => {
+  it("follows the installation a busy agent is already running, instead of failing", async () => {
     const answers = [
       report("", ["paquets"]),
       report("2026-09-04T12:04:00Z", ["paquets", "fuseau"]),
@@ -881,7 +881,7 @@ describe("un rapport que la machine écrit encore", () => {
     ).toEqual(["ok"]);
   });
 
-  it("s'arrête de relire quand l'écran est réinitialisé", async () => {
+  it("stops rereading when the screen is reset", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -904,8 +904,8 @@ describe("un rapport que la machine écrit encore", () => {
   });
 });
 
-describe("l'installation de ce que le catalogue a choisi", () => {
-  it("part avec la sélection, sa configuration et ce qui est remis à plus tard", async () => {
+describe("the installation of what the catalogue chose", () => {
+  it("starts with the selection, its configuration and what is postponed", async () => {
     const { sent } = agent([], { failed: [], warned: [], report_path: REPORT });
 
     useCatalog.setState({

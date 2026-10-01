@@ -20,7 +20,7 @@ function base(): Parameters<typeof buildMimeMessage>[0] {
 }
 
 describe("buildMimeMessage", () => {
-  it("ne laisse pas un References hostile ajouter un en-tête", () => {
+  it("does not let a hostile References add a header", () => {
     const raw = buildMimeMessage({
       ...base(),
       references: "<a@x>\r\nBcc: attaquant@exemple.fr\r\nX-Injecte: oui",
@@ -33,7 +33,7 @@ describe("buildMimeMessage", () => {
     )
   })
 
-  it("ne laisse pas un In-Reply-To hostile ajouter un en-tête", () => {
+  it("does not let a hostile In-Reply-To add a header", () => {
     const raw = buildMimeMessage({
       ...base(),
       inReplyTo: "<racine@x>\r\nBcc: attaquant@exemple.fr",
@@ -45,7 +45,7 @@ describe("buildMimeMessage", () => {
     ).toHaveLength(1)
   })
 
-  it("ne laisse pas un Message-ID hostile ajouter un en-tête", () => {
+  it("does not let a hostile Message-ID add a header", () => {
     const raw = buildMimeMessage({
       ...base(),
       messageId: "<abc@pupitre.studio>\r\nBcc: attaquant@exemple.fr",
@@ -57,7 +57,7 @@ describe("buildMimeMessage", () => {
     ).toHaveLength(1)
   })
 
-  it("reste en multipart/alternative sans pièce jointe", () => {
+  it("stays multipart/alternative without an attachment", () => {
     const raw = buildMimeMessage(base())
 
     expect(headerLines(raw).join("\n")).toContain(
@@ -66,7 +66,7 @@ describe("buildMimeMessage", () => {
     expect(raw).not.toContain("multipart/mixed")
   })
 
-  it("enveloppe le texte et le HTML dans un multipart/mixed avec chaque pièce jointe en base64", () => {
+  it("wraps the text and HTML in a multipart/mixed with each attachment in base64", () => {
     const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0xff])
     const raw = buildMimeMessage({
       ...base(),
@@ -107,7 +107,7 @@ describe("buildMimeMessage", () => {
     expect(parts[4].trim()).toBe("--")
   })
 
-  it("ne laisse pas un nom de pièce jointe hostile fermer le paramètre ni ajouter un en-tête", () => {
+  it("does not let a hostile attachment name close the parameter or add a header", () => {
     const raw = buildMimeMessage({
       ...base(),
       attachments: [
@@ -123,7 +123,7 @@ describe("buildMimeMessage", () => {
     expect(raw).toContain('filename="a.pdfBcc: attaquant@exemple.fr"')
   })
 
-  it("ne laisse pas un type de pièce jointe hostile ajouter un en-tête", () => {
+  it("does not let a hostile attachment type add a header", () => {
     const raw = buildMimeMessage({
       ...base(),
       attachments: [
@@ -139,7 +139,7 @@ describe("buildMimeMessage", () => {
     expect(raw).toContain("Content-Type: application/pdfBcc:")
   })
 
-  it("garde un en-tête légitime tel quel", () => {
+  it("keeps a legitimate header as is", () => {
     const raw = buildMimeMessage({
       ...base(),
       messageId: "<abc@pupitre.studio>",

@@ -81,8 +81,8 @@ const DUMP: FileEntry = {
   size_bytes: 4_200_000,
 };
 
-describe("les gestes d'un service", () => {
-  it("offrent l'arrêt à un service qui tourne, et le démarrage à un service tombé", () => {
+describe("a service's gestures", () => {
+  it("offer a stop to a running service, and a start to a fallen one", () => {
     const running = renderToStaticMarkup(
       <ServiceControls busy={null} detail={POSTGRES} onControl={later} />
     );
@@ -100,7 +100,7 @@ describe("les gestes d'un service", () => {
     expect(text(failed)).toContain("Redémarrer");
   });
 
-  it("mettent en attente le bouton de la commande en vol, et lui seul", () => {
+  it("put the in-flight command's button on hold, and only that one", () => {
     const html = renderToStaticMarkup(
       <ServiceControls
         busy="service.stop"
@@ -114,8 +114,8 @@ describe("les gestes d'un service", () => {
   });
 });
 
-describe("la base de données d'un service", () => {
-  it("liste les dumps du serveur avec leur poids et la base qu'ils nourrissent", () => {
+describe("a service's database", () => {
+  it("lists the server's dumps with their size and the database they feed", () => {
     const html = renderToStaticMarkup(
       <ServiceDatabase
         busy={null}
@@ -141,7 +141,7 @@ describe("la base de données d'un service", () => {
     expect(text(html)).not.toContain("psql");
   });
 
-  it("dit qu'aucun dump n'est là plutôt que de ne rien dire", () => {
+  it("says no dump is there rather than saying nothing", () => {
     const html = renderToStaticMarkup(
       <ServiceDatabase
         busy={null}
@@ -162,7 +162,7 @@ describe("la base de données d'un service", () => {
     expect(text(html)).toContain("Aucun dump dans le dossier du serveur");
   });
 
-  it("confirme une restauration en nommant la base", () => {
+  it("confirms a restore by naming the database", () => {
     const html = renderToStaticMarkup(
       <ServiceDumpRow
         busy={false}
@@ -177,8 +177,8 @@ describe("la base de données d'un service", () => {
   });
 });
 
-describe("les redirections locales", () => {
-  it("se listent dans la barre latérale avec leur adresse et leur fermeture", () => {
+describe("local forwards", () => {
+  it("are listed in the sidebar with their address and their close control", () => {
     const html = renderToStaticMarkup(
       <ForwardsList
         forwards={[FORWARD, { ...FORWARD, id: "f2", movedFrom: 55_000 }]}
@@ -195,7 +195,7 @@ describe("les redirections locales", () => {
     expect(text(html)).toContain("Son port habituel, 55000");
   });
 
-  it("ne dessinent rien quand aucune n'est ouverte", () => {
+  it("draw nothing when none is open", () => {
     expect(
       renderToStaticMarkup(
         <ForwardsList forwards={[]} nameOf={() => null} onClose={later} />
@@ -203,7 +203,7 @@ describe("les redirections locales", () => {
     ).toBe("");
   });
 
-  it("disent sur la fiche du service quand le port habituel a bougé", () => {
+  it("say on the service page when the usual port has moved", () => {
     const html = renderToStaticMarkup(
       <ServiceForward
         forwards={[{ ...FORWARD, movedFrom: 55_000 }]}
@@ -217,8 +217,8 @@ describe("les redirections locales", () => {
   });
 });
 
-describe("la modification d'un serveur", () => {
-  it("porte les trois champs, la note et un enregistrement retenu tant que rien n'a changé", () => {
+describe("editing a server", () => {
+  it("carries the three fields, the note and a save held back while nothing has changed", () => {
     const html = renderToStaticMarkup(
       <ServerRowEdit
         busy={false}
@@ -237,7 +237,7 @@ describe("la modification d'un serveur", () => {
     expect(html).toContain("disabled");
   });
 
-  it("porte le nom SSH du serveur, et dit ce que ssh tapera", () => {
+  it("carries the server's SSH name, and says what ssh will type", () => {
     const html = renderToStaticMarkup(
       <ServerRowEdit
         busy={false}
@@ -253,7 +253,7 @@ describe("la modification d'un serveur", () => {
     expect(text(html)).toContain("ssh atelier-prod");
   });
 
-  it("propose le nom du serveur quand aucun nom SSH n'est posé, sans l'écrire", () => {
+  it("suggests the server name when no SSH name is set, without writing it", () => {
     const html = renderToStaticMarkup(
       <ServerRowEdit
         busy={false}
@@ -268,7 +268,7 @@ describe("la modification d'un serveur", () => {
     expect(text(html)).toContain("ssh atelier");
   });
 
-  it("marque le nom SSH qu'une autre machine porte déjà", () => {
+  it("marks the SSH name another machine already carries", () => {
     const error = {
       code: "bad_request" as const,
       message: "refusal.setup.sshNameTaken",
@@ -291,7 +291,7 @@ describe("la modification d'un serveur", () => {
     expect(text(html)).toContain("désigne déjà une autre machine");
   });
 
-  it("marque le champ que le processus principal a refusé", () => {
+  it("marks the field the main process refused", () => {
     const error = {
       code: "bad_request" as const,
       message: "refusal.setup.port",
@@ -314,8 +314,8 @@ describe("la modification d'un serveur", () => {
   });
 });
 
-describe("la bascule de serveur", () => {
-  it("nomme le serveur piloté et liste les autres avec leur forme", () => {
+describe("the server switch", () => {
+  it("names the driven server and lists the others with their shape", () => {
     const html = renderToStaticMarkup(
       <ServerSwitch
         onActivate={() => undefined}
@@ -331,7 +331,7 @@ describe("la bascule de serveur", () => {
   });
 });
 
-describe("la palette", () => {
+describe("the palette", () => {
   const ENTRIES: PaletteEntry[] = [
     { id: "dashboard", kind: "view", label: "Tableau de bord" },
     {
@@ -342,7 +342,7 @@ describe("la palette", () => {
     },
   ];
 
-  it("est un dialogue qui porte une liste, la première entrée choisie", async () => {
+  it("is a dialog that carries a list, the first entry selected", async () => {
     const view = await mount(
       <CommandPalette
         entries={ENTRIES}
@@ -365,7 +365,7 @@ describe("la palette", () => {
     view.unmount();
   });
 
-  it("ne dessine rien fermée", () => {
+  it("draws nothing when closed", () => {
     expect(
       renderToStaticMarkup(
         <CommandPalette
@@ -379,8 +379,8 @@ describe("la palette", () => {
   });
 });
 
-describe("la fiche des raccourcis", () => {
-  it("liste chaque groupe avec ses touches, écrites pour ce clavier", async () => {
+describe("the shortcuts sheet", () => {
+  it("lists each group with its keys, written for this keyboard", async () => {
     let closed = 0;
     const view = await mount(
       <ShortcutsDialog
@@ -422,8 +422,8 @@ describe("la fiche des raccourcis", () => {
   });
 });
 
-describe("la déconnexion demandée par le menu", () => {
-  it("se confirme dans la fenêtre avant de faire quoi que ce soit", async () => {
+describe("the sign-out requested by the menu", () => {
+  it("is confirmed in the window before doing anything", async () => {
     const view = await mount(
       <SignOutDialog onCancel={() => undefined} onConfirm={later} open />
     );

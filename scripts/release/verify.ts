@@ -1,7 +1,7 @@
 import { FEEDS, feedKey } from "../../apps/desktop/scripts/release-artefacts"
 import { say, variable } from "./cli"
 
-interface Build {
+export interface Build {
   os: string
   arch: string
   format: string
@@ -43,7 +43,7 @@ export function verdictOf(
   return null
 }
 
-async function describedRelease(
+export async function describedRelease(
   platform: string,
   version: string
 ): Promise<Release> {

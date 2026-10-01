@@ -7,8 +7,8 @@ import {
   terminalSettingsOf,
 } from "../terminal-settings";
 
-describe("les réglages du terminal lus sur le disque", () => {
-  it("gardent ce qui est valide et remplacent le reste par le défaut", () => {
+describe("terminal settings read from disk", () => {
+  it("keep what is valid and replace the rest with the default", () => {
     expect(
       terminalSettingsOf({
         cursorBlink: false,
@@ -35,15 +35,15 @@ describe("les réglages du terminal lus sur le disque", () => {
     expect(terminalSettingsOf(undefined)).toEqual(DEFAULT_TERMINAL_SETTINGS);
   });
 
-  it("n'offrent que des polices que le terminal sait mesurer", () => {
+  it("offer only fonts the terminal can measure", () => {
     for (const family of TERMINAL_FONT_FAMILIES) {
       expect(FONT_STACKS[family]).toContain("monospace");
     }
   });
 });
 
-describe("le pas de la taille", () => {
-  it("reste dans ses bornes et revient au défaut sur zéro", () => {
+describe("the size step", () => {
+  it("stays within its bounds and returns to the default on zero", () => {
     expect(steppedFontSize(13, 1)).toBe(14);
     expect(steppedFontSize(24, 1)).toBe(24);
     expect(steppedFontSize(9, -1)).toBe(9);

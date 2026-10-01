@@ -103,7 +103,7 @@ function stubRestricted(
   );
 }
 
-test.describe("serveur en mode restreint", () => {
+test.describe("server in restricted mode", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -116,7 +116,7 @@ test.describe("serveur en mode restreint", () => {
     await running.app.close();
   });
 
-  test("reste lisible et dit pourquoi rien d'autre n'est possible", async () => {
+  test("stays readable and says why nothing else is possible", async () => {
     const { page } = running;
 
     await expect(
@@ -142,14 +142,14 @@ test.describe("serveur en mode restreint", () => {
     await assertAccessible(page, "serveur/restreint");
   });
 
-  test("n'offre pas le ré-enrôlement à un appareil sans compte", async () => {
+  test("does not offer re-enrolment to a device without an account", async () => {
     await expect(
       running.page.getByRole("button", { name: REPAIR })
     ).toBeHidden();
   });
 });
 
-test.describe("réparer un serveur restreint depuis l'app", () => {
+test.describe("repairing a restricted server from the app", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -162,7 +162,7 @@ test.describe("réparer un serveur restreint depuis l'app", () => {
     await running.app.close();
   });
 
-  test("rend le serveur à sa licence sans passer par la console", async () => {
+  test("restores the server's licence without going through the console", async () => {
     const { page } = running;
 
     await expect(

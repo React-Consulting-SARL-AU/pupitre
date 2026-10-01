@@ -96,8 +96,8 @@ function ids(fake: FakeAgent): number[] {
   return fake.trace().map((line) => Number(line.replace(/^id=(\d+).*$/, "$1")));
 }
 
-describe("le canal", () => {
-  it("dit hello tout seul, puis rejoue la transcription", async () => {
+describe("the channel", () => {
+  it("says hello on its own, then replays the transcript", async () => {
     const { agent, fake } = client("hello-then-ping.jsonl");
 
     const ping = await agent.call(SERVER, "ping");
@@ -114,7 +114,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("enchaîne cent snapshot sur un seul processus, sans trou dans les id", async () => {
+  it("chains a hundred snapshots on a single process, with no gap in the ids", async () => {
     const { agent, fake } = client("snapshot-loop.jsonl");
 
     for (let i = 0; i < 100; i += 1) {
@@ -134,7 +134,7 @@ describe("le canal", () => {
     expect(await until(() => fake.live() === 0)).toBe(true);
   });
 
-  it("reprend le flux d'événements après une coupure, rapport à l'appui", async () => {
+  it("resumes the event stream after a drop, backed by the report", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume.jsonl",
@@ -179,7 +179,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("dit la coupure, pas l'absence de rapport, quand l'agent n'en a écrit aucun", async () => {
+  it("reports the drop, not the missing report, when the agent wrote none", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume-none.jsonl",
@@ -211,7 +211,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("suit le rapport tant que la machine travaille encore", async () => {
+  it("follows the report while the machine is still working", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume-running.jsonl",
@@ -242,7 +242,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("rouvre le canal autant de fois qu'il retombe pendant la relecture", async () => {
+  it("reopens the channel as many times as it drops during the re-read", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume-cut-again.jsonl",
@@ -273,7 +273,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("insiste au-delà de la fenêtre de connexion tant que la commande a du temps", async () => {
+  it("keeps trying past the connection window while the command has time", async () => {
     const { agent, fake } = client(
       [
         "install-cut.jsonl",
@@ -294,23 +294,24 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("renonce à l'échéance de la commande, avec ce que ssh a dit en dernier", async () => {
+  it("gives up at the command deadline, with what ssh said last", async () => {
     const { agent } = client(["install-cut.jsonl", "dies-at-hello.jsonl"], {
       backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
       connectMs: 500,
     });
 
+    // Spawning the fake agent alone can take a second on a two-core runner: the budget leaves room for the cut.
     const started = Date.now();
-    const result = await install(agent, [], 1500);
+    const result = await install(agent, [], 4000);
 
     expect(result).toBeInstanceOf(AgentCallError);
     expect((result as AgentCallError).code).toBe("disconnected");
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(Date.now() - started).toBeLessThan(8000);
 
     agent.closeAll();
   });
 
-  it("ne prend pas le rapport d'une installation d'avant pour le sien", async () => {
+  it("does not take the report of an earlier installation for its own", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume-stale.jsonl",
@@ -331,7 +332,7 @@ describe("le canal", () => {
   });
 
   // The previous run's report stays on the machine until this run's configuration is validated.
-  it("refuse un rapport fini quelques minutes avant la demande", async () => {
+  it("refuses a report that finished a few minutes before the request", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
       "install-resume-earlier.jsonl",
@@ -351,7 +352,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("accepte un rapport que l'horloge de la machine date d'un peu avant", async () => {
+  it("accepts a report the machine's clock dates slightly earlier", async () => {
     const { agent } = client([
       "install-cut.jsonl",
       "install-resume-close.jsonl",
@@ -368,7 +369,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("ne rouvre pas un canal que l'app a fermé elle-même", async () => {
+  it("does not reopen a channel the app closed itself", async () => {
     const { agent, fake } = client("install-hangs.jsonl");
 
     const pending = install(agent);
@@ -386,7 +387,7 @@ describe("le canal", () => {
     fake.killAll();
   });
 
-  it("remonte protocol_mismatch et ne rouvre pas le canal", async () => {
+  it("surfaces protocol_mismatch and does not reopen the channel", async () => {
     const { agent, fake } = client("protocol-mismatch.jsonl");
 
     const first = await agent.call(SERVER, "snapshot").catch((e) => e);
@@ -402,7 +403,7 @@ describe("le canal", () => {
   });
 
   // The agent handles one request at a time: a command still running would make the next one time out too.
-  it("coupe la session sur un timeout, et la suivante repart sur une session neuve", async () => {
+  it("cuts the session on a timeout, and the next one starts on a fresh session", async () => {
     const { agent, fake } = client(
       ["snapshot-timeout.jsonl", "snapshot-loop.jsonl"],
       { timeouts: { snapshot: 200 } }
@@ -429,7 +430,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("ne répond plus pour un canal dont le processus est mort", async () => {
+  it("no longer answers for a channel whose process is dead", async () => {
     const { agent, fake } = client("hello-then-ping.jsonl");
 
     await agent.call(SERVER, "ping");
@@ -442,7 +443,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("compte les fermetures d'un serveur, pour ce qui se relit après", async () => {
+  it("counts a server's closures, for what is read again afterwards", async () => {
     const { agent } = client("hello-then-ping.jsonl");
 
     expect(agent.epoch(SERVER)).toBe(0);
@@ -459,7 +460,7 @@ describe("le canal", () => {
     expect(agent.epoch(SERVER)).toBe(2);
   });
 
-  it("installe avec sa ligne de secrets, sans qu'un secret ressorte", async () => {
+  it("installs with its secrets line, without a secret coming back out", async () => {
     const { agent, fake } = client("install-secrets.jsonl");
 
     const events: Event[] = [];
@@ -494,7 +495,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("rend l'enveloppe du protocole à ce qui traverse l'IPC", async () => {
+  it("gives the protocol envelope to what crosses the IPC", async () => {
     const { agent } = client("protocol-mismatch.jsonl");
 
     const response = await agent.request(SERVER, "snapshot");
@@ -514,8 +515,8 @@ describe("le canal", () => {
 });
 
 // A followed journal holds its channel until the reader leaves, while the form beside it must still apply.
-describe("un journal suivi", () => {
-  it("laisse partir un install sans attendre que le lecteur s'en aille", async () => {
+describe("a followed journal", () => {
+  it("lets an install go without waiting for the reader to leave", async () => {
     const { agent, fake } = client([
       "service-logs-follow-held.jsonl",
       "install-secrets.jsonl",
@@ -557,8 +558,8 @@ describe("un journal suivi", () => {
 });
 
 // The agent has no cancel yet: a dropped follow is killed with its channel, and only that channel pays.
-describe("un suivi annulé", () => {
-  it("repart sur un processus neuf, sans que le canal de contrôle paie la reconnexion", async () => {
+describe("a cancelled follow", () => {
+  it("restarts on a fresh process, without the control channel paying for the reconnection", async () => {
     const { agent, fake } = client([
       "ping-loop.jsonl",
       "service-logs-follow-held.jsonl",
@@ -619,7 +620,7 @@ describe("un suivi annulé", () => {
   });
 });
 
-describe("le rapport d'une exécution", () => {
+describe("a run's report", () => {
   const SENT_AT = Date.parse("2026-09-04T12:00:00Z");
   const SKEW_MS = 60_000;
 
@@ -635,7 +636,7 @@ describe("le rapport d'une exécution", () => {
     };
   }
 
-  it("est le sien quand il commence dans la tolérance d'horloge", () => {
+  it("is its own when it starts within the clock tolerance", () => {
     expect(
       reportOfRun(
         report("2026-09-04T11:59:30Z", "2026-09-04T12:02:00Z"),
@@ -648,7 +649,7 @@ describe("le rapport d'une exécution", () => {
     ).toBe(true);
   });
 
-  it("est celui d'une autre exécution quand il a commencé avant", () => {
+  it("belongs to another run when it started before", () => {
     expect(
       reportOfRun(
         report("2026-09-04T11:58:00Z", "2026-09-04T12:01:00Z"),
@@ -658,15 +659,15 @@ describe("le rapport d'une exécution", () => {
     ).toBe(false);
   });
 
-  it("est celui d'une autre exécution quand il a fini avant, quoi que dise son début", () => {
+  it("belongs to another run when it finished before, whatever its start says", () => {
     expect(
       reportOfRun(report("", "2026-09-04T11:58:00Z"), SENT_AT, SKEW_MS)
     ).toBe(false);
   });
 });
 
-describe("la détection d'un projet", () => {
-  it("prend le délai d'une commande longue, pas le délai standard", () => {
+describe("project detection", () => {
+  it("takes a long command's timeout, not the standard one", () => {
     expect(defaultTimeout("project.detect")).toBe(
       defaultTimeout("project.add")
     );
@@ -675,7 +676,7 @@ describe("la détection d'un projet", () => {
     );
   });
 
-  it("passe par le canal de travail, laissant les lectures libres", async () => {
+  it("goes through the work channel, leaving reads free", async () => {
     const { agent, fake } = client([
       "project-detect-control.jsonl",
       "project-detect-work.jsonl",
@@ -696,8 +697,8 @@ describe("la détection d'un projet", () => {
 });
 
 // A timer read holds its channel for most of a second: a gesture meanwhile must not sit behind it.
-describe("une lecture sur minuterie", () => {
-  it("passe par le canal du battement, laissant un geste partir tout de suite", async () => {
+describe("a timer read", () => {
+  it("goes through the beat channel, letting a gesture leave right away", async () => {
     const { agent, fake } = client([
       "snapshot-loop.jsonl",
       "hello-then-ping.jsonl",
@@ -727,7 +728,7 @@ describe("une lecture sur minuterie", () => {
     agent.closeAll();
   });
 
-  it("suffit à dire ce que hello a répondu, avant tout geste", async () => {
+  it("is enough to tell what hello answered, before any gesture", async () => {
     const { agent, fake } = client("snapshot-loop.jsonl");
 
     expect(agent.session(SERVER)).toBeNull();
@@ -741,8 +742,8 @@ describe("une lecture sur minuterie", () => {
   });
 });
 
-describe("une commande qui attend son tour", () => {
-  it("le dit à qui l'a demandée, et pas à celle qui part tout de suite", async () => {
+describe("a command waiting its turn", () => {
+  it("tells whoever asked for it, and not the one that leaves right away", async () => {
     const { agent } = client("snapshot-loop.jsonl");
     const queued: string[] = [];
 
@@ -768,7 +769,7 @@ describe("une commande qui attend son tour", () => {
   });
 });
 
-describe("ce que la fenêtre apprend du lien", () => {
+describe("what the window learns about the link", () => {
   function watched(): {
     changes: string[];
     onChannel: NonNullable<AgentClientOptions["onChannel"]>;
@@ -781,7 +782,7 @@ describe("ce que la fenêtre apprend du lien", () => {
     };
   }
 
-  it("n'annonce aucune perte pour un canal qui n'a jamais répondu", async () => {
+  it("announces no loss for a channel that never answered", async () => {
     const seen = watched();
     const agent = createAgentClient({
       spawn: (() =>
@@ -801,7 +802,7 @@ describe("ce que la fenêtre apprend du lien", () => {
     agent.closeAll();
   });
 
-  it("annonce la perte d'un canal qui, lui, était ouvert", async () => {
+  it("announces the loss of a channel that was open", async () => {
     const seen = watched();
     const fake = fakeAgent(["install-cut.jsonl", "install-resume.jsonl"]);
     const agent = createAgentClient({
@@ -834,7 +835,7 @@ describe("ce que la fenêtre apprend du lien", () => {
     fake.killAll();
   });
 
-  it("ne dit pas perdu ce que l'app a fermé elle-même", async () => {
+  it("does not report as lost what the app closed itself", async () => {
     const seen = watched();
     const fake = fakeAgent("hello-then-ping.jsonl");
     const agent = createAgentClient({
@@ -854,7 +855,7 @@ describe("ce que la fenêtre apprend du lien", () => {
   });
 });
 
-describe("un canal qui refuse de s'ouvrir", () => {
+describe("a channel that refuses to open", () => {
   /** `ssh` exits with 255: neither the machine nor the agent was reached. */
   function refusesToOpen(complaint = ""): AgentClientOptions["spawn"] {
     const script = complaint ? `echo '${complaint}' >&2; exit 255` : "exit 255";
@@ -863,7 +864,7 @@ describe("un canal qui refuse de s'ouvrir", () => {
       spawnChild("sh", ["-c", script], { stdio: ["pipe", "pipe", "pipe"] });
   }
 
-  it("rend un refus au lieu de tenir l'écran, quel que soit le délai de la commande", async () => {
+  it("returns a refusal instead of holding the screen, whatever the command timeout", async () => {
     const agent = createAgentClient({
       spawn: refusesToOpen(),
       backoff: { firstMs: 60_000, maxMs: 60_000, attempts: 4 },
@@ -883,7 +884,7 @@ describe("un canal qui refuse de s'ouvrir", () => {
     agent.closeAll();
   });
 
-  it("dit ce que ssh a dit, plutôt que de laisser deviner", async () => {
+  it("says what ssh said, rather than leaving it to guesswork", async () => {
     const agent = createAgentClient({
       spawn: refusesToOpen("Could not resolve hostname pupitre-srv-mtq9rxgr"),
       backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
@@ -911,23 +912,23 @@ describe("un canal qui refuse de s'ouvrir", () => {
   });
 });
 
-describe("la commande serve selon le compte", () => {
+describe("the serve command by account", () => {
   // As dev, a bare serve cannot read the 0600 root token and answers license_required to everything.
-  it("passe par sudo pour un compte non-root", () => {
+  it("goes through sudo for a non-root account", () => {
     expect(serveAs("dev")).toBe("sudo -n pupitred serve");
     expect(serveAs("deploy")).toBe("sudo -n pupitred serve");
   });
 
-  it("n'ajoute pas sudo pour root, qui n'en a pas besoin", () => {
+  it("does not add sudo for root, which does not need it", () => {
     expect(serveAs("root")).toBe("pupitred serve");
   });
 
-  it("ouvre la session privilégiée directement en root", () => {
+  it("opens the privileged session directly as root", () => {
     expect(privilegedServeAs("root")).toBe("pupitred serve --privileged");
   });
 
   // Under a passwordless sudo rule the password line would reach pupitred as a request.
-  it("fait lire le mot de passe par sudo, et par le shell quand sudo n'en veut pas", () => {
+  it("has sudo read the password, and the shell when sudo does not want it", () => {
     const command = privilegedServeAs("dev");
 
     expect(command).toContain("sudo -n true");
@@ -941,7 +942,7 @@ describe("la commande serve selon le compte", () => {
   });
 });
 
-describe("le canal privilégié", () => {
+describe("the privileged channel", () => {
   function echoClient(options: Partial<AgentClientOptions> = {}): {
     agent: AgentClient;
     echo: EchoAgent;
@@ -957,7 +958,7 @@ describe("le canal privilégié", () => {
     return { agent, echo };
   }
 
-  it("porte ce que le contrat garde pour --privileged, et le reste sur les canaux sans mot de passe", async () => {
+  it("carries what the contract reserves for --privileged, and the rest on the passwordless channels", async () => {
     const { agent, echo } = echoClient();
 
     await agent.call(SERVER, "snapshot", undefined, { polled: true });
@@ -989,7 +990,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  it("mène un geste de lecture sur le canal privilégié quand l'appelant le demande", async () => {
+  it("runs a read gesture on the privileged channel when the caller asks", async () => {
     const { agent, echo } = echoClient();
 
     await agent.call(SERVER, "ping", undefined, { privileged: true });
@@ -999,7 +1000,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  it("se ferme une fois oisif, sans annoncer une coupure, et se rouvre au geste suivant", async () => {
+  it("closes once idle, without announcing a drop, and reopens on the next gesture", async () => {
     const changes: string[] = [];
     const { agent, echo } = echoClient({
       idleMs: 20,
@@ -1017,7 +1018,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  it("ne se ferme pas tant que la session sans mot de passe reste ouverte à côté", async () => {
+  it("does not close while the passwordless session stays open beside it", async () => {
     const { agent, echo } = echoClient({ idleMs: 20 });
 
     await agent.call(SERVER, "snapshot");
@@ -1029,7 +1030,7 @@ describe("le canal privilégié", () => {
   });
 
   // A second sudo prompt means the password was refused and the hello is being read as the next attempt.
-  it("coupe au second prompt de sudo et le dit, sans rejouer le même mot de passe", async () => {
+  it("cuts at the second sudo prompt and says so, without replaying the same password", async () => {
     const opened: ReturnType<typeof scripted>[] = [];
     const agent = createAgentClient({
       spawn: () => {
@@ -1072,7 +1073,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  it("dit que cet ordinateur ne tient pas le mot de passe quand il n'en avait aucun", async () => {
+  it("says this computer does not hold the password when it had none", async () => {
     const { agent, ssh } = scriptedClient({ sudoHeld: () => false });
 
     const answer = agent.request(SERVER, "reboot");
@@ -1091,7 +1092,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  it("n'écoute pas le prompt de sudo sur un canal sans mot de passe", async () => {
+  it("does not listen for the sudo prompt on a passwordless channel", async () => {
     const { agent, ssh } = scriptedClient();
 
     const answer = agent.request(SERVER, "ping");
@@ -1108,8 +1109,8 @@ describe("le canal privilégié", () => {
   });
 });
 
-describe("le mot de passe d'un canal ssh privilégié", () => {
-  it("part sur la première ligne, avant hello", async () => {
+describe("a privileged ssh channel's password", () => {
+  it("goes on the first line, before hello", async () => {
     const written: string[] = [];
     const spawn = sshSpawn(
       (_serverId, purpose) =>
@@ -1141,9 +1142,9 @@ describe("le mot de passe d'un canal ssh privilégié", () => {
   });
 });
 
-describe("le serveur d'un canal", () => {
+describe("a channel's server", () => {
   // Falling back to the active machine would run on it what was meant for the one that disappeared.
-  it("ne se rabat sur aucune autre quand elle est inconnue", async () => {
+  it("falls back to no other when it is unknown", async () => {
     const agent = createAgentClient({
       spawn: sshSpawn((serverId) => {
         if (serverId === "connu") {
@@ -1169,7 +1170,7 @@ describe("le serveur d'un canal", () => {
   });
 });
 
-describe("un ssh qui meurt vite", () => {
+describe("an ssh that dies quickly", () => {
   // Node emits `exit` before the streams are flushed at `close`: keying on `exit` lost ssh's complaint.
   function dyingProcess(): { child: EventEmitter; stderr: EventEmitter } {
     const stderr = new EventEmitter() as EventEmitter & {
@@ -1193,7 +1194,7 @@ describe("un ssh qui meurt vite", () => {
     return { child, stderr };
   }
 
-  it("dit quand même ce qu'il avait à dire", async () => {
+  it("still says what it had to say", async () => {
     const dying = dyingProcess();
     const agent = createAgentClient({
       spawn: (() => {
@@ -1324,8 +1325,8 @@ async function untilWritten(
   expect(await until(() => ssh.written.length >= count)).toBe(true);
 }
 
-describe("le message d'une étape", () => {
-  it("traverse en direct, tel que l'agent l'a écrit", async () => {
+describe("a step's message", () => {
+  it("crosses live, as the agent wrote it", async () => {
     const { agent } = client("install-fail-message.jsonl");
     const failed: Event[] = [];
 
@@ -1350,7 +1351,7 @@ describe("le message d'une étape", () => {
     agent.closeAll();
   });
 
-  it("survit au rejeu depuis le rapport, après une coupure", async () => {
+  it("survives the replay from the report, after a drop", async () => {
     const { agent } = client([
       "install-fail-message-cut.jsonl",
       "install-fail-message-resume.jsonl",
@@ -1382,8 +1383,8 @@ describe("le message d'une étape", () => {
   });
 });
 
-describe("les capacités de l'agent", () => {
-  it("refusent une commande que le hello n'a pas déclarée, sans l'envoyer", async () => {
+describe("the agent's capabilities", () => {
+  it("refuse a command the hello did not declare, without sending it", async () => {
     const { agent, fake } = client("hello-reduced.jsonl", {
       appVersion: "0.1.0",
     });
@@ -1408,8 +1409,8 @@ describe("les capacités de l'agent", () => {
   });
 });
 
-describe("la robustesse du canal", () => {
-  it("compte le délai du hello depuis le premier octet, pas depuis le spawn", async () => {
+describe("channel robustness", () => {
+  it("counts the hello timeout from the first byte, not from the spawn", async () => {
     const { agent, ssh } = scriptedClient({
       connectMs: 1000,
       timeouts: { hello: 40 },
@@ -1428,7 +1429,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("borne quand même un ssh qui ne dit jamais rien", async () => {
+  it("still bounds an ssh that never says anything", async () => {
     const { agent } = scriptedClient({
       connectMs: 60,
       timeouts: { hello: 60_000 },
@@ -1443,7 +1444,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("rend un refus quand le tuyau casse, plutôt que de tuer le processus", async () => {
+  it("returns a refusal when the pipe breaks, rather than killing the process", async () => {
     const { agent, ssh } = scriptedClient();
 
     const answer = agent.request(SERVER, "ping");
@@ -1465,7 +1466,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("coupe un canal qui déverse sans jamais finir sa ligne", async () => {
+  it("cuts a channel that floods without ever finishing its line", async () => {
     const { agent, ssh } = scriptedClient();
 
     const answer = agent.request(SERVER, "ping");
@@ -1486,7 +1487,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("se laisse annuler par qui a lancé la commande, et coupe l'agent", async () => {
+  it("can be cancelled by whoever launched the command, and cuts the agent", async () => {
     const { agent, ssh } = scriptedClient();
     const control = new AbortController();
 
@@ -1517,7 +1518,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("ne part même pas quand le signal est déjà levé", async () => {
+  it("does not even start when the signal is already raised", async () => {
     const { agent, ssh } = scriptedClient();
     const control = new AbortController();
 
@@ -1533,7 +1534,7 @@ describe("la robustesse du canal", () => {
     agent.closeAll();
   });
 
-  it("ne part pas non plus quand le signal est levé pendant que le canal s'ouvre", async () => {
+  it("does not start either when the signal is raised while the channel opens", async () => {
     const { agent, ssh } = scriptedClient();
     const control = new AbortController();
 
@@ -1574,8 +1575,8 @@ describe("la robustesse du canal", () => {
   });
 });
 
-describe("la forme des réponses, en développement", () => {
-  it("trace un résultat que le contrat ne décrit pas, sans faire échouer l'appel", async () => {
+describe("the shape of responses, in development", () => {
+  it("traces a result the contract does not describe, without failing the call", async () => {
     const entries: TraceEntry[] = [];
     const { agent, ssh } = scriptedClient({ validateResults: true });
 
@@ -1606,8 +1607,8 @@ describe("la forme des réponses, en développement", () => {
   });
 });
 
-describe("la forme des réponses qui deviennent une ligne de commande", () => {
-  it("refuse, dans tous les builds, un résultat hors contrat avant qu'il n'atteigne le pty", async () => {
+describe("the shape of responses that become a command line", () => {
+  it("refuses, in every build, an out-of-contract result before it reaches the pty", async () => {
     const { agent, ssh } = scriptedClient({
       enforcedResults: new Set(["snapshot"]),
     });
@@ -1632,7 +1633,7 @@ describe("la forme des réponses qui deviennent une ligne de commande", () => {
     agent.closeAll();
   });
 
-  it("laisse passer ce qui a la forme du contrat", async () => {
+  it("lets through what has the contract's shape", async () => {
     const { agent } = client("db-shell-control.jsonl", {
       enforcedResults: new Set(["db.shell"]),
     });

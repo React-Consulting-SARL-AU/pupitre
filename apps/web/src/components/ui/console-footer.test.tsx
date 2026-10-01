@@ -77,7 +77,7 @@ afterEach(() => {
 })
 
 describe("ConsoleFooter", () => {
-  it("nomme ses deux icônes dans une infobulle", async () => {
+  it("names its two icons in a tooltip", async () => {
     const { client } = prepare()
     const { container, unmount } = await render(footer(client))
 
@@ -90,7 +90,7 @@ describe("ConsoleFooter", () => {
     expect(titles).toEqual(["Thème", "Langue"])
   })
 
-  it("met la langue du compte à jour quand le lecteur est connecté", async () => {
+  it("updates the account language when the reader is signed in", async () => {
     const { recorder, client } = prepare()
 
     client.setQueryData(queryKeys.me, SIGNED_IN)
@@ -102,7 +102,7 @@ describe("ConsoleFooter", () => {
     expect(document.documentElement.lang).toBe("en")
   })
 
-  it("n'appelle aucune route quand personne n'est connecté", async () => {
+  it("calls no route when nobody is signed in", async () => {
     const { recorder, client } = prepare()
 
     await switchToEnglish(client)

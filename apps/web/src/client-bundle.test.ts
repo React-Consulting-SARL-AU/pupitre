@@ -46,14 +46,14 @@ function build(): void {
   }
 }
 
-describe("le bundle client", () => {
+describe("the client bundle", () => {
   beforeAll(build, BUILD_TIMEOUT_MS)
 
-  it("sort bien du build", () => {
+  it("comes out of the build", () => {
     expect(chunks(CLIENT_DIR).length).toBeGreaterThan(CHUNKS_AT_LEAST)
   })
 
-  it("ne contient aucun module serveur", () => {
+  it("contains no server module", () => {
     const offenders: string[] = []
 
     for (const file of chunks(CLIENT_DIR)) {
@@ -69,7 +69,7 @@ describe("le bundle client", () => {
     expect(offenders).toEqual([])
   })
 
-  it("cherche des traces que le bundle serveur porte vraiment", () => {
+  it("looks for traces that the server bundle really carries", () => {
     const server = chunks(SERVER_DIR).map((file) => readFileSync(file, "utf8"))
     const unseen = SERVER_ONLY.filter(
       ({ re }) => !server.some((code) => re.test(code))

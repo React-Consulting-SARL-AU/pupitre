@@ -9,8 +9,8 @@ import {
 
 const HASH = new RegExp(SUDO_PASSWORD_HASH_PATTERN);
 
-describe("l'empreinte SHA-512 crypt du mot de passe sudo", () => {
-  it("rend ce que rendent glibc et openssl passwd -6", () => {
+describe("the SHA-512 crypt hash of the sudo password", () => {
+  it("returns what glibc and openssl passwd -6 return", () => {
     expect(sha512Crypt("Hello world!", "saltstring")).toBe(
       "$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1"
     );
@@ -27,7 +27,7 @@ describe("l'empreinte SHA-512 crypt du mot de passe sudo", () => {
     );
   });
 
-  it("tire un sel neuf à chaque fois et reste une empreinte que l'agent accepte", () => {
+  it("draws a fresh salt each time and remains a hash the agent accepts", () => {
     const first = hashSudoPassword("k7mp-q2xw-9hdt-3vzc-u8fa-6rne");
     const second = hashSudoPassword("k7mp-q2xw-9hdt-3vzc-u8fa-6rne");
 
@@ -38,8 +38,8 @@ describe("l'empreinte SHA-512 crypt du mot de passe sudo", () => {
   });
 });
 
-describe("le mot de passe sudo tiré sur l'ordinateur", () => {
-  it("tient en six groupes de quatre, sans caractère qu'on confond", () => {
+describe("the sudo password generated on the computer", () => {
+  it("is six groups of four, with no easily confused characters", () => {
     const password = drawSudoPassword();
 
     expect(password).toMatch(
@@ -47,7 +47,7 @@ describe("le mot de passe sudo tiré sur l'ordinateur", () => {
     );
   });
 
-  it("tire chaque caractère du hasard qu'on lui donne", () => {
+  it("draws each character from the randomness it is given", () => {
     let next = 0;
     const password = drawSudoPassword((max) => {
       next += 1;
@@ -58,7 +58,7 @@ describe("le mot de passe sudo tiré sur l'ordinateur", () => {
     expect(password).toBe("2345-6789-abcd-efgh-jkmn-pqrs");
   });
 
-  it("ne se répète pas", () => {
+  it("does not repeat itself", () => {
     const drawn = new Set(Array.from({ length: 50 }, () => drawSudoPassword()));
 
     expect(drawn.size).toBe(50);

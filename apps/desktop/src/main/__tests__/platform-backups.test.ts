@@ -57,8 +57,8 @@ const BACKUP = {
   trigger: "schedule",
 };
 
-describe("les sauvegardes sur la plateforme", () => {
-  it("liste celles de l'organisation, puis celles d'un serveur", async () => {
+describe("backups on the platform", () => {
+  it("lists the organization's, then a server's", async () => {
     const { platform, seen } = recording({ data: [BACKUP] });
 
     const all = await platform.backups("jeton");
@@ -72,7 +72,7 @@ describe("les sauvegardes sur la plateforme", () => {
     ]);
   });
 
-  it("refuse une liste qu'elle ne sait pas lire plutôt que de la croire", async () => {
+  it("refuses a list it cannot read rather than trusting it", async () => {
     const { platform } = recording({ data: [{ id: "b-1" }] });
 
     const all = await platform.backups("jeton");
@@ -83,7 +83,7 @@ describe("les sauvegardes sur la plateforme", () => {
     });
   });
 
-  it("note une restauration avec le serveur qui l'a reçue", async () => {
+  it("records a restore with the server that received it", async () => {
     const { platform, seen } = recording(null, 204);
 
     const answer = await platform.backupRestored(

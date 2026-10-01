@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test"
 import { COMMAND_NAMES, type CommandName } from "./index"
 import { COMMAND_TIMEOUTS_MS, DEFAULT_TIMEOUT_MS, timeoutOf } from "./timeouts"
 
-describe("les délais des commandes", () => {
-  it("ne nomment que des commandes du contrat", () => {
+describe("command timeouts", () => {
+  it("name only commands of the contract", () => {
     const named = Object.keys(COMMAND_TIMEOUTS_MS) as CommandName[]
 
     for (const cmd of named) {
@@ -11,11 +11,11 @@ describe("les délais des commandes", () => {
     }
   })
 
-  it("donnent le défaut à ce qu'ils ne nomment pas", () => {
+  it("give the default to what they do not name", () => {
     expect(timeoutOf("doctor")).toBe(DEFAULT_TIMEOUT_MS)
   })
 
-  it("laissent une installation aller au bout d'un miroir lent", () => {
+  it("let an installation run to the end of a slow mirror", () => {
     expect(timeoutOf("install")).toBeGreaterThan(timeoutOf("snapshot"))
     expect(timeoutOf("harden")).toBe(timeoutOf("install"))
   })

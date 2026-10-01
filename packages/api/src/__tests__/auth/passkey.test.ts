@@ -87,7 +87,7 @@ describe("passkeys", () => {
     await resetDb()
   })
 
-  it("enregistre une passkey depuis une session et la liste", async () => {
+  it("registers a passkey from a session and lists it", async () => {
     const { session } = await signedInUser("ada@test.local")
     const { passkey } = await registerPasskey(session)
 
@@ -105,7 +105,7 @@ describe("passkeys", () => {
     expect(listed.json.map((row) => row.id)).toEqual([passkey.id])
   })
 
-  it("connecte sans lien magique une fois la passkey enregistrée", async () => {
+  it("signs in without a magic link once the passkey is registered", async () => {
     const { user, session } = await signedInUser("grace@test.local")
     const { authenticator } = await registerPasskey(session)
     const { sentEmails } = await bootApiTestServer()
@@ -128,7 +128,7 @@ describe("passkeys", () => {
     expect(me.json.user.id).toBe(user.id)
   })
 
-  it("refuse une signature falsifiée", async () => {
+  it("refuses a forged signature", async () => {
     const { session } = await signedInUser("hopper@test.local")
     const { authenticator } = await registerPasskey(session)
 
@@ -143,7 +143,7 @@ describe("passkeys", () => {
     expect(forged.status).toBeGreaterThanOrEqual(400)
   })
 
-  it("refuse d'enregistrer une passkey sans session", async () => {
+  it("refuses to register a passkey without a session", async () => {
     const options = await authRequest(
       "GET",
       "/passkey/generate-register-options"
@@ -152,7 +152,7 @@ describe("passkeys", () => {
     expect(options.status).toBe(401)
   })
 
-  it("révoque une passkey, qui ne connecte plus", async () => {
+  it("revokes a passkey, which no longer signs in", async () => {
     const { session } = await signedInUser("turing@test.local")
     const { authenticator, passkey } = await registerPasskey(session)
 
@@ -179,7 +179,7 @@ describe("passkeys", () => {
     expect(signedIn.status).toBeGreaterThanOrEqual(400)
   })
 
-  it("ne montre pas la passkey d'une autre personne", async () => {
+  it("does not show another person's passkey", async () => {
     const { session } = await signedInUser("ada@test.local")
 
     await registerPasskey(session)

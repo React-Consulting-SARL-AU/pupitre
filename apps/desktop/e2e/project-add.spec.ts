@@ -29,7 +29,7 @@ const REPOS = [
   },
 ];
 
-test.describe("nouveau projet", () => {
+test.describe("new project", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -137,10 +137,10 @@ test.describe("nouveau projet", () => {
     await running.app.close();
   });
 
-  test("mène un dépôt du compte GitHub jusqu'à un projet en ligne", async () => {
+  test("takes a repository from the GitHub account to a live project", async () => {
     const { page } = running;
 
-    await test.step("le tableau de bord offre le geste", async () => {
+    await test.step("the dashboard offers the gesture", async () => {
       await page
         .getByRole("button", { name: "Ajouter un projet" })
         .first()
@@ -154,11 +154,11 @@ test.describe("nouveau projet", () => {
       ).toBeVisible();
     });
 
-    await test.step("l'accessibilité du formulaire tient", async () => {
+    await test.step("the form passes the accessibility check", async () => {
       await assertAccessible(page, "projects/add");
     });
 
-    await test.step("la source seule se demande d'abord, et rien ne se lit avant qu'on le demande", async () => {
+    await test.step("the source alone is asked for first, and nothing is read until asked", async () => {
       await expect(
         page.getByRole("button", { name: "Lire le dépôt" })
       ).toBeDisabled();
@@ -173,7 +173,7 @@ test.describe("nouveau projet", () => {
       await expect(page.locator("#project\\.name")).toHaveCount(0);
     });
 
-    await test.step("la lecture du dépôt ouvre la configuration sur ce qu'elle a trouvé", async () => {
+    await test.step("reading the repository opens the configuration on what it found", async () => {
       await page.getByRole("button", { name: "Lire le dépôt" }).click();
 
       await expect(page.locator('[data-step="config"]')).toBeVisible();
@@ -196,7 +196,7 @@ test.describe("nouveau projet", () => {
       );
     });
 
-    await test.step("un dépôt à point propose un sous-domaine valide", async () => {
+    await test.step("a repository with a dot proposes a valid subdomain", async () => {
       await page.getByRole("button", { name: "Modifier la source" }).click();
 
       await expect(page.locator('[data-step="source"]')).toBeVisible();
@@ -223,7 +223,7 @@ test.describe("nouveau projet", () => {
       ).toHaveValue("my-site");
     });
 
-    await test.step("un sous-domaine refusé se lit sous le champ", async () => {
+    await test.step("a refused subdomain is read under the field", async () => {
       await page
         .locator("#project\\.processes\\.0\\.ports\\.0\\.web")
         .fill("-mon.site-");
@@ -247,7 +247,7 @@ test.describe("nouveau projet", () => {
       ).toBeEnabled();
     });
 
-    await test.step("le dépôt choisi est celui qu'on crée", async () => {
+    await test.step("the chosen repository is the one that gets created", async () => {
       await page.getByRole("button", { name: "Modifier la source" }).click();
       await page.getByRole("button", { name: "Changer de dépôt" }).click();
       await page.locator("#project\\.repoFilter").fill("atlas");
@@ -263,7 +263,7 @@ test.describe("nouveau projet", () => {
       ).toHaveValue("atlas-web");
     });
 
-    await test.step("un second port se déclare, et se publie ou non", async () => {
+    await test.step("a second port is declared, and published or not", async () => {
       await page.getByRole("button", { name: "Ajouter un port" }).click();
 
       await expect(
@@ -284,7 +284,7 @@ test.describe("nouveau projet", () => {
       await assertAccessible(page, "projects/add-ports");
     });
 
-    await test.step("chaque phase dit ce qu'elle a fait", async () => {
+    await test.step("each phase says what it did", async () => {
       await page.getByRole("button", { name: "Créer le projet" }).click();
 
       await expect(
@@ -326,7 +326,7 @@ test.describe("nouveau projet", () => {
       });
     });
 
-    await test.step("le projet s'ouvre sur sa page", async () => {
+    await test.step("the project opens on its page", async () => {
       await page.getByRole("button", { name: "Ouvrir le projet" }).click();
 
       await expect(

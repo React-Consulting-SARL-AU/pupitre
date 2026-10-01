@@ -70,14 +70,14 @@ function floorOf(floors: Floors, surface: string): number {
   return surface === RAISED ? floors.onRaised : floors.onText
 }
 
-describe("le contraste des tokens", () => {
-  it("mesure la formule WCAG sur les deux extrêmes", () => {
+describe("token contrast", () => {
+  it("measures the WCAG formula on the two extremes", () => {
     expect(contrast("#000000", "#ffffff")).toBeCloseTo(21, 1)
     expect(contrast("#ffffff", "#ffffff")).toBeCloseTo(1, 5)
   })
 
   for (const [theme, colors] of Object.entries(THEMES)) {
-    it(`thème ${theme} : chaque encre tient son plancher`, () => {
+    it(`${theme} theme: each ink holds its floor`, () => {
       const short: string[] = []
 
       for (const [ink, floors] of Object.entries(INK_FLOORS)) {
@@ -101,7 +101,7 @@ describe("le contraste des tokens", () => {
       expect(short).toEqual([])
     })
 
-    it(`thème ${theme} : l'encre inversée se lit sur le bouton principal`, () => {
+    it(`${theme} theme: the inverse ink reads on the primary button`, () => {
       expect(
         contrast(colors["inverse-ink"], colors.inverse)
       ).toBeGreaterThanOrEqual(READABLE)

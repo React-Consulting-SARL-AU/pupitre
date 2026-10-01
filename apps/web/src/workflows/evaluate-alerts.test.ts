@@ -32,7 +32,7 @@ async function unreachableServer(): Promise<string> {
   return server.id
 }
 
-describe("le workflow EvaluateAlerts", () => {
+describe("the EvaluateAlerts workflow", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -41,7 +41,7 @@ describe("le workflow EvaluateAlerts", () => {
     await resetDb()
   })
 
-  it("appelle evaluateAlerts dans une étape nommée", async () => {
+  it("calls evaluateAlerts in a named step", async () => {
     const serverId = await unreachableServer()
     const recorder = recordSteps()
 

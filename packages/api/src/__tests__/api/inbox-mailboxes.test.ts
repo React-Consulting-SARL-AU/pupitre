@@ -89,7 +89,7 @@ function ingest(input: Parameters<typeof eml>[0] = {}) {
   })
 }
 
-describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
+describe("/admin/inbox — mailboxes, notes, drafts and batches", () => {
   let mail: ReturnType<typeof useFakeMail>
   let owner: { session: Session; userId: string }
   let member: { session: Session; userId: string }
@@ -130,7 +130,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     }
   })
 
-  it("liste les quatre boîtes avec leurs compteurs", async () => {
+  it("lists the four mailboxes with their counters", async () => {
     await ingest({})
 
     const response = await apiRequest<{ data: MailboxRow[] }>(
@@ -154,7 +154,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ).toBe(true)
   })
 
-  it("ouvre une boîte sur la partie locale et lui rattache les fils déjà reçus", async () => {
+  it("opens a mailbox on the local part and attaches the threads already received", async () => {
     const orphan = await ingest({ to: "jordan@pupitre.studio" })
     const created = await apiRequest<{ data: MailboxRow }>(
       "/admin/inbox/mailboxes",
@@ -179,7 +179,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(event?.action).toBe("mail.mailbox_created")
   })
 
-  it("refuse une adresse hors du domaine et une adresse déjà prise", async () => {
+  it("refuses an address outside the domain and an address already taken", async () => {
     const outside = await apiRequest<{ error: { code: string; fix: string } }>(
       "/admin/inbox/mailboxes",
       {
@@ -201,7 +201,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(taken.json.error.code).toBe("conflict")
   })
 
-  it("protège les quatre boîtes légales et refuse de supprimer une boîte qui porte un fil", async () => {
+  it("protects the four legal mailboxes and refuses to delete a mailbox that holds a thread", async () => {
     await ingest({})
 
     const created = await apiRequest<{ data: MailboxRow }>(
@@ -225,7 +225,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(empty.status).toBe(204)
   })
 
-  it("refuse la suppression d'une boîte encore pleine, et dit de la désactiver", async () => {
+  it("refuses deleting a mailbox that is still full, and says to deactivate it", async () => {
     const created = await apiRequest<{ data: MailboxRow }>(
       "/admin/inbox/mailboxes",
       {
@@ -245,7 +245,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(refused.json.error.fix).toContain("Désactivez-la")
   })
 
-  it("ferme la réponse d'une boîte désactivée", async () => {
+  it("closes replying from a deactivated mailbox", async () => {
     const stored = await ingest({})
 
     await apiRequest(`/admin/inbox/mailboxes/${PLATFORM_MAILBOX_IDS.support}`, {
@@ -264,7 +264,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("refuse de répondre sur un fil qu'aucune boîte ne déclare, et dit laquelle créer", async () => {
+  it("refuses to reply on a thread that no mailbox declares, and says which one to create", async () => {
     const orphan = await ingest({ to: "jordan@pupitre.studio" })
     const refused = await apiRequest<{ error: { code: string; fix: string } }>(
       `/admin/inbox/threads/${orphan.threadId}/reply`,
@@ -275,7 +275,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(refused.json.error.fix).toContain("jordan@pupitre.studio")
   })
 
-  it("compte les non-lus par boîte et hors boîte", async () => {
+  it("counts unread per mailbox and outside any mailbox", async () => {
     await ingest({})
     await ingest({ to: "jordan@pupitre.studio", subject: "Hors boîte" })
 
@@ -293,7 +293,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ).toBe(1)
   })
 
-  it("compte les fils hors boîte même lus et fermés, pour que le rail les montre", async () => {
+  it("counts threads outside any mailbox even when read and closed, so the rail shows them", async () => {
     const stored = await ingest({
       to: "jordan@pupitre.studio",
       subject: "Hors boîte",
@@ -317,7 +317,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     })
   })
 
-  it("filtre par boîte, par « autres », et écarte les automatiques par défaut", async () => {
+  it('filters by mailbox, by "others", and drops automatic ones by default', async () => {
     await ingest({})
     await ingest({ to: "jordan@pupitre.studio", subject: "Hors boîte" })
     await ingest({
@@ -346,7 +346,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(automated.json.data[0].automated).toBe(true)
   })
 
-  it("cherche dans le texte des messages et trie sur l'objet", async () => {
+  it("searches the message text and sorts on the subject", async () => {
     await ingest({ subject: "Bravo", text: "La sauvegarde a tourné." })
     await ingest({ subject: "Alerte", text: "Rien ne repond." })
 
@@ -367,7 +367,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ])
   })
 
-  it("lit les jokers du LIKE comme du texte, pas comme « tout »", async () => {
+  it('reads LIKE wildcards as text, not as "everything"', async () => {
     await ingest({ subject: "Bravo", text: "La sauvegarde a tourné." })
     await ingest({ subject: "Alerte", text: "Rien ne repond." })
 
@@ -390,7 +390,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(literal.json.data[0].subject).toBe("Bravo")
   })
 
-  it("ferme plusieurs fils d'un coup, et refuse le lot à un membre", async () => {
+  it("closes several threads at once, and refuses the batch to a member", async () => {
     const first = await ingest({ subject: "Un" })
     const second = await ingest({ subject: "Deux" })
     const closed = await apiRequest<{ data: { updated: number } }>(
@@ -424,7 +424,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     )
   })
 
-  it("nomme le lot par ce qu'il fait, et ne compte que les fils qui changent", async () => {
+  it("names the batch by what it does, and counts only the threads that change", async () => {
     const first = await ingest({ subject: "Un" })
     const second = await ingest({ subject: "Deux" })
     const ids = [first.threadId, second.threadId]
@@ -466,7 +466,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(mail.broadcast).toEqual([{ type: "counts.changed" }])
   })
 
-  it("marque un lot non lu sous son propre nom", async () => {
+  it("marks a batch unread under its own name", async () => {
     const first = await ingest({ subject: "Un" })
 
     await apiRequest("/admin/inbox/threads/bulk", {
@@ -492,7 +492,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ])
   })
 
-  it("écrit une note interne, la rend avec le fil, et la retire", async () => {
+  it("writes an internal note, returns it with the thread, and removes it", async () => {
     const stored = await ingest({})
     const created = await apiRequest<{ data: { id: string; body: string } }>(
       `/admin/inbox/threads/${stored.threadId}/notes`,
@@ -517,7 +517,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(removed.status).toBe(204)
   })
 
-  it("refuse à un membre d'écrire une note, un brouillon, ou de les retirer", async () => {
+  it("refuses a member writing a note, a draft, or removing them", async () => {
     const stored = await ingest({})
     const created = await apiRequest<{ data: { id: string } }>(
       `/admin/inbox/threads/${stored.threadId}/notes`,
@@ -556,7 +556,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(readNotes.status).toBe(200)
   })
 
-  it("garde un brouillon, le remplace, et l'efface à l'envoi", async () => {
+  it("keeps a draft, replaces it, and erases it on send", async () => {
     const stored = await ingest({})
     const saved = await apiRequest<{ data: { body: string } }>(
       `/admin/inbox/threads/${stored.threadId}/draft`,
@@ -595,7 +595,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(gone.status).toBe(404)
   })
 
-  it("lie un fil à une organisation, la rend, et refuse une organisation inconnue", async () => {
+  it("links a thread to an organization, returns it, and refuses an unknown organization", async () => {
     const stored = await ingest({})
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
@@ -630,7 +630,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     )
   })
 
-  it("journalise la lecture d'une boîte sensible, et seulement celle-là", async () => {
+  it("logs the reading of a sensitive mailbox, and only that one", async () => {
     const sensitive = await ingest({
       to: LEGAL_CONTACTS.security,
       subject: "Faille",
@@ -653,7 +653,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(reads[0].targetId).toBe(sensitive.threadId)
   })
 
-  it("n'écrit qu'une lecture par personne et par fenêtre, et rien en temps réel", async () => {
+  it("writes only one read per person and per window, and nothing in real time", async () => {
     const sensitive = await ingest({
       to: LEGAL_CONTACTS.security,
       subject: "Faille",
@@ -686,7 +686,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(mail.broadcast).toEqual([])
   })
 
-  it("ne diffuse que la liste quand un brouillon est gardé", async () => {
+  it("broadcasts only the list when a draft is kept", async () => {
     const stored = await ingest({})
 
     mail.broadcast.length = 0
@@ -707,7 +707,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ])
   })
 
-  it("journalise la lecture d'une pièce jointe sensible", async () => {
+  it("logs the reading of a sensitive attachment", async () => {
     const stored = await ingestInboundEmail({
       envelopeFrom: "chercheuse@exemple.org",
       envelopeTo: LEGAL_CONTACTS.security,
@@ -753,7 +753,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ).toBe(1)
   })
 
-  it("écrit une réponse type, la modifie et la retire", async () => {
+  it("writes a canned reply, edits it and removes it", async () => {
     const created = await apiRequest<{ data: { id: string; name: string } }>(
       "/admin/inbox/templates",
       {
@@ -788,7 +788,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(removed.status).toBe(204)
   })
 
-  it("diffuse un événement à la réception, à la fermeture et à l'envoi", async () => {
+  it("broadcasts an event on receipt, on closing and on send", async () => {
     const stored = await ingest({})
 
     await apiRequest(`/admin/inbox/threads/${stored.threadId}`, {

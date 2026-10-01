@@ -67,8 +67,8 @@ function run(
   };
 }
 
-describe("l'ajout d'un serveur avec son mot de passe", () => {
-  it("ajoute sans rien poser quand aucun mot de passe n'est venu", async () => {
+describe("adding a server with its password", () => {
+  it("adds without installing anything when no password came", async () => {
     const { answer, installs } = run(DRAFT);
 
     expect(await answer).toEqual({
@@ -84,7 +84,7 @@ describe("l'ajout d'un serveur avec son mot de passe", () => {
     expect(installs).toHaveLength(0);
   });
 
-  it("pose la clé qui vient d'être faite avec le mot de passe, dans le même geste", async () => {
+  it("installs the just-created key with the password, in the same gesture", async () => {
     const { answer, installs, removed } = run({
       ...DRAFT,
       password: "hunter2",
@@ -100,7 +100,7 @@ describe("l'ajout d'un serveur avec son mot de passe", () => {
     expect(removed).toEqual([]);
   });
 
-  it("ne crée rien quand la machine refuse le mot de passe, et le dit au formulaire", async () => {
+  it("creates nothing when the machine refuses the password, and tells the form", async () => {
     const { answer, removed } = run(
       { ...DRAFT, password: "wrong" },
       { installed: { ok: true, result: { retry: true, status: "password" } } }
@@ -120,7 +120,7 @@ describe("l'ajout d'un serveur avec son mot de passe", () => {
     expect(removed).toEqual(["srv-a"]);
   });
 
-  it("garde le serveur et la raison quand la clé n'a pas pu être posée autrement", async () => {
+  it("keeps the server and the reason when the key could not be installed otherwise", async () => {
     const manual: KeyInstall = {
       phrase: { id: "refusal.keyInstall.hostKey" },
       status: "manual",
@@ -137,7 +137,7 @@ describe("l'ajout d'un serveur avec son mot de passe", () => {
     expect(removed).toEqual([]);
   });
 
-  it("ne pose rien sur un hôte du système, mot de passe ou non", async () => {
+  it("installs nothing on a system host, password or not", async () => {
     const { answer, installs } = run(
       { ...DRAFT, key: { host: "vps", mode: "system" }, password: "hunter2" },
       {
@@ -156,7 +156,7 @@ describe("l'ajout d'un serveur avec son mot de passe", () => {
     expect(installs).toHaveLength(0);
   });
 
-  it("rend le refus de la création tel quel", async () => {
+  it("returns the creation refusal as is", async () => {
     const { answer } = run(DRAFT, {
       created: Promise.reject(
         new SetupError("refusal.setup.host", { host: "not a host" })

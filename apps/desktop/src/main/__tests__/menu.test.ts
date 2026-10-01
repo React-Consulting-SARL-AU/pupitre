@@ -25,13 +25,13 @@ function byId(
   return items(list).find((item) => item.id === id);
 }
 
-describe("le menu de l'application", () => {
-  it("garde l'édition, pour copier et coller partout", () => {
+describe("the application menu", () => {
+  it("keeps Edit, for copy and paste everywhere", () => {
     expect(roles(menuTemplate("darwin", true, "en-US"))).toContain("editMenu");
     expect(roles(menuTemplate("linux", true, "en-US"))).toContain("editMenu");
   });
 
-  it("n'offre les outils de développement qu'à un build non empaqueté", () => {
+  it("only offers developer tools to an unpackaged build", () => {
     expect(roles(menuTemplate("darwin", true, "en-US"))).not.toContain(
       "toggleDevTools"
     );
@@ -40,7 +40,7 @@ describe("le menu de l'application", () => {
     );
   });
 
-  it("nomme le menu d'affichage dans la langue du système", () => {
+  it("names the View menu in the system language", () => {
     const label = (locale: string) =>
       menuTemplate("darwin", true, locale).find((item) => item.label)?.label;
 
@@ -48,14 +48,14 @@ describe("le menu de l'application", () => {
     expect(label("en-US")).toBe("View");
   });
 
-  it("porte le menu de l'app sur macOS seulement", () => {
+  it("carries the app menu on macOS only", () => {
     expect(roles(menuTemplate("darwin", true, "en-US"))[0]).toBe("appMenu");
     expect(roles(menuTemplate("win32", true, "en-US"))).not.toContain(
       "appMenu"
     );
   });
 
-  it("porte les préférences, le nouveau terminal et la palette avec leurs raccourcis", () => {
+  it("carries preferences, the new terminal and the palette with their shortcuts", () => {
     const menu = menuTemplate("darwin", true, "en-US");
 
     expect(byId(menu, "preferences")?.accelerator).toBe("CmdOrCtrl+,");
@@ -67,7 +67,7 @@ describe("le menu de l'application", () => {
     expect(byId(menu, "sign-out")).toBeDefined();
   });
 
-  it("appelle le geste qu'on lui donne, et rien d'autre", () => {
+  it("calls the gesture it is given, and nothing else", () => {
     const called: string[] = [];
     const menu = menuTemplate("linux", true, "fr-FR", {
       checkUpdates: () => called.push("updates"),
@@ -109,7 +109,7 @@ describe("le menu de l'application", () => {
     ]);
   });
 
-  it("mène de l'aide à la documentation, au support et aux conditions, dans la langue du système", () => {
+  it("leads from Help to the documentation, support and terms, in the system language", () => {
     const labels = (locale: string) =>
       ["help-docs", "help-support", "help-legal"].map(
         (id) => byId(menuTemplate("darwin", true, locale), id)?.label
@@ -127,7 +127,7 @@ describe("le menu de l'application", () => {
     ]);
   });
 
-  it("place les raccourcis sous le menu d'aide, dans la langue du système", () => {
+  it("places the shortcuts under the Help menu, in the system language", () => {
     const help = (locale: string) =>
       menuTemplate("win32", true, locale).find((item) => item.role === "help");
 
@@ -140,7 +140,7 @@ describe("le menu de l'application", () => {
     ).toBe("Raccourcis clavier");
   });
 
-  it("libelle ses entrées dans la langue du système", () => {
+  it("labels its entries in the system language", () => {
     expect(
       byId(menuTemplate("darwin", true, "fr-FR"), "preferences")?.label
     ).toBe("Réglages…");
@@ -152,7 +152,7 @@ describe("le menu de l'application", () => {
     ).toBe("Nouveau terminal");
   });
 
-  it("place les entrées de compte sous le menu de l'app sur macOS, sous Fichier ailleurs", () => {
+  it("places the account entries under the app menu on macOS, under File elsewhere", () => {
     const mac = menuTemplate("darwin", true, "en-US");
     const win = menuTemplate("win32", true, "en-US");
 

@@ -68,13 +68,13 @@ function eventSchema(name: unknown): Weighs {
 
 const files = readdirSync(FIXTURES).filter((name) => name.endsWith(".jsonl"));
 
-describe("les transcriptions du faux agent", () => {
-  it("en couvre assez pour que cette garde veuille dire quelque chose", () => {
+describe("the fake agent's transcripts", () => {
+  it("covers enough of them for this guard to mean something", () => {
     expect(files.length).toBeGreaterThan(COVERAGE);
   });
 
   for (const file of files) {
-    it(`${file} ne tient que des échanges du protocole`, () => {
+    it(`${file} holds only protocol exchanges`, () => {
       const asked = new Map<number, CommandName>();
 
       for (const line of exchanges(file)) {

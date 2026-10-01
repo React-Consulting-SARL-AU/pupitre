@@ -43,7 +43,7 @@ async function dueUser(id: string, deletionAt: Date) {
   })
 }
 
-describe("le workflow PurgeDeletions", () => {
+describe("the PurgeDeletions workflow", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -53,7 +53,7 @@ describe("le workflow PurgeDeletions", () => {
     useFakeBilling()
   })
 
-  it("efface d'abord les organisations échues, puis les comptes, puis balaie, chacun dans une étape nommée", async () => {
+  it("deletes the due organizations first, then the accounts, then sweeps, each in a named step", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -105,7 +105,7 @@ describe("le workflow PurgeDeletions", () => {
     ])
   })
 
-  it("laisse intacte une purge encore dans sa grâce", async () => {
+  it("leaves a purge still within its grace period untouched", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -129,7 +129,7 @@ describe("le workflow PurgeDeletions", () => {
     ).not.toBeNull()
   })
 
-  it("ne touche à rien quand aucune purge n'est programmée", async () => {
+  it("touches nothing when no purge is scheduled", async () => {
     await createOrganizationWithMembers({ roles: ["owner"] })
 
     expect(await runPurgeDeletions(recordSteps().step)).toEqual({
@@ -139,7 +139,7 @@ describe("le workflow PurgeDeletions", () => {
     })
   })
 
-  it("efface tous les comptes échus dans la même passe, une étape par lot", async () => {
+  it("deletes all due accounts in the same pass, one step per batch", async () => {
     const { prisma } = await bootApiTestServer()
     const due = new Date(Date.now() - DAY_MS)
     const ids: string[] = []
@@ -163,7 +163,7 @@ describe("le workflow PurgeDeletions", () => {
     ).toEqual([batchStep(PURGE_USERS_STEP, 0), batchStep(PURGE_USERS_STEP, 1)])
   })
 
-  it("efface les organisations par lots jusqu'à la dernière", async () => {
+  it("deletes organizations in batches down to the last one", async () => {
     const { prisma } = await bootApiTestServer()
     const past = new Date(Date.now() - DAY_MS)
 
@@ -192,7 +192,7 @@ describe("le workflow PurgeDeletions", () => {
     ])
   })
 
-  it("emporte la facturation, la provenance, les invitations et tout le journal de l'organisation", async () => {
+  it("takes away the billing, the provenance, the invitations and the organization's whole journal", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -272,7 +272,7 @@ describe("le workflow PurgeDeletions", () => {
     ])
   })
 
-  it("saute le compte seul propriétaire d'une organisation qui porte encore une machine, sans le rejournaliser chaque jour", async () => {
+  it("skips the account that is sole owner of an organization still carrying a machine, without journaling it again every day", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -309,7 +309,7 @@ describe("le workflow PurgeDeletions", () => {
     })
   })
 
-  it("ne laisse pas les comptes retenus boucher la file des autres", async () => {
+  it("does not let held accounts block the others' queue", async () => {
     const { prisma } = await bootApiTestServer()
     const due = new Date(Date.now() - DAY_MS)
 
@@ -347,7 +347,7 @@ describe("le workflow PurgeDeletions", () => {
     ).toBe(PURGE_BATCH_SIZE)
   })
 
-  it("balaie les mesures d'un serveur muet et les sessions, vérifications et codes d'appareil expirés", async () => {
+  it("sweeps a silent server's measures and the expired sessions, verifications and device codes", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],

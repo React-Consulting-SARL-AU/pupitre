@@ -68,7 +68,7 @@ describe("GET /admin/search", () => {
     await resetDb()
   })
 
-  it("rend les comptes, les organisations, les serveurs et les conversations qui correspondent", async () => {
+  it("returns the matching accounts, organizations, servers and conversations", async () => {
     const organization = await populate()
     const admin = await platformAdmin()
     const response = await apiRequest<SearchBody>("/admin/search?q=marmotte", {
@@ -90,7 +90,7 @@ describe("GET /admin/search", () => {
     expect(response.json.data.threads[0].subject).toContain("marmotte")
   })
 
-  it("ignore la casse et rend cinq résultats par groupe au plus", async () => {
+  it("ignores case and returns at most five results per group", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -112,7 +112,7 @@ describe("GET /admin/search", () => {
     expect(response.json.data.servers).toHaveLength(PLATFORM_SEARCH_RESULTS)
   })
 
-  it("rend l'état du compte que la plateforme calcule, pas un état à part", async () => {
+  it("returns the account state the platform computes, not a separate state", async () => {
     const { user } = await createUser({
       email: "marmotte@test.local",
       name: "Marmotte Suspendue",
@@ -149,7 +149,7 @@ describe("GET /admin/search", () => {
     expect(states.get("loir@test.local")).toBe("deactivated")
   })
 
-  it("refuse une recherche trop courte", async () => {
+  it("refuses a search that is too short", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<ErrorBody>("/admin/search?q=a", {
       session: admin,
@@ -159,7 +159,7 @@ describe("GET /admin/search", () => {
     expect(response.json.error.code).toBe("validation")
   })
 
-  it("refuse un anonyme et un compte hors de l'organisation Pupitre", async () => {
+  it("refuses an anonymous user and an account outside the Pupitre organization", async () => {
     const { members } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],

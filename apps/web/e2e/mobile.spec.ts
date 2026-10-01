@@ -15,11 +15,8 @@ async function fits(page: Page): Promise<boolean> {
   )
 }
 
-test.describe("la console sur un téléphone", () => {
-  test("le menu, la liste et la fiche tiennent sur 390 px", async ({
-    page,
-    request,
-  }) => {
+test.describe("the console on a phone", () => {
+  test("the menu, list and record fit in 390 px", async ({ page, request }) => {
     await stayLocal(page)
     await request.post(harnessUrl("/reset"))
     await signIn(page, request, EMAIL)
@@ -29,7 +26,7 @@ test.describe("la console sur un téléphone", () => {
       status: "active",
     })
 
-    await test.step("la barre latérale s'efface au profit d'une barre haute", async () => {
+    await test.step("the sidebar gives way to a top bar", async () => {
       await page.goto("/dashboard/servers")
 
       await expect(page).toHaveURL(SERVERS_URL_RE)
@@ -39,7 +36,7 @@ test.describe("la console sur un téléphone", () => {
       ).toBeVisible()
     })
 
-    await test.step("la tabulation commence par le lien d'évitement", async () => {
+    await test.step("tabbing starts with the skip link", async () => {
       await page.keyboard.press("Tab")
 
       await expect(
@@ -47,7 +44,7 @@ test.describe("la console sur un téléphone", () => {
       ).toBeFocused()
     })
 
-    await test.step("le menu s'ouvre, se ferme au clavier, puis mène ailleurs", async () => {
+    await test.step("the menu opens, closes from the keyboard, then leads elsewhere", async () => {
       await page.getByRole("button", { name: "Ouvrir le menu" }).click()
 
       const panel = page.getByRole("dialog")
@@ -70,7 +67,7 @@ test.describe("la console sur un téléphone", () => {
       await expect(panel).toBeHidden()
     })
 
-    await test.step("la liste porte le serveur sans déborder", async () => {
+    await test.step("the list carries the server without overflowing", async () => {
       await page.goto("/dashboard/servers")
 
       await expect(
@@ -79,7 +76,7 @@ test.describe("la console sur un téléphone", () => {
       expect(await fits(page)).toBe(true)
     })
 
-    await test.step("aucune page de la console ne déborde en largeur", async () => {
+    await test.step("no console page overflows in width", async () => {
       for (const path of [
         "/dashboard/members",
         "/dashboard/devices",
@@ -95,7 +92,7 @@ test.describe("la console sur un téléphone", () => {
       await page.goto("/dashboard/servers")
     })
 
-    await test.step("la fiche s'ouvre et garde sa révocation à portée", async () => {
+    await test.step("the record opens and keeps its revocation within reach", async () => {
       await page.getByTestId("server-list").getByText(SERVER_NAME).click()
 
       await expect(page).toHaveURL(SERVER_URL_RE)

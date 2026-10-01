@@ -41,8 +41,8 @@ function answering(
   };
 }
 
-describe("la signature S3", () => {
-  it("rend la signature de l'exemple de référence d'AWS", () => {
+describe("the S3 signature", () => {
+  it("returns the signature of AWS's reference example", () => {
     const headers = signV4({
       accessKeyId: EXAMPLE_KEY_ID,
       amzDate: "20130524T000000Z",
@@ -60,7 +60,7 @@ describe("la signature S3", () => {
     );
   });
 
-  it("met le seau dans le chemin, ou dans l'hôte en adressage virtuel", () => {
+  it("puts the bucket in the path, or in the host with virtual addressing", () => {
     expect(objectAddress(STORAGE, "pupitre/.pupitre-probe-a1").url).toBe(
       "https://acme.r2.cloudflarestorage.com/pupitre-backups/pupitre/.pupitre-probe-a1"
     );
@@ -72,8 +72,8 @@ describe("la signature S3", () => {
   });
 });
 
-describe("la sonde du seau", () => {
-  it("écrit puis efface un petit objet sous le préfixe", async () => {
+describe("the bucket probe", () => {
+  it("writes then deletes a small object under the prefix", async () => {
     const deps = answering(() => new Response(null, { status: 200 }));
 
     expect(await probeBucket(STORAGE, "secret", deps)).toEqual({
@@ -100,20 +100,17 @@ describe("la sonde du seau", () => {
     [403, "SignatureDoesNotMatch", "refusal.backup.probe.secret"],
     [403, "RequestTimeTooSkewed", "refusal.backup.probe.clock"],
     [500, "InternalError", "refusal.backup.probe.refused"],
-  ])(
-    "dit pourquoi une écriture %i %s est refusée",
-    async (status, code, id) => {
-      const answer = await probeBucket(
-        STORAGE,
-        "secret",
-        answering(() => s3Error(status, code))
-      );
+  ])("says why a write %i %s is refused", async (status, code, id) => {
+    const answer = await probeBucket(
+      STORAGE,
+      "secret",
+      answering(() => s3Error(status, code))
+    );
 
-      expect(answer).toMatchObject({ error: { phrase: { id } }, ok: false });
-    }
-  );
+    expect(answer).toMatchObject({ error: { phrase: { id } }, ok: false });
+  });
 
-  it("dit qu'une clé qui écrit sans pouvoir effacer ne suffit pas", async () => {
+  it("says a key that writes without being able to delete is not enough", async () => {
     const answer = await probeBucket(
       STORAGE,
       "secret",
@@ -129,7 +126,7 @@ describe("la sonde du seau", () => {
     });
   });
 
-  it("dit qu'un point d'accès ne répond pas", async () => {
+  it("says an endpoint does not respond", async () => {
     const answer = await probeBucket(STORAGE, "secret", {
       fetch: () => Promise.reject(new Error("getaddrinfo ENOTFOUND acme")),
       now: () => new Date(),

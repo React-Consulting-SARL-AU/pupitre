@@ -164,7 +164,7 @@ describe("GET /admin/servers", () => {
     expect(none.json).toEqual({ data: [], total: 0 })
   })
 
-  it("porte le canal de chaque machine et le siège qu'elle occupe", async () => {
+  it("carries each machine's channel and the seat it occupies", async () => {
     const { one } = await twoOrganizations()
 
     await createServer({
@@ -334,7 +334,7 @@ describe("POST /admin/servers/:id/suspend", () => {
   })
 })
 
-describe("GET /admin/servers, tri et fraîcheur", () => {
+describe("GET /admin/servers, sorting and freshness", () => {
   let server: ApiTestServer
 
   beforeAll(async () => {
@@ -382,7 +382,7 @@ describe("GET /admin/servers, tri et fraîcheur", () => {
     return { organization, old, fresh, enrolling }
   }
 
-  it("trie par nom, par dernier battement et dans les deux sens", async () => {
+  it("sorts by name, by last heartbeat and in both directions", async () => {
     await threeServers()
 
     const admin = await platformAdmin()
@@ -412,7 +412,7 @@ describe("GET /admin/servers, tri et fraîcheur", () => {
     expect(byHeartbeat.json.data[0]?.name).toBe("vps-alpha")
   })
 
-  it("ne garde que les serveurs sans battement depuis 24 h, et l'inverse", async () => {
+  it("keeps only the servers with no heartbeat for 24 h, and the reverse", async () => {
     const { old, fresh, enrolling } = await threeServers()
     const admin = await platformAdmin()
     const stale = await apiRequest<ListBody>("/admin/servers?stale=true", {
@@ -430,7 +430,7 @@ describe("GET /admin/servers, tri et fraîcheur", () => {
     )
   })
 
-  it("refuse un tri et un sens inconnus", async () => {
+  it("refuses an unknown sort and direction", async () => {
     const admin = await platformAdmin()
     const sort = await apiRequest<ErrorBody>("/admin/servers?sort=disk", {
       session: admin,
@@ -456,7 +456,7 @@ describe("GET /admin/servers/:id", () => {
     await resetDb()
   })
 
-  it("porte l'appareil, les appareils retirés, les alertes, le dernier échantillon et les sept jours", async () => {
+  it("carries the device, removed devices, alerts, the latest sample and the seven days", async () => {
     const { one, active } = await twoOrganizations()
     const owner = one.members[0]
     const device = await server.prisma.device.findFirstOrThrow({
@@ -548,7 +548,7 @@ describe("PATCH /admin/servers/:id", () => {
     await resetDb()
   })
 
-  it("change le canal, l'écrit au journal avec l'avant et l'après", async () => {
+  it("changes the channel, writing it to the log with the before and after", async () => {
     const { one, active } = await twoOrganizations()
     const admin = await platformAdmin()
     const response = await apiRequest<{ data: AdminServerDetail }>(
@@ -576,7 +576,7 @@ describe("PATCH /admin/servers/:id", () => {
     })
   })
 
-  it("n'écrit rien au journal quand le canal ne change pas", async () => {
+  it("writes nothing to the log when the channel does not change", async () => {
     const { active } = await twoOrganizations()
     const admin = await platformAdmin()
     const response = await apiRequest<{ data: AdminServerDetail }>(
@@ -590,7 +590,7 @@ describe("PATCH /admin/servers/:id", () => {
     ).toBe(0)
   })
 
-  it("refuse un serveur révoqué, un canal inconnu, un serveur absent, un membre et un anonyme", async () => {
+  it("refuses a revoked server, an unknown channel, a missing server, a member and an anonymous user", async () => {
     const { one, active } = await twoOrganizations()
     const admin = await platformAdmin()
     const revoked = await createServer({
@@ -640,7 +640,7 @@ describe("DELETE /admin/servers/:id/alerts", () => {
     await resetDb()
   })
 
-  it("ferme les alertes ouvertes, laisse celles déjà fermées et compte au journal", async () => {
+  it("closes open alerts, leaves those already closed and counts in the log", async () => {
     const { one, active } = await twoOrganizations()
     const closed = new Date(Date.now() - DAY_MS)
 
@@ -685,7 +685,7 @@ describe("DELETE /admin/servers/:id/alerts", () => {
     expect(event.payload).toMatchObject({ cleared: 2 })
   })
 
-  it("rend 204 sans rien écrire quand aucune alerte n'est ouverte", async () => {
+  it("returns 204 without writing anything when no alert is open", async () => {
     const { active } = await twoOrganizations()
     const admin = await platformAdmin()
     const response = await apiRequest(
@@ -701,7 +701,7 @@ describe("DELETE /admin/servers/:id/alerts", () => {
     ).toBe(0)
   })
 
-  it("refuse un serveur absent, un membre et un anonyme", async () => {
+  it("refuses a missing server, a member and an anonymous user", async () => {
     const { one, active } = await twoOrganizations()
     const admin = await platformAdmin()
     const missing = await apiRequest<ErrorBody>("/admin/servers/nope/alerts", {

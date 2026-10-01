@@ -38,8 +38,8 @@ beforeEach(() => {
   useServices.getState().forget();
 });
 
-describe("la liste des transferts", () => {
-  it("prend la liste que le main publie, et ignore une révision dépassée", async () => {
+describe("the transfer list", () => {
+  it("takes the list the main process publishes, and ignores a stale revision", async () => {
     let listener: ((list: TransferList) => void) | null = null;
 
     stubPupitre({
@@ -70,7 +70,7 @@ describe("la liste des transferts", () => {
     stop();
   });
 
-  it("ouvre la boîte, puis envoie ce qui a été désigné dans le dossier", async () => {
+  it("opens the dialog, then sends what was picked into the folder", async () => {
     const sent: unknown[] = [];
 
     stubPupitre({
@@ -89,7 +89,7 @@ describe("la liste des transferts", () => {
     expect(useTransfers.getState().transfers[0]?.id).toBe("t1");
   });
 
-  it("n'envoie rien quand la boîte est refermée sans choix", async () => {
+  it("sends nothing when the dialog is closed without a choice", async () => {
     let started = 0;
 
     stubPupitre({
@@ -107,7 +107,7 @@ describe("la liste des transferts", () => {
     expect(started).toBe(0);
   });
 
-  it("fait lire le chemin d'un fichier déposé par le pont, jamais par la page", async () => {
+  it("has the path of a dropped file read by the bridge, never by the page", async () => {
     const asked: string[] = [];
 
     stubPupitre({
@@ -137,7 +137,7 @@ describe("la liste des transferts", () => {
     expect(count).toBe(2);
   });
 
-  it("demande où enregistrer un fichier, et un dossier pour un dossier", async () => {
+  it("asks where to save a file, and for a folder when it is a folder", async () => {
     const dialogs: string[] = [];
     const started: unknown[] = [];
 
@@ -177,7 +177,7 @@ describe("la liste des transferts", () => {
     ]);
   });
 
-  it("garde le refus du main pour l'écran", async () => {
+  it("keeps the main process's refusal for the screen", async () => {
     stubPupitre({
       pickSavePath: () => Promise.resolve("/Users/jean/Downloads/x"),
       startDownload: () =>
@@ -205,7 +205,7 @@ describe("la liste des transferts", () => {
     expect(useTransfers.getState().problem).toBeNull();
   });
 
-  it("relaie pause, reprise et annulation, et prend la liste rendue", async () => {
+  it("relays pause, resume and cancel, and takes the returned list", async () => {
     const gestures: string[] = [];
     let revision = 0;
 
@@ -240,8 +240,8 @@ describe("la liste des transferts", () => {
   });
 });
 
-describe("un dump importé depuis cet ordinateur", () => {
-  it("part dans dumps/, puis db.import est demandé par son nom quand il est arrivé", async () => {
+describe("a dump imported from this computer", () => {
+  it("goes into dumps/, then db.import is requested by its name once it has arrived", async () => {
     const calls: unknown[] = [];
     let listener: ((list: TransferList) => void) | null = null;
 
@@ -299,7 +299,7 @@ describe("un dump importé depuis cet ordinateur", () => {
     expect(useServices.getState().pendingImports).toEqual([]);
   });
 
-  it("oublie l'import d'un transfert annulé", async () => {
+  it("forgets the import of a cancelled transfer", async () => {
     let listener: ((list: TransferList) => void) | null = null;
 
     stubPupitre({
@@ -324,7 +324,7 @@ describe("un dump importé depuis cet ordinateur", () => {
     expect(useServices.getState().pendingImports).toEqual([]);
   });
 
-  it("ramène le chemin absolu d'un dump sous la racine avant de le télécharger", async () => {
+  it("brings a dump's absolute path under the root before downloading it", async () => {
     const started: unknown[] = [];
 
     stubPupitre({
@@ -368,7 +368,7 @@ describe("un dump importé depuis cet ordinateur", () => {
     ]);
   });
 
-  it("refuse un dump écrit hors de la racine que l'agent tient", async () => {
+  it("refuses a dump written outside the root the agent holds", async () => {
     let started = 0;
 
     stubPupitre({

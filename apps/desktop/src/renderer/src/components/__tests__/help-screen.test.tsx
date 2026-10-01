@@ -69,8 +69,8 @@ afterEach(() => {
   view = null;
 });
 
-describe("l'aide", () => {
-  it("donne au serveur piloté son mot, son compte et sa clé, tels que ssh les lit", async () => {
+describe("the help", () => {
+  it("gives the driven server its alias, its account and its key, as ssh reads them", async () => {
     const { html, text } = await page(SHARED);
 
     expect(html()).toContain('data-callout="help-shared"');
@@ -79,7 +79,7 @@ describe("l'aide", () => {
     expect(text()).toContain("/Users/ada/.pupitre/desktop/keys/srv-a");
   });
 
-  it("remplit le formulaire de l'app Claude et les trois lignes d'un terminal", async () => {
+  it("fills the Claude app form and the three lines of a terminal", async () => {
     const { text } = await page(SHARED);
 
     expect(text()).toContain("SSH Hostatelier");
@@ -89,7 +89,7 @@ describe("l'aide", () => {
     expect(text()).toContain("zed://ssh/atelier/home/dev/projects/api");
   });
 
-  it("dit quel outil manque sur la machine, et lequel y est", async () => {
+  it("says which tool is missing on the machine, and which is there", async () => {
     const { html, text } = await page(SHARED);
 
     expect(html()).toContain(
@@ -101,7 +101,7 @@ describe("l'aide", () => {
     expect(text()).toContain("ai.codex n'est pas installé sur Atelier");
   });
 
-  it("donne l'adresse et le compte quand le fichier du système n'inclut pas celui de l'app", async () => {
+  it("gives the address and the account when the system file does not include the app's", async () => {
     const { html, text } = await page({ ...SHARED, shared: false });
 
     expect(html()).toContain('data-callout="help-unshared"');
@@ -110,13 +110,13 @@ describe("l'aide", () => {
     expect(text()).toContain("Remote-SSH › dev@203.0.113.10");
   });
 
-  it("ouvre les exemples sur un dossier de remplacement sans projet", async () => {
+  it("opens the examples on a placeholder folder without a project", async () => {
     const { text } = await page(SHARED, [CLAUDE], []);
 
     expect(text()).toContain("cd ~/projects/mon-projet && claude");
   });
 
-  it("s'arrête au fichier quand l'app n'a aucun serveur", async () => {
+  it("stops at the file when the app has no server", async () => {
     const { html, text } = await page({ ...SHARED, servers: [] });
 
     expect(text()).toContain("Aucun serveur ajouté par l'app");

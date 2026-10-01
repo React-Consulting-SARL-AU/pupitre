@@ -24,8 +24,8 @@ const SERVER: Server = {
   user: "dev",
 };
 
-describe("la barre latérale", () => {
-  it("hiérarchise ses entrées en trois plans et marque l'entrée active", () => {
+describe("the sidebar", () => {
+  it("ranks its entries on three levels and marks the active entry", () => {
     const html = renderToStaticMarkup(
       <AppSidebar
         activeTerminal={null}
@@ -56,7 +56,7 @@ describe("la barre latérale", () => {
     expect(html).toContain("atelier.example.net");
   });
 
-  it("nomme l'organisation à laquelle la console rattache le serveur", () => {
+  it("names the organization the console attaches the server to", () => {
     const granted: Server = {
       ...SERVER,
       grant: {
@@ -94,7 +94,7 @@ describe("la barre latérale", () => {
     expect(html).toContain("Atelier Ada");
   });
 
-  it("liste les projets du snapshot avec leur état et leur mémoire", () => {
+  it("lists the snapshot's projects with their state and memory", () => {
     const html = renderToStaticMarkup(
       <AppSidebar
         activeTerminal={null}
@@ -124,8 +124,8 @@ describe("la barre latérale", () => {
   });
 });
 
-describe("un serveur qui ne répond pas encore", () => {
-  it("montre le message et le remède de l'agent, tels quels", () => {
+describe("a server that does not answer yet", () => {
+  it("shows the agent's message and fix, as they are", () => {
     const html = renderToStaticMarkup(
       <ServerUnreadyScreen
         error={{
@@ -147,8 +147,8 @@ describe("un serveur qui ne répond pas encore", () => {
   });
 });
 
-describe("l'app sans la moindre machine", () => {
-  it("dit ce que l'assistant va faire, dans l'ordre où il le fait", () => {
+describe("the app without a single machine", () => {
+  it("says what the assistant will do, in the order it does it", () => {
     const html = renderToStaticMarkup(
       <FirstRunScreen onAddServer={NOOP} onSettings={NOOP} />
     );
@@ -160,7 +160,7 @@ describe("l'app sans la moindre machine", () => {
     expect(html).toContain("Ajouter un serveur");
   });
 
-  it("ne signale aucune panne : rien n'a échoué", () => {
+  it("reports no failure: nothing has failed", () => {
     const html = renderToStaticMarkup(
       <FirstRunScreen onAddServer={NOOP} onSettings={NOOP} />
     );
@@ -170,8 +170,8 @@ describe("l'app sans la moindre machine", () => {
   });
 });
 
-describe("processus et sessions", () => {
-  it("rend ce qui pèse et ce qui survit, depuis le snapshot", () => {
+describe("processes and sessions", () => {
+  it("renders what weighs and what survives, from the snapshot", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
         attached={["claude:flyleaf-api"]}
@@ -195,7 +195,7 @@ describe("processus et sessions", () => {
     expect(html).toContain("éditeur distant");
   });
 
-  it("distingue la session qu'un onglet de l'app tient encore", () => {
+  it("distinguishes the session an app tab still holds", () => {
     const attached = renderToStaticMarkup(
       <ActivityPanel
         attached={["claude:flyleaf-api"]}
@@ -232,7 +232,7 @@ describe("processus et sessions", () => {
   });
 });
 
-describe("le mode restreint de l'agent", () => {
+describe("the agent's restricted mode", () => {
   const IDLE: ReenrollState = { status: "idle" };
 
   type Props = ComponentProps<typeof ServerRestrictedNotice>;
@@ -250,7 +250,7 @@ describe("le mode restreint de l'agent", () => {
     );
   }
 
-  it("dit pourquoi rien n'est possible et renvoie vers la console", () => {
+  it("says why nothing is possible and points to the console", () => {
     const html = restricted();
 
     expect(html).toContain("se laisse lire");
@@ -259,20 +259,20 @@ describe("le mode restreint de l'agent", () => {
     expect(html).toContain("Ouvrir la console");
   });
 
-  it("ne dit rien d'un serveur dont la licence tient", () => {
+  it("says nothing about a server whose licence holds", () => {
     for (const license of ["valid", "grace", "dev"] as const) {
       expect(restricted({ license })).toBe("");
     }
   });
 
-  it("offre le ré-enrôlement à côté de la console", () => {
+  it("offers re-enrolment next to the console", () => {
     const html = restricted();
 
     expect(html).toContain("Rattacher à nouveau ce serveur");
     expect(html).toContain("Ouvrir la console");
   });
 
-  it("dit que l'échange est en cours pendant qu'il se fait", () => {
+  it("says the exchange is in progress while it runs", () => {
     const html = restricted({
       repair: { serverId: "srv-1", status: "running" },
     });
@@ -282,7 +282,7 @@ describe("le mode restreint de l'agent", () => {
   });
 
   // Without a licence the platform would refuse the token, so a repair would fix nothing.
-  it("n'offre pas la réparation quand le compte n'a pas de licence", () => {
+  it("does not offer the repair when the account has no licence", () => {
     const html = restricted({ repairable: false });
 
     expect(html).not.toContain("Rattacher à nouveau ce serveur");
@@ -290,7 +290,7 @@ describe("le mode restreint de l'agent", () => {
     expect(html).toContain("se laisse lire");
   });
 
-  it("affiche le refus et son remède tels quels quand l'échange échoue", () => {
+  it("shows the refusal and its fix as they are when the exchange fails", () => {
     const html = restricted({
       repair: {
         error: {
@@ -308,7 +308,7 @@ describe("le mode restreint de l'agent", () => {
   });
 });
 
-describe("qui peut réparer un serveur restreint", () => {
+describe("who can repair a restricted server", () => {
   function account(over: Partial<AccountState> = {}): AccountState {
     return {
       build: "production",
@@ -333,11 +333,11 @@ describe("qui peut réparer un serveur restreint", () => {
     };
   }
 
-  it("laisse réparer un compte dont la licence tient", () => {
+  it("lets an account whose licence holds repair", () => {
     expect(repairable(account())).toBe(true);
   });
 
-  it("ne laisse pas réparer un compte sans licence", () => {
+  it("does not let an account without a licence repair", () => {
     const refused = [
       { consoleUrl: "https://app.pupitre.test/dashboard", status: "absent" },
       { consoleUrl: "https://app.pupitre.test/dashboard", status: "suspended" },
@@ -353,7 +353,7 @@ describe("qui peut réparer un serveur restreint", () => {
     }
   });
 
-  it("ne laisse pas réparer sans appareil connu de la console", () => {
+  it("does not allow repair without a device the console knows", () => {
     expect(
       repairable(
         account({
@@ -371,8 +371,8 @@ describe("qui peut réparer un serveur restreint", () => {
   });
 });
 
-describe("un serveur qu'on n'a pas encore joint", () => {
-  it("dit qu'on le joint, sans parler de refus", () => {
+describe("a server not yet reached", () => {
+  it("says it is being reached, without mentioning a refusal", () => {
     const html = renderToStaticMarkup(
       <ServerUnreadyScreen
         error={null}
@@ -391,8 +391,8 @@ describe("un serveur qu'on n'a pas encore joint", () => {
   });
 });
 
-describe("les flèches de l'historique", () => {
-  it("nomment les deux sens avec leur raccourci et éteignent celui sans suite", () => {
+describe("the history arrows", () => {
+  it("name both directions with their shortcut and dim the one with nothing further", () => {
     const html = renderToStaticMarkup(
       <HistoryArrows
         canGoBack={true}
@@ -410,8 +410,8 @@ describe("les flèches de l'historique", () => {
   });
 });
 
-describe("ce qui se dit au-dessus des écrans", () => {
-  it("dit qu'un lien est perdu, et qu'il se rouvre", () => {
+describe("what is said above the screens", () => {
+  it("says a link is lost, and that it reopens", () => {
     const html = renderToStaticMarkup(
       <ServerLinkNotice
         channel="lost"
@@ -425,7 +425,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
     expect(html).toContain("Nouvelle tentative");
   });
 
-  it("dit qu'un tableau de bord ne bouge plus, avec le mot de l'agent et une relecture", () => {
+  it("says a dashboard has stopped moving, with the agent's word and a reread", () => {
     const html = renderToStaticMarkup(
       <ServerLinkNotice
         channel="open"
@@ -444,7 +444,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
     expect(html).toContain("Actualiser");
   });
 
-  it("ne dit rien quand le lien tient et que le relevé est frais", () => {
+  it("says nothing when the link holds and the reading is fresh", () => {
     const html = renderToStaticMarkup(
       <ServerLinkNotice
         channel="open"
@@ -457,7 +457,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
     expect(html).toBe("");
   });
 
-  it("demande confirmation avant de tuer un processus ou une session", () => {
+  it("asks for confirmation before killing a process or a session", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
         attached={[]}

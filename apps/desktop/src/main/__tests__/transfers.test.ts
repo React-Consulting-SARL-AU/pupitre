@@ -203,8 +203,8 @@ async function uploaded(
   return answer.ok ? answer.result : { revision: 0, transfers: [] };
 }
 
-describe("la ligne rsync d'un transfert", () => {
-  it("cite la configuration de l'app dans -e et reprend le partiel", () => {
+describe("a transfer's rsync command line", () => {
+  it("cites the app's configuration in -e and resumes the partial file", () => {
     const args = rsyncArgs(
       { direction: "upload", kind: "file", localPath: DUMP },
       SSH,
@@ -223,7 +223,7 @@ describe("la ligne rsync d'un transfert", () => {
     ]);
   });
 
-  it("descend dans un dossier avec -r et copie son contenu", () => {
+  it("descends into a folder with -r and copies its contents", () => {
     const args = rsyncArgs(
       { direction: "download", kind: "dir", localPath: "/Users/jean/site" },
       SSH,
@@ -237,7 +237,7 @@ describe("la ligne rsync d'un transfert", () => {
     ]);
   });
 
-  it("laisse un hôte du système sans -F", () => {
+  it("leaves a system host without -F", () => {
     const args = rsyncArgs(
       { direction: "upload", kind: "file", localPath: DUMP },
       ["my-host"],
@@ -249,8 +249,8 @@ describe("la ligne rsync d'un transfert", () => {
   });
 });
 
-describe("la ligne scp de repli", () => {
-  it("passe la même configuration, sans reprise", () => {
+describe("the fallback scp command line", () => {
+  it("passes the same configuration, without resuming", () => {
     expect(
       scpArgs(
         { direction: "download", kind: "file", localPath: DUMP },
@@ -260,7 +260,7 @@ describe("la ligne scp de repli", () => {
     ).toEqual(["-F", CONFIG, "pupitre-srv-1:/home/dev/dumps/shop.sql", DUMP]);
   });
 
-  it("dépose un dossier dans son parent, où scp -r le crée par son nom", () => {
+  it("drops a folder into its parent, where scp -r creates it by name", () => {
     expect(
       scpArgs(
         { direction: "upload", kind: "dir", localPath: "/Users/jean/site" },
@@ -277,8 +277,8 @@ describe("la ligne scp de repli", () => {
   });
 });
 
-describe("la lecture de progress2", () => {
-  it("lit les octets, le pourcentage, le débit et le temps restant", () => {
+describe("reading progress2", () => {
+  it("reads the bytes, the percentage, the rate and the time left", () => {
     expect(
       parseProgress("     104,857,600  52%   12.34MB/s    0:00:07  ")
     ).toEqual({
@@ -289,7 +289,7 @@ describe("la lecture de progress2", () => {
     });
   });
 
-  it("prend la dernière ligne d'un paquet coupé par des retours chariot", () => {
+  it("takes the last line of a chunk split by carriage returns", () => {
     const chunk =
       "\r      1,048,576   0%  512.00kB/s    0:06:30  \r     52,428,800  26%    8.00MB/s    0:00:18  ";
 
@@ -301,7 +301,7 @@ describe("la lecture de progress2", () => {
     });
   });
 
-  it("lit la ligne de fin comme un transfert entier, le temps devenant écoulé", () => {
+  it("reads the final line as a complete transfer, the time becoming elapsed", () => {
     expect(
       parseProgress(
         "    200,000,000 100%   40.12MB/s    0:00:04 (xfr#1, to-chk=0/1)\n"
@@ -314,13 +314,13 @@ describe("la lecture de progress2", () => {
     });
   });
 
-  it("ne lit rien dans ce qui n'est pas une ligne de progression", () => {
+  it("reads nothing from what is not a progress line", () => {
     expect(parseProgress("sending incremental file list\n")).toBeNull();
   });
 });
 
-describe("le rsync de cet ordinateur", () => {
-  it("reconnaît un rsync 3.1 ou plus, et pas openrsync", () => {
+describe("this computer's rsync", () => {
+  it("recognises rsync 3.1 or later, but not openrsync", () => {
     expect(capableRsync("rsync  version 3.4.1  protocol version 32")).toBe(
       true
     );
@@ -331,14 +331,14 @@ describe("le rsync de cet ordinateur", () => {
   });
 });
 
-describe("un chemin distant nommé par le renderer", () => {
-  it("accepte un chemin relatif sous la racine, la racine comprise", () => {
+describe("a remote path named by the renderer", () => {
+  it("accepts a relative path under the root, the root included", () => {
     expect(remoteRelative("dumps/shop.sql")).toBe("dumps/shop.sql");
     expect(remoteRelative("")).toBe("");
     expect(remoteRelative("projects/site/")).toBe("projects/site");
   });
 
-  it("refuse un chemin absolu, un .., un saut de ligne ou un NUL", () => {
+  it("refuses an absolute path, a .., a line break or a NUL", () => {
     expect(remoteRelative("/etc/passwd")).toBeNull();
     expect(remoteRelative("dumps/../../root")).toBeNull();
     expect(remoteRelative("dumps/a\nb")).toBeNull();
@@ -347,16 +347,16 @@ describe("un chemin distant nommé par le renderer", () => {
   });
 });
 
-describe("l'attente entre deux essais", () => {
-  it("double à chaque fois et plafonne", () => {
+describe("the wait between two attempts", () => {
+  it("doubles each time and caps out", () => {
     expect([1, 2, 3, 4, 5, 6, 7].map(backoffMs)).toEqual([
       1000, 2000, 4000, 8000, 16_000, 30_000, 30_000,
     ]);
   });
 });
 
-describe("la file des transferts", () => {
-  it("lance un envoi par rsync sur la configuration de l'app", async () => {
+describe("the transfer queue", () => {
+  it("starts an upload through rsync on the app's configuration", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -389,7 +389,7 @@ describe("la file des transferts", () => {
     expect(queue.list().transfers[0]?.tool).toBe("rsync");
   });
 
-  it("refuse un chemin distant absolu ou qui remonte", async () => {
+  it("refuses a remote path that is absolute or climbs up", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -408,7 +408,7 @@ describe("la file des transferts", () => {
     expect(h.moves()).toEqual([]);
   });
 
-  it("refuse un chemin local qu'aucune boîte de dialogue n'a désigné", async () => {
+  it("refuses a local path that no dialog box designated", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -423,7 +423,7 @@ describe("la file des transferts", () => {
     expect(h.moves()).toEqual([]);
   });
 
-  it("ne désigne qu'un chemin absolu", () => {
+  it("designates only an absolute path", () => {
     const queue = createTransferQueue(harness().deps);
 
     expect(queue.designate("Downloads/shop.sql")).toBeNull();
@@ -431,7 +431,7 @@ describe("la file des transferts", () => {
     expect(queue.designate(DUMP)).toBe(DUMP);
   });
 
-  it("ne reconnaît que les chemins qu'une boîte a rendus", () => {
+  it("recognises only the paths a dialog box returned", () => {
     const queue = createTransferQueue(harness().deps);
 
     expect(queue.designated(DUMP)).toBe(false);
@@ -443,7 +443,7 @@ describe("la file des transferts", () => {
     expect(queue.designated(null)).toBe(false);
   });
 
-  it("suit la progression et la relaie au plus quatre fois par seconde", async () => {
+  it("tracks progress and relays it at most four times per second", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -478,7 +478,7 @@ describe("la file des transferts", () => {
     );
   });
 
-  it("marque le transfert fini quand rsync sort à zéro, l'état voyageant dans le dernier événement", async () => {
+  it("marks the transfer done when rsync exits with zero, the state travelling in the last event", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -497,7 +497,7 @@ describe("la file des transferts", () => {
     expect(h.store.get(STORE)).toContain('"transfers": []');
   });
 
-  it("n'en fait tourner que deux, les autres attendent", async () => {
+  it("runs only two at a time, the others wait", async () => {
     const h = harness({
       localFiles: {
         "/a.sql": { kind: "file", size: 1 },
@@ -532,7 +532,7 @@ describe("la file des transferts", () => {
     expect(h.moves()).toHaveLength(3);
   });
 
-  it("relance après un 255 avec un délai croissant, puis renonce avec le remède", async () => {
+  it("retries after a 255 with a growing delay, then gives up with the fix", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -562,7 +562,7 @@ describe("la file des transferts", () => {
     expect(failed?.error?.phrase?.values).toEqual({ max: MAX_ATTEMPTS });
   });
 
-  it("dit ce qui s'est passé pendant l'attente d'un nouvel essai", async () => {
+  it("says what happened while waiting for a new attempt", async () => {
     const h = harness();
     let queued: TransferList | undefined;
     const queue = createTransferQueue({
@@ -585,7 +585,7 @@ describe("la file des transferts", () => {
     );
   });
 
-  it("échoue sans réessayer sur un autre code, avec son remède", async () => {
+  it("fails without retrying on any other code, with its fix", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -601,7 +601,7 @@ describe("la file des transferts", () => {
     expect(h.moves()).toHaveLength(1);
   });
 
-  it("annuler tue le processus et retire le transfert de ce qui est gardé", async () => {
+  it("cancelling kills the process and removes the transfer from what is kept", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -617,7 +617,7 @@ describe("la file des transferts", () => {
     expect(h.moves()).toHaveLength(1);
   });
 
-  it("une pause tue, une reprise relance, et rsync reprend de lui-même", async () => {
+  it("a pause kills, a resume restarts, and rsync picks up by itself", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -645,7 +645,7 @@ describe("la file des transferts", () => {
     expect(h.moves()[1]?.args).toContain("--append-verify");
   });
 
-  it("se replie sur scp quand le serveur n'a pas rsync, et vérifie le sha256", async () => {
+  it("falls back to scp when the server has no rsync, and verifies the sha256", async () => {
     const h = harness({ remoteRsync: false });
     const queue = createTransferQueue(h.deps);
 
@@ -668,7 +668,7 @@ describe("la file des transferts", () => {
     expect(queue.list().transfers[0]?.status).toBe("done");
   });
 
-  it("se replie sur scp quand cet ordinateur n'a qu'openrsync", async () => {
+  it("falls back to scp when this computer only has openrsync", async () => {
     const h = harness({ localRsync: "openrsync: protocol version 29\n" });
     const queue = createTransferQueue(h.deps);
 
@@ -680,7 +680,7 @@ describe("la file des transferts", () => {
     ).toBe(false);
   });
 
-  it("se replie sur scp quand rsync manque tout à fait ici", async () => {
+  it("falls back to scp when rsync is missing altogether here", async () => {
     const h = harness({ localRsync: "" });
     const queue = createTransferQueue(h.deps);
 
@@ -689,7 +689,7 @@ describe("la file des transferts", () => {
     expect(h.moves()[0]?.command).toBe("scp");
   });
 
-  it("refuse un scp dont l'empreinte ne correspond pas", async () => {
+  it("refuses an scp whose fingerprint does not match", async () => {
     const h = harness({ remoteDigest: "b".repeat(64), remoteRsync: false });
     const queue = createTransferQueue(h.deps);
 
@@ -704,7 +704,7 @@ describe("la file des transferts", () => {
     expect(failed?.error?.phrase?.id).toBe("refusal.transfer.mismatch");
   });
 
-  it("ne demande rsync au serveur qu'une fois par session", async () => {
+  it("asks the server for rsync only once per session", async () => {
     const h = harness({
       localFiles: { "/a.sql": { kind: "file", size: 1 } },
     });
@@ -721,7 +721,7 @@ describe("la file des transferts", () => {
     );
   });
 
-  it("télécharge sous le nom distant dans le dossier désigné", async () => {
+  it("downloads under the remote name into the designated folder", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -745,7 +745,7 @@ describe("la file des transferts", () => {
     ]);
   });
 
-  it("écrit ce qui reste à faire avec sa révision, et le relit en pause au lancement", async () => {
+  it("writes what is left to do with its revision, and reads it back paused at launch", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -782,7 +782,7 @@ describe("la file des transferts", () => {
     expect(again.moves()).toHaveLength(1);
   });
 
-  it("laisse intact un fichier écrit par une version plus récente", () => {
+  it("leaves a file written by a newer version intact", () => {
     const newer = JSON.stringify({
       transfers: [{ id: "x", shape: "unknown" }],
       version: TRANSFERS_VERSION + 1,
@@ -797,7 +797,7 @@ describe("la file des transferts", () => {
     expect(queue.list().transfers).toEqual([]);
   });
 
-  it("refuse un serveur que la configuration ne connaît pas", async () => {
+  it("refuses a server the configuration does not know", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 
@@ -809,7 +809,7 @@ describe("la file des transferts", () => {
     expect(h.spawned).toEqual([]);
   });
 
-  it("oublie un transfert terminé quand on le lui demande, jamais un transfert en cours", async () => {
+  it("forgets a finished transfer when asked, never a running one", async () => {
     const h = harness();
     const queue = createTransferQueue(h.deps);
 

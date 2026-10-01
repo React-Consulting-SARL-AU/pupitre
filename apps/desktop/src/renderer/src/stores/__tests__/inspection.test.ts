@@ -5,12 +5,12 @@ import { BARE, OCCUPIED } from "../../__tests__/probe-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { probeOf, useInspection } from "../inspection";
 
-describe("l'inspection", () => {
+describe("the inspection", () => {
   beforeEach(() => {
     useInspection.setState({ inspection: { status: "idle" }, probes: {} });
   });
 
-  it("dit qui elle inspecte pendant qu'elle attend", async () => {
+  it("says who it inspects while it waits", async () => {
     const waiting: ((answer: AgentResponse<ProbeResult>) => void)[] = [];
 
     stubPupitre({
@@ -31,7 +31,7 @@ describe("l'inspection", () => {
     await running;
   });
 
-  it("garde le rapport tel que la sonde le renvoie", async () => {
+  it("keeps the report as the probe returns it", async () => {
     stubPupitre({
       inspect: () => Promise.resolve({ ok: true, result: OCCUPIED }),
     });
@@ -45,7 +45,7 @@ describe("l'inspection", () => {
     });
   });
 
-  it("laisse le rapport en mémoire pour l'écran suivant", async () => {
+  it("leaves the report in memory for the next screen", async () => {
     stubPupitre({ inspect: () => Promise.resolve({ ok: true, result: BARE }) });
 
     await useInspection.getState().inspect("srv-1");
@@ -57,7 +57,7 @@ describe("l'inspection", () => {
     expect(probeOf(null)).toBeNull();
   });
 
-  it("garde le remède de l'agent quand la sonde échoue", async () => {
+  it("keeps the agent's fix when the probe fails", async () => {
     stubPupitre({
       inspect: () =>
         Promise.resolve({
@@ -84,7 +84,7 @@ describe("l'inspection", () => {
     expect(probeOf("srv-1")).toBeNull();
   });
 
-  it("laisse tomber la réponse d'une machine quittée pour une autre", async () => {
+  it("drops the response of a machine left for another", async () => {
     const waiting: Record<
       string,
       (answer: AgentResponse<ProbeResult>) => void
@@ -112,7 +112,7 @@ describe("l'inspection", () => {
     expect(probeOf("srv-1")).toEqual(OCCUPIED);
   });
 
-  it("ne rouvre pas une inspection oubliée sur une réponse tardive", async () => {
+  it("does not reopen a forgotten inspection on a late response", async () => {
     let settle: (answer: AgentResponse<ProbeResult>) => void = () => undefined;
 
     stubPupitre({

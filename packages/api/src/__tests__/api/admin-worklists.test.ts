@@ -105,7 +105,7 @@ async function unreadThread(subject: string, from: string) {
   return thread
 }
 
-describe("les listes de travail de GET /admin/overview", () => {
+describe("the worklists of GET /admin/overview", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -114,7 +114,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     await resetDb()
   })
 
-  it("rend cinq conversations non lues au plus et compte toutes les autres", async () => {
+  it("returns at most five unread conversations and counts all the others", async () => {
     for (let index = 0; index < WORKLIST_ITEMS + 2; index += 1) {
       await unreadThread(`Sujet ${index}`, `ada${index}@test.local`)
     }
@@ -129,7 +129,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     )
   })
 
-  it("lève les abonnements impayés avec leur organisation", async () => {
+  it("raises unpaid subscriptions with their organization", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -148,7 +148,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     expect(worklists.past_due.items[0].status).toBe("past_due")
   })
 
-  it("lève les serveurs injoignables sur les alertes ouvertes, jamais sur celles qui sont closes", async () => {
+  it("raises unreachable servers from open alerts, never from closed ones", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -185,7 +185,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     )
   })
 
-  it("lève les organisations qui occupent plus de sièges qu'elles n'en paient", async () => {
+  it("raises organizations that occupy more seats than they pay for", async () => {
     const drifted = await createOrganizationWithMembers({
       name: "Débordée",
       roles: ["owner"],
@@ -221,7 +221,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     expect(worklists.seats_drifted.items[0].organization.name).toBe("Débordée")
   })
 
-  it("lève aussi une licence accordée dépassée, comme la liste filtrée qu'elle ouvre", async () => {
+  it("also raises an exceeded granted licence, like the filtered list it opens", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Accordée",
       roles: ["owner"],
@@ -259,7 +259,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     expect(listed.json.data).toHaveLength(1)
   })
 
-  it("lève les comptes et les organisations dont la purge est programmée, la plus proche d'abord", async () => {
+  it("raises the accounts and organizations whose purge is scheduled, the nearest first", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       name: "Partie",
       roles: ["owner"],
@@ -296,7 +296,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     ).toBe(false)
   })
 
-  it("ne garde que cinq suppressions programmées et compte toutes les autres", async () => {
+  it("keeps only five scheduled deletions and counts all the others", async () => {
     for (let index = 0; index < WORKLIST_ITEMS + 2; index += 1) {
       const { organization } = await createOrganizationWithMembers({
         name: `Organisation ${index}`,
@@ -315,7 +315,7 @@ describe("les listes de travail de GET /admin/overview", () => {
     expect(worklists.deletions_scheduled.items).toHaveLength(WORKLIST_ITEMS)
   })
 
-  it("refuse un anonyme", async () => {
+  it("refuses an anonymous user", async () => {
     const response = await apiRequest("/admin/overview")
 
     expect(response.status).toBe(401)

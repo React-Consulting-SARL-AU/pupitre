@@ -17,7 +17,7 @@ test.describe("palette", () => {
     await running.app.close();
   });
 
-  test("va à un projet depuis le clavier", async () => {
+  test("goes to a project from the keyboard", async () => {
     const { page } = running;
     const palette = page.getByRole("dialog", { name: "Aller à" });
 
@@ -25,7 +25,7 @@ test.describe("palette", () => {
       page.getByRole("heading", { level: 1, name: DASHBOARD })
     ).toBeVisible();
 
-    await test.step("le raccourci ouvre la palette sur toutes les entrées", async () => {
+    await test.step("the shortcut opens the palette on all entries", async () => {
       await page.keyboard.press(CHORD);
 
       await expect(palette).toBeVisible();
@@ -38,7 +38,7 @@ test.describe("palette", () => {
       ).toBeVisible();
     });
 
-    await test.step("la frappe filtre, la première entrée est choisie", async () => {
+    await test.step("typing filters, the first entry is selected", async () => {
       await page.keyboard.type("atlas");
 
       await expect(
@@ -49,11 +49,11 @@ test.describe("palette", () => {
       ).toHaveCount(0);
     });
 
-    await test.step("l'accessibilité de la palette tient", async () => {
+    await test.step("the palette passes the accessibility check", async () => {
       await assertAccessible(page, "palette");
     });
 
-    await test.step("Entrée ouvre le projet et ferme la palette", async () => {
+    await test.step("Enter opens the project and closes the palette", async () => {
       await page.keyboard.press("Enter");
 
       await expect(palette).toHaveCount(0);
@@ -62,7 +62,7 @@ test.describe("palette", () => {
       ).toBeVisible();
     });
 
-    await test.step("Échap ferme sans rien faire", async () => {
+    await test.step("Escape closes without doing anything", async () => {
       await page.keyboard.press(CHORD);
       await expect(palette).toBeVisible();
 

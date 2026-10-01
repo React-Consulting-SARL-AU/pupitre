@@ -71,8 +71,8 @@ function usage(html: UsageRight, checkedAt: string | null = null): string {
   );
 }
 
-describe("la licence", () => {
-  it("distingue chaque état par une forme", () => {
+describe("the licence", () => {
+  it("tells each state apart by shape", () => {
     const shapes = [
       usage({
         license: "valid",
@@ -117,7 +117,7 @@ describe("la licence", () => {
     ]);
   });
 
-  it("envoie au support l'organisation au-delà de ses serveurs gratuits comme celle que la plateforme suspend", () => {
+  it("sends an organization beyond its free servers to support, like one the platform suspends", () => {
     const unlicensed = text(
       renderToStaticMarkup(
         <AccountUsageNotice
@@ -152,7 +152,7 @@ describe("la licence", () => {
     expect(`${unlicensed} ${suspended}`).not.toMatch(/abonnement|offre/i);
   });
 
-  it("nomme les sept jours de tolérance quand le cache tient encore", () => {
+  it("names the seven days of grace while the cache still holds", () => {
     const html = usage(
       {
         license: "valid",
@@ -167,7 +167,7 @@ describe("la licence", () => {
     expect(html).toContain('data-usage="granted"');
   });
 
-  it("dit ce qu'un compte absent empêche, sans parler du build", () => {
+  it("says what a missing account prevents, without mentioning the build", () => {
     const html = usage({ consoleUrl: CONSOLE_URL, status: "absent" });
 
     expect(text(html)).toContain("Aucun compte connecté");
@@ -176,7 +176,7 @@ describe("la licence", () => {
   });
 });
 
-describe("la connexion", () => {
+describe("the sign-in", () => {
   const card = (signIn: SignInState): string =>
     renderToStaticMarkup(
       <AccountSignInCard
@@ -188,14 +188,14 @@ describe("la connexion", () => {
       />
     );
 
-  it("propose de se connecter et d'ouvrir la console", () => {
+  it("offers to sign in and open the console", () => {
     const html = card({ status: "idle" });
 
     expect(text(html)).toContain("Se connecter");
     expect(text(html)).toContain("Ouvrir la console");
   });
 
-  it("affiche le code et l'adresse à approuver pendant l'attente", () => {
+  it("shows the code and the address to approve while waiting", () => {
     const html = card({
       status: "waiting",
       userCode: "WDJB-MJHT",
@@ -207,7 +207,7 @@ describe("la connexion", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  it("déroule les trois pas de l'approbation pendant l'attente", () => {
+  it("walks through the three steps of the approval while waiting", () => {
     const html = card({
       status: "code",
       userCode: "WDJB-MJHT",
@@ -221,7 +221,7 @@ describe("la connexion", () => {
     expect(text(html)).toContain("dès que la console a confirmé");
   });
 
-  it("nomme la page de vérification du code, pas l'adresse de la console", () => {
+  it("names the code verification page, not the console address", () => {
     const html = card({
       status: "waiting",
       userCode: "WDJB-MJHT",
@@ -234,7 +234,7 @@ describe("la connexion", () => {
     expect(text(html)).not.toContain(CONSOLE_URL);
   });
 
-  it("rouvre le navigateur sur l'adresse du code, et laisse annuler l'attente", async () => {
+  it("reopens the browser on the code address, and lets the wait be cancelled", async () => {
     const opened: string[] = [];
     const cancelled: string[] = [];
     const view = await mount(
@@ -264,7 +264,7 @@ describe("la connexion", () => {
     view.unmount();
   });
 
-  it("rend le refus et son remède tels quels", () => {
+  it("renders the refusal and its fix as they come", () => {
     const html = card({
       error: {
         code: "denied",
@@ -283,7 +283,7 @@ describe("la connexion", () => {
   });
 });
 
-describe("l'écran de compte", () => {
+describe("the account screen", () => {
   const gate = (account: AccountState): string =>
     renderToStaticMarkup(
       <AccountGateScreen account={account} onSettings={NOOP} />
@@ -302,7 +302,7 @@ describe("l'écran de compte", () => {
     usage: { consoleUrl: CONSOLE_URL, status: "absent" },
   };
 
-  it("propose la connexion et les réglages, et rien d'une machine", () => {
+  it("offers sign-in and settings, and nothing about a machine", () => {
     const html = gate(SIGNED_OUT);
 
     expect(text(html)).toContain("Connectez-vous pour ouvrir Pupitre");
@@ -312,7 +312,7 @@ describe("l'écran de compte", () => {
     expect(text(html)).not.toContain("Terminaux");
   });
 
-  it("ne répète pas à qui n'a pas de compte qu'il lui en faut un : la carte de connexion le dit", () => {
+  it("does not tell someone without an account that they need one: the sign-in card says it", () => {
     const html = gate(SIGNED_OUT);
 
     expect(text(html)).not.toContain("Installer un serveur demande un compte");
@@ -320,11 +320,11 @@ describe("l'écran de compte", () => {
     expect(text(html)).not.toContain("tant qu'aucun compte n'est connecté");
   });
 
-  it("nomme la console à laquelle on se connecte", () => {
+  it("names the console being signed in to", () => {
     expect(text(gate(SIGNED_OUT))).toContain("app.pupitre.test");
   });
 
-  it("offre à un build de développement de continuer sans compte", () => {
+  it("offers a development build to continue without an account", () => {
     const html = gate({
       ...SIGNED_OUT,
       build: "development",
@@ -341,11 +341,11 @@ describe("l'écran de compte", () => {
     expect(text(html)).toContain("Se connecter");
   });
 
-  it("ne l'offre jamais à un build packagé", () => {
+  it("never offers it to a packaged build", () => {
     expect(text(gate(SIGNED_OUT))).not.toContain("Continuer sans compte");
   });
 
-  it("dit depuis quand la console n'a pas répondu au-delà des sept jours", () => {
+  it("says since when the console has not answered beyond the seven days", () => {
     const html = gate({
       ...SIGNED_OUT,
       checkedAt: "2026-08-01T10:00:00.000Z",
@@ -384,7 +384,7 @@ describe("l'écran de compte", () => {
     },
   };
 
-  it("dit à qui dépasse les serveurs gratuits qu'une licence est requise, une seule fois, sans lui redemander de se connecter", () => {
+  it("tells someone beyond the free servers that a licence is required, once, without asking them to sign in again", () => {
     const html = text(gate(UNLICENSED));
 
     expect(html).toContain("Licence requise");
@@ -401,7 +401,7 @@ describe("l'écran de compte", () => {
     expect(html).not.toMatch(/abonnement|offre|essai/i);
   });
 
-  it("nomme la suspension une seule fois, avec le geste qui la règle", () => {
+  it("names the suspension once, with the gesture that settles it", () => {
     const html = text(
       gate({
         ...UNLICENSED,
@@ -421,15 +421,15 @@ describe("l'écran de compte", () => {
     expect(html.match(/suspendu/g)).toHaveLength(2);
   });
 
-  it("ne propose pas à un build de développement de continuer sans compte quand c'est la licence qui manque", () => {
+  it("does not offer a development build to continue without an account when the licence is what is missing", () => {
     const html = text(gate({ ...UNLICENSED, build: "development" }));
 
     expect(html).not.toContain("Continuer sans compte");
   });
 });
 
-describe("l'identité", () => {
-  it("montre le compte et l'organisation, et laisse l'appareil à la liste des appareils", () => {
+describe("the identity", () => {
+  it("shows the account and the organization, and leaves the device to the device list", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={SIGNED_IN}
@@ -446,7 +446,7 @@ describe("l'identité", () => {
     expect(text(html)).toContain("Se déconnecter");
   });
 
-  it("prévient quand le trousseau n'a pas voulu garder la session", () => {
+  it("warns when the keychain refused to keep the session", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={{ ...SIGNED_IN, sealed: false }}
@@ -459,7 +459,7 @@ describe("l'identité", () => {
     expect(text(html)).toContain("GNOME Keyring ou KWallet");
   });
 
-  it("ne montre jamais autre chose que la moitié publique", () => {
+  it("never shows anything but the public half", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={SIGNED_IN}
@@ -473,8 +473,8 @@ describe("l'identité", () => {
   });
 });
 
-describe("l'enrôlement", () => {
-  it("nomme le serveur de la console et la version poussée", () => {
+describe("the enrolment", () => {
+  it("names the console's server and the pushed version", () => {
     const html = renderToStaticMarkup(
       <OnboardingEnrollmentNote
         enrollment={{
@@ -489,14 +489,14 @@ describe("l'enrôlement", () => {
     expect(text(html)).toContain("pupitred 1.4.0");
   });
 
-  it("ne montre rien quand aucun compte n'a enrôlé la machine", () => {
+  it("shows nothing when no account has enrolled the machine", () => {
     expect(
       renderToStaticMarkup(<OnboardingEnrollmentNote enrollment={null} />)
     ).toBe("");
   });
 });
 
-describe("la licence sous le compte", () => {
+describe("the licence under the account", () => {
   function card(
     servers: Parameters<typeof AccountLicenseCard>[0]["servers"],
     grant: Parameters<typeof AccountLicenseCard>[0]["grant"] = null
@@ -510,7 +510,7 @@ describe("la licence sous le compte", () => {
     );
   }
 
-  it("compte les serveurs utilisés et dit la règle des serveurs gratuits", () => {
+  it("counts the servers in use and states the free-server rule", () => {
     const html = text(card({ limit: 3, used: 1 }));
 
     expect(html).toContain("1 sur 3 serveurs utilisés");
@@ -521,11 +521,11 @@ describe("la licence sous le compte", () => {
     expect(html).not.toMatch(/abonnement|essai|offre/i);
   });
 
-  it("propose d'écrire au support une fois les serveurs gratuits pris", () => {
+  it("offers to write to support once the free servers are used up", () => {
     expect(text(card({ limit: 3, used: 3 }))).toContain("Écrire au support");
   });
 
-  it("dit ce qu'une licence ajoute et jusqu'à quand", () => {
+  it("says what a licence adds and until when", () => {
     const html = card(
       { limit: 8, used: 6 },
       {
@@ -541,7 +541,7 @@ describe("la licence sous le compte", () => {
     expect(html).toContain('data-shape="filled"');
   });
 
-  it("garde le mot de Stripe pour un statut qu'elle ne nomme pas", () => {
+  it("keeps Stripe's own word for a status it does not name", () => {
     const html = card(
       { limit: 3, used: 1 },
       { current_period_end: null, seats: 0, status: "incomplete_expired" }

@@ -99,23 +99,23 @@ const POSTGRES: Service = {
   version: "17.2",
 };
 
-describe("la ligne d'un service", () => {
+describe("a service row", () => {
   const html = renderToStaticMarkup(
     <ServiceRow onOpen={() => undefined} service={POSTGRES} />
   );
 
-  it("dit l'état, la version et le port", () => {
+  it("states the state, the version and the port", () => {
     expect(text(html)).toContain("PostgreSQL 17");
     expect(text(html)).toContain("17.2 · port 5432");
   });
 
-  it("porte l'état par sa forme avant sa couleur", () => {
+  it("carries the state by its shape before its colour", () => {
     expect(tag(html, "data-state", "running")).toContain("data-state");
     expect(html).toContain('data-shape="filled"');
     expect(html).not.toContain('data-state="signed_');
   });
 
-  it("dit si le service est connecté quand il travaille pour un compte", () => {
+  it("says whether the service is connected when it works for an account", () => {
     const signedOut = renderToStaticMarkup(
       <ServiceRow
         account="signed_out"
@@ -130,7 +130,7 @@ describe("la ligne d'un service", () => {
   });
 });
 
-describe("la liste des services", () => {
+describe("the service list", () => {
   const html = renderToStaticMarkup(
     <ServicesList
       accounts={{ "ai.claude": "signed_in" }}
@@ -145,7 +145,7 @@ describe("la liste des services", () => {
     />
   );
 
-  it("range chaque service sous la catégorie du catalogue, dans l'ordre du catalogue", () => {
+  it("files each service under its catalogue category, in catalogue order", () => {
     const categories = [
       ...html.matchAll(/data-service-category="([a-z]+)"/g),
     ].map((match) => match[1]);
@@ -154,7 +154,7 @@ describe("la liste des services", () => {
     expect(text(html)).toMatch(/Base.*Runtimes.*Bases de données.*Agents IA/);
   });
 
-  it("garde dans une catégorie l'ordre du snapshot", () => {
+  it("keeps the snapshot order within a category", () => {
     const databases = html.slice(
       html.indexOf('data-service-category="database"'),
       html.indexOf('data-service-category="ai"')
@@ -166,12 +166,12 @@ describe("la liste des services", () => {
     expect(databases).not.toContain('data-service="runtime.node"');
   });
 
-  it("dit sur la ligne le compte que le service tient", () => {
+  it("states on the row the account the service holds", () => {
     expect(html).toContain('data-state="signed_in"');
   });
 });
 
-describe("les identifiants d'un service", () => {
+describe("a service's credentials", () => {
   const html = renderToStaticMarkup(
     <ServiceCredentials
       database
@@ -182,19 +182,19 @@ describe("les identifiants d'un service", () => {
     />
   );
 
-  it("les nomme sans en montrer un seul", () => {
+  it("names them without showing a single one", () => {
     expect(text(html)).toContain("Rôle applicatif");
     expect(html).toContain('data-revealed="false"');
     expect(html).toContain("••••");
     expect(html).not.toContain("jamais-affiché");
   });
 
-  it("offre à chacun d'être montré et copié", () => {
+  it("lets each one be shown and copied", () => {
     expect(text(html)).toContain("Montrer");
     expect(text(html)).toContain("Copier");
   });
 
-  it("propose l'URL de connexion à une base, et à elle seule", () => {
+  it("offers the connection URL for a database, and only for it", () => {
     const plain = renderToStaticMarkup(
       <ServiceCredentials
         database={false}
@@ -209,7 +209,7 @@ describe("les identifiants d'un service", () => {
   });
 
   // A runtime has nothing to open it, and a section saying so was noise on every such page.
-  it("n'existe pas pour un module sans identifiant", () => {
+  it("does not exist for a module without credentials", () => {
     const none = renderToStaticMarkup(
       <ServiceCredentials
         database={false}
@@ -223,7 +223,7 @@ describe("les identifiants d'un service", () => {
   });
 });
 
-describe("le compte d'un service", () => {
+describe("a service's account", () => {
   const WRANGLER: Manifest = {
     ...EXPOSURE_CLOUDFLARE,
     connection: "wrangler",
@@ -234,7 +234,7 @@ describe("le compte d'un service", () => {
 
   const github = descriptorOf("github") as ConnectionDescriptor;
 
-  it("dit l'état que l'agent a répondu, et le compte qu'il a nommé", () => {
+  it("states the state the agent answered, and the account it named", () => {
     const html = renderToStaticMarkup(
       <ServiceAccount
         installed={[]}
@@ -251,7 +251,7 @@ describe("le compte d'un service", () => {
     expect(html).not.toContain("data-connection=");
   });
 
-  it("dit comment se connecter quand le CLI ne tient rien", () => {
+  it("says how to connect when the CLI holds nothing", () => {
     const html = renderToStaticMarkup(
       <ServiceAccount
         installed={[]}
@@ -266,7 +266,7 @@ describe("le compte d'un service", () => {
     expect(text(html)).toContain("Reconnectez le compte.");
   });
 
-  it("met les gestes du compte sur la ligne de l'état, sans redire qu'il est connecté", () => {
+  it("puts the account gestures on the state line, without repeating that it is connected", () => {
     const html = renderToStaticMarkup(
       <ConnectionConnected
         busy={false}
@@ -292,7 +292,7 @@ describe("le compte d'un service", () => {
   });
 
   // A tunnel has no CLI to ask, but the account it was made from still counts.
-  it("existe pour un module qui n'a qu'une connexion, et demande le jeton qui manque", () => {
+  it("exists for a module that only has a connection, and asks for the missing token", () => {
     stubPupitre({});
 
     const html = renderToStaticMarkup(
@@ -309,7 +309,7 @@ describe("le compte d'un service", () => {
     expect(html).toContain('type="password"');
   });
 
-  it("n'existe pas pour un module sans compte", () => {
+  it("does not exist for a module without an account", () => {
     const html = renderToStaticMarkup(
       <ServiceAccount installed={[]} manifest={null} serverName={null} />
     );
@@ -318,7 +318,7 @@ describe("le compte d'un service", () => {
   });
 });
 
-describe("la confirmation d'un retrait", () => {
+describe("the confirmation of a removal", () => {
   const removal = removalOf(
     { id: DB_MONGODB.id, manifest: DB_MONGODB, name: DB_MONGODB.name },
     [...CATALOG.modules, DB_MONGODB]
@@ -335,7 +335,7 @@ describe("la confirmation d'un retrait", () => {
       />
     );
 
-  it("nomme les données perdues avant de proposer le geste", async () => {
+  it("names the data lost before offering the gesture", async () => {
     const view = await asked();
     const html = view.html();
 
@@ -351,7 +351,7 @@ describe("la confirmation d'un retrait", () => {
     view.unmount();
   });
 
-  it("pose la question dans une boîte de dialogue, et rien tant qu'elle n'est pas ouverte", async () => {
+  it("asks the question in a dialog, and nothing until it is open", async () => {
     const view = await asked();
     const html = view.html();
 
@@ -373,7 +373,7 @@ describe("la confirmation d'un retrait", () => {
     expect(closed).toBe("");
   });
 
-  it("ne laisse pas croire qu'une sauvegarde est prise au passage", async () => {
+  it("does not suggest that a backup is taken along the way", async () => {
     const view = await asked();
 
     expect(view.text()).toContain("Rien n'est sauvegardé au passage");
@@ -382,7 +382,7 @@ describe("la confirmation d'un retrait", () => {
   });
 });
 
-describe("les routes du module d'exposition", () => {
+describe("the exposure module's routes", () => {
   const tunnel: TunnelStatusResult = {
     provider: "cloudflare",
     installed: true,
@@ -396,7 +396,7 @@ describe("les routes du module d'exposition", () => {
     state: "running",
   };
 
-  it("montre les routes que l'agent déclare, et le geste qui les réécrit", () => {
+  it("shows the routes the agent declares, and the gesture that rewrites them", () => {
     const html = renderToStaticMarkup(
       <ServiceRoutes
         busy={null}
@@ -412,14 +412,14 @@ describe("les routes du module d'exposition", () => {
     expect(text(html)).not.toContain("Redémarrer");
   });
 
-  it("dit ce qui tient lieu de tunnel quand le serveur n'en a pas", () => {
+  it("says what stands in for a tunnel when the server has none", () => {
     const html = renderToStaticMarkup(<ServicesTunnel />);
 
     expect(text(html)).toContain("session SSH de l'app");
   });
 });
 
-describe("le tunnel vers un port", () => {
+describe("the tunnel to a port", () => {
   const forward: PortForward = {
     id: "f1",
     label: "db.postgres",
@@ -428,7 +428,7 @@ describe("le tunnel vers un port", () => {
     serverId: SERVER,
   };
 
-  it("donne l'adresse locale à coller dans un client", () => {
+  it("gives the local address to paste into a client", () => {
     const html = renderToStaticMarkup(
       <ServiceForward
         forwards={[forward]}
@@ -442,7 +442,7 @@ describe("le tunnel vers un port", () => {
     expect(html).toContain('data-forward="f1"');
   });
 
-  it("ne propose rien pour un service qui n'écoute nulle part", () => {
+  it("offers nothing for a service that listens nowhere", () => {
     const html = renderToStaticMarkup(
       <ServiceForward
         forwards={[]}
@@ -455,8 +455,8 @@ describe("le tunnel vers un port", () => {
   });
 });
 
-describe("ajouter un module à un serveur déjà installé", () => {
-  it("passe par le catalogue de l'onboarding, sans reproposer l'existant", async () => {
+describe("adding a module to an already installed server", () => {
+  it("goes through the onboarding catalogue, without offering what already exists again", async () => {
     await catalogReady();
 
     const html = renderToStaticMarkup(
@@ -477,7 +477,7 @@ describe("ajouter un module à un serveur déjà installé", () => {
     expect(text(html)).toContain("Déjà installé sur ce serveur.");
   });
 
-  it("n'entraîne dans l'installation que le module ajouté", async () => {
+  it("pulls only the added module into the installation", async () => {
     await catalogReady();
     useCatalog.getState().toggle("db.mongodb");
     await useCatalog.getState().settled();
@@ -486,7 +486,7 @@ describe("ajouter un module à un serveur déjà installé", () => {
     expect(Object.keys(useCatalog.getState().config())).toEqual(["db.mongodb"]);
   });
 
-  it("pose les questions du manifeste, et seulement les siennes", async () => {
+  it("asks the manifest's questions, and only its own", async () => {
     await catalogReady();
     useCatalog.getState().toggle("db.mongodb");
     await useCatalog.getState().settled();
@@ -514,7 +514,7 @@ describe("ajouter un module à un serveur déjà installé", () => {
   });
 
   // A render cannot tell where a component came from, so the imports are checked.
-  it("monte les écrans de l'onboarding plutôt que des siens", () => {
+  it("mounts the onboarding screens rather than its own", () => {
     const flow = source("services-add-flow.tsx");
 
     expect(flow).toContain(
@@ -541,16 +541,16 @@ const DETAIL = {
   version: "17.2",
 };
 
-describe("l'en-tête d'un service", () => {
+describe("a service header", () => {
   const html = renderToStaticMarkup(<ServicePanelFacts detail={DETAIL} />);
 
-  it("montre ce qui décide : la version et le port", () => {
+  it("shows what decides: the version and the port", () => {
     expect(text(html)).toContain("17.2");
     expect(text(html)).toContain("port 5432");
   });
 
   // The id and the unit only matter to whoever goes looking on the server.
-  it("range l'identifiant et l'unité systemd sous Détails", () => {
+  it("files the identifier and the systemd unit under Détails", () => {
     const fold = html.indexOf('hidden=""');
     const details = html.slice(fold);
 
@@ -560,7 +560,7 @@ describe("l'en-tête d'un service", () => {
     expect(html.slice(0, fold)).not.toContain("db.postgres");
   });
 
-  it("dit dans l'en-tête pourquoi un module obligatoire ne se retire pas", () => {
+  it("says in the header why a mandatory module cannot be removed", () => {
     const held = renderToStaticMarkup(
       <ServicePanelFacts
         detail={DETAIL}
@@ -573,7 +573,7 @@ describe("l'en-tête d'un service", () => {
     expect(html).not.toContain("data-removal-refused");
   });
 
-  it("ne laisse pas une ligne vide pour un service sans version ni port", () => {
+  it("leaves no empty line for a service without a version or port", () => {
     const bare = renderToStaticMarkup(
       <ServicePanelFacts
         detail={{ ...DETAIL, port: undefined, version: undefined }}
@@ -584,7 +584,7 @@ describe("l'en-tête d'un service", () => {
   });
 });
 
-describe("les réglages d'un service dont le catalogue manque", () => {
+describe("the settings of a service whose catalogue is missing", () => {
   const props = {
     apply: { status: "idle" } as const,
     config: { status: "idle" } as const,
@@ -600,7 +600,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   };
 
   // A section that silently vanished left the reader searching for the service's settings.
-  it("dit pourquoi ils manquent, et propose de relire le catalogue", () => {
+  it("says why they are missing, and offers to reread the catalogue", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
@@ -615,7 +615,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   });
 
   // The typed field stays beside the zones because a subdomain of a zone is allowed.
-  it("propose les zones du compte pour le domaine d'un tunnel installé", () => {
+  it("offers the account's zones for an installed tunnel's domain", () => {
     const config = {
       answered: { domain: "flyleaf.dev" },
       baseline: { domain: "flyleaf.dev" },
@@ -658,7 +658,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   });
 
   // The progress follows the button so the click and what it started read together.
-  it("place la progression sous le formulaire, à la suite du bouton", () => {
+  it("places the progress under the form, right after the button", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
@@ -690,7 +690,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  it("garde le geste d'appliquer pour un module dont toute la valeur vient d'un compte", () => {
+  it("keeps the apply gesture for a module whose whole value comes from an account", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
@@ -724,7 +724,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(html).not.toContain("elevation-raised grid");
   });
 
-  it("n'offre d'appliquer qu'une fois quelque chose changé, et alors aussi d'y renoncer", () => {
+  it("offers to apply only once something has changed, and then also to give up", () => {
     const config = {
       answered: { domain: "flyleaf.dev" },
       baseline: { domain: "flyleaf.dev" },
@@ -764,7 +764,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(text(changed)).toContain("Annuler les modifications");
   });
 
-  it("dit sous le champ ce qui est refusé, et le compte au pied du formulaire", () => {
+  it("says under the field what is refused, and the account at the foot of the form", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
@@ -795,7 +795,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(text(html)).toContain("1 valeur refusée");
   });
 
-  it("ne propose pas de relire quand c'est le serveur entier qui est retenu", () => {
+  it("does not offer to reread when the whole server is held back", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
@@ -810,8 +810,8 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   });
 });
 
-describe("un écran que l'app n'a pas su dessiner", () => {
-  it("le dit, garde ce qui a été levé sous Détails, et propose de recommencer", () => {
+describe("a screen the app could not draw", () => {
+  it("says so, keeps what was thrown under Détails, and offers to start over", () => {
     const html = renderToStaticMarkup(
       <ScreenFailure
         detail="Cannot read properties of undefined"

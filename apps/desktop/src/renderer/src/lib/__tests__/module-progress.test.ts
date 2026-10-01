@@ -11,8 +11,8 @@ function entry(step: string, status: StepEntry["status"], ms = 0): StepEntry {
   return { ms, status, step };
 }
 
-describe("une étape qui se referme", () => {
-  it("ferme la dernière ouverte sous ce nom, pas celle d'avant", () => {
+describe("a step that closes", () => {
+  it("closes the last one opened under that name, not the one before", () => {
     const before = [
       entry("store-key", "start"),
       entry("install-neonctl", "skip"),
@@ -26,7 +26,7 @@ describe("une étape qui se referme", () => {
     expect(after[2]).toEqual(entry("store-key", "skip"));
   });
 
-  it("ferme celle qu'elle a ouverte quand rien ne traîne", () => {
+  it("closes the one it opened when nothing lingers", () => {
     const after = withStep(
       [entry("store-key", "start")],
       entry("store-key", "ok", 12)
@@ -36,14 +36,14 @@ describe("une étape qui se referme", () => {
   });
 });
 
-describe("un module que la réponse rattrape", () => {
+describe("a module the response catches up with", () => {
   const running: ModuleProgress = shaped("tool.neon", [
     entry("install-neonctl", "ok", 34_900),
     entry("link-neonctl", "skip"),
     entry("store-key", "start"),
   ]);
 
-  it("ne tourne plus, et perd l'étape que personne n'a fermée", () => {
+  it("no longer runs, and loses the step nobody closed", () => {
     const settled = settledBy(running, false);
 
     expect(running.status).toBe("running");
@@ -55,11 +55,11 @@ describe("un module que la réponse rattrape", () => {
     expect(settled.ms).toBe(34_900);
   });
 
-  it("prend l'échec que la réponse lui donne", () => {
+  it("takes the failure the response gives it", () => {
     expect(settledBy(running, true).status).toBe("fail");
   });
 
-  it("garde ce que ses étapes disent quand la réponse ne le condamne pas", () => {
+  it("keeps what its steps say when the response does not condemn it", () => {
     const skipped = shaped("tool.neon", [
       entry("store-key", "skip"),
       entry("export-key", "start"),
@@ -68,7 +68,7 @@ describe("un module que la réponse rattrape", () => {
     expect(settledBy(skipped, false).status).toBe("skip");
   });
 
-  it("dit oui d'un module dont aucune étape n'est revenue", () => {
+  it("says yes for a module none of whose steps came back", () => {
     const silent = shaped("tool.neon", []);
 
     expect(settledBy(silent, false).status).toBe("ok");

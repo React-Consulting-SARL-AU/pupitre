@@ -8,7 +8,7 @@ const SERVICES = "Services";
 const BACK = /^Retour \(/;
 const FORWARD = /^Avancer \(/;
 
-test.describe("historique", () => {
+test.describe("history", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -19,7 +19,7 @@ test.describe("historique", () => {
     await running.app.close();
   });
 
-  test("les flèches reviennent en arrière puis en avant", async () => {
+  test("the arrows go back then forward", async () => {
     const { page } = running;
 
     const back = page.getByRole("button", { name: BACK });
@@ -47,7 +47,7 @@ test.describe("historique", () => {
     await expect(heading(DASHBOARD)).toBeVisible();
     await expect(back).toBeDisabled();
 
-    await test.step("le clavier suit les mêmes pas", async () => {
+    await test.step("the keyboard follows the same steps", async () => {
       const chord =
         process.platform === "darwin"
           ? { back: "Meta+[", forward: "Meta+]" }
@@ -64,14 +64,14 @@ test.describe("historique", () => {
       await expect(heading(SERVICES)).toBeVisible();
     });
 
-    await test.step("repartir d'un point du passé oublie ce qui était devant", async () => {
+    await test.step("restarting from a point in the past forgets what was ahead", async () => {
       await page.getByRole("button", { name: "Tableau de bord" }).click();
       await expect(heading(DASHBOARD)).toBeVisible();
       await expect(forward).toBeDisabled();
       await expect(back).toBeEnabled();
     });
 
-    await test.step("la page d'un service se quitte vers la liste, pas vers le tableau de bord", async () => {
+    await test.step("a service page is left toward the list, not toward the dashboard", async () => {
       const allServices = page.getByRole("button", {
         name: "Tous les services",
       });

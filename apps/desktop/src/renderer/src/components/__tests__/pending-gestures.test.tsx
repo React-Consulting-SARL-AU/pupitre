@@ -27,8 +27,8 @@ function busy(button: Element | null | undefined): string | null {
   return button?.getAttribute("aria-busy") ?? null;
 }
 
-describe("un geste long garde son bouton en attente", () => {
-  it("démarre ou redémarre un projet", async () => {
+describe("a long gesture keeps its button pending", () => {
+  it("starts or restarts a project", async () => {
     if (!PROJECT) {
       throw new Error("the snapshot fixture names no project");
     }
@@ -53,7 +53,7 @@ describe("un geste long garde son bouton en attente", () => {
     view.unmount();
   });
 
-  it("démarre ou arrête un processus", async () => {
+  it("starts or stops a process", async () => {
     const process = PROJECT?.processes[0];
 
     if (!process) {
@@ -74,7 +74,7 @@ describe("un geste long garde son bouton en attente", () => {
     view.unmount();
   });
 
-  it("crée une branche sans fermer le formulaire avant la réponse", async () => {
+  it("creates a branch without closing the form before the response", async () => {
     const view = await mount(
       <ProjectBranches
         folder="/home/dev/projects/flyleaf"
@@ -116,7 +116,7 @@ describe("un geste long garde son bouton en attente", () => {
     view.unmount();
   });
 
-  it("ouvre un éditeur", async () => {
+  it("opens an editor", async () => {
     const editor = REMOTE_EDITORS[0];
 
     if (!editor) {
@@ -141,7 +141,7 @@ describe("un geste long garde son bouton en attente", () => {
     view.unmount();
   });
 
-  it("choisit un serveur connu dans l'onboarding", async () => {
+  it("picks a known server in the onboarding", async () => {
     const view = await mount(
       <OnboardingServerChoice onPick={NEVER} server={SERVER} />
     );

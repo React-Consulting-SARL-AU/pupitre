@@ -55,7 +55,7 @@ export function loadOnePasswordEnv(): Record<string, string> | null {
 
   if (!available()) {
     process.stdout.write(
-      "1Password absent : `op` n'est pas installé. Les secrets partagés ne sont pas synchronisés.\n"
+      "1Password missing: `op` is not installed. The shared secrets are not synchronised.\n"
     )
 
     return null
@@ -67,7 +67,7 @@ export function loadOnePasswordEnv(): Record<string, string> | null {
 
   if (!(vault && item)) {
     process.stdout.write(
-      `1Password ignoré : renseigne « vault » et l'« item » de ${LOCAL_ENVIRONMENT} dans ${CONFIG_FILE}, ou OP_VAULT et OP_ITEM.\n`
+      `1Password skipped: set "vault" and "item" for ${LOCAL_ENVIRONMENT} in ${CONFIG_FILE}, or OP_VAULT and OP_ITEM.\n`
     )
 
     return null
@@ -100,7 +100,7 @@ export function loadOnePasswordEnv(): Record<string, string> | null {
     const reason = injected.stderr?.trim() ?? "raison inconnue"
 
     process.stdout.write(
-      `1Password ignoré : \`op inject\` a échoué. Ouvre une session avec \`op signin\`, ou commente la clé dont le champ manque.\n  ${reason}\n`
+      `1Password skipped: \`op inject\` failed. Sign in with \`op signin\`, or comment out the key whose field is missing.\n  ${reason}\n`
     )
 
     return null

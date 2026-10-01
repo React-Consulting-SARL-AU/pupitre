@@ -55,7 +55,7 @@ async function reopen(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
 }
 
-test.describe("mise à jour de l'agent", () => {
+test.describe("agent update", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -66,7 +66,7 @@ test.describe("mise à jour de l'agent", () => {
     await running.app.close();
   });
 
-  test("une app en avance propose la mise à jour en un clic", async () => {
+  test("an app ahead of the agent offers the update in one click", async () => {
     await announce(running.app, AHEAD);
     await reopen(running.page);
 
@@ -84,7 +84,7 @@ test.describe("mise à jour de l'agent", () => {
     await assertAccessible(running.page, "tableau-de-bord/mise-a-jour");
   });
 
-  test("une app en retard le dit et laisse le tableau de bord vivant", async () => {
+  test("an app behind the agent says so and keeps the dashboard alive", async () => {
     await announce(running.app, BEHIND);
     await reopen(running.page);
 

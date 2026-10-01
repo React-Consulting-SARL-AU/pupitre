@@ -1,7 +1,7 @@
-# 0006 — Astro pour le site
+# 0006 — Astro for the site
 
-Date : 2026-09-04 · Statut : acceptée
+Date: 2026-09-04 · Status: accepted
 
-`pupitre.studio` est un site Astro statique sur Cloudflare Pages, séparé de la console. Docs publiques et blog en MDX, i18n anglais et français.
+`pupitre.studio` is a static Astro site on Cloudflare Pages, separate from the console. Public docs and blog in MDX, English and French i18n.
 
-Pourquoi : un site statique n'a rien à faire dans un Worker applicatif, et Astro fait le contenu mieux que TanStack Start.
+Why: a static site has no business in an application Worker, and Astro handles content better than TanStack Start.

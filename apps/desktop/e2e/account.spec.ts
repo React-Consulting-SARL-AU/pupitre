@@ -123,7 +123,7 @@ function stubAccount(app: ElectronApplication): Promise<void> {
   );
 }
 
-test.describe("compte", () => {
+test.describe("account", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -136,7 +136,7 @@ test.describe("compte", () => {
     await running.app.close();
   });
 
-  test("le device flow mène de l'écran de compte à l'identité confirmée", async () => {
+  test("the device flow leads from the account screen to the confirmed identity", async () => {
     const { page } = running;
 
     await expect(

@@ -179,7 +179,7 @@ describe("/admin/inbox", () => {
     outsider = await createSession({ userId: otherUser.user.id })
   })
 
-  it("liste les fils avec leur expéditeur et le compteur de non-lus", async () => {
+  it("lists the threads with their sender and the unread counter", async () => {
     await ingest({ subject: "Mon serveur ne repond plus" })
 
     const response = await apiRequest<{
@@ -196,7 +196,7 @@ describe("/admin/inbox", () => {
     expect(response.json.data[0].messages).toBe(1)
   })
 
-  it("dit d'un fil et de son message que l'expéditeur n'a pas été vérifié", async () => {
+  it("states of a thread and its message that the sender has not been verified", async () => {
     const stored = await ingest({})
     const list = await apiRequest<{ data: ThreadRow[] }>(
       "/admin/inbox/threads",
@@ -211,7 +211,7 @@ describe("/admin/inbox", () => {
     expect(detail.json.data.messages[0].authenticated).toBe(false)
   })
 
-  it("filtre par statut, adresse et recherche", async () => {
+  it("filters by status, address and search", async () => {
     await ingest({ subject: "Facture" })
     await ingest({
       subject: "Fuite",
@@ -234,7 +234,7 @@ describe("/admin/inbox", () => {
     expect(byQuery.json.data[0].from.email).toBe("chercheuse@exemple.org")
   })
 
-  it("ouvre un fil sans le marquer lu", async () => {
+  it("opens a thread without marking it read", async () => {
     const stored = await ingest({})
     const response = await apiRequest<{
       data: ThreadRow & { messages: MessageRow[] }
@@ -250,7 +250,7 @@ describe("/admin/inbox", () => {
     )
   })
 
-  it("rend 404 sur un fil inconnu", async () => {
+  it("returns 404 on an unknown thread", async () => {
     const response = await apiRequest("/admin/inbox/threads/inconnu", {
       session: owner.session,
     })
@@ -258,7 +258,7 @@ describe("/admin/inbox", () => {
     expect(response.status).toBe(404)
   })
 
-  it("sert le HTML tel quel, sous une CSP qui interdit tout script", async () => {
+  it("serves the HTML as is, under a CSP that forbids any script", async () => {
     const stored = await ingest({})
     const thread = await apiRequest<{
       data: { messages: MessageRow[] }
@@ -277,7 +277,7 @@ describe("/admin/inbox", () => {
     expect(response.json).toContain("<p>Bonjour</p>")
   })
 
-  it("réécrit une image en ligne vers son adresse signée, pour qu'elle passe la CSP", async () => {
+  it("rewrites an inline image to its signed address, so it passes the CSP", async () => {
     const stored = await ingest({ inlineImage: true })
     const thread = await apiRequest<{
       data: { messages: MessageRow[] }
@@ -300,7 +300,7 @@ describe("/admin/inbox", () => {
     expect(mail.signed.map((request) => request.method)).toEqual(["GET"])
   })
 
-  it("signe l'adresse d'une pièce jointe à enregistrer, sous son nom", async () => {
+  it("signs the address of an attachment to save, under its name", async () => {
     const stored = await ingest({})
     const thread = await apiRequest<{
       data: { messages: MessageRow[] }
@@ -335,7 +335,7 @@ describe("/admin/inbox", () => {
     expect(url.searchParams.get("response-content-type")).toBe("text/plain")
   })
 
-  it("n'ouvre en ligne qu'une image ou un PDF, et force le reste à l'enregistrement", async () => {
+  it("opens inline only an image or a PDF, and forces the rest to be saved", async () => {
     const image = await ingest({ attachmentType: "image/png" })
     const svg = await ingest({
       attachmentType: "image/svg+xml",
@@ -375,7 +375,7 @@ describe("/admin/inbox", () => {
     expect(inlineSvg.json.data.mime_type).toBe("application/octet-stream")
   })
 
-  it("rend 404 sur une pièce jointe inconnue", async () => {
+  it("returns 404 on an unknown attachment", async () => {
     const response = await apiRequest<{ error: { code: string } }>(
       "/admin/inbox/attachments/inconnue/url",
       { session: owner.session }
@@ -385,7 +385,7 @@ describe("/admin/inbox", () => {
     expect(response.json.error.code).toBe("not_found")
   })
 
-  it("laisse un membre marquer le fil lu", async () => {
+  it("lets a member mark the thread read", async () => {
     const stored = await ingest({})
     const response = await apiRequest<{ data: ThreadRow }>(
       `/admin/inbox/threads/${stored.threadId}`,
@@ -396,7 +396,7 @@ describe("/admin/inbox", () => {
     expect(response.json.data.unread).toBe(false)
   })
 
-  it("refuse à un membre de fermer un fil", async () => {
+  it("refuses a member closing a thread", async () => {
     const stored = await ingest({})
     const response = await apiRequest<{ error: { code: string } }>(
       `/admin/inbox/threads/${stored.threadId}`,
@@ -407,7 +407,7 @@ describe("/admin/inbox", () => {
     expect(response.json.error.code).toBe("forbidden")
   })
 
-  it("ferme un fil et journalise l'action", async () => {
+  it("closes a thread and logs the action", async () => {
     const stored = await ingest({})
     const response = await apiRequest<{ data: ThreadRow }>(
       `/admin/inbox/threads/${stored.threadId}`,
@@ -422,7 +422,7 @@ describe("/admin/inbox", () => {
     expect(event?.action).toBe("mail.closed")
   })
 
-  it("attribue un fil à un membre de l'équipe et refuse un tiers", async () => {
+  it("assigns a thread to a team member and refuses an outsider", async () => {
     const stored = await ingest({})
     const assigned = await apiRequest<{ data: ThreadRow }>(
       `/admin/inbox/threads/${stored.threadId}`,
@@ -446,7 +446,7 @@ describe("/admin/inbox", () => {
     expect(refused.json.error.code).toBe("validation")
   })
 
-  it("répond avec les bons en-têtes et enregistre le message sortant", async () => {
+  it("replies with the right headers and records the outgoing message", async () => {
     const stored = await ingest({
       cc: "Equipe <equipe@exemple.fr>, legal@pupitre.studio",
       messageId: "racine",
@@ -474,7 +474,7 @@ describe("/admin/inbox", () => {
     expect(mail.sent[0].raw).toContain("Cc: equipe@exemple.fr")
   })
 
-  it("signe une adresse de dépôt sous l'utilisateur, pour dix minutes", async () => {
+  it("signs an upload address under the user, for ten minutes", async () => {
     const response = await apiRequest<{
       data: { key: string; url: string; expires_at: string }
     }>("/admin/inbox/uploads", {
@@ -498,7 +498,7 @@ describe("/admin/inbox", () => {
     ])
   })
 
-  it("refuse un dépôt d'exécutable, trop gros, ou d'un membre sans rôle", async () => {
+  it("refuses an executable upload, one that is too big, or one from a member without a role", async () => {
     const blocked = await apiRequest<{
       error: { code: string; message: string }
     }>("/admin/inbox/uploads", {
@@ -534,7 +534,7 @@ describe("/admin/inbox", () => {
     expect(mail.signed).toHaveLength(0)
   })
 
-  it("répond avec des pièces jointes : MIME mixte, rangement sous le message, dépôts effacés", async () => {
+  it("replies with attachments: mixed MIME, stored under the message, uploads erased", async () => {
     const stored = await ingest({})
     const pdf = upload(mail, owner.userId, "rapport.pdf", "%PDF-1.7")
     const notes = upload(mail, owner.userId, "notes.txt", "ok", "text/plain")
@@ -567,7 +567,7 @@ describe("/admin/inbox", () => {
     expect(mail.objects.has(notes.key)).toBe(false)
   })
 
-  it("refuse une pièce jointe absente du seau, d'un autre utilisateur, ou trop lourde en tout", async () => {
+  it("refuses an attachment missing from the bucket, from another user, or too heavy in total", async () => {
     const stored = await ingest({})
     const foreign = upload(mail, member.userId, "autre.pdf", "%PDF")
     const missing = {
@@ -607,7 +607,7 @@ describe("/admin/inbox", () => {
     expect(mail.objects.has(foreign.key)).toBe(true)
   })
 
-  it("refuse plus de dix pièces jointes à la validation", async () => {
+  it("refuses more than ten attachments at validation", async () => {
     const stored = await ingest({})
     const response = await apiRequest(
       `/admin/inbox/threads/${stored.threadId}/reply`,
@@ -626,7 +626,7 @@ describe("/admin/inbox", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("marque le fil lu et daté après une réponse", async () => {
+  it("marks the thread read and dated after a reply", async () => {
     const stored = await ingest({})
 
     await apiRequest(`/admin/inbox/threads/${stored.threadId}/reply`, {
@@ -642,7 +642,7 @@ describe("/admin/inbox", () => {
     expect(thread.json.data.messages).toHaveLength(2)
   })
 
-  it("refuse la réponse d'un membre sans rôle", async () => {
+  it("refuses the reply of a member without a role", async () => {
     const stored = await ingest({})
     const response = await apiRequest(
       `/admin/inbox/threads/${stored.threadId}/reply`,
@@ -653,7 +653,7 @@ describe("/admin/inbox", () => {
     expect(mail.sent).toHaveLength(0)
   })
 
-  it("garde le message en échec et répond 502 quand l'envoi casse", async () => {
+  it("keeps the message as failed and answers 502 when sending breaks", async () => {
     const stored = await ingest({})
 
     useFailingMailTransport(new Error("binding absent"))
@@ -675,7 +675,7 @@ describe("/admin/inbox", () => {
     expect(failed?.error).toContain("binding absent")
   })
 
-  it("n'écrit pas un nouveau message à nos seules adresses, et n'ouvre aucun fil", async () => {
+  it("does not write a new message to our own addresses only, and opens no thread", async () => {
     const response = await apiRequest<{ error: { code: string } }>(
       "/admin/inbox/compose",
       {
@@ -696,7 +696,7 @@ describe("/admin/inbox", () => {
     expect(await prisma.mailThread.count()).toBe(0)
   })
 
-  it("n'ouvre aucun fil quand le seau refuse le message à écrire", async () => {
+  it("opens no thread when the bucket refuses the message to write", async () => {
     configureMailStorage({
       ...mail.storage,
       put: () => Promise.reject(new Error("seau injoignable")),
@@ -718,7 +718,7 @@ describe("/admin/inbox", () => {
     expect(await prisma.mailThread.count()).toBe(0)
   })
 
-  it("refuse un type de pièce jointe qui n'en est pas un", async () => {
+  it("refuses an attachment type that is not one", async () => {
     const response = await apiRequest("/admin/inbox/uploads", {
       body: {
         filename: "a.pdf",
@@ -731,7 +731,7 @@ describe("/admin/inbox", () => {
     expect(response.status).toBe(422)
   })
 
-  it("écrit un nouveau message depuis une adresse vérifiée", async () => {
+  it("writes a new message from a verified address", async () => {
     const response = await apiRequest<{
       data: ThreadRow & { messages: MessageRow[] }
     }>("/admin/inbox/compose", {
@@ -754,7 +754,7 @@ describe("/admin/inbox", () => {
     expect(mail.sent[0].to).toEqual(["client@exemple.fr"])
   })
 
-  it("écrit un nouveau message avec une pièce jointe, et n'ouvre aucun fil si elle manque", async () => {
+  it("writes a new message with an attachment, and opens no thread if it is missing", async () => {
     const pdf = upload(mail, owner.userId, "conditions.pdf", "%PDF")
     const response = await apiRequest<{
       data: ThreadRow & { messages: MessageRow[] }
@@ -794,7 +794,7 @@ describe("/admin/inbox", () => {
     expect(await prisma.mailThread.count()).toBe(1)
   })
 
-  it("refuse d'écrire depuis une boîte qui n'existe pas", async () => {
+  it("refuses to write from a mailbox that does not exist", async () => {
     const response = await apiRequest<{ error: { code: string } }>(
       "/admin/inbox/compose",
       {
@@ -812,7 +812,7 @@ describe("/admin/inbox", () => {
     expect(response.json.error.code).toBe("validation")
   })
 
-  it("refuse tout à qui n'est pas de l'équipe", async () => {
+  it("refuses everything to anyone not on the team", async () => {
     const anonymous = await apiRequest("/admin/inbox/threads")
     const stranger = await apiRequest("/admin/inbox/threads", {
       session: outsider,

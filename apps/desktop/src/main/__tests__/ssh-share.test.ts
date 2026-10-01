@@ -20,49 +20,49 @@ const APP = "/Users/jean/Library/Application Support/Pupitre/ssh/config";
 const PLAIN = "/home/jean/.config/pupitre/ssh/config";
 const OWN = "Host work\n  HostName 10.0.0.2\n  User jean\n";
 
-describe("la ligne Include", () => {
-  it("cite un chemin qui porte un espace, laisse nu un chemin sans", () => {
+describe("the Include line", () => {
+  it("quotes a path containing a space, leaves a path without one bare", () => {
     expect(includeLine(APP)).toBe(`Include "${APP}"`);
     expect(includeLine(PLAIN)).toBe(`Include ${PLAIN}`);
   });
 
-  it("se reconnaît citée ou nue, quelle que soit la casse du mot", () => {
+  it("is recognised quoted or bare, whatever the case of the keyword", () => {
     expect(isShared(`include "${APP}"\n${OWN}`, APP)).toBe(true);
     expect(isShared(`Include ${PLAIN}\n${OWN}`, PLAIN)).toBe(true);
     expect(isShared(`Include ~/.ssh/other\n${OWN}`, PLAIN)).toBe(false);
   });
 });
 
-describe("le fichier du système avec la ligne", () => {
-  it("la reçoit en tête, au-dessus de tout ce que le lecteur y avait écrit", () => {
+describe("the system file with the line", () => {
+  it("receives it at the top, above everything the reader had written there", () => {
     expect(withInclude(OWN, PLAIN)).toBe(`Include ${PLAIN}\n\n${OWN}`);
   });
 
-  it("naît de la ligne seule quand il n'existait pas", () => {
+  it("is born from the line alone when it did not exist", () => {
     expect(withInclude("", PLAIN)).toBe(`Include ${PLAIN}\n`);
   });
 
-  it("ne la reçoit pas deux fois", () => {
+  it("does not receive it twice", () => {
     const once = withInclude(OWN, PLAIN);
 
     expect(withInclude(once, PLAIN)).toBe(once);
   });
 });
 
-describe("le fichier du système sans la ligne", () => {
-  it("redevient ce qu'il était", () => {
+describe("the system file without the line", () => {
+  it("goes back to what it was", () => {
     expect(withoutInclude(withInclude(OWN, PLAIN), PLAIN)).toBe(OWN);
   });
 
-  it("la perd où que le lecteur l'ait déplacée, et ne touche à rien d'autre", () => {
+  it("loses it wherever the reader moved it, and touches nothing else", () => {
     const moved = `${OWN}\nInclude ${PLAIN}\nHost other\n`;
 
     expect(withoutInclude(moved, PLAIN)).toBe(`${OWN}\nHost other\n`);
   });
 });
 
-describe("sur le disque", () => {
-  it("crée le fichier fermé quand il manque, le reprend tel quel sinon", () => {
+describe("on disk", () => {
+  it("creates the file closed when it is missing, takes it as is otherwise", () => {
     const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
     const file = join(home, ".ssh", "config");
 
@@ -75,7 +75,7 @@ describe("sur le disque", () => {
     expect(readFileSync(file, "utf8")).toBe("");
   });
 
-  it("laisse un fichier existant dans ses modes, et son contenu autour de la ligne", () => {
+  it("leaves an existing file in its modes, and its content around the line", () => {
     const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
     const file = join(home, "config");
     writeFileSync(file, OWN, { mode: 0o644 });
@@ -90,7 +90,7 @@ describe("sur le disque", () => {
     expect(readFileSync(file, "utf8")).toBe(OWN);
   });
 
-  it("n'écrit rien quand on retire une ligne d'un fichier qui n'existe pas", () => {
+  it("writes nothing when a line is removed from a file that does not exist", () => {
     const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
     const file = join(home, "config");
 

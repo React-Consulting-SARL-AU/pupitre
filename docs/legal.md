@@ -1,71 +1,71 @@
-# Légal
+# Legal
 
-Ce que le dépôt dit de l'éditeur, où il le dit, et ce qui reste à remplir. Une seule source : [`packages/shared/src/legal/index.ts`](../packages/shared/src/legal/index.ts). Le site, la console et l'app desktop la lisent ; aucun d'eux ne réécrit un nom, une adresse ni une adresse email de contact.
+What the repository says about the publisher, where it says it, and what remains to be filled in. A single source: [`packages/shared/src/legal/index.ts`](../packages/shared/src/legal/index.ts). The site, the console and the desktop app read it; none of them rewrites a name, an address or a contact email address.
 
-## L'état actuel
+## Current state
 
-Depuis le 1er octobre 2026 ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)), Pupitre est édité par **React Consulting SARL AU**, société marocaine représentée par son gérant, Jordan Monier, qui est aussi le directeur de la publication. La société détient le code, la marque, les noms de domaine et la plateforme, publie le code source sous licence Apache 2.0 assortie de la Commons Clause ([`LICENSE`](../LICENSE), [`NOTICE`](../NOTICE)), et paie l'hébergement de la plateforme. Le service est gratuit jusqu'à trois serveurs par organisation ; au-delà, une licence est accordée sur demande, sans paiement.
+Since 1 October 2026 ([decision 0018](./decisions/0018-source-available-and-free.md)), Pupitre is published by **React Consulting SARL AU**, a Moroccan company represented by its manager, Jordan Monier, who is also the publication director. The company holds the code, the brand, the domain names and the platform, publishes the source code under the Apache 2.0 licence with the Commons Clause ([`LICENSE`](../LICENSE), [`NOTICE`](../NOTICE)), and pays for the platform's hosting. The service is free up to three servers per organization; beyond that, a licence is granted on request, with no payment.
 
-Ce que la source partagée fixe :
+What the shared source fixes:
 
-- `LEGAL_ENTITY.status` vaut `incorporated`, `legalName` « React Consulting SARL AU », `form` « SARL AU », `jurisdiction` le Maroc — le droit qui régit les conditions et les tribunaux compétents —, `owner` et `publicationDirector` « Jordan Monier ». `copyrightHolder()` rend la raison sociale. Ses identifiants sont ceux que publient les mentions légales de `react-consulting.ma` : `registrationNumber` (RC 144445, tribunal de commerce de Marrakech), `taxId` (IF), `ice` (ICE), `professionalTax` (taxe professionnelle) et `registeredAddress` (siège, Marrakech) ; les mentions légales de Pupitre les lisent de `LEGAL_ENTITY`, jamais écrits à la main.
-- `CODE_SIGNING_ENTITY` nomme la même société, dont les certificats signent les builds macOS et Windows de l'app.
-- `LEGAL_DOCUMENTS` porte les douze documents, leur ordre et leur date. Ils sont publiés, sans brouillon ni passage à compléter.
-- `SUB_PROCESSORS` ne nomme que ceux qui touchent une donnée personnelle : Cloudflare (hébergement, base de données et fichiers en Amérique du Nord, emails), PostHog (mesure d'audience, événements stockés dans l'Union européenne) et Stripe, listé pour le jour où des licences se vendraient, à qui rien n'est envoyé aujourd'hui.
-- La ligne de copyright du site, de la console et du menu de compte porte « © 2026 React Consulting SARL AU ».
+- `LEGAL_ENTITY.status` is `incorporated`, `legalName` "React Consulting SARL AU", `form` "SARL AU", `jurisdiction` Morocco — the law that governs the terms and the competent courts —, `owner` and `publicationDirector` "Jordan Monier". `copyrightHolder()` returns the company name. Its identifiers are those published by the legal notice of `react-consulting.ma`: `registrationNumber` (RC 144445, Marrakech commercial court), `taxId` (IF), `ice` (ICE), `professionalTax` (professional tax) and `registeredAddress` (head office, Marrakech); Pupitre's legal notice reads them from `LEGAL_ENTITY`, never written by hand.
+- `CODE_SIGNING_ENTITY` names the same company, whose certificates sign the app's macOS and Windows builds.
+- `LEGAL_DOCUMENTS` carries the twelve documents, their order and their date. They are published, with no draft or passage to complete.
+- `SUB_PROCESSORS` names only those that touch personal data: Cloudflare (hosting, database and files in North America, emails), PostHog (audience measurement, events stored in the European Union) and Stripe, listed for the day licences would be sold, to which nothing is sent today.
+- The copyright line of the site, the console and the account menu reads "© 2026 React Consulting SARL AU".
 
-## Les documents
+## The documents
 
-| Slug | Document | Ce qu'il couvre |
+| Slug | Document | What it covers |
 | --- | --- | --- |
-| `terms` | Conditions d'utilisation | le contrat : le service, ce que la plateforme reçoit des machines et ce qu'elle peut y faire, ce qui est gratuit, le code source public, la responsabilité, le droit applicable |
-| `licence` | Licence | la licence du code (Apache 2.0 + Commons Clause, renvoi au `LICENSE` du dépôt), ce qu'elle permet et interdit, le nom et le logo, le droit d'utiliser la plateforme hébergée, qui signe l'app |
-| `acceptable-use` | Usage acceptable | ce qui est interdit sur une machine gérée, les signalements d'abus et d'atteinte aux droits d'autrui, les sanctions |
-| `privacy` | Confidentialité | ce qui est collecté, sur quelle base, où, combien de temps, les droits et les autorités de contrôle |
-| `data-processing` | Traitement des données | l'accord de sous-traitance avec chaque organisation, les clauses contractuelles types |
-| `billing` | Serveurs gratuits et licences | gratuit jusqu'à trois serveurs, licence accordée sur demande au-delà, aucun paiement aujourd'hui. Le slug reste `billing` : il vit dans `LEGAL_DOCUMENT_SLUGS` et des liens publiés y mènent |
-| `cookies` | Cookies | chaque cookie et chaque valeur du stockage local du site et de la console, et le retour sur le consentement |
-| `sub-processors` | Sous-traitants | la liste datée, rendue par `<SubProcessors />`, et ce qui n'y figure pas |
-| `security` | Sécurité | la divulgation responsable : où écrire, le périmètre, les règles, l'engagement de ne pas poursuivre, nos délais |
-| `third-party` | Logiciels tiers | les composants libres de l'app et de l'agent, et leurs licences |
-| `legal-notice` | Mentions légales | l'éditeur, le directeur de la publication, l'hébergeur, la société qui signe, la marque et le code |
-| `changes` | Historique | ce qui a changé, document par document, avec la date |
+| `terms` | Terms of use | the contract: the service, what the platform receives from the machines and what it can do on them, what is free, the public source code, liability, applicable law |
+| `licence` | Licence | the code's licence (Apache 2.0 + Commons Clause, pointing to the repository's `LICENSE`), what it allows and forbids, the name and the logo, the right to use the hosted platform, who signs the app |
+| `acceptable-use` | Acceptable use | what is forbidden on a managed machine, reports of abuse and of infringement of others' rights, sanctions |
+| `privacy` | Privacy | what is collected, on what basis, where, for how long, the rights and the supervisory authorities |
+| `data-processing` | Data processing | the processing agreement with each organization, the standard contractual clauses |
+| `billing` | Free servers and licences | free up to three servers, a licence granted on request beyond, no payment today. The slug stays `billing`: it lives in `LEGAL_DOCUMENT_SLUGS` and published links lead to it |
+| `cookies` | Cookies | each cookie and each local storage value of the site and the console, and the return to consent |
+| `sub-processors` | Sub-processors | the dated list, rendered by `<SubProcessors />`, and what is not on it |
+| `security` | Security | responsible disclosure: where to write, the scope, the rules, the commitment not to sue, our deadlines |
+| `third-party` | Third-party software | the free components of the app and the agent, and their licences |
+| `legal-notice` | Legal notice | the publisher, the publication director, the host, the signing company, the brand and the code |
+| `changes` | History | what changed, document by document, with the date |
 
-Un changement de fond dans un document change sa date dans `LEGAL_DOCUMENTS` et dans son frontmatter, et ajoute une entrée à l'historique, dans les deux langues. Le pied de page du site renvoie aux conditions, à la confidentialité, aux cookies, aux mentions légales et à l'index ; l'index se construit depuis la collection. Le nombre de serveurs gratuits ne s'écrit jamais à la main dans une page : elle importe `FREE_SERVERS` de `@pupitre/shared/plans`.
+A substantive change to a document changes its date in `LEGAL_DOCUMENTS` and in its frontmatter, and adds an entry to the history, in both languages. The site's footer links to the terms, privacy, cookies, the legal notice and the index; the index is built from the collection. The number of free servers is never written by hand in a page: it imports `FREE_SERVERS` from `@pupitre/shared/plans`.
 
-## Ce que les documents promettent, et que le code doit tenir
+## What the documents promise, and the code must hold
 
-- **Gratuit jusqu'à trois serveurs.** Aucun paiement, aucune carte, aucune limite de durée sur les `FREE_SERVERS` premiers serveurs d'une organisation. Si des licences payantes étaient proposées un jour, ce serait annoncé trente jours à l'avance par email, décrit dans `billing` avant d'être vendu, et rien ne serait prélevé sans un geste explicite du client. Tant que c'est vrai, `BILLING_MODE` vaut `off`.
-- **La licence au-delà.** Accordée par l'équipe (produit `granted`), sans paiement. Une licence qui prend fin alors que l'organisation tient plus que ses serveurs gratuits ouvre sept jours de tolérance, puis le mode restreint ; rien n'est effacé.
-- **La licence du code.** Apache 2.0 + Commons Clause : utiliser, modifier, auto-héberger, redistribuer avec les mentions ; pas de revente de Pupitre ni d'un service qui en tire l'essentiel de sa valeur ; ni le nom ni le logo ne sont concédés. Le texte qui engage est `LICENSE` ; la page `licence` le résume et y renvoie par `SOURCE_LICENSE_URL` (`apps/site/src/lib/urls.ts`).
-- **Ce que la plateforme reçoit et peut faire.** Les conditions énumèrent exactement ce que l'agent envoie (enrôlement, heartbeat) et les trois leviers de la plateforme (licence, bloc de clés autorisées, version cible). Tout nouveau champ du heartbeat, tout nouveau pouvoir de `/agent/state`, doit d'abord être écrit dans les conditions et la politique de confidentialité, dans les deux langues.
-- **Les sauvegardes.** La plateforme ne reçoit qu'une référence par sauvegarde — les champs de `BackupDeclaration`, énumérés dans les conditions — et le battement `BackupBeat`. La clé S3 reste au trousseau de l'app et dans `install.json` du serveur ; la clé privée des sauvegardes ne va que vers le serveur du client, en mémoire, le temps d'une restauration. Tout nouveau champ de la déclaration ou du battement s'écrit d'abord dans les conditions et la politique de confidentialité.
-- **Les liens d'affiliation.** Suivi seulement : le code est lu à l'inscription, la plateforme compte les visites, les inscriptions et les serveurs enrôlés par les organisations amenées. Aucune offre, aucune récompense ne s'y attache ; en ajouter une change d'abord la politique de confidentialité.
-- **La mesure d'audience.** Le site mesure après consentement, sans cookie ni identifiant durable ; la seule valeur écrite est la réponse au bandeau (`pupitre_analytics`), et le lien « Mesure d'audience » du pied de page rouvre le bandeau. La console et l'app desktop n'envoient rien aujourd'hui ; le jour où elles mesurent, la politique de confidentialité se met à jour avec sa date, aux mêmes conditions : des noms d'événements, jamais un contenu, jamais rien des machines, jamais un identifiant durable sans accord. Le projet PostHog doit garder les événements douze mois et ne pas garder l'adresse IP : les deux réglages sont promis.
-- **Les cookies.** La politique relative aux cookies nomme chaque cookie et chaque clé de stockage du site et de la console. Un cookie ou une clé de plus s'y écrit avant d'être posé.
-- **La divulgation responsable.** Accusé de réception sous cinq jours ouvrés, date de publication convenue sous quatre-vingt-dix jours, aucune poursuite contre une recherche conforme. `/.well-known/security.txt` est généré au build depuis `LEGAL_CONTACTS.security` et expire cent quatre-vingts jours après : chaque déploiement du site le renouvelle.
-- **Les délais.** Sessions de soixante jours, métriques des machines sur sept jours glissants, suppression programmée à sept jours (`DELETION_GRACE_DAYS`), suppression immédiate depuis la console, réponse aux demandes sous trente jours, violation notifiée sous soixante-douze heures.
+- **Free up to three servers.** No payment, no card, no time limit on an organization's first `FREE_SERVERS` servers. If paid licences were offered one day, it would be announced thirty days in advance by email, described in `billing` before being sold, and nothing would be charged without an explicit gesture from the customer. As long as this is true, `BILLING_MODE` is `off`.
+- **The licence beyond.** Granted by the team (`granted` product), with no payment. A licence that ends while the organization holds more than its free servers opens seven days of grace, then restricted mode; nothing is erased.
+- **The code's licence.** Apache 2.0 + Commons Clause: use, modify, self-host, redistribute with the notices; no resale of Pupitre or of a service that draws its essential value from it; neither the name nor the logo is granted. The binding text is `LICENSE`; the `licence` page summarizes it and points to it through `SOURCE_LICENSE_URL` (`apps/site/src/lib/urls.ts`).
+- **What the platform receives and can do.** The terms list exactly what the agent sends (enrolment, heartbeat) and the platform's three levers (licence, authorized-keys block, target version). Every new heartbeat field, every new power of `/agent/state`, must first be written into the terms and the privacy policy, in both languages.
+- **Backups.** The platform receives only one reference per backup — the fields of `BackupDeclaration`, listed in the terms — and the `BackupBeat` beat. The S3 key stays in the app's keychain and in the server's `install.json`; the backups' private key goes only to the customer's server, in memory, for the duration of a restore. Every new field of the declaration or the beat is first written into the terms and the privacy policy.
+- **Affiliate links.** Tracking only: the code is read at sign-up, the platform counts visits, sign-ups and servers enrolled by the organizations brought in. No offer, no reward attaches to it; adding one first changes the privacy policy.
+- **Audience measurement.** The site measures after consent, with no cookie or durable identifier; the only value written is the answer to the banner (`pupitre_analytics`), and the footer's audience-measurement link reopens the banner. The console and the desktop app send nothing today; the day they measure, the privacy policy is updated with its date, on the same terms: event names, never content, never anything from the machines, never a durable identifier without consent. The PostHog project must keep events for twelve months and not keep the IP address: both settings are promised.
+- **Cookies.** The cookie policy names each cookie and each storage key of the site and the console. One more cookie or key is written there before being set.
+- **Responsible disclosure.** Acknowledgement within five business days, an agreed publication date within ninety days, no legal action against compliant research. `/.well-known/security.txt` is generated at build time from `LEGAL_CONTACTS.security` and expires one hundred and eighty days later: every site deployment renews it.
+- **Deadlines.** Sessions of sixty days, machine metrics over a rolling seven days, deletion scheduled at seven days (`DELETION_GRACE_DAYS`), immediate deletion from the console, response to requests within thirty days, breach notified within seventy-two hours.
 
-## Ce que la source partagée contient
+## What the shared source contains
 
-| Export | Ce qu'il porte |
+| Export | What it carries |
 | --- | --- |
-| `LEGAL_ENTITY`, `isIncorporated()`, `copyrightHolder()` | l'éditeur, son statut, sa juridiction, et le nom à afficher au copyright |
-| `CODE_SIGNING_ENTITY` | la société qui signe les builds de l'app |
+| `LEGAL_ENTITY`, `isIncorporated()`, `copyrightHolder()` | the publisher, its status, its jurisdiction, and the name to display in the copyright |
+| `CODE_SIGNING_ENTITY` | the company that signs the app's builds |
 | `LEGAL_CONTACTS` | `support`, `legal`, `privacy`, `security` |
-| `PUPITRE_ORIGINS` | les origines : le site, la plateforme, les téléchargements |
-| `LEGAL_DOCUMENTS` | les douze documents, leur ordre, leur date |
-| `SUB_PROCESSORS` | les sous-traitants, leur rôle et leur région, en fr et en en |
+| `PUPITRE_ORIGINS` | the origins: the site, the platform, the downloads |
+| `LEGAL_DOCUMENTS` | the twelve documents, their order, their date |
+| `SUB_PROCESSORS` | the sub-processors, their role and their region, in fr and en |
 
-Les pages légales du site rendent les sous-traitants par `<SubProcessors />`, jamais par un tableau écrit à la main : la liste change à un seul endroit. L'hébergeur des mentions légales — Cloudflare, son adresse et son téléphone — s'écrit encore à la main dans la page, faute d'un export partagé.
+The site's legal pages render the sub-processors through `<SubProcessors />`, never through a hand-written table: the list changes in a single place. The legal notice's host — Cloudflare, its address and its phone number — is still written by hand in the page, for lack of a shared export.
 
-Les tests de `apps/site/src/content/legal.test.ts` vérifient que chaque document existe dans les deux langues avec l'ordre et la date du registre ; que les conditions, la licence, la confidentialité et le traitement des données nomment `copyrightHolder()` ; que la licence nomme Apache et la Commons Clause et renvoie au `LICENSE` du dépôt ; qu'aucun document ne promet plus de lancement, d'essai ni de place gardée pour de bon ; que les mentions légales nomment l'éditeur, le directeur de la publication, la société qui signe et les quatre contacts ; et que chaque lien d'un document vers un autre vise un slug du registre dans sa propre langue.
+The tests in `apps/site/src/content/legal.test.ts` verify that each document exists in both languages with the registry's order and date; that the terms, the licence, the privacy policy and the data processing document name `copyrightHolder()`; that the licence names Apache and the Commons Clause and points to the repository's `LICENSE`; that no document promises a launch, a trial or a seat kept for good any more; that the legal notice names the publisher, the publication director, the signing company and the four contacts; and that each link from one document to another targets a registry slug in its own language.
 
-## Le garde de publication
+## The publication guard
 
-`apps/site/scripts/legal.ts` s'exécute au démarrage du build Astro et lit chaque page de `src/content/legal/` : un `TODO`, un `draft: true` dans le frontmatter ou un passage entre crochets fait échouer le build de production et `check:content`, et n'émet qu'un avertissement en local. Un build de production, c'est `PUPITRE_ENV=production`, que `build:production` pose.
+`apps/site/scripts/legal.ts` runs at the start of the Astro build and reads each page of `src/content/legal/`: a `TODO`, a `draft: true` in the frontmatter or a bracketed passage fails the production build and `check:content`, and only emits a warning locally. A production build is `PUPITRE_ENV=production`, which `build:production` sets.
 
-## Ce qui reste à faire
+## What remains to do
 
-1. Ajouter le capital social de React Consulting SARL AU aux mentions légales, quand le propriétaire le donne.
-2. Le jour où des licences se vendent : décrire l'offre dans `billing` et la politique de confidentialité, annoncer trente jours avant, puis passer `BILLING_MODE` à `stripe`.
+1. Add React Consulting SARL AU's share capital to the legal notice, when the owner provides it.
+2. The day licences are sold: describe the offer in `billing` and the privacy policy, announce thirty days ahead, then switch `BILLING_MODE` to `stripe`.

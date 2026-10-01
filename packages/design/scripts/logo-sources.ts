@@ -102,7 +102,8 @@ export const VENDOR_SOURCES: readonly VendorSource[] = [
 ]
 
 export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
-  "core.system": "Socle système : aucun produit de marque à nommer.",
-  "core.hardening":
-    "Durcissement du système : aucun produit de marque à nommer.",
+  "core.system": "System base: no branded product to name.",
+  "core.hardening": "System hardening: no branded product to name.",
+  "core.backup":
+    "Pupitre's backups to the customer's bucket, whatever its provider: no branded product to name.",
 }

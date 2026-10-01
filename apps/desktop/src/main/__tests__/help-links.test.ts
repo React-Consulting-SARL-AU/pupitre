@@ -8,8 +8,8 @@ const FACTS = {
   version: "0.9.1",
 };
 
-describe("les liens de l'aide", () => {
-  it("mène à la documentation et aux conditions du site, dans la langue demandée", () => {
+describe("the help links", () => {
+  it("lead to the site's documentation and terms, in the requested language", () => {
     expect(helpUrl("docs", { ...FACTS, language: "en" })).toBe(
       "https://pupitre.studio/docs"
     );
@@ -21,7 +21,7 @@ describe("les liens de l'aide", () => {
     );
   });
 
-  it("écrit au support avec la version de l'app et du système, et rien de personnel", () => {
+  it("write to support with the app and system versions, and nothing personal", () => {
     const mail = new URL(helpUrl("support", { ...FACTS, language: "fr" }));
 
     expect(mail.protocol).toBe("mailto:");

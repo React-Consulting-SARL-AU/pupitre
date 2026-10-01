@@ -20,14 +20,14 @@ function refusalOf(
     : null;
 }
 
-describe("ce que le renderer peut demander à l'agent", () => {
-  it("laisse passer une lecture de la liste, paramètres validés", () => {
+describe("what the renderer can ask the agent", () => {
+  it("lets a list read through, parameters validated", () => {
     const call = checkedCall("srv-1", "snapshot", undefined, knows);
 
     expect(call).toEqual({ serverId: "srv-1", cmd: "snapshot", params: {} });
   });
 
-  it("garde les paramètres tels que le contrat les lit", () => {
+  it("keeps the parameters as the contract reads them", () => {
     const call = checkedCall("srv-1", "process.kill", { pid: 42 }, knows);
 
     expect(call).toEqual({
@@ -37,7 +37,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     });
   });
 
-  it("laisse piloter un service par son identifiant, et rien de plus", () => {
+  it("lets a service be driven by its identifier, and nothing more", () => {
     for (const cmd of [
       "service.start",
       "service.stop",
@@ -55,7 +55,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     }
   });
 
-  it("refuse un service que l'agent n'a pas listé", () => {
+  it("refuses a service the agent has not listed", () => {
     for (const cmd of [
       "service.start",
       "service.stop",
@@ -68,7 +68,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     }
   });
 
-  it("renvoie vers leur canal la liste des projets et les journaux d'un service", () => {
+  it("redirects the project list and a service's logs to their own channel", () => {
     expect(refusalOf("srv-1", "project.list")?.id).toBe(
       "refusal.bridge.command"
     );
@@ -77,7 +77,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     ).toBe("refusal.bridge.command");
   });
 
-  it("efface une capture par son chemin listé, ou toute la galerie", () => {
+  it("deletes a capture by its listed path, or the whole gallery", () => {
     expect(checkedCall("srv-1", "shots.clean", undefined, knows)).toEqual({
       serverId: "srv-1",
       cmd: "shots.clean",
@@ -100,7 +100,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     );
   });
 
-  it("refuse un serveur que la configuration ne connaît pas", () => {
+  it("refuses a server the configuration does not know", () => {
     expect(refusalOf("srv-9", "snapshot")).toEqual({
       code: "bad_request",
       id: "refusal.server.unknown",
@@ -108,14 +108,14 @@ describe("ce que le renderer peut demander à l'agent", () => {
     expect(refusalOf(42, "snapshot")?.id).toBe("refusal.server.unknown");
   });
 
-  it("refuse une commande hors du contrat", () => {
+  it("refuses a command outside the contract", () => {
     expect(refusalOf("srv-1", "rm -rf")).toEqual({
       code: "unknown_command",
       id: "refusal.command.unknown",
     });
   });
 
-  it("refuse toute commande du contrat qu'aucun écran n'émet par ce pont", () => {
+  it("refuses any contract command that no screen sends through this bridge", () => {
     const shut = COMMAND_NAMES.filter((cmd) => !BRIDGE_COMMANDS.has(cmd));
 
     expect(shut).toContain("install");
@@ -137,14 +137,14 @@ describe("ce que le renderer peut demander à l'agent", () => {
     }
   });
 
-  it("refuse des paramètres que le contrat n'accepte pas", () => {
+  it("refuses parameters the contract does not accept", () => {
     expect(refusalOf("srv-1", "process.kill", { pid: "x" })).toEqual({
       code: "bad_request",
       id: "refusal.params.invalid",
     });
   });
 
-  it("ne laisse aucune lecture d'identifiant passer par ici", () => {
+  it("lets no credential read through here", () => {
     for (const cmd of BRIDGE_COMMANDS) {
       expect(refusalOf("srv-1", cmd, {})?.id).not.toBe(
         "refusal.bridge.credential"

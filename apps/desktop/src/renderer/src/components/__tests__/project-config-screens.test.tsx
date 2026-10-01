@@ -117,8 +117,8 @@ function panel(run: ConfigState, extra: Extra = {}): string {
   return renderToStaticMarkup(element(run, extra));
 }
 
-describe("la configuration d'un projet", () => {
-  it("montre la commande, l'installation, la branche et les ports du projet, sans sa source ni son nom", () => {
+describe("a project's configuration", () => {
+  it("shows the project's command, installation, branch and ports, without its source or name", () => {
     const html = panel({ status: "idle" });
 
     expect(html).toContain('value="bun run dev --port 3000"');
@@ -133,7 +133,7 @@ describe("la configuration d'un projet", () => {
   });
 
   // A reader who only came to choose whether the project boots with the server never scrolls.
-  it("demande d'abord si le projet démarre avec le serveur, avant la branche", () => {
+  it("first asks whether the project starts with the server, before the branch", () => {
     const html = panel({ status: "idle" });
 
     expect(text(html)).toContain("Démarrer le projet avec le serveur");
@@ -142,7 +142,7 @@ describe("la configuration d'un projet", () => {
     );
   });
 
-  it("replie chaque processus sous son résumé, et ouvre celui qui serait refusé", () => {
+  it("folds each process under its summary, and opens the one that would be refused", () => {
     const folded = panel({ status: "idle" });
     const refused = panel({ status: "idle" }, { processProblems: ["cmd"] });
 
@@ -155,7 +155,7 @@ describe("la configuration d'un projet", () => {
     expect(refused).toMatch(/data-open=""[^>]*data-process="0"/);
   });
 
-  it("range la configuration en parties, sur une colonne à gauche", () => {
+  it("arranges the configuration in parts, on a column at the left", () => {
     const html = panel({ status: "idle" });
     const bare = panel({ status: "idle" }, { services: [] });
 
@@ -167,14 +167,14 @@ describe("la configuration d'un projet", () => {
     expect(text(bare)).not.toContain("Environnements");
   });
 
-  it("signale sur sa partie un processus à corriger", () => {
+  it("flags a process to fix on its part", () => {
     const html = panel({ status: "idle" }, { processProblems: ["cmd"] });
 
     expect(html).toContain('data-part-refused="processes"');
     expect(html).toContain("Processus, un champ à corriger");
   });
 
-  it("protège le projet, et laisse chaque processus suivre le projet ou en décider", () => {
+  it("protects the project, and lets each process follow the project or decide", () => {
     const html = panel({ status: "idle" }, { part: "access" });
     const open = panel({ status: "idle" }, { guarded: false, part: "access" });
 
@@ -189,14 +189,14 @@ describe("la configuration d'un projet", () => {
     expect(text(open)).toContain("récepteur de webhooks");
   });
 
-  it("ne propose rien de la protection à un agent sans portier", () => {
+  it("offers nothing about protection to an agent without a gate", () => {
     const html = panel({ status: "idle" }, { gated: false, part: "access" });
 
     expect(text(html)).toContain("n'a pas de portier d'accès");
     expect(text(html)).not.toContain("Clés qui ouvrent");
   });
 
-  it("propose une version par runtime installé, le défaut nommé, rien sans runtime", async () => {
+  it("offers a version per installed runtime, the default named, nothing without a runtime", async () => {
     const html = panel(
       { status: "idle" },
       { part: "runtimes", runtimes: { node: "22" } }
@@ -227,7 +227,7 @@ describe("la configuration d'un projet", () => {
     view.unmount();
   });
 
-  it("dit qu'un changement de commande redémarre son processus, et quelles adresses meurent", () => {
+  it("says a command change restarts its process, and which addresses die", () => {
     const html = text(
       panel(
         { status: "idle" },
@@ -240,7 +240,7 @@ describe("la configuration d'un projet", () => {
     expect(html).toContain("cessent de répondre");
   });
 
-  it("attend sur le bouton, puis lit la réponse de l'agent sous le formulaire", () => {
+  it("waits on the button, then reads the agent's response under the form", () => {
     if (!PROJECT) {
       throw new Error("the fixture has no project");
     }
@@ -269,7 +269,7 @@ describe("la configuration d'un projet", () => {
     expect(failed).toContain("Give a name under example.org.");
   });
 
-  it("dit à part, à côté de l'enregistrement, ce que l'exposition a refusé et chaque réserve de l'agent", () => {
+  it("says separately, next to the save, what the exposure refused and each agent reservation", () => {
     if (!PROJECT) {
       throw new Error("the fixture has no project");
     }

@@ -18,8 +18,8 @@ function chord(key: string, held: Partial<KeyChord> = {}): KeyChord {
   };
 }
 
-describe("les raccourcis de l'historique", () => {
-  it("vivent sur commande et les crochets sur macOS", () => {
+describe("history shortcuts", () => {
+  it("live on command and the brackets on macOS", () => {
     expect(historyStepOf(chord("[", { metaKey: true }), true)).toBe("back");
     expect(historyStepOf(chord("]", { metaKey: true }), true)).toBe("forward");
     expect(historyStepOf(chord("[", { altKey: true }), true)).toBeNull();
@@ -28,7 +28,7 @@ describe("les raccourcis de l'historique", () => {
     ).toBeNull();
   });
 
-  it("vivent sur alt et les flèches ailleurs", () => {
+  it("live on alt and the arrows elsewhere", () => {
     expect(historyStepOf(chord("ArrowLeft", { altKey: true }), false)).toBe(
       "back"
     );
@@ -41,7 +41,7 @@ describe("les raccourcis de l'historique", () => {
     ).toBeNull();
   });
 
-  it("laissent passer une touche relâchée ou tenue avec majuscule", () => {
+  it("let through a released key or one held with shift", () => {
     expect(
       historyStepOf(chord("[", { metaKey: true, type: "keyup" }), true)
     ).toBeNull();
@@ -50,13 +50,13 @@ describe("les raccourcis de l'historique", () => {
     ).toBeNull();
   });
 
-  it("lisent les deux boutons latéraux d'une souris", () => {
+  it("read a mouse's two side buttons", () => {
     expect(historyStepOfButton(3)).toBe("back");
     expect(historyStepOfButton(4)).toBe("forward");
     expect(historyStepOfButton(0)).toBeNull();
   });
 
-  it("impriment le raccourci de la plateforme", () => {
+  it("print the platform's shortcut", () => {
     expect(historyChord("back", true)).toBe("⌘[");
     expect(historyChord("forward", false)).toBe("Alt+→");
   });

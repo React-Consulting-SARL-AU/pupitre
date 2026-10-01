@@ -30,7 +30,7 @@ interface Gestures {
   listed: Record<string, number>;
 }
 
-test.describe("les transferts", () => {
+test.describe("transfers", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -236,15 +236,15 @@ test.describe("les transferts", () => {
     await running.app.close();
   });
 
-  test("envoie, suit, met en pause, reprend et annule", async () => {
+  test("uploads, tracks, pauses, resumes and cancels", async () => {
     const { page } = running;
 
-    await test.step("rien ne s'affiche tant que rien ne bouge", async () => {
+    await test.step("nothing shows while nothing moves", async () => {
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.locator("[data-transfers]")).toHaveCount(0);
     });
 
-    await test.step("Envoyer… désigne un fichier par la boîte du main et lance l'envoi dans le dossier affiché", async () => {
+    await test.step("Upload… picks a file through the main process dialog and starts the upload into the displayed folder", async () => {
       await page.getByRole("button", { exact: true, name: "Fichiers" }).click();
       await expect(page.locator("[data-files-root]")).toBeVisible();
       await page.locator('[data-entry="projects"] button').first().click();
@@ -261,7 +261,7 @@ test.describe("les transferts", () => {
       ]);
     });
 
-    await test.step("le volet apparaît dans la barre latérale avec la progression", async () => {
+    await test.step("the panel appears in the sidebar with the progress", async () => {
       const panel = page.getByRole("region", { name: "Transferts" });
 
       await expect(panel).toBeVisible();
@@ -281,7 +281,7 @@ test.describe("les transferts", () => {
       await assertAccessible(page, "transfers/running");
     });
 
-    await test.step("pause puis reprise, chacune répondue sur son bouton", async () => {
+    await test.step("pause then resume, each answered on its button", async () => {
       const row = page.locator('[data-transfer="t1"]');
 
       await row
@@ -296,7 +296,7 @@ test.describe("les transferts", () => {
       await expect(row).toHaveAttribute("data-status", "running");
     });
 
-    await test.step("le dossier affiché se relit quand l'envoi y est arrivé", async () => {
+    await test.step("the displayed folder is re-read when the upload has arrived in it", async () => {
       const before = await running.app.evaluate(
         () => (globalThis as Partial<Gestures>).listed?.projects ?? 0
       );
@@ -324,7 +324,7 @@ test.describe("les transferts", () => {
       await expect(page.locator('[data-transfer="t1"]')).toHaveCount(0);
     });
 
-    await test.step("Télécharger, depuis le menu d'une entrée, demande où enregistrer", async () => {
+    await test.step("Download, from an entry's menu, asks where to save", async () => {
       await page.getByRole("button", { name: "Actions sur flyleaf" }).click();
       await page
         .getByRole("menuitem", { name: "Télécharger sur cet ordinateur" })
@@ -343,7 +343,7 @@ test.describe("les transferts", () => {
       await expect(row).toHaveAttribute("data-direction", "download");
     });
 
-    await test.step("annuler retire le transfert de ce qui bouge", async () => {
+    await test.step("cancelling removes the transfer from what is moving", async () => {
       const row = page.locator('[data-transfer="t2"]');
 
       await row.getByRole("button", { name: "Annuler flyleaf" }).click();
@@ -362,7 +362,7 @@ test.describe("les transferts", () => {
       await assertAccessible(page, "transfers/settled");
     });
 
-    await test.step("le volet se replie et garde son compte", async () => {
+    await test.step("the panel folds and keeps its count", async () => {
       const panel = page.getByRole("region", { name: "Transferts" });
 
       await panel
@@ -377,7 +377,7 @@ test.describe("les transferts", () => {
       ).toHaveAttribute("aria-expanded", "false");
     });
 
-    await test.step("aucune fenêtre ni boîte de dialogue n'a été montrée", async () => {
+    await test.step("no window or dialog box was shown", async () => {
       const visible = await running.app.evaluate(
         ({ BrowserWindow }) =>
           BrowserWindow.getAllWindows().filter((window) => window.isVisible())

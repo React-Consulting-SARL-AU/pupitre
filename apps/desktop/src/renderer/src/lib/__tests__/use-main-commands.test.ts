@@ -21,8 +21,8 @@ function handlers(calls: string[]): MainCommandHandlers {
   };
 }
 
-describe("un lien de compte", () => {
-  it("relit le compte et ouvre les réglages", async () => {
+describe("an account link", () => {
+  it("rereads the account and opens the settings", async () => {
     const calls: string[] = [];
 
     await followLink({ kind: "account", query: {} }, handlers(calls));
@@ -30,7 +30,7 @@ describe("un lien de compte", () => {
     expect(calls).toEqual(["readAccount", "settings:account"]);
   });
 
-  it("relit seulement le compte quand la console vient de confirmer l'appareil", async () => {
+  it("only rereads the account when the console has just confirmed the device", async () => {
     const calls: string[] = [];
 
     await followLink(

@@ -19,12 +19,12 @@ function filled(lines: string[], limit = 100): JournalBuffer {
   return buffer;
 }
 
-describe("le tampon du journal", () => {
-  it("garde une ligne par ligne, les vides comprises", () => {
+describe("the journal buffer", () => {
+  it("keeps one entry per line, empty ones included", () => {
     expect(texts(filled(["one", "", "three"]))).toEqual(["one", "", "three"]);
   });
 
-  it("recommence la ligne au retour chariot, comme un compteur de téléchargement", () => {
+  it("restarts the line on carriage return, like a download counter", () => {
     const buffer = filled([
       "12.8 KiB/56.5 KiB\r40.1 KiB/56.5 KiB\r56.5 KiB/56.5 KiB downloaded",
     ]);
@@ -32,17 +32,17 @@ describe("le tampon du journal", () => {
     expect(texts(buffer)).toEqual(["56.5 KiB/56.5 KiB downloaded"]);
   });
 
-  it("efface jusqu'au bout de la ligne quand la nouvelle est plus courte", () => {
+  it("erases to the end of the line when the new one is shorter", () => {
     const buffer = filled([`a long progress line\r${ESC}[Kdone`]);
 
     expect(texts(buffer)).toEqual(["done"]);
   });
 
-  it("laisse la fin de l'ancienne ligne sans effacement, comme un terminal", () => {
+  it("leaves the end of the old line when nothing erases it, like a terminal", () => {
     expect(texts(filled(["abcdef\rXY"]))).toEqual(["XYcdef"]);
   });
 
-  it("réécrit la ligne du dessus quand le curseur y remonte, à la façon de Gradle", () => {
+  it("rewrites the line above when the cursor moves up to it, the way Gradle does", () => {
     const buffer = filled([
       "> Task :compile",
       `<=====-----> 40% EXECUTING [1s]${ESC}[1A\r${ESC}[K> Task :compile done`,
@@ -55,7 +55,7 @@ describe("le tampon du journal", () => {
     ]);
   });
 
-  it("jette les couleurs et les séquences qu'elle ne suit pas", () => {
+  it("drops colours and the sequences it does not follow", () => {
     const buffer = filled([
       `${ESC}[32mready${ESC}[0m in ${ESC}[1m120 ms${ESC}[22m${ESC}[?25l${ESC}]0;title${BELL}`,
     ]);
@@ -63,7 +63,7 @@ describe("le tampon du journal", () => {
     expect(texts(buffer)).toEqual(["ready in 120 ms"]);
   });
 
-  it("ouvre une page neuve quand le processus efface l'écran, sans rien perdre", () => {
+  it("opens a fresh page when the process clears the screen, losing nothing", () => {
     const buffer = filled([
       "first run",
       `${ESC}[2J${ESC}[3J${ESC}[Hsecond run`,
@@ -72,18 +72,18 @@ describe("le tampon du journal", () => {
     expect(texts(buffer)).toEqual(["first run", "second run"]);
   });
 
-  it("aligne une tabulation sur la colonne suivante", () => {
+  it("aligns a tab on the next column", () => {
     expect(texts(filled(["a\tb"]))).toEqual(["a       b"]);
   });
 
-  it("borne les lignes et compte ce qu'elle a coupé", () => {
+  it("caps the lines and counts what it cut", () => {
     const buffer = filled(["1", "2", "3", "4", "5"], 3);
 
     expect(texts(buffer)).toEqual(["3", "4", "5"]);
     expect(buffer.dropped).toBe(2);
   });
 
-  it("remplace une ligne réécrite et laisse les autres telles quelles", () => {
+  it("replaces a rewritten line and leaves the others as they are", () => {
     const buffer = filled(["kept", "rewritten"]);
     const before = buffer.snapshot();
 
@@ -98,8 +98,8 @@ describe("le tampon du journal", () => {
   });
 });
 
-describe("les marques du journal", () => {
-  it("lisent un démarrage et un arrêt écrits par l'agent", () => {
+describe("journal marks", () => {
+  it("read a start and a stop written by the agent", () => {
     expect(markOf("=== pupitre up 2026-09-18T10:00:05Z ===")).toEqual({
       kind: "up",
       at: "2026-09-18T10:00:05Z",
@@ -113,8 +113,8 @@ describe("les marques du journal", () => {
   });
 });
 
-describe("la recherche", () => {
-  it("garde les lignes qui portent le terme, majuscules à part", () => {
+describe("search", () => {
+  it("keeps the lines that carry the term, case aside", () => {
     const rows = [
       { id: 1, text: "Listening on :3000" },
       { id: 2, text: "error: boom" },

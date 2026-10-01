@@ -126,8 +126,8 @@ afterEach(() => {
   fake = null;
 });
 
-describe("la comparaison des versions", () => {
-  it("annonce l'agent que l'app porte quand il est plus récent", async () => {
+describe("the version comparison", () => {
+  it("announces the agent the app carries when it is newer", async () => {
     const client = agent("agent-update-control.jsonl");
 
     const answer = await readAgentUpdate(SERVER, deps(client));
@@ -142,7 +142,7 @@ describe("la comparaison des versions", () => {
     });
   });
 
-  it("propose la version publiée plutôt que celle qu'elle porte", async () => {
+  it("offers the published version rather than the one it carries", async () => {
     const client = agent("agent-update-live.jsonl");
 
     const answer = await readAgentUpdate(
@@ -159,7 +159,7 @@ describe("la comparaison des versions", () => {
     });
   });
 
-  it("garde son propre binaire quand il devance ce qui est publié", async () => {
+  it("keeps its own binary when it is ahead of what is published", async () => {
     const client = agent("agent-update-live.jsonl");
 
     const answer = await readAgentUpdate(
@@ -173,7 +173,7 @@ describe("la comparaison des versions", () => {
     });
   });
 
-  it("dit ce que la feuille de compatibilité pense du serveur", async () => {
+  it("says what the compatibility sheet thinks of the server", async () => {
     const client = agent("agent-update-control.jsonl");
 
     const answer = await readAgentUpdate(SERVER, deps(client));
@@ -184,7 +184,7 @@ describe("la comparaison des versions", () => {
     });
   });
 
-  it("dit si la plateforme répond encore au serveur", async () => {
+  it("says whether the platform still answers for the server", async () => {
     const live = await readAgentUpdate(
       SERVER,
       deps(agent("agent-update-live.jsonl"))
@@ -201,7 +201,7 @@ describe("la comparaison des versions", () => {
     expect(cut).toMatchObject({ ok: true, result: { platform: false } });
   });
 
-  it("dit que l'app est en retard sans rien empêcher", async () => {
+  it("says the app is behind without blocking anything", async () => {
     const client = agent("agent-update-ahead.jsonl");
 
     const answer = await readAgentUpdate(SERVER, deps(client));
@@ -215,7 +215,7 @@ describe("la comparaison des versions", () => {
   });
 
   // Read every 15 s: a shell-probe fallback would open one `ssh` per tick on an unreachable server.
-  it("lit la machine sur le canal du battement, sans passer devant un geste", async () => {
+  it("reads the machine on the beat channel, without getting ahead of a gesture", async () => {
     const client = agent([
       "hello-then-ping.jsonl",
       "agent-update-control.jsonl",
@@ -236,7 +236,7 @@ describe("la comparaison des versions", () => {
     expect(fake?.started()).toBe(2);
   });
 
-  it("ne sonde jamais la machine par le shell depuis la minuterie", async () => {
+  it("never probes the machine through the shell from the timer", async () => {
     const client = agent("protocol-mismatch.jsonl");
     let probed = 0;
 
@@ -259,7 +259,7 @@ describe("la comparaison des versions", () => {
     expect(probed).toBe(0);
   });
 
-  it("ne lit qu'une fois quand un battement tombe pendant le précédent", async () => {
+  it("reads only once when a beat lands during the previous one", async () => {
     const client = agent("snapshot-timeout.jsonl", {
       timeouts: { snapshot: 300 },
     });
@@ -284,7 +284,7 @@ describe("la comparaison des versions", () => {
     await third;
   });
 
-  it("lit la machine par la sonde, sur un geste, quand le protocole refuse de répondre", async () => {
+  it("reads the machine through the probe, on a gesture, when the protocol refuses to answer", async () => {
     const client = agent("protocol-mismatch.jsonl");
     let probed = 0;
 
@@ -308,7 +308,7 @@ describe("la comparaison des versions", () => {
     });
   });
 
-  it("ne compare rien quand l'app ne porte pas cette architecture", async () => {
+  it("compares nothing when the app does not carry this architecture", async () => {
     const client = agent("agent-update-control.jsonl");
 
     const answer = await readAgentUpdate(
@@ -324,7 +324,7 @@ describe("la comparaison des versions", () => {
 });
 
 describe("agent.upgrade", () => {
-  it("envoie la version et la signature de la release embarquée", async () => {
+  it("sends the version and signature of the embedded release", async () => {
     const client = agent([
       "agent-update-control.jsonl",
       "agent-upgrade-ok.jsonl",
@@ -346,7 +346,7 @@ describe("agent.upgrade", () => {
     expect(events).toHaveLength(2);
   });
 
-  it("n'envoie que la version quand la plateforme la publie", async () => {
+  it("sends only the version when the platform publishes it", async () => {
     const client = agent([
       "agent-update-live.jsonl",
       "agent-upgrade-unsigned.jsonl",
@@ -368,7 +368,7 @@ describe("agent.upgrade", () => {
     );
   });
 
-  it("migre la configuration sur le binaire qui vient d'être installé", async () => {
+  it("migrates the configuration on the binary that was just installed", async () => {
     const client = agent([
       "agent-update-control.jsonl",
       "agent-upgrade-ok.jsonl",
@@ -388,7 +388,7 @@ describe("agent.upgrade", () => {
   });
 
   // The process still answering runs the replaced binary: only a new session reaches the installed one.
-  it("ne demande la migration qu'après avoir rouvert le canal", async () => {
+  it("requests the migration only after reopening the channel", async () => {
     const client = agent([
       "agent-update-control.jsonl",
       "agent-upgrade-ok.jsonl",
@@ -401,7 +401,7 @@ describe("agent.upgrade", () => {
     expect(fake?.started()).toBe(3);
   });
 
-  it("dit qu'il n'y avait rien à migrer quand l'agent ignore la commande", async () => {
+  it("says there was nothing to migrate when the agent does not know the command", async () => {
     const client = agent([
       "agent-update-control.jsonl",
       "agent-upgrade-ok.jsonl",
@@ -413,7 +413,7 @@ describe("agent.upgrade", () => {
     expect(answer).toMatchObject({ ok: true, result: { migration: null } });
   });
 
-  it("rend le refus de vérification tel quel, avec son remède", async () => {
+  it("returns the verification refusal as is, with its fix", async () => {
     const client = agent([
       "agent-update-control.jsonl",
       "agent-upgrade-refused.jsonl",
@@ -433,7 +433,7 @@ describe("agent.upgrade", () => {
     });
   });
 
-  it("part sans signature quand la plateforme répond au serveur", async () => {
+  it("goes without a signature when the platform answers for the server", async () => {
     const client = agent([
       "agent-update-live.jsonl",
       "agent-upgrade-unsigned.jsonl",
@@ -459,7 +459,7 @@ describe("agent.upgrade", () => {
     expect(events).toHaveLength(1);
   });
 
-  it("refuse quand ni l'app ni la plateforme ne portent la signature", async () => {
+  it("refuses when neither the app nor the platform carries the signature", async () => {
     const client = agent("agent-update-control.jsonl");
     const { note } = collected();
 
@@ -476,8 +476,8 @@ describe("agent.upgrade", () => {
   });
 });
 
-describe("upgrade des modules", () => {
-  it("rejoue les modules du catalogue et rend leur rapport", async () => {
+describe("module upgrade", () => {
+  it("replays the catalog modules and returns their report", async () => {
     const client = agent("module-upgrade.jsonl");
     const { events, note } = collected();
 
@@ -495,7 +495,7 @@ describe("upgrade des modules", () => {
     expect(events).toHaveLength(2);
   });
 
-  it("refuse un module que ce serveur ne déclare pas", async () => {
+  it("refuses a module this server does not declare", async () => {
     const client = agent("hello-only.jsonl");
     const { note } = collected();
 

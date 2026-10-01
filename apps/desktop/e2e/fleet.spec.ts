@@ -102,7 +102,7 @@ function stubFleet(app: ElectronApplication): Promise<void> {
   );
 }
 
-test.describe("serveur attribué", () => {
+test.describe("assigned server", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -115,7 +115,7 @@ test.describe("serveur attribué", () => {
     await running.app.close();
   });
 
-  test("un membre invité l'ouvre sans saisir ni adresse ni clé", async () => {
+  test("an invited member opens it without entering an address or a key", async () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();

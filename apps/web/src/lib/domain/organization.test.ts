@@ -3,19 +3,19 @@ import { initialOf, organizationSlugFor, slugify } from "./organization"
 
 const FALLBACK_SLUG_RE = /^org-[a-z0-9]+$/
 
-describe("l'organisation", () => {
-  it("dérive un identifiant lisible du nom", () => {
+describe("the organization", () => {
+  it("derives a readable identifier from the name", () => {
     expect(slugify("Acme Inc.")).toBe("acme-inc")
     expect(slugify("Éditions Léon")).toBe("editions-leon")
     expect(slugify("  --Ops--  ")).toBe("ops")
   })
 
-  it("donne toujours un identifiant, même sans lettre latine", () => {
+  it("always gives an identifier, even without a Latin letter", () => {
     expect(organizationSlugFor("Acme")).toBe("acme")
     expect(organizationSlugFor("株式会社")).toMatch(FALLBACK_SLUG_RE)
   })
 
-  it("prend la première lettre pour la pastille", () => {
+  it("takes the first letter for the badge", () => {
     expect(initialOf("acme")).toBe("A")
     expect(initialOf(" ")).toBe("?")
   })

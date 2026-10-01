@@ -53,10 +53,15 @@ export class AuthEmailsNotConfiguredError extends Error {
   }
 }
 
-const TOKEN_QUERY_RE = /([?&]token=)[^&\s"'<>]+/g
+const TOKEN_URL_RE = /(https?:\/\/[^\s"'<>?]+[^\s"'<>]*?[?&]token=)[^&\s"'<>]+/g
 
+const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\//
+
+// A link to a console on this machine is the only way a contributor without mail signs in locally.
 export function redactTokens(text: string): string {
-  return text.replace(TOKEN_QUERY_RE, "$1[redacted]")
+  return text.replace(TOKEN_URL_RE, (link, prefix: string) =>
+    LOCAL_ORIGIN_RE.test(link) ? link : `${prefix}[redacted]`
+  )
 }
 
 export function createLoggingSendEmail(

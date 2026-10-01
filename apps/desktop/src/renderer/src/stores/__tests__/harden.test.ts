@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 describe("harden", () => {
-  it("garde les étapes de l'agent et la bascule sur dev", async () => {
+  it("keeps the agent's steps and the switch to dev", async () => {
     stubPupitre({
       ...NO_SERVERS,
       harden: (_serverId, onUpdate: (update: HardenUpdate) => void) => {
@@ -66,7 +66,7 @@ describe("harden", () => {
     ]);
   });
 
-  it("relit la liste des serveurs quand l'app a changé de compte, pour que chaque écran parle de dev", async () => {
+  it("rereads the server list when the app changed account, so every screen talks about dev", async () => {
     let read = 0;
 
     stubPupitre({
@@ -94,7 +94,7 @@ describe("harden", () => {
     useServers.setState({ config: null });
   });
 
-  it("garde root ouvert et la raison telle que l'agent la donne", async () => {
+  it("keeps root open and the reason as the agent gives it", async () => {
     stubPupitre({
       harden: () =>
         Promise.resolve({
@@ -120,7 +120,7 @@ describe("harden", () => {
     });
   });
 
-  it("garde le remède de l'agent quand la commande échoue", async () => {
+  it("keeps the agent's fix when the command fails", async () => {
     stubPupitre({
       harden: () =>
         Promise.resolve({
@@ -144,8 +144,8 @@ describe("harden", () => {
   });
 });
 
-describe("une sécurisation qui attend le canal", () => {
-  it("dit qu'elle attend, puis qu'elle travaille dès la première étape", async () => {
+describe("a hardening that waits for the channel", () => {
+  it("says it is waiting, then that it is working from the first step", async () => {
     const seen: string[] = [];
 
     stubPupitre({

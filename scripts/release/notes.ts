@@ -49,7 +49,7 @@ export function prompt(
 
   return [
     `Write the changelog entry for Pupitre ${version}, in the two files ${files}.`,
-    `Read first: the rules under "2. Écrire l'entrée de changelog" in ${path.relative(ROOT, SKILL)}, and the voice in ${path.relative(ROOT, VOICE)}.`,
+    `Read first: the rules under "1. The version and the notes" in ${path.relative(ROOT, SKILL)}, and the voice in ${path.relative(ROOT, VOICE)}.`,
     "Read an existing entry of each locale to copy the frontmatter shape exactly.",
     `Frontmatter values: version ${version}, channel stable, date ${date}, order ${order}; locale en or fr; a title and a one-line description of your own.`,
     `The commits since ${last ? `v${last}` : "the beginning"} are below; read the diff of any commit whose effect for a customer you cannot tell from its message, and mention nothing you cannot tell.`,

@@ -141,7 +141,7 @@ describe("GET /admin/overview", () => {
     await resetDb()
   })
 
-  it("refuse un anonyme et un propriétaire", async () => {
+  it("refuses an anonymous user and an owner", async () => {
     const { atelier } = await populatedPlatform()
     const anonymous = await apiRequest<ErrorBody>("/admin/overview")
     const owner = await apiRequest<ErrorBody>("/admin/overview", {
@@ -153,7 +153,7 @@ describe("GET /admin/overview", () => {
     expect(owner.json.error.code).toBe("forbidden")
   })
 
-  it("compte les comptes, les organisations, les serveurs et les abonnements", async () => {
+  it("counts accounts, organizations, servers and subscriptions", async () => {
     await populatedPlatform()
 
     const admin = await platformAdmin()
@@ -198,7 +198,7 @@ describe("GET /admin/users", () => {
     await resetDb()
   })
 
-  it("refuse un anonyme et un propriétaire", async () => {
+  it("refuses an anonymous user and an owner", async () => {
     const { atelier } = await populatedPlatform()
     const anonymous = await apiRequest<ErrorBody>("/admin/users")
     const owner = await apiRequest<ErrorBody>("/admin/users", {
@@ -209,7 +209,7 @@ describe("GET /admin/users", () => {
     expect(owner.status).toBe(403)
   })
 
-  it("liste chaque compte avec ses organisations, leur abonnement qui compte et leurs sièges", async () => {
+  it("lists each account with its organizations, their counting subscription and their seats", async () => {
     const { atelier, bureau } = await populatedPlatform()
     const liveOf = async (organizationId: string, status: string) =>
       (
@@ -269,7 +269,7 @@ describe("GET /admin/users", () => {
     ).toBe(true)
   })
 
-  it("cherche dans l'email et le nom, et pagine", async () => {
+  it("searches the email and name, and paginates", async () => {
     const { atelier } = await populatedPlatform()
     const admin = await platformAdmin()
     const byEmail = await apiRequest<UsersBody>(
@@ -294,7 +294,7 @@ describe("GET /admin/users", () => {
     expect(tooMany.status).toBe(422)
   })
 
-  it("ne garde que les comptes de l'état demandé, un bannissement échu comptant pour actif", async () => {
+  it("keeps only the accounts in the requested state, an expired ban counting as active", async () => {
     const { members } = await createOrganizationWithMembers({
       name: "États",
       roles: ["owner", "admin", "member"],

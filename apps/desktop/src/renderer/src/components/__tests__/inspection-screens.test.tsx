@@ -32,10 +32,10 @@ function buttons(html: string): string[] {
   );
 }
 
-describe("machine nue", () => {
+describe("bare machine", () => {
   const html = screen(BARE);
 
-  it("porte le verdict bare et le résumé de la machine", () => {
+  it("carries the bare verdict and the machine summary", () => {
     expect(html).toContain('data-kind="bare"');
     expect(text(html)).toContain("Prêt à être installé");
     expect(text(html)).toContain("Distribution ubuntu 24.04");
@@ -44,7 +44,7 @@ describe("machine nue", () => {
     expect(text(html)).toContain("Disque libre 38,4 Go");
   });
 
-  it("propose l'installation, sur la barre où l'étape finit", () => {
+  it("offers the installation, on the bar where the step ends", () => {
     expect(buttons(html)).toEqual(["Installer", "Choisir un autre serveur"]);
     expect(html.indexOf('data-actions="inspection"')).toBeLessThan(
       html.indexOf(">Installer<")
@@ -52,10 +52,10 @@ describe("machine nue", () => {
   });
 });
 
-describe("serveur déjà géré", () => {
+describe("already managed server", () => {
   const html = screen(MANAGED);
 
-  it("montre la version de l'agent et la mise à jour disponible", () => {
+  it("shows the agent version and the available update", () => {
     expect(html).toContain('data-kind="managed"');
     expect(text(html)).toContain("pupitred 0.3.1");
     expect(text(html)).toContain(
@@ -63,7 +63,7 @@ describe("serveur déjà géré", () => {
     );
   });
 
-  it("propose la mise à jour et la suite", () => {
+  it("offers the update and the next step", () => {
     expect(buttons(html)).toEqual([
       "Mettre à jour",
       "Continuer",
@@ -71,7 +71,7 @@ describe("serveur déjà géré", () => {
     ]);
   });
 
-  it("s'en tient à la suite quand l'agent est à jour", () => {
+  it("sticks to the next step when the agent is up to date", () => {
     const uptodate = screen(MANAGED_UP_TO_DATE);
 
     expect(text(uptodate)).toContain("L'agent est à jour.");
@@ -82,10 +82,10 @@ describe("serveur déjà géré", () => {
   });
 });
 
-describe("serveur occupé", () => {
+describe("busy server", () => {
   const html = screen(OCCUPIED);
 
-  it("liste les raisons de la sonde, dans son ordre et ses mots", () => {
+  it("lists the probe's reasons, in its order and its words", () => {
     expect(html).toContain('data-kind="occupied"');
 
     const rendered = text(html);
@@ -99,7 +99,7 @@ describe("serveur occupé", () => {
     }
   });
 
-  it("liste les remèdes de la sonde en dessous des raisons", () => {
+  it("lists the probe's fixes below the reasons", () => {
     const rendered = text(html);
     const lastReason = rendered.indexOf(
       text(OCCUPIED.verdict.reasons.at(-1) ?? "").trim()
@@ -110,7 +110,7 @@ describe("serveur occupé", () => {
     }
   });
 
-  it("laisse installer quand même, ou changer de serveur", () => {
+  it("lets the reader install anyway, or change server", () => {
     expect(buttons(html)).toEqual([
       "Installer quand même",
       "Choisir un autre serveur",
@@ -118,10 +118,10 @@ describe("serveur occupé", () => {
   });
 });
 
-describe("serveur incompatible", () => {
+describe("incompatible server", () => {
   const html = screen(INCOMPATIBLE);
 
-  it("rend les raisons et les remèdes tels quels", () => {
+  it("renders the reasons and the fixes as they are", () => {
     expect(html).toContain('data-kind="incompatible"');
 
     const rendered = text(html);
@@ -134,13 +134,13 @@ describe("serveur incompatible", () => {
     }
   });
 
-  it("ne propose que de choisir un autre serveur", () => {
+  it("only offers to choose another server", () => {
     expect(buttons(html)).toEqual(["Choisir un autre serveur"]);
   });
 });
 
-describe("les quatre verdicts", () => {
-  it("se distinguent sans couleur, par leur forme et leur titre", () => {
+describe("the four verdicts", () => {
+  it("are told apart without colour, by their shape and their title", () => {
     const shapes = [BARE, MANAGED, OCCUPIED, INCOMPATIBLE].map(
       (probe) => screen(probe).match(/data-shape="([^"]*)"/)?.[1] ?? ""
     );
@@ -148,7 +148,7 @@ describe("les quatre verdicts", () => {
     expect(new Set(shapes).size).toBe(4);
   });
 
-  it("n'inventent aucune phrase que la sonde n'a pas dite", () => {
+  it("invent no sentence the probe did not say", () => {
     for (const probe of [OCCUPIED, INCOMPATIBLE]) {
       const rendered = text(screen(probe));
 
@@ -158,7 +158,7 @@ describe("les quatre verdicts", () => {
     }
   });
 
-  it("ne répètent pas un verdict que le titre dit déjà", () => {
+  it("do not repeat a verdict the title already states", () => {
     for (const probe of [BARE, MANAGED]) {
       const rendered = text(screen(probe));
 

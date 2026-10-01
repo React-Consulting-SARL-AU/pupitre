@@ -27,8 +27,8 @@ afterEach(() => {
   agent = null;
 });
 
-describe("la commande catalog", () => {
-  it("rend un catalogue conforme au schéma du contrat", async () => {
+describe("the catalog command", () => {
+  it("returns a catalog that matches the contract schema", async () => {
     const answer = await client("catalog-v1.jsonl").request("srv-1", "catalog");
 
     expect(answer.ok).toBe(true);
@@ -37,7 +37,7 @@ describe("la commande catalog", () => {
     ).toBe(true);
   });
 
-  it("rend les modules du premier agent", async () => {
+  it("returns the modules of the first agent", async () => {
     const answer = await client("catalog-v1.jsonl").request("srv-1", "catalog");
 
     expect(answer.ok && answer.result.modules.map((m) => m.id)).toEqual([
@@ -46,7 +46,7 @@ describe("la commande catalog", () => {
     ]);
   });
 
-  it("rend un module de plus quand l'agent en déclare un de plus", async () => {
+  it("returns one more module when the agent declares one more", async () => {
     const answer = await client("catalog-v2.jsonl").request("srv-1", "catalog");
 
     expect(answer.ok && answer.result.modules.map((m) => m.id)).toEqual([
@@ -61,7 +61,7 @@ describe("la commande catalog", () => {
   });
 });
 
-describe("le catalogue gardé d'un serveur", () => {
+describe("a server's cached catalog", () => {
   async function until(condition: () => boolean): Promise<boolean> {
     for (let i = 0; i < 200; i += 1) {
       if (condition()) {
@@ -74,7 +74,7 @@ describe("le catalogue gardé d'un serveur", () => {
     return condition();
   }
 
-  it("se relit une fois les canaux fermés", async () => {
+  it("is read again once the channels are closed", async () => {
     const client = fakeClient(["catalog-v1.jsonl", "catalog-v2.jsonl"]);
     const cache = catalogCache(client);
 
@@ -99,7 +99,7 @@ describe("le catalogue gardé d'un serveur", () => {
     expect(agent?.started()).toBe(2);
   });
 
-  it("se relit quand un autre agent répond au hello", async () => {
+  it("is read again when another agent answers the hello", async () => {
     const client = fakeClient(["catalog-v1.jsonl", "catalog-upgraded.jsonl"]);
     const cache = catalogCache(client);
 

@@ -23,21 +23,21 @@ const SYSTEM: Server = {
   user: "",
 };
 
-describe("le mot tapé pour un nom SSH", () => {
-  it("devient ce que ssh accepte sur une ligne Host : minuscules, sans accent ni espace", () => {
+describe("the word typed for an SSH name", () => {
+  it("becomes what ssh accepts on a Host line: lowercase, no accent or space", () => {
     expect(sshSlug("Atelier")).toBe("atelier");
     expect(sshSlug("Serveur d'Été 2")).toBe("serveur-d-ete-2");
     expect(sshSlug("  --VPS--  ")).toBe("vps");
   });
 
-  it("n'existe pas quand rien n'en tient sur la ligne, ni quand il singe un alias", () => {
+  it("does not exist when nothing of it fits on the line, nor when it mimics an alias", () => {
     expect(sshSlug("···")).toBeNull();
     expect(sshSlug("pupitre-srv-x")).toBeNull();
   });
 });
 
-describe("un nom SSH libre", () => {
-  it("n'est ni un hôte du système, ni un alias, ni le nom d'un autre serveur", () => {
+describe("a free SSH name", () => {
+  it("is neither a system host, nor an alias, nor another server's name", () => {
     expect(sshNameFree("prod", [ATELIER, SYSTEM], [])).toBe(true);
     expect(sshNameFree("atelier", [ATELIER, SYSTEM], [])).toBe(false);
     expect(sshNameFree("dev-vps", [ATELIER, SYSTEM], [])).toBe(false);
@@ -45,28 +45,28 @@ describe("un nom SSH libre", () => {
     expect(sshNameFree("bastion", [ATELIER], ["bastion"])).toBe(false);
   });
 
-  it("reste libre pour le serveur qui le porte déjà", () => {
+  it("stays free for the server that already carries it", () => {
     expect(sshNameFree("atelier", [ATELIER, SYSTEM], [], ATELIER.id)).toBe(
       true
     );
   });
 });
 
-describe("les noms que les serveurs se partagent", () => {
-  it("donnent à chaque serveur de l'app son nom SSH, et à un hôte du système le sien", () => {
+describe("the names the servers share", () => {
+  it("give each app server its SSH name, and a system host its own", () => {
     const names = sshNames([ATELIER, SYSTEM], []);
 
     expect(names.get(ATELIER.id)).toBe("atelier");
     expect(names.get(SYSTEM.id)).toBe("dev-vps");
   });
 
-  it("laissent l'alias seul à un serveur sans nom SSH", () => {
+  it("leave the alias alone for a server without an SSH name", () => {
     const bare = { ...ATELIER, slug: undefined };
 
     expect(sshNames([bare], []).get(bare.id)).toBe(alias(bare));
   });
 
-  it("laissent l'alias seul à un serveur dont le nom est déjà pris", () => {
+  it("leave the alias alone for a server whose name is already taken", () => {
     const twin = { ...ATELIER, id: "srv-2" };
 
     const names = sshNames([ATELIER, twin], []);
@@ -75,13 +75,13 @@ describe("les noms que les serveurs se partagent", () => {
     expect(names.get(twin.id)).toBe(alias(twin));
   });
 
-  it("ne prennent jamais un hôte que le fichier du système déclare", () => {
+  it("never take a host the system file declares", () => {
     const names = sshNames([ATELIER], ["atelier"]);
 
     expect(names.get(ATELIER.id)).toBe("pupitre-srv-mfx2k1");
   });
 
-  it("ne prennent pas non plus l'alias d'un hôte du système désigné", () => {
+  it("do not take the alias of a designated system host either", () => {
     const named = { ...ATELIER, slug: "dev-vps" };
 
     const names = sshNames([SYSTEM, named], []);
@@ -92,10 +92,10 @@ describe("les noms que les serveurs se partagent", () => {
 
 const BACKEND = "/home/dev/.cache/JetBrains/RemoteDev/dist/idea-latest";
 
-describe("le lien d'un éditeur", () => {
+describe("an editor's link", () => {
   const byId = Object.fromEntries(REMOTE_EDITORS.map((e) => [e.id, e]));
 
-  it("nomme le serveur par le mot que le fichier du système résout, et rien d'autre", () => {
+  it("names the server by the word the system file resolves, and nothing else", () => {
     expect(remoteEditorUrl(byId.zed, ATELIER, "atelier", "/home/dev/api")).toBe(
       "zed://ssh/atelier/home/dev/api"
     );
@@ -107,7 +107,7 @@ describe("le lien d'un éditeur", () => {
     ).toBe("cursor://vscode-remote/ssh-remote+atelier/home/dev/api");
   });
 
-  it("donne à Gateway le port et le compte que le bloc dit, et le backend que l'agent a posé", () => {
+  it("gives Gateway the port and account the block states, and the backend the agent set up", () => {
     expect(
       remoteEditorUrl(
         byId.jetbrains,
@@ -121,7 +121,7 @@ describe("le lien d'un éditeur", () => {
     );
   });
 
-  it("laisse un hôte du système à son alias, sans compte", () => {
+  it("leaves a system host to its alias, without an account", () => {
     expect(
       remoteEditorUrl(
         byId.jetbrains,
@@ -135,7 +135,7 @@ describe("le lien d'un éditeur", () => {
     );
   });
 
-  it("ne donne aucun lien Gateway tant que l'agent n'a pas dit où est le backend", () => {
+  it("gives no Gateway link until the agent has said where the backend is", () => {
     expect(
       remoteEditorUrl(byId.jetbrains, ATELIER, "atelier", "/home/dev/api")
     ).toBeNull();
@@ -144,7 +144,7 @@ describe("le lien d'un éditeur", () => {
     ).toBe("zed://ssh/atelier/home/dev/api");
   });
 
-  it("n'offre Gateway qu'avec son backend, les autres dès leur module", () => {
+  it("offers Gateway only with its backend, the others as soon as their module is there", () => {
     const laid = editorsFor([
       { id: "editor.jetbrains" },
       { id: "editor.zed" },
@@ -161,7 +161,7 @@ describe("le lien d'un éditeur", () => {
     ).toEqual(["jetbrains"]);
   });
 
-  it("refuse un chemin qui n'est pas absolu", () => {
+  it("refuses a path that is not absolute", () => {
     expect(remoteEditorUrl(byId.zed, ATELIER, "atelier", "../etc")).toBeNull();
   });
 });

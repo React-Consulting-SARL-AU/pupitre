@@ -35,8 +35,8 @@ function linksOn(xterm: Terminal, row: number): ILink[] {
 const ADDRESS =
   "https://auth.openai.com/oauth/authorize?client_id=app_EMoam&redirect_uri=http%3A%2F%2Flocalhost&state=JX_gTItN";
 
-describe("les adresses d'un écran", () => {
-  it("se lisent d'un bloc quand l'agent les a coupées au bord", () => {
+describe("a screen's addresses", () => {
+  it("are read as one block when the agent cut them at the edge", () => {
     const rows = [
       "Open the following link:",
       ADDRESS.slice(0, COLS),
@@ -58,7 +58,7 @@ describe("les adresses d'un écran", () => {
     }
   });
 
-  it("se lisent d'un bloc quand le terminal a plié une ligne en retrait", () => {
+  it("are read as one block when the terminal wrapped an indented line", () => {
     const rows = [
       `  ${ADDRESS.slice(0, COLS - 2)}`,
       ADDRESS.slice(COLS - 2, 2 * COLS - 2),
@@ -78,7 +78,7 @@ describe("les adresses d'un écran", () => {
     }
   });
 
-  it("laissent l'adresse à sa place quand rien ne la suit", () => {
+  it("leave the address in place when nothing follows it", () => {
     const [link] = linksOn(
       screen(["see https://pupitre.studio/docs.", "next"]),
       0
@@ -91,13 +91,13 @@ describe("les adresses d'un écran", () => {
     });
   });
 
-  it("ne recollent pas une ligne courte à la suivante", () => {
+  it("do not glue a short line to the next one", () => {
     const [link] = linksOn(screen(["https://pupitre.studio", "invoke&x=1"]), 0);
 
     expect(link?.text).toBe("https://pupitre.studio");
   });
 
-  it("gardent la parenthèse qui ferme celle de l'adresse", () => {
+  it("keep the parenthesis that closes the address's own", () => {
     const [link] = linksOn(
       screen(["(https://en.wikipedia.org/wiki/Foo_(bar))"]),
       0
@@ -106,7 +106,7 @@ describe("les adresses d'un écran", () => {
     expect(link?.text).toBe("https://en.wikipedia.org/wiki/Foo_(bar)");
   });
 
-  it("ne répondent rien sur une ligne sans adresse", () => {
+  it("return nothing on a line without an address", () => {
     expect(linksOn(screen(["nothing here", "https://a.b/c"]), 0)).toEqual([]);
   });
 });

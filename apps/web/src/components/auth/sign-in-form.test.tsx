@@ -34,7 +34,7 @@ function divider(container: HTMLElement) {
 }
 
 describe("SignInForm", () => {
-  it("n'offre aucun fournisseur quand la plateforme n'en monte aucun", async () => {
+  it("offers no provider when the platform mounts none", async () => {
     const { container } = await mountWith([])
 
     expect(container.textContent).not.toContain("Continue with Google")
@@ -42,7 +42,7 @@ describe("SignInForm", () => {
     expect(divider(container)).toBeNull()
   })
 
-  it("garde le lien magique et la clé d'accès sans aucun fournisseur", async () => {
+  it("keeps the magic link and the passkey without any provider", async () => {
     const { container } = await mountWith([])
 
     expect(container.textContent).toContain("Send me a sign-in link")
@@ -50,7 +50,7 @@ describe("SignInForm", () => {
     expect(container.querySelector("input#email")).not.toBeNull()
   })
 
-  it("n'offre que le fournisseur monté", async () => {
+  it("offers only the mounted provider", async () => {
     const { container } = await mountWith(["google"])
 
     expect(container.textContent).toContain("Continue with Google")
@@ -58,7 +58,7 @@ describe("SignInForm", () => {
     expect(divider(container)).not.toBeNull()
   })
 
-  it("offre les deux fournisseurs quand les deux sont montés", async () => {
+  it("offers both providers when both are mounted", async () => {
     const { container } = await mountWith(["github", "google"])
 
     expect(container.textContent).toContain("Continue with Google")
@@ -66,7 +66,7 @@ describe("SignInForm", () => {
     expect(divider(container)).not.toBeNull()
   })
 
-  it("garde le lien magique et la clé d'accès quand un fournisseur est monté", async () => {
+  it("keeps the magic link and the passkey when a provider is mounted", async () => {
     const { container } = await mountWith(["github"])
 
     expect(container.textContent).toContain("Send me a sign-in link")

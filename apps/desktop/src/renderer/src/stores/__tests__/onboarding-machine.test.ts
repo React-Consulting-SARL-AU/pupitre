@@ -23,16 +23,16 @@ const OPENED = walk(CLOSED, { serverId: "srv-1", type: "begin" });
 
 const PLAIN = { backups: false, restored: null };
 
-describe("repartir d'une sauvegarde", () => {
+describe("restarting from a backup", () => {
   const listed = walk(OPENED, { any: true, type: "backupsListed" });
 
-  it("demande la liste des sauvegardes en entrant dans l'inspection", () => {
+  it("asks for the backup list on entering the inspection", () => {
     expect(effectsOf(CLOSED, { serverId: "srv-1", type: "begin" })).toContain(
       "listBackups"
     );
   });
 
-  it("propose l'étape seulement quand l'organisation a des sauvegardes", () => {
+  it("offers the step only when the organization has backups", () => {
     expect(walk(OPENED, { type: "inspected" }).step).toBe("catalog");
     expect(walk(listed, { type: "inspected" }).step).toBe("restore");
     expect(
@@ -40,7 +40,7 @@ describe("repartir d'une sauvegarde", () => {
     ).toBe("restore");
   });
 
-  it("mène au catalogue, que la sauvegarde soit prise ou non", () => {
+  it("leads to the catalogue, whether the backup is taken or not", () => {
     const at = walk(listed, { type: "inspected" });
 
     expect(walk(at, { type: "restoreSkipped" })).toMatchObject({
@@ -52,14 +52,14 @@ describe("repartir d'une sauvegarde", () => {
     ).toMatchObject({ restored: "20260919T031500Z-7f3a2c", step: "catalog" });
   });
 
-  it("ne prend une sauvegarde que depuis son étape", () => {
+  it("takes a backup only from its own step", () => {
     expect(
       walk(OPENED, { backupId: "20260919T031500Z-7f3a2c", type: "restored" })
         .step
     ).toBe("inspection");
   });
 
-  it("lâche la sauvegarde prise quand on revient la choisir", () => {
+  it("drops the backup taken when going back to choose it", () => {
     const taken = walk(
       listed,
       { type: "inspected" },
@@ -74,7 +74,7 @@ describe("repartir d'une sauvegarde", () => {
     });
   });
 
-  it("ramène les données après le durcissement, puis finit", () => {
+  it("restores the data after hardening, then finishes", () => {
     const hardened = walk(
       listed,
       { type: "inspected" },
@@ -92,7 +92,7 @@ describe("repartir d'une sauvegarde", () => {
     expect(walk(hardened, { type: "dataSkipped" }).step).toBe("done");
   });
 
-  it("compte les étapes de sauvegarde seulement quand elles ont lieu", () => {
+  it("counts the backup steps only when they take place", () => {
     const steps = plannedSteps(
       { backups: true, restored: "b", step: "catalog", trail: ["restore"] },
       null
@@ -106,8 +106,8 @@ describe("repartir d'une sauvegarde", () => {
   });
 });
 
-describe("l'ordre des étapes", () => {
-  it("va du serveur au projet, l'agent avant le catalogue", () => {
+describe("the order of the steps", () => {
+  it("goes from the server to the project, the agent before the catalogue", () => {
     const steps = [
       { type: "open" } as const,
       { serverId: "srv-1", type: "serverChosen" } as const,
@@ -144,26 +144,26 @@ describe("l'ordre des étapes", () => {
   });
 
   // A managed machine already runs the agent, so no binary is sent.
-  it("passe de l'inspection au catalogue quand l'agent est déjà là", () => {
+  it("goes from the inspection to the catalogue when the agent is already there", () => {
     expect(walk(OPENED, { type: "inspected" }).step).toBe("catalog");
   });
 
-  it("n'a pas de chemin vers une étape qu'aucune réponse ne justifie", () => {
+  it("has no path to a step that no response justifies", () => {
     // Nothing chosen is not an install to run: only `configured` opens it.
     expect(walk(OPENED, { type: "installed" }).step).toBe("inspection");
     expect(walk(OPENED, { type: "hardened" }).step).toBe("inspection");
   });
 });
 
-describe("le chemin du retour", () => {
-  it("est ouvert tant que rien n'est installé", () => {
+describe("the way back", () => {
+  it("is open as long as nothing is installed", () => {
     const state = walk(OPENED, { type: "inspected" });
 
     expect(canGoBack(state)).toBe(true);
     expect(walk(state, { type: "back" }).step).toBe("inspection");
   });
 
-  it("se ferme dès qu'un module a commencé", () => {
+  it("closes as soon as a module has started", () => {
     const state = walk(
       OPENED,
       { type: "inspected" },
@@ -176,12 +176,12 @@ describe("le chemin du retour", () => {
     expect(walk(state, { type: "back" }).step).toBe("install");
   });
 
-  it("n'existe ni au premier écran ni au dernier", () => {
+  it("exists on neither the first screen nor the last", () => {
     expect(canGoBack(walk(CLOSED, { type: "open" }))).toBe(false);
     expect(canGoBack({ ...OPENED, step: "done" })).toBe(false);
   });
 
-  it("ne rejoue pas ce qu'entrer dans l'étape avait déclenché", () => {
+  it("does not replay what entering the step had triggered", () => {
     const onAgent = walk(OPENED, { type: "needsAgent" });
     const onCatalog = walk(onAgent, { type: "agentSent" });
 
@@ -190,8 +190,8 @@ describe("le chemin du retour", () => {
   });
 });
 
-describe("ce qu'une étape déclenche en y entrant", () => {
-  it("lit la machine, pose le binaire, installe, durcit", () => {
+describe("what a step triggers on entering it", () => {
+  it("reads the machine, places the binary, installs, hardens", () => {
     expect(effectsOf(OPENED, { type: "needsAgent" })).toContain("sendAgent");
     expect(
       effectsOf({ ...OPENED, step: "config" }, { type: "configured" })
@@ -202,7 +202,7 @@ describe("ce qu'une étape déclenche en y entrant", () => {
   });
 
   // Otherwise the console only learns what the machine runs on its next sync, minutes later.
-  it("prévient la console après l'installation et après le durcissement", () => {
+  it("notifies the console after the installation and after hardening", () => {
     expect(
       effectsOf({ ...OPENED, step: "install" }, { type: "installed" })
     ).toContain("platformSync");
@@ -211,21 +211,21 @@ describe("ce qu'une étape déclenche en y entrant", () => {
     ).toContain("platformSync");
   });
 
-  it("recharge la flotte quand l'onboarding est fini", () => {
+  it("reloads the fleet when the onboarding is finished", () => {
     expect(
       effectsOf({ ...OPENED, step: "harden" }, { type: "hardened" })
     ).toContain("reloadFleet");
   });
 
-  it("oublie le brouillon en ouvrant un nouvel onboarding", () => {
+  it("forgets the draft when opening a new onboarding", () => {
     expect(effectsOf(OPENED, { serverId: "srv-2", type: "begin" })).toContain(
       "forget"
     );
   });
 });
 
-describe("un serveur qui quitte la liste", () => {
-  it("ramène au choix, sans machine et sans chemin de retour", () => {
+describe("a server that leaves the list", () => {
+  it("returns to the choice, with no machine and no way back", () => {
     const state = walk(OPENED, { type: "serverLost" });
 
     expect(state.step).toBe("server");
@@ -233,7 +233,7 @@ describe("un serveur qui quitte la liste", () => {
     expect(canGoBack(state)).toBe(false);
   });
 
-  it("rend au choix son événement, refusé à l'étape d'avant", () => {
+  it("gives the choice its event back, refused at the previous step", () => {
     const lost = walk(OPENED, { type: "serverLost" });
 
     expect(walk(lost, { serverId: "srv-2", type: "serverChosen" }).step).toBe(
@@ -244,11 +244,11 @@ describe("un serveur qui quitte la liste", () => {
     );
   });
 
-  it("efface l'étagère, qui parlait d'une machine disparue", () => {
+  it("clears the shelf, which spoke of a vanished machine", () => {
     expect(effectsOf(OPENED, { type: "serverLost" })).toContain("forget");
   });
 
-  it("ramène au choix même une fois la machine touchée", () => {
+  it("returns to the choice even once the machine has been touched", () => {
     const state = walk(
       { ...OPENED, installed: true, step: "install" },
       { type: "serverLost" }
@@ -258,26 +258,26 @@ describe("un serveur qui quitte la liste", () => {
     expect(state.installed).toBe(false);
   });
 
-  it("ferme une séquence déjà finie plutôt que de la recommencer", () => {
+  it("closes an already finished sequence rather than restarting it", () => {
     const state = walk({ ...OPENED, step: "done" }, { type: "serverLost" });
 
     expect(state.step).toBe("closed");
   });
 
   // A finished sequence left on the shelf read as an install that stopped half-way.
-  it("efface l'étagère en quittant une séquence finie", () => {
+  it("clears the shelf when leaving a finished sequence", () => {
     expect(effectsOf({ ...OPENED, step: "done" }, { type: "close" })).toContain(
       "forget"
     );
   });
 
-  it("garde l'étagère en quittant une séquence en cours", () => {
+  it("keeps the shelf when leaving a sequence in progress", () => {
     expect(
       effectsOf({ ...OPENED, step: "config" }, { type: "close" })
     ).not.toContain("forget");
   });
 
-  it("ne bouge pas quand le choix est déjà à l'écran", () => {
+  it("does not move when the choice is already on screen", () => {
     const choosing = walk(CLOSED, { type: "open" });
 
     expect(walk(choosing, { type: "serverLost" }).step).toBe("server");
@@ -285,21 +285,21 @@ describe("un serveur qui quitte la liste", () => {
   });
 });
 
-describe("une licence que la console ne confirme plus", () => {
-  it("gèle l'étape où elle est, sans la faire échouer", () => {
+describe("a licence the console no longer confirms", () => {
+  it("freezes the step where it is, without making it fail", () => {
     const held = walk(OPENED, { type: "usageLost" });
 
     expect(held.frozen).toBe(true);
     expect(walk(held, { type: "inspected" }).step).toBe("inspection");
   });
 
-  it("laisse toujours quitter l'assistant", () => {
+  it("always lets the wizard be left", () => {
     const held = walk(OPENED, { type: "usageLost" });
 
     expect(walk(held, { type: "close" }).step).toBe("closed");
   });
 
-  it("reprend où elle en était une fois le droit revenu", () => {
+  it("resumes where it was once the licence is back", () => {
     const back = walk(OPENED, { type: "usageLost" }, { type: "usageBack" });
 
     expect(back.frozen).toBe(false);
@@ -307,8 +307,8 @@ describe("une licence que la console ne confirme plus", () => {
   });
 });
 
-describe("rejouer un module", () => {
-  it("repasse par la configuration quand il portait un secret", () => {
+describe("replaying a module", () => {
+  it("goes back through the configuration when it carried a secret", () => {
     const state = walk(
       { ...OPENED, step: "install" },
       {
@@ -322,7 +322,7 @@ describe("rejouer un module", () => {
     expect(state.replaying).toBe("db.postgres");
   });
 
-  it("ne bouge pas quand il n'en portait pas", () => {
+  it("does not move when it carried none", () => {
     const state = walk(
       { ...OPENED, step: "install" },
       {
@@ -337,8 +337,8 @@ describe("rejouer un module", () => {
   });
 });
 
-describe("une reprise", () => {
-  it("revient à l'étape de l'étagère et relit la machine", () => {
+describe("a resumption", () => {
+  it("returns to the shelf's step and rereads the machine", () => {
     const { state, effects } = transition(CLOSED, {
       installed: false,
       serverId: "srv-1",
@@ -351,7 +351,7 @@ describe("une reprise", () => {
     expect(effects.map((one) => one.kind)).toEqual(["inspect", "listBackups"]);
   });
 
-  it("part sur ce qui manque, et rien d'autre", () => {
+  it("starts on what is missing, and nothing else", () => {
     const state = walk(
       { ...CLOSED, serverId: "srv-1", step: "config" },
       { remaining: ["db.postgres"], step: "install", type: "resumeAt" }
@@ -361,7 +361,7 @@ describe("une reprise", () => {
     expect(state.remaining).toEqual(["db.postgres"]);
   });
 
-  it("relance le durcissement quand elle tombe sur cette étape", () => {
+  it("relaunches hardening when it lands on that step", () => {
     const { state, effects } = transition(CLOSED, {
       installed: true,
       serverId: "srv-1",
@@ -375,16 +375,16 @@ describe("une reprise", () => {
   });
 });
 
-describe("les étapes déclarées", () => {
-  it("sont celles que le rail compte", () => {
+describe("the declared steps", () => {
+  it("are the ones the rail counts", () => {
     expect(ONBOARDING_STEPS.length).toBe(10);
     expect(ONBOARDING_STEPS[0]).toBe("server");
     expect(ONBOARDING_STEPS.at(-1)).toBe("done");
   });
 });
 
-describe("les étapes qu'une séquence parcourt", () => {
-  it("compte l'agent tant que rien ne dit qu'il est déjà là", () => {
+describe("the steps a sequence goes through", () => {
+  it("counts the agent as long as nothing says it is already there", () => {
     expect(plannedSteps({ ...PLAIN, step: "server", trail: [] }, null)).toEqual(
       ONBOARDING_STEPS.filter((step) => step !== "restore" && step !== "data")
     );
@@ -396,7 +396,7 @@ describe("les étapes qu'une séquence parcourt", () => {
     ).toContain("agent");
   });
 
-  it("retire l'agent d'une machine gérée et à jour, avant même d'y entrer", () => {
+  it("removes the agent from a managed, up-to-date machine, even before entering it", () => {
     const steps = plannedSteps(
       { ...PLAIN, step: "inspection", trail: ["server"] },
       { kind: "managed", up_to_date: true }
@@ -406,7 +406,7 @@ describe("les étapes qu'une séquence parcourt", () => {
     expect(steps.length).toBe(7);
   });
 
-  it("garde l'agent d'une machine gérée en retard : le lecteur décide", () => {
+  it("keeps the agent of a managed machine that is behind: the reader decides", () => {
     expect(
       plannedSteps(
         { ...PLAIN, step: "inspection", trail: ["server"] },
@@ -415,7 +415,7 @@ describe("les étapes qu'une séquence parcourt", () => {
     ).toContain("agent");
   });
 
-  it("suit la trace une fois l'inspection passée, quoi que dise le verdict", () => {
+  it("follows the trace once the inspection has passed, whatever the verdict says", () => {
     const skipped = walk(OPENED, { type: "inspected" });
     const walked = walk(OPENED, { type: "needsAgent" }, { type: "agentSent" });
 
@@ -427,14 +427,14 @@ describe("les étapes qu'une séquence parcourt", () => {
   });
 });
 
-describe("la trace d'une reprise", () => {
-  it("est reconstituée jusqu'à l'étape reprise, l'agent mis à part", () => {
+describe("the trace of a resumption", () => {
+  it("is rebuilt up to the resumed step, the agent aside", () => {
     expect(walkedBefore("config")).toEqual(["server", "inspection", "catalog"]);
     expect(walkedBefore("agent")).toEqual(["server", "inspection"]);
     expect(walkedBefore("server")).toEqual([]);
   });
 
-  it("rend le bouton Retour à une reprise avant l'installation", () => {
+  it("gives a resumption the Back button before the installation", () => {
     const state = transition(CLOSED, {
       installed: false,
       serverId: "srv-1",
@@ -451,7 +451,7 @@ describe("la trace d'une reprise", () => {
     expect(back.trail).toEqual(["server", "inspection"]);
   });
 
-  it("suit l'étape que la machine relue impose", () => {
+  it("follows the step the reread machine imposes", () => {
     const state = walk(
       transition(CLOSED, {
         installed: false,
@@ -467,7 +467,7 @@ describe("la trace d'une reprise", () => {
     expect(state.trail).toEqual(["server", "inspection"]);
   });
 
-  it("ne rend pas le Retour à une reprise après l'installation", () => {
+  it("does not give a resumption the Back button after the installation", () => {
     const state = transition(CLOSED, {
       installed: true,
       serverId: "srv-1",
@@ -480,10 +480,10 @@ describe("la trace d'une reprise", () => {
   });
 });
 
-describe("relancer la sécurisation d'un serveur installé", () => {
+describe("relaunching the hardening of an installed server", () => {
   const secure: Event = { serverId: "srv-1", type: "secure" };
 
-  it("ouvre directement l'étape de sécurité et la lance", () => {
+  it("opens the security step directly and launches it", () => {
     const { state, effects } = transition(CLOSED, secure);
 
     expect(state).toMatchObject({
@@ -495,7 +495,7 @@ describe("relancer la sécurisation d'un serveur installé", () => {
     expect(canGoBack(state)).toBe(false);
   });
 
-  it("se relance depuis la fin d'un onboarding où root est resté ouvert", () => {
+  it("relaunches from the end of an onboarding where root was left open", () => {
     const done = walk(transition(CLOSED, secure).state, { type: "hardened" });
 
     expect(done.step).toBe("done");

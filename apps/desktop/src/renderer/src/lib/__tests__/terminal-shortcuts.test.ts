@@ -13,8 +13,8 @@ function press(key: string, held: Partial<KeyChord> = {}): KeyChord {
   };
 }
 
-describe("les raccourcis d'un terminal", () => {
-  it("vivent sur la touche commande sur macOS", () => {
+describe("a terminal's shortcuts", () => {
+  it("live on the command key on macOS", () => {
     expect(shortcutOf(press("t", { metaKey: true }), true)).toEqual({
       kind: "new",
     });
@@ -29,12 +29,12 @@ describe("les raccourcis d'un terminal", () => {
     });
   });
 
-  it("laissent le copier-coller au système sur macOS", () => {
+  it("leave copy and paste to the system on macOS", () => {
     expect(shortcutOf(press("c", { metaKey: true }), true)).toBeNull();
     expect(shortcutOf(press("v", { metaKey: true }), true)).toBeNull();
   });
 
-  it("passent sur contrôle+majuscule ailleurs, et y prennent le copier-coller", () => {
+  it("move to control+shift elsewhere, and take over copy and paste there", () => {
     expect(
       shortcutOf(press("T", { ctrlKey: true, shiftKey: true }), false)
     ).toEqual({ kind: "new" });
@@ -46,12 +46,12 @@ describe("les raccourcis d'un terminal", () => {
     ).toEqual({ kind: "paste" });
   });
 
-  it("laissent ^C et ^D au shell", () => {
+  it("leave ^C and ^D to the shell", () => {
     expect(shortcutOf(press("c", { ctrlKey: true }), false)).toBeNull();
     expect(shortcutOf(press("d", { ctrlKey: true }), true)).toBeNull();
   });
 
-  it("numérotent les onglets et se déplacent entre eux", () => {
+  it("number the tabs and move between them", () => {
     expect(shortcutOf(press("3", { metaKey: true }), true)).toEqual({
       index: 2,
       kind: "tab",
@@ -69,7 +69,7 @@ describe("les raccourcis d'un terminal", () => {
     ).toEqual({ kind: "previous" });
   });
 
-  it("agrandissent et remettent la taille du texte", () => {
+  it("enlarge and reset the text size", () => {
     expect(shortcutOf(press("=", { metaKey: true }), true)).toEqual({
       kind: "zoomIn",
     });
@@ -81,7 +81,7 @@ describe("les raccourcis d'un terminal", () => {
     });
   });
 
-  it("ne réagissent ni au relâchement ni à la touche option", () => {
+  it("react to neither key release nor the option key", () => {
     expect(
       shortcutOf(press("t", { metaKey: true, type: "keyup" }), true)
     ).toBeNull();
@@ -90,7 +90,7 @@ describe("les raccourcis d'un terminal", () => {
     ).toBeNull();
   });
 
-  it("nomment la touche du raccourci selon la plateforme", () => {
+  it("name the shortcut key according to the platform", () => {
     expect(chordLabel(true)).toBe("⌘");
     expect(chordLabel(false)).toBe("Ctrl+Shift+");
   });

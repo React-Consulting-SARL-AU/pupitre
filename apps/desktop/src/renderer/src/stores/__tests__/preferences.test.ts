@@ -6,8 +6,8 @@ beforeEach(() => {
   usePreferences.setState({ notifications: null, startup: null });
 });
 
-describe("les préférences du processus principal", () => {
-  it("ne dessine rien avant d'avoir lu, puis ce qui a été lu", async () => {
+describe("the main process preferences", () => {
+  it("draws nothing before reading, then what was read", async () => {
     stubPupitre({
       notificationsEnabled: () => Promise.resolve(false),
       startupState: () => Promise.resolve({ enabled: true, supported: true }),
@@ -24,7 +24,7 @@ describe("les préférences du processus principal", () => {
     });
   });
 
-  it("montre la valeur écrite, pas celle demandée", async () => {
+  it("shows the written value, not the requested one", async () => {
     const asked: boolean[] = [];
 
     stubPupitre({

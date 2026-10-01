@@ -67,8 +67,8 @@ afterEach(() => {
   closeForwards();
 });
 
-describe("un tunnel vers un port du serveur", () => {
-  it("passe par le ssh de la configuration de l'app", async () => {
+describe("a tunnel to a server port", () => {
+  it("goes through the ssh of the app's configuration", async () => {
     const harness = deps();
 
     const answer = await openForward(SERVER, 5432, "db.postgres", harness.deps);
@@ -93,7 +93,7 @@ describe("un tunnel vers un port du serveur", () => {
     ]);
   });
 
-  it("tient sa propre connexion, pour que le fermer libère le port", async () => {
+  it("holds its own connection, so closing it frees the port", async () => {
     const harness = deps();
 
     await openForward(SERVER, 5432, "db.postgres", harness.deps);
@@ -103,7 +103,7 @@ describe("un tunnel vers un port du serveur", () => {
     expect(harness.born[0]?.killed).toBe(true);
   });
 
-  it("réutilise celui qui est déjà ouvert sur ce port", async () => {
+  it("reuses the one already open on this port", async () => {
     const harness = deps();
 
     const first = await openForward(SERVER, 5432, "db.postgres", harness.deps);
@@ -116,7 +116,7 @@ describe("un tunnel vers un port du serveur", () => {
     );
   });
 
-  it("prend le port local qu'on lui impose, et n'en réutilise pas un autre", async () => {
+  it("takes the local port it is given, and does not reuse another", async () => {
     const harness = deps();
 
     const login = await openForward(SERVER, 54_545, "login", harness.deps, {
@@ -138,7 +138,7 @@ describe("un tunnel vers un port du serveur", () => {
     expect(harness.spawned).toHaveLength(1);
   });
 
-  it("se ferme avec son processus", async () => {
+  it("closes with its process", async () => {
     const harness = deps();
 
     const answer = await openForward(SERVER, 5432, "db.postgres", harness.deps);
@@ -151,7 +151,7 @@ describe("un tunnel vers un port du serveur", () => {
     expect(forwards(SERVER)).toEqual([]);
   });
 
-  it("refuse un serveur que la configuration ne connaît plus", async () => {
+  it("refuses a server the configuration no longer knows", async () => {
     const harness = deps();
 
     const answer = await openForward(
@@ -165,7 +165,7 @@ describe("un tunnel vers un port du serveur", () => {
     expect(harness.spawned).toEqual([]);
   });
 
-  it("refuse un port qui n'en est pas un", async () => {
+  it("refuses a port that is not one", async () => {
     const harness = deps();
 
     const answer = await openForward(
@@ -180,8 +180,8 @@ describe("un tunnel vers un port du serveur", () => {
   });
 });
 
-describe("l'attente d'un port local", () => {
-  it("se termine dès que quelque chose écoute", async () => {
+describe("waiting for a local port", () => {
+  it("finishes as soon as something listens", async () => {
     const server = createServer();
 
     await new Promise<void>((resolve) =>
@@ -196,7 +196,7 @@ describe("l'attente d'un port local", () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
-  it("renonce quand rien ne vient", async () => {
+  it("gives up when nothing comes", async () => {
     const probe = createServer();
 
     await new Promise<void>((resolve) =>
@@ -212,7 +212,7 @@ describe("l'attente d'un port local", () => {
   });
 });
 
-describe("le port local d'une redirection, d'une fois sur l'autre", () => {
+describe("a redirection's local port, from one run to the next", () => {
   function memoryFile(): string {
     return join(
       mkdtempSync(join(tmpdir(), "pupitre-forwards-")),
@@ -220,7 +220,7 @@ describe("le port local d'une redirection, d'une fois sur l'autre", () => {
     );
   }
 
-  it("est écrit avec sa révision, et repris quand il est encore libre", async () => {
+  it("is written with its revision, and reused when still free", async () => {
     const file = memoryFile();
     const harness = deps();
     const taken: number[] = [];
@@ -248,7 +248,7 @@ describe("le port local d'une redirection, d'une fois sur l'autre", () => {
     });
   });
 
-  it("en prend un autre quand le port habituel est pris, et le dit", async () => {
+  it("takes another when the usual port is taken, and says so", async () => {
     const file = memoryFile();
     const harness = deps();
 
@@ -265,7 +265,7 @@ describe("le port local d'une redirection, d'une fois sur l'autre", () => {
     );
   });
 
-  it("ne mémorise pas un port imposé, qui n'est pas un choix", async () => {
+  it("does not remember an imposed port, which is not a choice", async () => {
     const file = memoryFile();
     const harness = deps();
 
@@ -278,7 +278,7 @@ describe("le port local d'une redirection, d'une fois sur l'autre", () => {
     expect(harness.deps.memory.recall(SERVER, 54_545)).toBeNull();
   });
 
-  it("lit un fichier d'une version plus récente sans le réécrire", () => {
+  it("reads a file from a newer version without rewriting it", () => {
     const file = memoryFile();
 
     writeFileSync(
@@ -297,7 +297,7 @@ describe("le port local d'une redirection, d'une fois sur l'autre", () => {
     );
   });
 
-  it("dit à qui écoute chaque ouverture et chaque fermeture, celle du processus comprise", async () => {
+  it("tells listeners about every opening and closing, the process's included", async () => {
     const harness = deps();
     const seen: number[] = [];
     const stop = watchForwards((list) => seen.push(list.length));

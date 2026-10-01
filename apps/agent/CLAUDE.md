@@ -1,81 +1,81 @@
 # apps/agent — Guidelines
 
-`pupitred`, l'agent Go installé sur le VPS du client. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · protocole → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · catalogue → [`docs/contracts/service-catalog.md`](../../docs/contracts/service-catalog.md) · migrations → [`docs/contracts/config-migrations.md`](../../docs/contracts/config-migrations.md) · sécurité → [`docs/security.md`](../../docs/security.md).
+`pupitred`, the Go agent installed on the customer's VPS. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · protocol → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · catalogue → [`docs/contracts/service-catalog.md`](../../docs/contracts/service-catalog.md) · migrations → [`docs/contracts/config-migrations.md`](../../docs/contracts/config-migrations.md) · security → [`docs/security.md`](../../docs/security.md).
 
-## Stack imposée
+## Mandatory stack
 
-Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, release comprise : le code source est public, le binaire n'est pas obscurci. Cibles `linux/amd64` et `linux/arm64`. `gofmt`, `go vet`, `staticcheck`, `govulncheck`. Pas de framework, pas d'ORM, pas de shell-out là où un appel système suffit.
+Go 1.26 (the version in `go.mod`), standard library first. Static binary (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, release included: the source code is public, the binary is not obfuscated. `linux/amd64` and `linux/arm64` targets. `gofmt`, `go vet`, `staticcheck`, `govulncheck`. No framework, no ORM, no shell-out where a system call is enough.
 
-**Banned** : tout script déposé sur le disque du client, `os/exec` avec une chaîne construite depuis une entrée du protocole, journalisation d'un secret.
+**Banned**: any script dropped on the customer's disk, `os/exec` with a string built from a protocol input, logging a secret.
 
-## Principes
+## Principles
 
-- **Rien de lisible sur le serveur.** Le binaire, `/etc/pupitre/` en 0600 root, des unités systemd générées, des fichiers de configuration.
-- **Idempotence.** Chaque étape vérifie avant d'agir. `install` rejoué sur une machine installée ne change rien et finit en moins de 30 secondes.
-- **La configuration est validée avant la première étape.** Le moteur applique les contraintes du manifeste — `format`, `pattern`, bornes, options, requis — et refuse en `invalid_config` sans rien toucher. Un module ne vérifie plus ses propres champs. Ce que seule la machine sait — un port écouté, un dossier occupé — s'ajoute par `Preflight`, que `install.check` appelle.
-- **Les mêmes règles des deux côtés.** `internal/contract/fields.go` et `packages/shared/src/catalog/validate.ts` sont vérifiés contre `fields.fixtures.json`, exporté par `contracts:export`. Une règle changée d'un seul côté casse ce test.
-- **Un échec n'arrête pas les autres.** Il est noté avec sa commande de rejeu ; le rapport dit tout en une fois.
-- **Un binaire ne lit jamais une configuration qu'il n'a pas migrée.** Changer la forme d'un fichier de `/etc/pupitre` — un champ d'`install.json` renommé, un identifiant de module scindé, une colonne du registre des projets — coûte une entrée dans `internal/migrate/migrations.go` : idempotente, sans effet sur un fichier absent, lisant du JSON brut et jamais un type d'aujourd'hui, à l'identifiant fixé pour toujours. Le moteur sauvegarde avant le lot et remet tout en l'état si une migration refuse. Un fichier qu'un module possède se porte dans l'`Upgrade` de ce module, pas ici.
-- **Root se ferme en dernier**, et seulement si une clé ouvre `dev`. Jamais l'inverse.
-- **Aucune connexion entrante.** Le seul canal de commande est `pupitred serve` sur la session SSH du client. Vers la plateforme : HTTPS sortant, jeton de serveur, rien d'autre.
-- **Deux sessions, et sudo en décide** (décision 0015). `pupitred serve` est la ligne que sudo lance pour `dev` sans mot de passe : la session limitée, qui refuse par `privilege_required` tout ce que `LimitedCommands` du contrat ne nomme pas. `pupitred serve --privileged` répond à tout, et sudo ne le lance que sur le mot de passe. La règle sudoers ne nomme que des lignes exactes (`internal/sudo`) : une sous-commande qui se lance sans mot de passe n'assouplit rien d'après ses arguments, et ce qu'elle lit vient de l'entrée standard.
-- **Root ne suit pas un lien de `dev`.** Sous `/home/dev`, on lit et on écrit par les primitives `*In` et `os.Root` de `internal/sys`, jamais par un chemin résolu à la main.
-- **La licence gouverne.** Pupitre est gratuit jusqu'à trois serveurs par organisation, une licence est requise au-delà ; c'est la plateforme qui en juge, l'agent ne lit que l'état qu'elle lui rend (`license` de `/agent/state`, mis en cache dans `/var/lib/pupitre/license.json`). Sans jeton valide ni tolérance, les modules et les commandes de pilotage refusent avec `license_required`. Le build `-tags dev` embarque une licence de développement.
-- **Le contrat vient de `packages/shared`** via `internal/contract/schema.json`, régénéré par `bun run contracts:export`. On ne redéclare pas un type du protocole à la main.
+- **Nothing readable on the server.** The binary, `/etc/pupitre/` in 0600 root, generated systemd units, configuration files.
+- **Idempotence.** Every step checks before acting. `install` replayed on an installed machine changes nothing and finishes in under 30 seconds.
+- **The configuration is validated before the first step.** The engine applies the manifest's constraints — `format`, `pattern`, bounds, options, required — and refuses with `invalid_config` without touching anything. A module no longer checks its own fields. What only the machine knows — a listening port, an occupied folder — is added through `Preflight`, which `install.check` calls.
+- **The same rules on both sides.** `internal/contract/fields.go` and `packages/shared/src/catalog/validate.ts` are checked against `fields.fixtures.json`, exported by `contracts:export`. A rule changed on one side only breaks this test.
+- **A failure does not stop the others.** It is noted with its replay command; the report says everything at once.
+- **A binary never reads a configuration it has not migrated.** Changing the shape of a file in `/etc/pupitre` — a renamed `install.json` field, a split module identifier, a column of the projects registry — costs one entry in `internal/migrate/migrations.go`: idempotent, with no effect on an absent file, reading raw JSON and never today's type, with an identifier fixed forever. The engine backs up before the batch and restores everything if a migration refuses. A file a module owns is carried in that module's `Upgrade`, not here.
+- **Root closes last**, and only if a key opens `dev`. Never the reverse.
+- **No inbound connection.** The only command channel is `pupitred serve` on the customer's SSH session. Towards the platform: outbound HTTPS, server token, nothing else.
+- **Two sessions, and sudo decides** (decision 0015). `pupitred serve` is the line that sudo runs for `dev` without a password: the limited session, which refuses with `privilege_required` everything that the contract's `LimitedCommands` does not name. `pupitred serve --privileged` answers everything, and sudo only runs it on the password. The sudoers rule only names exact lines (`internal/sudo`): a subcommand that runs without a password loosens nothing according to its arguments, and what it reads comes from standard input.
+- **Root does not follow a link from `dev`.** Under `/home/dev`, read and write through the `*In` primitives and `os.Root` of `internal/sys`, never through a hand-resolved path.
+- **The licence governs.** Pupitre is free up to three servers per organization, a licence is required beyond that; the platform decides, the agent only reads the state it returns (`license` of `/agent/state`, cached in `/var/lib/pupitre/license.json`). Without a valid token or grace period, modules and control commands refuse with `license_required`. The `-tags dev` build embeds a development licence.
+- **The contract comes from `packages/shared`** through `internal/contract/schema.json`, regenerated by `bun run contracts:export`. A protocol type is not redeclared by hand.
 
 ## Architecture
 
 ```
-cmd/pupitred/            main.go : version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · env · backup open · binary install · keys reset · uninstall ; un cli_*.go par sous-commande
-internal/backup/         sauvegardes et restauration : parties en flux, manifeste, élagage, ordonnancement, commandes backup.* ; seal/ le conteneur chiffré et la clé d'une phrase, archive/ les tar du compte dev et leur extraction sûre
-internal/contract/       schema.json exporté de packages/shared, codes d'erreur, règles des champs, feuille de compatibilité
-internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement, keys.list
-internal/devcli/         grammaire et rendu de pupitred dev ; en dev, les verbes vont à sudo -n pupitred serve (remote.go), et à serve --privileged, mot de passe demandé sur le terminal, pour un verbe privilégié ; la même grammaire que completions rend
-internal/golden/         enregistre ce qu'une transcription de test a produit, au lieu d'échouer dessus
-internal/i18n/           toutes les phrases de l'agent, en français et en anglais, un catalogue par domaine
-internal/keys/           bloc balisé d'authorized_keys, écriture atomique ; signataires (/etc/pupitre/signers.json) et approbations SSHSIG de la décision 0014 ; keys reset, le secours depuis la console de l'hébergeur
-internal/license/        licence, cache, mode restreint ; build_dev.go porte la licence du tag dev
-internal/migrate/        le registre des migrations de configuration : révision, sauvegardes, rejeu, restauration ; migrations.go est la liste
-internal/modules/        interface Module, moteur, validation, préflight, journal, verrou ; un dossier par catégorie : core/, runtime/, db/, ai/, editor/, exposure/, tool/ ; modtest/ pour les tests
-internal/platform/       client HTTPS de la plateforme, jeton de serveur
-internal/probe/          probe.sh (sh POSIX, embarqué), son analyse et le verdict
-internal/protocol/       enveloppe, dispatch, sessions, événements, flux secret
-internal/registry/       projets et leurs processus, projects.local.json, projects.conf du dépôt
-internal/s3/             client S3 en bibliothèque standard : SigV4, envoi multipart en flux, copie dans le seau, listes ; s3test/ un seau en mémoire qui vérifie chaque signature
-internal/release/        signature et publication des binaires par la chaîne de release ; rien n'en est lié dans pupitred
-internal/selfupdate/     agent.upgrade : téléchargement, empreinte et signature, plancher de version, remplacement ; Place pour binary install, le binaire poussé par l'app en dev
-internal/sudo/           la règle sudoers de dev (décision 0015) : Open d'avant, Restricted aux deux lignes exactes serve et binary install, Password qu'uninstall laisse, Write qui passe par visudo, et l'état que snapshot en lit
-internal/shots/          la galerie de captures et son serveur en lecture seule
-internal/state/          snapshot, status, projets, git, agents, complétions, détection d'un dépôt
-internal/sys/            apt, systemd, fichiers, réseau, utilisateurs, environnement ; sys.Real et le faux des tests
-internal/tmux/           session, une fenêtre <projet>/<processus> par processus, logs
-tools/release/           la commande release : keygen, public-key, sign, publish, promote
-test/catalog/            idempotence de chaque module du catalogue
-test/staging/            tests d'intégration contre le VPS de staging, derrière -tags staging
-test/vps/                le faux VPS : conteneur Ubuntu sous systemd, sur le Mac
+cmd/pupitred/            main.go: version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · env · backup open · binary install · keys reset · uninstall; one cli_*.go per subcommand
+internal/backup/         backups and restoration: streamed parts, manifest, pruning, scheduling, backup.* commands; seal/ the encrypted container and the passphrase key, archive/ the dev account's tars and their safe extraction
+internal/contract/       schema.json exported from packages/shared, error codes, field rules, compatibility sheet
+internal/daemon/         pupitred daemon: reading /agent/state, keys, heartbeat, systemd unit, enrolment, keys.list
+internal/devcli/         grammar and rendering of pupitred dev; in dev, the verbs go to sudo -n pupitred serve (remote.go), and to serve --privileged, password asked on the terminal, for a privileged verb; the same grammar that completions renders
+internal/golden/         records what a test transcript produced, instead of failing on it
+internal/i18n/           all the agent's sentences, in French and English, one catalogue per domain
+internal/keys/           marked authorized_keys block, atomic write; signers (/etc/pupitre/signers.json) and SSHSIG approvals of decision 0014; keys reset, the rescue from the host's console
+internal/license/        licence, cache, restricted mode; build_dev.go carries the dev tag's licence
+internal/migrate/        the configuration migrations registry: revision, backups, replay, restoration; migrations.go is the list
+internal/modules/        Module interface, engine, validation, preflight, journal, lock; one folder per category: core/, runtime/, db/, ai/, editor/, exposure/, tool/; modtest/ for tests
+internal/platform/       the platform's HTTPS client, server token
+internal/probe/          probe.sh (POSIX sh, embedded), its parsing and the verdict
+internal/protocol/       envelope, dispatch, sessions, events, secret stream
+internal/registry/       projects and their processes, projects.local.json, the repository's projects.conf
+internal/s3/             S3 client on the standard library: SigV4, streamed multipart upload, copy within the bucket, listings; s3test/ an in-memory bucket that checks every signature
+internal/release/        signing and publication of binaries by the release pipeline; none of it is linked into pupitred
+internal/selfupdate/     agent.upgrade: download, checksum and signature, version floor, replacement; Place for binary install, the binary pushed by the app in dev
+internal/sudo/           dev's sudoers rule (decision 0015): Open from before, Restricted to the two exact lines serve and binary install, Password which uninstall leaves, Write which goes through visudo, and the state that snapshot reads from it
+internal/shots/          the screenshot gallery and its read-only server
+internal/state/          snapshot, status, projects, git, agents, completions, repository detection
+internal/sys/            apt, systemd, files, network, users, environment; sys.Real and the test fake
+internal/tmux/           session, one <project>/<process> window per process, logs
+tools/release/           the release command: keygen, public-key, sign, publish, promote
+test/catalog/            idempotence of every catalogue module
+test/staging/            integration tests against the staging VPS, behind -tags staging
+test/vps/                the fake VPS: Ubuntu container under systemd, on the Mac
 ```
 
-Un module = un dossier avec `manifest.go`, `module.go`, `module_test.go`. Les étapes sont des fonctions courtes et nommées ; le moteur les enchaîne et émet les événements.
+A module = a folder with `manifest.go`, `module.go`, `module_test.go`. Steps are short, named functions; the engine chains them and emits the events.
 
 ## Tests
 
-`go test ./...` pour l'unitaire, et `go test -tags dev ./...` pour ce que le build de développement change (`bun run test` passe les deux). Les tests d'intégration sont derrière le tag de build `staging` et visent un VPS réinstallable, jamais une machine du propriétaire :
+`go test ./...` for unit tests, and `go test -tags dev ./...` for what the development build changes (`bun run test` runs both). Integration tests are behind the `staging` build tag and target a reinstallable VPS, never one of the owner's machines:
 
 ```bash
-PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...
+PUPITRE_STAGING_HOST=root@<address> go test -tags staging ./test/staging/...
 ```
 
-Sans la variable, ils se sautent au lieu d'échouer. Le banc parle à `pupitred serve --privileged` : sur un serveur dont `dev` a un mot de passe sudo, exportez-le dans `PUPITRE_STAGING_SUDO_PASSWORD` pour la durée de la commande, jamais dans un fichier ; sans elle, le banc demande la règle d'avant, `NOPASSWD:ALL`. Le test des sauvegardes vise en plus un vrai seau, R2 ou AWS, celui de qui lance le test, nommé sur la ligne de commande par `PUPITRE_STAGING_S3_ENDPOINT`, `_REGION`, `_BUCKET`, `_ACCESS_KEY_ID` et `_SECRET_ACCESS_KEY`, et se saute sans eux. Ces clés ne vont dans aucun fichier du dépôt ni dans 1Password : un seau de sauvegardes est celui d'un client, et Pupitre n'en tient aucun. La réinstallation du VPS est manuelle, chez l'hébergeur. Un module sans test de staging n'est pas fini.
+Without the variable, they skip instead of failing. The bench talks to `pupitred serve --privileged`: on a server where `dev` has a sudo password, export it in `PUPITRE_STAGING_SUDO_PASSWORD` for the duration of the command, never in a file; without it, the bench asks for the previous rule, `NOPASSWD:ALL`. The backups test additionally targets a real bucket, R2 or AWS, that of whoever runs the test, named on the command line by `PUPITRE_STAGING_S3_ENDPOINT`, `_REGION`, `_BUCKET`, `_ACCESS_KEY_ID` and `_SECRET_ACCESS_KEY`, and skips without them. These keys go in no file of the repository nor in 1Password: a backups bucket is a customer's, and Pupitre holds none. Reinstalling the VPS is manual, at the host. A module without a staging test is not finished.
 
-## Commandes
+## Commands
 
 ```bash
-bun run build            # go build multi-arch
-bun run build:dev        # même chose avec -tags dev : licence intégrée, ni jeton ni plateforme
-bun run test             # go test, puis go test -tags dev
-bun run lint             # gofmt, go vet et staticcheck avec et sans -tags dev, govulncheck
+bun run build            # multi-arch go build
+bun run build:dev        # same with -tags dev: embedded licence, no token and no platform
+bun run test             # go test, then go test -tags dev
+bun run lint             # gofmt, go vet and staticcheck with and without -tags dev, govulncheck
 bun run lint:fix         # gofmt -w
-bun run check:types      # go build ./..., avec et sans -tags dev
-bun run tools:install    # staticcheck et govulncheck, épinglés ; le bin de Go doit être dans le PATH
-bun run release          # build de release + signature, appelé par scripts/release sur le runner de release.yml
+bun run check:types      # go build ./..., with and without -tags dev
+bun run tools:install    # staticcheck and govulncheck, pinned; Go's bin must be in the PATH
+bun run release          # release build + signature, called by scripts/release on release.yml's runner
 ```

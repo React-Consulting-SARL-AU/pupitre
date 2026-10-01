@@ -31,8 +31,8 @@ beforeEach(() => {
   token = `ghp_de_test_${String(rank)}`;
 });
 
-describe("les dépôts que le processus principal tient", () => {
-  it("rend la liste, et la relit sans rappeler GitHub", async () => {
+describe("the repositories the main process holds", () => {
+  it("returns the list, and rereads it without calling GitHub again", async () => {
     const calls: number[] = [];
 
     const first = await githubRepos(token, false, api(calls));
@@ -43,7 +43,7 @@ describe("les dépôts que le processus principal tient", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("rappelle GitHub quand le lecteur le demande", async () => {
+  it("calls GitHub again when the reader asks", async () => {
     const calls: number[] = [];
 
     await githubRepos(token, false, api(calls));
@@ -52,7 +52,7 @@ describe("les dépôts que le processus principal tient", () => {
     expect(calls).toHaveLength(2);
   });
 
-  it("oublie la liste avec le compte, et nomme l'absence", async () => {
+  it("forgets the list along with the account, and names the absence", async () => {
     const calls: number[] = [];
 
     await githubRepos(token, false, api(calls));
@@ -70,7 +70,7 @@ describe("les dépôts que le processus principal tient", () => {
     expect(calls).toHaveLength(2);
   });
 
-  it("rend le refus de l'API avec la raison que GitHub a donnée", async () => {
+  it("returns the API's refusal with the reason GitHub gave", async () => {
     const failing = () => ({
       repos: () => Promise.reject(new Error("Bad credentials")),
     });

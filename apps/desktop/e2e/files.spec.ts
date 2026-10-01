@@ -40,7 +40,7 @@ async function openFiles(page: Page): Promise<void> {
   await expect(page.locator("[data-files-root]")).toBeVisible();
 }
 
-test.describe("les fichiers d'un projet", () => {
+test.describe("a project's files", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -321,10 +321,10 @@ test.describe("les fichiers d'un projet", () => {
     await running.app.close();
   });
 
-  test("ouvre, descend, modifie et enregistre un fichier", async () => {
+  test("opens, descends into, edits and saves a file", async () => {
     const { page } = running;
 
-    await test.step("l'onglet Fichiers liste le dossier du projet, dossiers d'abord et cachés masqués", async () => {
+    await test.step("the Files tab lists the project folder, folders first and hidden ones masked", async () => {
       await openFiles(page);
 
       await expect(page.locator("[data-files-root]")).toHaveAttribute(
@@ -347,7 +347,7 @@ test.describe("les fichiers d'un projet", () => {
       await assertAccessible(page, "files/list");
     });
 
-    await test.step("un fichier que le canal ne porte pas montre sa fiche et offre de le télécharger", async () => {
+    await test.step("a file the channel cannot carry shows its card and offers to download it", async () => {
       await page.locator('[data-entry="dump.tar.gz"] button').first().click();
 
       await expect(page.locator('[data-preview="unreadable"]')).toBeVisible();
@@ -359,7 +359,7 @@ test.describe("les fichiers d'un projet", () => {
       ).toBeEnabled();
     });
 
-    await test.step("un Markdown s'ouvre rendu, se lit en code, et le rendu suit le tampon", async () => {
+    await test.step("a Markdown file opens rendered, reads as code, and the rendering follows the buffer", async () => {
       await page.locator('[data-entry="README.md"] button').first().click();
 
       const rendered = page.locator('[data-rendered="markdown"]');
@@ -401,7 +401,7 @@ test.describe("les fichiers d'un projet", () => {
       await expect(page.locator("[data-preview]")).toHaveCount(0);
     });
 
-    await test.step("un SVG s'ouvre dessiné, avec sa fiche, et se lit en code", async () => {
+    await test.step("an SVG opens drawn, with its card, and reads as code", async () => {
       await page.locator('[data-entry="logo.svg"] button').first().click();
 
       const image = page.getByRole("img", { name: "Image logo.svg" });
@@ -425,7 +425,7 @@ test.describe("les fichiers d'un projet", () => {
       await expect(page.locator(".cm-content")).toContainText("<svg");
     });
 
-    await test.step("un nouveau dossier se demande en haut, dans un dialogue, et paraît dans la liste", async () => {
+    await test.step("a new folder is asked for at the top, in a dialog, and appears in the list", async () => {
       await page.getByRole("button", { name: "Nouveau dossier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau dossier" });
@@ -448,7 +448,7 @@ test.describe("les fichiers d'un projet", () => {
       expect(made).toEqual(["projects/flyleaf/docs"]);
     });
 
-    await test.step("descendre dans un dossier suit le fil d'Ariane", async () => {
+    await test.step("descending into a folder follows the breadcrumb", async () => {
       await page.locator('[data-entry="src"] button').first().click();
 
       await expect(page.locator('[data-entry="index.ts"]')).toBeVisible();
@@ -457,7 +457,7 @@ test.describe("les fichiers d'un projet", () => {
       ).toHaveAttribute("aria-current", "location");
     });
 
-    await test.step("un fichier texte s'ouvre dans l'éditeur, Enregistrer inactif", async () => {
+    await test.step("a text file opens in the editor, Save inactive", async () => {
       await page.locator('[data-entry="index.ts"] button').first().click();
 
       await expect(page.locator('[data-preview="text"]')).toBeVisible();
@@ -471,7 +471,7 @@ test.describe("les fichiers d'un projet", () => {
       await assertAccessible(page, "files/editor");
     });
 
-    await test.step("⌘F ouvre la recherche dans la langue de l'app, compte les résultats et remplace", async () => {
+    await test.step("⌘F opens search in the app's language, counts the results and replaces", async () => {
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+f");
 
@@ -515,7 +515,7 @@ test.describe("les fichiers d'un projet", () => {
       await expect(page.locator(".cm-content")).toBeFocused();
     });
 
-    await test.step("modifier le tampon marque le fichier, et ⌘S l'enregistre avec l'empreinte lue", async () => {
+    await test.step("editing the buffer marks the file, and ⌘S saves it with the fingerprint read", async () => {
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+End");
       await page.keyboard.type("export const debug = true;");
@@ -541,7 +541,7 @@ test.describe("les fichiers d'un projet", () => {
       expect(written[0]?.text).toContain("export const host = 'y';");
     });
 
-    await test.step("une seconde sauvegarde porte l'empreinte que la première a rendue", async () => {
+    await test.step("a second save carries the fingerprint the first one returned", async () => {
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+End");
       await page.keyboard.type("\n");
@@ -558,7 +558,7 @@ test.describe("les fichiers d'un projet", () => {
       expect(written).toHaveLength(2);
     });
 
-    await test.step("un nouveau fichier se demande en haut, s'écrit vide sans empreinte et s'ouvre", async () => {
+    await test.step("a new file is asked for at the top, written empty without a fingerprint and opened", async () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
@@ -588,7 +588,7 @@ test.describe("les fichiers d'un projet", () => {
       });
     });
 
-    await test.step("un nom déjà pris est refusé sous le champ, le dialogue reste, et le fichier ouvert aussi", async () => {
+    await test.step("a name already taken is refused under the field, the dialog stays, and so does the open file", async () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
@@ -609,7 +609,7 @@ test.describe("les fichiers d'un projet", () => {
       await expect(dialog).toHaveCount(0);
     });
 
-    await test.step("l'écran tient la passe d'accessibilité et le texte sélectionné garde sa couleur, dans les deux thèmes", async () => {
+    await test.step("the screen passes the accessibility check and selected text keeps its colour, in both themes", async () => {
       for (const theme of ["dark", "light"] as const) {
         await themed(page, theme);
         await openFiles(page);

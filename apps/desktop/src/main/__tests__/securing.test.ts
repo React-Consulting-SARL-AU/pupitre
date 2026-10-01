@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe("runSecuring", () => {
-  it("pose le mot de passe sudo une fois l'app reconnectée en dev", async () => {
+  it("sets the sudo password once the app has reconnected as dev", async () => {
     const client = agent(["harden-ok.jsonl", "hello-then-ping.jsonl"]);
     const asked: string[] = [];
     const set: SudoOutcome = { kept: true, ok: true };
@@ -63,7 +63,7 @@ describe("runSecuring", () => {
     });
   });
 
-  it("fait passer les étapes du mot de passe dans celles de la sécurisation", async () => {
+  it("passes the password steps into those of the hardening", async () => {
     const client = agent(["harden-ok.jsonl", "hello-then-ping.jsonl"]);
     const updates: HardenUpdate[] = [];
 
@@ -94,7 +94,7 @@ describe("runSecuring", () => {
     ).toBe(true);
   });
 
-  it("ne touche pas à sudo quand root reste ouvert", async () => {
+  it("leaves sudo alone when root stays open", async () => {
     const client = agent(["harden-refused.jsonl"]);
     let asked = 0;
 

@@ -6,8 +6,8 @@ afterEach(() => {
   useSudoPassword.getState().forget();
 });
 
-describe("le mot de passe sudo d'un serveur", () => {
-  it("lit ce que l'ordinateur en tient, serveur par serveur", async () => {
+describe("a server's sudo password", () => {
+  it("reads what the computer holds of it, server by server", async () => {
     stubPupitre({
       sudoPasswordState: (serverId: string) =>
         Promise.resolve(
@@ -26,7 +26,7 @@ describe("le mot de passe sudo d'un serveur", () => {
     });
   });
 
-  it("relit ce que l'ordinateur tient une fois le mot de passe saisi et accepté", async () => {
+  it("rereads what the computer holds once the password is entered and accepted", async () => {
     let held = false;
 
     stubPupitre({
@@ -51,7 +51,7 @@ describe("le mot de passe sudo d'un serveur", () => {
     expect(JSON.stringify(useSudoPassword.getState())).not.toContain("k7mp");
   });
 
-  it("ne garde jamais le mot de passe : il passe par la révélation demandée, et la copie se fait de l'autre côté", async () => {
+  it("never keeps the password: it goes through the requested reveal, and the copy happens on the other side", async () => {
     const copied: string[] = [];
 
     stubPupitre({

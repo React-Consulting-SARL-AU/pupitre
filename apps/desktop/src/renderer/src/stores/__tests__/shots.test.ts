@@ -69,8 +69,8 @@ beforeEach(() => {
   useShots.getState().forget();
 });
 
-describe("la galerie", () => {
-  it("liste les captures que le serveur a nommées", async () => {
+describe("the gallery", () => {
+  it("lists the captures the server named", async () => {
     agent({ "shots.list": { shots: SHOTS } });
 
     await useShots.getState().read(SERVER);
@@ -81,7 +81,7 @@ describe("la galerie", () => {
     });
   });
 
-  it("garde le refus de l'agent, sans vider ce qui est affiché", async () => {
+  it("keeps the agent's refusal, without emptying what is displayed", async () => {
     agent({});
 
     await useShots.getState().read(SERVER);
@@ -89,7 +89,7 @@ describe("la galerie", () => {
     expect(useShots.getState().state).toMatchObject({ status: "failed" });
   });
 
-  it("dit combien le nettoyage a supprimé, puis relit", async () => {
+  it("says how many the cleanup deleted, then rereads", async () => {
     agent({
       "shots.clean": { removed: 12 },
       "shots.list": { shots: [] },
@@ -104,7 +104,7 @@ describe("la galerie", () => {
     });
   });
 
-  it("supprime une capture par son chemin, puis relit la liste", async () => {
+  it("deletes a capture by its path, then rereads the list", async () => {
     const asked: unknown[] = [];
 
     stubPupitre({
@@ -133,7 +133,7 @@ describe("la galerie", () => {
     });
   });
 
-  it("garde le refus d'une suppression sur la capture, et la liste telle quelle", async () => {
+  it("keeps a deletion's refusal on the capture, and the list as it was", async () => {
     agent({ "shots.list": { shots: SHOTS } });
 
     await useShots.getState().read(SERVER);
@@ -159,7 +159,7 @@ describe("la galerie", () => {
     });
   });
 
-  it("groupe les captures par le jour de leur dossier, dans l'ordre de la liste", () => {
+  it("groups the captures by the day of their folder, in list order", () => {
     const days = shotsByDay(TWO_DAYS);
 
     expect(days.map((group) => group.day)).toEqual([
@@ -172,7 +172,7 @@ describe("la galerie", () => {
     ]);
   });
 
-  it("n'ouvre que l'adresse publique que le serveur donne", async () => {
+  it("opens only the public address the server gives", async () => {
     const opened: string[] = [];
 
     for (const exposed of [false, true]) {
@@ -259,8 +259,8 @@ function sortedAgent(shown: string[], removed: string[] = []): void {
   });
 }
 
-describe("les dossiers de la galerie", () => {
-  it("range les captures par projet, sans projet en dernier", () => {
+describe("the gallery's folders", () => {
+  it("arranges the captures by project, no project last", () => {
     expect(shotFolders(SORTED)).toEqual([
       { count: 1, folder: "admin" },
       { count: 2, folder: "boutique" },
@@ -273,15 +273,15 @@ describe("les dossiers de la galerie", () => {
     expect(shotsIn(SORTED, ALL_SHOTS)).toHaveLength(4);
   });
 
-  it("tient une capture d'un agent sans dossiers pour une capture sans projet", () => {
+  it("treats a capture from an agent without folders as a capture without a project", () => {
     expect(folderOf(SHOTS[0] as Shot)).toBe(UNFILED);
   });
 
-  it("lit le jour dans le dossier du projet", () => {
+  it("reads the day from the project folder", () => {
     expect(shotDay(SORTED[0] as Shot)).toBe("2026-09-05");
   });
 
-  it("donne l'adresse publique d'une capture, et rien d'une galerie locale", () => {
+  it("gives a capture's public address, and nothing for a local gallery", () => {
     const shot = {
       ...(SORTED[0] as Shot),
       path: "boutique/2026-09-05/un panier.png",
@@ -296,7 +296,7 @@ describe("les dossiers de la galerie", () => {
     expect(publicAddress(null, shot)).toBeNull();
   });
 
-  it("parcourt le dossier choisi, pas toute la galerie", async () => {
+  it("walks the chosen folder, not the whole gallery", async () => {
     const shown: string[] = [];
     sortedAgent(shown);
 
@@ -316,7 +316,7 @@ describe("les dossiers de la galerie", () => {
     });
   });
 
-  it("montre la voisine d'une capture supprimée depuis la visionneuse", async () => {
+  it("shows the neighbour of a capture deleted from the viewer", async () => {
     const shown: string[] = [];
     const removed: string[] = [];
     sortedAgent(shown, removed);
@@ -429,8 +429,8 @@ function reader(
   return { opened };
 }
 
-describe("une capture affichée dans l'app", () => {
-  it("recolle les morceaux et rend une image, sans navigateur", async () => {
+describe("a capture displayed in the app", () => {
+  it("glues the chunks back together and returns an image, without a browser", async () => {
     const { opened } = reader(numbered(PNG, 12), {});
 
     await useShots.getState().show(SERVER, SHOT);
@@ -443,7 +443,7 @@ describe("une capture affichée dans l'app", () => {
     expect(opened).toEqual([]);
   });
 
-  it("rend les octets du serveur, pas ceux de l'ordre d'arrivée", async () => {
+  it("returns the server's bytes, not those of arrival order", async () => {
     reader(numbered(PNG, 12), {}, "reversed");
 
     await useShots.getState().show(SERVER, SHOT);
@@ -459,7 +459,7 @@ describe("une capture affichée dans l'app", () => {
     }
   });
 
-  it("échoue plutôt que de montrer une image tronquée : empreinte", async () => {
+  it("fails rather than showing a truncated image: fingerprint", async () => {
     reader(numbered(PNG, 12), { sha256: "0".repeat(64) });
 
     await useShots.getState().show(SERVER, SHOT);
@@ -470,7 +470,7 @@ describe("une capture affichée dans l'app", () => {
     expect(view.status === "failed" && view.error.fix).toBeTruthy();
   });
 
-  it("échoue plutôt que de montrer une image tronquée : compte", async () => {
+  it("fails rather than showing a truncated image: count", async () => {
     reader(numbered(PNG, 12), { chunks: 9 });
 
     await useShots.getState().show(SERVER, SHOT);
@@ -478,7 +478,7 @@ describe("une capture affichée dans l'app", () => {
     expect(useShots.getState().view.status).toBe("failed");
   });
 
-  it("échoue quand il arrive plus de morceaux que l'accusé n'en compte", async () => {
+  it("fails when more chunks arrive than the acknowledgement counts", async () => {
     reader(numbered(PNG, 12), { chunks: 1 });
 
     await useShots.getState().show(SERVER, SHOT);
@@ -486,7 +486,7 @@ describe("une capture affichée dans l'app", () => {
     expect(useShots.getState().view.status).toBe("failed");
   });
 
-  it("échoue quand un morceau manque au milieu", async () => {
+  it("fails when a chunk is missing in the middle", async () => {
     const cut = numbered(PNG, 12);
 
     reader([cut[0] as Chunk, cut[2] as Chunk], { chunks: 3 });
@@ -496,7 +496,7 @@ describe("une capture affichée dans l'app", () => {
     expect(useShots.getState().view.status).toBe("failed");
   });
 
-  it("garde le refus de l'agent tel quel", async () => {
+  it("keeps the agent's refusal as is", async () => {
     stubPupitre({
       agentStream: () =>
         Promise.resolve({
@@ -517,7 +517,7 @@ describe("une capture affichée dans l'app", () => {
     });
   });
 
-  it("oublie l'image quand la vue se ferme", async () => {
+  it("forgets the image when the view closes", async () => {
     reader(numbered(PNG, 12), {});
 
     await useShots.getState().show(SERVER, SHOT);
@@ -527,8 +527,8 @@ describe("une capture affichée dans l'app", () => {
   });
 });
 
-describe("les vignettes et la visionneuse", () => {
-  it("lit une vignette une fois, et la garde pour la visionneuse", async () => {
+describe("thumbnails and the viewer", () => {
+  it("reads a thumbnail once, and keeps it for the viewer", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -574,7 +574,7 @@ describe("les vignettes et la visionneuse", () => {
     expect(useShots.getState().view.status).toBe("shown");
   });
 
-  it("passe à la capture suivante et à la précédente dans l'ordre de la liste", async () => {
+  it("moves to the next and the previous capture in list order", async () => {
     const shown: string[] = [];
 
     stubPupitre({
@@ -606,8 +606,8 @@ describe("les vignettes et la visionneuse", () => {
   });
 });
 
-describe("une visionneuse fermée pendant la lecture", () => {
-  it("ne se rouvre pas quand la taille de l'image arrive après la fermeture", async () => {
+describe("a viewer closed during reading", () => {
+  it("does not reopen when the image size arrives after closing", async () => {
     reader(numbered(PNG, 12), {});
 
     const showing = useShots.getState().show(SERVER, SHOT);
@@ -619,7 +619,7 @@ describe("une visionneuse fermée pendant la lecture", () => {
   });
 });
 
-describe("une capture enregistrée sur ce disque", () => {
+describe("a capture saved to this disk", () => {
   function shown(): void {
     useShots.setState({
       saveProblem: null,
@@ -635,7 +635,7 @@ describe("une capture enregistrée sur ce disque", () => {
     });
   }
 
-  it("demande la boîte, puis passe les octets et le chemin rendu, jamais un autre", async () => {
+  it("asks for the dialog, then passes the bytes and the returned path, never another", async () => {
     const asked: string[] = [];
     const written: { path: string; bytes: Uint8Array }[] = [];
 
@@ -663,7 +663,7 @@ describe("une capture enregistrée sur ce disque", () => {
     expect(useShots.getState().saveProblem).toBeNull();
   });
 
-  it("n'écrit rien quand la boîte est refermée", async () => {
+  it("writes nothing when the dialog is closed", async () => {
     let written = 0;
 
     stubPupitre({
@@ -682,7 +682,7 @@ describe("une capture enregistrée sur ce disque", () => {
     expect(useShots.getState().saved).toBeNull();
   });
 
-  it("garde le refus du processus principal dans la visionneuse", async () => {
+  it("keeps the main process's refusal in the viewer", async () => {
     stubPupitre({
       pickSavePath: () => Promise.resolve("/Users/ada/Downloads/accueil.png"),
       saveShot: () =>
@@ -715,7 +715,7 @@ describe("une capture enregistrée sur ce disque", () => {
     expect(useShots.getState().saveProblem).toBeNull();
   });
 
-  it("ne dit rien d'une capture que la visionneuse a quittée pendant la boîte", async () => {
+  it("says nothing about a capture the viewer left during the dialog", async () => {
     stubPupitre({
       pickSavePath: () => {
         useShots.getState().hide();

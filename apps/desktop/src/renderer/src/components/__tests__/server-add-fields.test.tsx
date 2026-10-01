@@ -38,8 +38,8 @@ afterEach(() => {
   useServers.setState({ keyInstall: { status: "idle" } });
 });
 
-describe("le premier formulaire, lu sans la vue", () => {
-  it("lie chaque champ à son libellé", () => {
+describe("the first form, read without the view", () => {
+  it("binds each field to its label", () => {
     const doc = parsed(
       renderToStaticMarkup(
         <ServerAddForm busy={false} error={null} onSubmit={NOOP} />
@@ -55,7 +55,7 @@ describe("le premier formulaire, lu sans la vue", () => {
     ).toBe("true");
   });
 
-  it("pose le refus d'un mot de passe sous son champ, pas au pied du formulaire", () => {
+  it("puts a password refusal under its field, not at the foot of the form", () => {
     const doc = parsed(
       renderToStaticMarkup(
         <ServerAddPasswordField
@@ -78,7 +78,7 @@ describe("le premier formulaire, lu sans la vue", () => {
     ).toBe("root@203.0.113.10 a refusé ce mot de passe.");
   });
 
-  it("nomme le groupe du fichier de clé et y attache son refus", () => {
+  it("names the key file group and attaches its refusal to it", () => {
     const doc = parsed(
       renderToStaticMarkup(
         <ServerAddKeyFileField
@@ -101,7 +101,7 @@ describe("le premier formulaire, lu sans la vue", () => {
     );
   });
 
-  it("rattache chaque refus du main au champ qui le porte, et garde les autres au pied", () => {
+  it("attaches each main-process refusal to the field that carries it, and keeps the others at the foot", () => {
     const refusal = (id: string) => ({
       code: "bad_request" as const,
       message: id,
@@ -122,8 +122,8 @@ describe("le premier formulaire, lu sans la vue", () => {
   });
 });
 
-describe("le mot de passe demandé pour poser la clé", () => {
-  it("dit sous le champ que le serveur a refusé le mot de passe", async () => {
+describe("the password requested to install the key", () => {
+  it("says under the field that the server refused the password", async () => {
     stubPupitre({});
     useServers.setState({ keyInstall: { retry: true, status: "password" } });
 

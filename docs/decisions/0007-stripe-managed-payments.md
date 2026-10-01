@@ -1,13 +1,13 @@
-# 0007 — Stripe Managed Payments en Merchant of Record
+# 0007 — Stripe Managed Payments as Merchant of Record
 
-Date : 2026-09-04 · Statut : amendée le 2026-10-01 par [0018](./0018-source-disponible-et-gratuit.md) — en sommeil : la production tourne en `BILLING_MODE=off`, rien n'est vendu, et le jour où Stripe sert, il vend une licence au-delà des serveurs gratuits, sans les prix mensuel et annuel décrits ici
+Date: 2026-09-04 · Status: amended on 2026-10-01 by [0018](./0018-source-available-and-free.md) — dormant: production runs with `BILLING_MODE=off`, nothing is sold, and the day Stripe is used it sells a licence beyond the free servers, without the monthly and annual prices described here
 
-Stripe encaisse en Merchant of Record via Managed Payments : Stripe est le vendeur légal, gère taxes, litiges et support transactionnel. Seuls Checkout et Payment Links sont utilisés ; aucun flux Elements ni personnalisé. Chaque session porte `managed_payments[enabled]=true` — sans ce paramètre, la vente se fait en notre nom et aucune taxe n'est collectée.
+Stripe collects payments as Merchant of Record through Managed Payments: Stripe is the legal seller and handles taxes, disputes and transactional support. Only Checkout and Payment Links are used; no Elements or custom flow. Every session carries `managed_payments[enabled]=true` — without that parameter, the sale is made in our name and no tax is collected.
 
-Pourquoi : une LLC qui vend dans 40 pays ne s'immatricule pas à la TVA partout ; tout reste sur un compte Stripe avec Stripe Billing pour les quantités et le portail.
+Why: an LLC selling in 40 countries does not register for VAT everywhere; everything stays on one Stripe account with Stripe Billing for quantities and the portal.
 
-Un seul produit, `Pupitre Server`, code fiscal `txcd_10103001`, facturé à la quantité : un siège égale un serveur. Deux prix en dollars, mensuel et annuel, `tax_behavior` `exclusive`. La LLC vend depuis les États-Unis et règle en dollars ; Adaptive Pricing, toujours actif sous Managed Payments, présente et prélève dans la devise du client. Un prix en euros ferait l'inverse de ce qu'on veut : une devise déjà déclarée sur le prix désactive la conversion automatique pour ce pays.
+A single product, `Pupitre Server`, tax code `txcd_10103001`, billed by quantity: one seat equals one server. Two prices in dollars, monthly and annual, `tax_behavior` `exclusive`. The LLC sells from the United States and settles in dollars; Adaptive Pricing, still active under Managed Payments, presents and charges in the customer's currency. A price in euros would do the opposite of what we want: a currency already declared on the price disables automatic conversion for that country.
 
-Ce que Stripe fait et que nous n'écrivons pas : calcul et reversement des taxes, moyens de paiement locaux, Radar, litiges, reçus et factures envoyés par Link, gestion de l'abonnement par le client sur link.com, remboursements. Nous n'envoyons aucun paramètre que Managed Payments interdit (`automatic_tax`, `tax_id_collection`, `payment_method_types`, `invoice_creation`, `adaptive_pricing`).
+What Stripe does and we do not write: tax calculation and remittance, local payment methods, Radar, disputes, receipts and invoices sent by Link, subscription management by the customer on link.com, refunds. We send no parameter that Managed Payments forbids (`automatic_tax`, `tax_id_collection`, `payment_method_types`, `invoice_creation`, `adaptive_pricing`).
 
-Polar est le repli si l'activation est refusée à la LLC.
+Polar is the fallback if activation is refused to the LLC.

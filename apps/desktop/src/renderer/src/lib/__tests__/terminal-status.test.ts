@@ -6,12 +6,12 @@ import {
   UNKNOWN_STATUS,
 } from "../terminal-status";
 
-describe("le statut d'un terminal", () => {
-  it("part d'un inconnu qui se dit en bas", () => {
+describe("a terminal's status", () => {
+  it("starts from an unknown that reports being at the bottom", () => {
     expect(statusOf("t-none")).toEqual(UNKNOWN_STATUS);
   });
 
-  it("retient la taille, le dossier et la recherche séparément", () => {
+  it("keeps the size, the folder and the search separately", () => {
     noteStatus("t1", { cols: 120, rows: 40 });
     noteStatus("t1", { dir: "/home/dev/flyleaf-api" });
     noteStatus("t1", { matches: { count: 3, index: 1 } });
@@ -25,7 +25,7 @@ describe("le statut d'un terminal", () => {
     });
   });
 
-  it("oublie tout d'une session fermée", () => {
+  it("forgets everything about a closed session", () => {
     noteStatus("t2", { atBottom: false });
     forgetStatus("t2");
 

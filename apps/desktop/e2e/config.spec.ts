@@ -19,7 +19,7 @@ test.describe("configuration", () => {
     await running.app.close();
   });
 
-  test("refuse chaque champ à sa hauteur, et finit par l'action", async () => {
+  test("refuses each field at its own spot, and ends on the action", async () => {
     const { page } = running;
 
     await reachConfig(page);
@@ -28,13 +28,13 @@ test.describe("configuration", () => {
 
     await expect(email).toBeVisible();
 
-    await test.step("l'index nomme les modules choisis", async () => {
+    await test.step("the index names the chosen modules", async () => {
       await expect(
         page.getByRole("navigation", { name: "Les services choisis" })
       ).toBeVisible();
     });
 
-    await test.step("un format refusé se lit sous le champ", async () => {
+    await test.step("a refused format is read under the field", async () => {
       await email.fill("pas-une-adresse");
       await email.blur();
 
@@ -44,13 +44,13 @@ test.describe("configuration", () => {
       ).toContainText("adresse électronique");
     });
 
-    await test.step("le champ voisin n'est pas marqué", async () => {
+    await test.step("the neighbouring field is not marked", async () => {
       await expect(
         page.locator("#core\\.system\\.git_name")
       ).not.toHaveAttribute("aria-invalid", "true");
     });
 
-    await test.step("l'action est en bas de l'écran", async () => {
+    await test.step("the action is at the foot of the screen", async () => {
       const bar = page.locator("[data-actions='config']");
 
       await expect(
@@ -58,27 +58,27 @@ test.describe("configuration", () => {
       ).toBeVisible();
     });
 
-    await test.step("un champ corrigé cesse d'être refusé", async () => {
+    await test.step("a corrected field stops being refused", async () => {
       await email.fill("ada@pupitre.studio");
       await email.blur();
 
       await expect(email).not.toHaveAttribute("aria-invalid", "true");
     });
 
-    await test.step("le clavier finit sur l'action", async () => {
+    await test.step("the keyboard ends on the action", async () => {
       const order = await tabOrder(page);
 
       expect(order.length).toBeGreaterThan(0);
       expect(order.at(-1)).toContain("Installer");
     });
 
-    await test.step("les réglages déjà faits attendent derrière un pli", async () => {
+    await test.step("settings already made wait behind a fold", async () => {
       await expect(page.locator("#core\\.system\\.timezone")).toBeHidden();
       await page.getByText(ADVANCED).click();
       await expect(page.locator("#core\\.system\\.timezone")).toBeVisible();
     });
 
-    await test.step("la bulle s'ouvre au clavier", async () => {
+    await test.step("the bubble opens from the keyboard", async () => {
       await page.getByRole("button", { name: TIMEZONE_HINT }).focus();
       await page.keyboard.press("Enter");
 
@@ -87,7 +87,7 @@ test.describe("configuration", () => {
       await page.keyboard.press("Escape");
     });
 
-    await test.step("rien de sérieux à reprocher à l'accessibilité", async () => {
+    await test.step("nothing serious to blame on accessibility", async () => {
       await assertAccessible(page, "configuration");
     });
   });

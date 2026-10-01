@@ -11,8 +11,8 @@ const ENV = {
   PUPITRE_DEV_SERVER_USER: "root",
 };
 
-describe("les valeurs de développement", () => {
-  it("viennent de l'environnement, sous les clés que le socle déclare", () => {
+describe("the development values", () => {
+  it("come from the environment, under the keys the base declares", () => {
     expect(devDefaultsFrom(ENV, "development")).toEqual({
       fields: {
         "core.system": {
@@ -30,11 +30,11 @@ describe("les valeurs de développement", () => {
     });
   });
 
-  it("n'existent pas hors d'un build de développement sur la console locale", () => {
+  it("do not exist outside a development build on the local console", () => {
     expect(devDefaultsFrom(ENV, "production")).toBeNull();
   });
 
-  it("laissent vide ce qui n'est pas donné, et ignorent un port qui n'en est pas un", () => {
+  it("leave empty whatever is not given, and ignore a port that is not one", () => {
     const defaults = devDefaultsFrom(
       { PUPITRE_DEV_SERVER_PORT: "vingt-deux" },
       "development"

@@ -28,8 +28,8 @@ function update(state: AppUpdateState): string {
   );
 }
 
-describe("l'état de la mise à jour de l'app", () => {
-  it("offre de rechercher quand rien n'est en cours, et dit quand ça l'a été", () => {
+describe("the app update state", () => {
+  it("offers to check when nothing is in progress, and says when it last was", () => {
     const html = update({
       checkedAt: new Date().toISOString(),
       status: "idle",
@@ -41,7 +41,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(html).toContain('data-app-update="idle"');
   });
 
-  it("demande de redémarrer quand une version est prête, et dit ce que ça coûte", () => {
+  it("asks to restart when a version is ready, and says what it costs", () => {
     const html = update({ status: "ready", updates: true, version: "0.5.0" });
 
     expect(text(html)).toContain("La version 0.5.0 est prête");
@@ -50,7 +50,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(html).toContain('data-tone="ok"');
   });
 
-  it("dit l'échec avec son remède, et laisse rechercher à nouveau", () => {
+  it("states the failure with its fix, and lets the user check again", () => {
     const html = update({ failure: "failed", status: "error", updates: true });
 
     expect(text(html)).toContain("La mise à jour n'a pas pu être téléchargée");
@@ -59,7 +59,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(html).toContain('data-tone="danger"');
   });
 
-  it("dit qu'une version refusée par la clé de release n'est pas installée, et quoi faire", () => {
+  it("says a version rejected by the release key is not installed, and what to do", () => {
     const refused = update({
       failure: "refused",
       status: "error",
@@ -80,7 +80,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(text(changed)).toContain("Rechercher une mise à jour");
   });
 
-  it("attend la vérification de la signature avant d'offrir le redémarrage", () => {
+  it("waits for the signature check before offering the restart", () => {
     const html = update({
       status: "verifying",
       updates: true,
@@ -94,7 +94,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  it("montre l'avancée d'un téléchargement", () => {
+  it("shows the progress of a download", () => {
     const html = update({
       percent: 42,
       status: "downloading",
@@ -106,7 +106,7 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  it("n'offre aucun bouton à une copie qui ne se met pas à jour", () => {
+  it("offers no button to a copy that does not update itself", () => {
     const html = update({ status: "idle", updates: false });
 
     expect(text(html)).toContain("ne se met pas à jour d'elle-même");
@@ -114,8 +114,8 @@ describe("l'état de la mise à jour de l'app", () => {
   });
 });
 
-describe("la section À propos", () => {
-  it("dit la version en chiffres et le canal en mots", () => {
+describe("the About section", () => {
+  it("states the version in digits and the channel in words", () => {
     const html = renderToStaticMarkup(
       <SettingsAboutBuild about={{ channel: "beta", version: "0.4.2" }} />
     );
@@ -124,7 +124,7 @@ describe("la section À propos", () => {
     expect(text(html)).toContain("Versions bêta");
   });
 
-  it("nomme une copie qu'aucun canal ne suit", () => {
+  it("names a copy that no channel follows", () => {
     const html = renderToStaticMarkup(
       <SettingsAboutBuild about={{ channel: null, version: "0.1.0" }} />
     );
@@ -133,8 +133,8 @@ describe("la section À propos", () => {
   });
 });
 
-describe("une ligne à cocher", () => {
-  it("porte son mot cliquable et l'état lu", () => {
+describe("a check line", () => {
+  it("carries its clickable label and the state read", () => {
     const html = renderToStaticMarkup(
       <CheckLine
         checked={true}

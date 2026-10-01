@@ -35,8 +35,8 @@ beforeEach(() => {
   useServices.getState().forget();
 });
 
-describe("la fiche d'un service", () => {
-  it("montre ce que le processus principal a bien voulu en dire", async () => {
+describe("a service's sheet", () => {
+  it("shows what the main process was willing to say about it", async () => {
     stubPupitre({
       serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
     });
@@ -49,7 +49,7 @@ describe("la fiche d'un service", () => {
     expect(detail.status === "ready" && detail.detail.port).toBe(5432);
   });
 
-  it("ne garde jamais la valeur d'un identifiant révélé", async () => {
+  it("never keeps the value of a revealed credential", async () => {
     const asked: string[] = [];
 
     stubPupitre({
@@ -72,7 +72,7 @@ describe("la fiche d'un service", () => {
     expect(JSON.stringify(useServices.getState())).not.toContain(PASSWORD);
   });
 
-  it("fait copier de l'autre côté du pont", async () => {
+  it("copies on the other side of the bridge", async () => {
     const copied: string[] = [];
 
     stubPupitre({
@@ -93,7 +93,7 @@ describe("la fiche d'un service", () => {
     expect(copied).toEqual(["Rôle distant"]);
   });
 
-  it("fait oublier les valeurs en refermant la fiche", async () => {
+  it("forgets the values when the sheet is closed", async () => {
     const forgotten: string[] = [];
 
     stubPupitre({
@@ -114,8 +114,8 @@ describe("la fiche d'un service", () => {
   });
 });
 
-describe("la configuration d'un module installé", () => {
-  it("remet dans le formulaire ce que l'agent a retenu", async () => {
+describe("the configuration of an installed module", () => {
+  it("puts back into the form what the agent retained", async () => {
     stubPupitre({
       agentCall: (_server, cmd, params) => {
         expect(cmd).toBe("module.config");
@@ -144,7 +144,7 @@ describe("la configuration d'un module installé", () => {
     expect(values).toEqual({ engine: "mysql", port: 3306 });
   });
 
-  it("renvoie la configuration entière du seul module, sans le mot de passe", async () => {
+  it("sends the whole configuration of the module alone, without the password", async () => {
     const sent: { modules: readonly string[]; config: unknown }[] = [];
     const filed: { key: string; value: string }[] = [];
 
@@ -196,9 +196,9 @@ describe("la configuration d'un module installé", () => {
   });
 });
 
-describe("l'attente d'une configuration appliquée", () => {
+describe("waiting for an applied configuration", () => {
   // The agent checks the machine before its first step, and a row reading "waiting" looked like a dead click.
-  it("montre le module au travail dès le geste, avant la première étape", async () => {
+  it("shows the module at work from the gesture, before the first step", async () => {
     let seen: string | undefined;
 
     stubPupitre({
@@ -229,7 +229,7 @@ describe("l'attente d'une configuration appliquée", () => {
   });
 });
 
-describe("le domaine d'une exposition", () => {
+describe("an exposure's domain", () => {
   const web = (hostname: string) => ({
     boot: false,
     dir: "web",
@@ -252,7 +252,7 @@ describe("le domaine d'une exposition", () => {
   });
 
   // The agent moved the names; the app moves the records, and nothing else in the zone.
-  it("retire les noms d'avant et écrit ceux du nouveau domaine", async () => {
+  it("removes the previous names and writes those of the new domain", async () => {
     const order: string[] = [];
     let domain = "flyleaf.dev";
 
@@ -337,7 +337,7 @@ describe("le domaine d'une exposition", () => {
     ]);
   });
 
-  it("retire l'ancien nom de la galerie et publie le nouveau sous-domaine", async () => {
+  it("removes the gallery's old name and publishes the new subdomain", async () => {
     const order: string[] = [];
     let subdomain = "shots";
 
@@ -418,7 +418,7 @@ describe("le domaine d'une exposition", () => {
     ]);
   });
 
-  it("ne touche à aucun enregistrement quand le domaine ne change pas", async () => {
+  it("touches no record when the domain does not change", async () => {
     const order: string[] = [];
 
     stubPupitre({
@@ -529,8 +529,8 @@ function configuredMySQL(
   });
 }
 
-describe("le formulaire d'un module installé", () => {
-  it("n'a rien à appliquer tant que rien n'a changé, et le sait dès qu'une valeur ou un secret change", async () => {
+describe("the form of an installed module", () => {
+  it("has nothing to apply while nothing changed, and knows as soon as a value or a secret changes", async () => {
     configuredMySQL();
 
     await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
@@ -546,7 +546,7 @@ describe("le formulaire d'un module installé", () => {
     expect(useServices.getState().dirty()).toBe(true);
   });
 
-  it("revient à ce que le serveur tient, secrets tapés compris", async () => {
+  it("goes back to what the server holds, typed secrets included", async () => {
     let forgotten = 0;
 
     configuredMySQL({
@@ -569,7 +569,7 @@ describe("le formulaire d'un module installé", () => {
     expect(useServices.getState().dirty()).toBe(false);
   });
 
-  it("dit ce qui cloche sur un champ répondu, et sur tous une fois l'application demandée", async () => {
+  it("says what is wrong on an answered field, and on all of them once applying is requested", async () => {
     const sent: unknown[] = [];
 
     configuredMySQL({
@@ -598,7 +598,7 @@ describe("le formulaire d'un module installé", () => {
     expect(useServices.getState().attempted).toBe(true);
   });
 
-  it("tient un secret que le serveur garde pour répondu", async () => {
+  it("treats a secret the server keeps as answered", async () => {
     configuredMySQL();
 
     await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
@@ -607,7 +607,7 @@ describe("le formulaire d'un module installé", () => {
     expect(useServices.getState().problems()).toEqual([]);
   });
 
-  it("demande au serveur de peser les valeurs avant de les appliquer, et pose son refus sur le champ", async () => {
+  it("asks the server to weigh the values before applying them, and puts its refusal on the field", async () => {
     const sent: unknown[] = [];
 
     configuredMySQL({
@@ -661,7 +661,7 @@ describe("le formulaire d'un module installé", () => {
     expect(useServices.getState().refused).toEqual([]);
   });
 
-  it("pose sur le champ ce qu'un install refusé a nommé", async () => {
+  it("puts on the field what a refused install named", async () => {
     configuredMySQL({
       startInstall: () =>
         Promise.resolve({
@@ -695,8 +695,8 @@ describe("le formulaire d'un module installé", () => {
   });
 });
 
-describe("un install refusé après un secret tapé", () => {
-  it("efface les marques des secrets et le dit, quand le processus principal ne dit pas les tenir encore", async () => {
+describe("an install refused after a typed secret", () => {
+  it("clears the secret marks and says so, when the main process does not say it still holds them", async () => {
     configuredMySQL({
       startInstall: () =>
         Promise.resolve({
@@ -716,7 +716,7 @@ describe("un install refusé après un secret tapé", () => {
     expect(useServices.getState().secretsDropped).toBe(true);
   });
 
-  it("garde les marques quand le processus principal dit tenir encore les secrets", async () => {
+  it("keeps the marks when the main process says it still holds the secrets", async () => {
     configuredMySQL({
       startInstall: (_serverId, _modules, _config, onUpdate) => {
         onUpdate({ held: true, kind: "secrets" });
@@ -738,7 +738,7 @@ describe("un install refusé après un secret tapé", () => {
     expect(useServices.getState().secretsDropped).toBe(false);
   });
 
-  it("oublie la phrase dès que le secret est retapé", async () => {
+  it("forgets the sentence as soon as the secret is retyped", async () => {
     configuredMySQL({
       startInstall: () =>
         Promise.resolve({
@@ -756,8 +756,8 @@ describe("un install refusé après un secret tapé", () => {
   });
 });
 
-describe("une machine déjà en train d'installer", () => {
-  it("suit le rapport jusqu'à sa fin plutôt que d'annoncer un échec", async () => {
+describe("a machine already installing", () => {
+  it("follows the report to its end rather than announcing a failure", async () => {
     let reads = 0;
 
     configuredMySQL({
@@ -805,9 +805,9 @@ describe("une machine déjà en train d'installer", () => {
   });
 });
 
-describe("un module posé sans ses réglages", () => {
+describe("a module installed without its settings", () => {
   // A deferred module never got the secrets the catalogue generates on selection.
-  it("reçoit à l'ouverture les secrets que son manifeste dit de générer", async () => {
+  it("receives on opening the secrets its manifest says to generate", async () => {
     const made: string[] = [];
 
     stubPupitre({
@@ -846,7 +846,7 @@ describe("un module posé sans ses réglages", () => {
     });
   });
 
-  it("laisse en paix un module configuré, et un secret que le serveur tient déjà", async () => {
+  it("leaves a configured module alone, and a secret the server already holds", async () => {
     const made: string[] = [];
 
     stubPupitre({
@@ -890,8 +890,8 @@ describe("un module posé sans ses réglages", () => {
   });
 });
 
-describe("l'adresse de connexion d'une base", () => {
-  it("relit la fiche seulement, sans toucher au formulaire ouvert", async () => {
+describe("a database's connection address", () => {
+  it("rereads the sheet only, without touching the open form", async () => {
     let details = 0;
 
     configuredMySQL({
@@ -929,8 +929,8 @@ describe("l'adresse de connexion d'une base", () => {
   });
 });
 
-describe("retirer un module", () => {
-  it("suit les étapes de l'agent comme une installation", async () => {
+describe("removing a module", () => {
+  it("follows the agent's steps like an installation", async () => {
     stubPupitre({
       agentStream: (_server, cmd, params, onEvent) => {
         expect(cmd).toBe("uninstall");
@@ -960,7 +960,7 @@ describe("retirer un module", () => {
     expect(steps[0]?.ms).toBe(4600);
   });
 
-  it("garde ce que le serveur dit n'avoir pas pu retirer", async () => {
+  it("keeps what the server says it could not remove", async () => {
     stubPupitre({
       agentStream: () =>
         Promise.resolve({
@@ -979,8 +979,8 @@ describe("retirer un module", () => {
   });
 });
 
-describe("les gestes d'une base", () => {
-  it("déduit le moteur du module et rend le chemin de l'export", async () => {
+describe("a database's gestures", () => {
+  it("derives the engine from the module and returns the export path", async () => {
     const sent: { cmd: string; params: unknown }[] = [];
 
     stubPupitre({
@@ -1004,7 +1004,7 @@ describe("les gestes d'une base", () => {
     });
   });
 
-  it("ouvre le shell dans l'onglet que le processus principal a nommé, sans lire la ligne", async () => {
+  it("opens the shell in the tab the main process named, without reading the line", async () => {
     const asked: string[] = [];
 
     stubPupitre({
@@ -1036,7 +1036,7 @@ describe("les gestes d'une base", () => {
     expect(JSON.stringify(useServices.getState())).not.toContain("psql");
   });
 
-  it("garde le refus du processus principal quand le shell ne s'ouvre pas", async () => {
+  it("keeps the main process's refusal when the shell does not open", async () => {
     stubPupitre({
       openDatabaseShell: () =>
         Promise.resolve({
@@ -1051,7 +1051,7 @@ describe("les gestes d'une base", () => {
     expect(useServices.getState().busy).toBeNull();
   });
 
-  it("ne dit rien à l'agent pour un module qui n'est pas une base", async () => {
+  it("tells the agent nothing for a module that is not a database", async () => {
     const sent: string[] = [];
 
     stubPupitre({
@@ -1071,8 +1071,8 @@ describe("les gestes d'une base", () => {
   });
 });
 
-describe("l'unité d'un service", () => {
-  it("démarre, arrête ou redémarre et garde l'état que l'agent a répondu", async () => {
+describe("a service's unit", () => {
+  it("starts, stops or restarts and keeps the state the agent answered", async () => {
     const sent: { cmd: string; params: unknown }[] = [];
 
     stubPupitre({
@@ -1111,7 +1111,7 @@ describe("l'unité d'un service", () => {
     expect(problem).toBeNull();
   });
 
-  it("dit le refus de systemd tel quel et laisse l'état d'avant", async () => {
+  it("reports systemd's refusal as is and leaves the previous state", async () => {
     stubPupitre({
       agentCall: () =>
         Promise.resolve({
@@ -1137,7 +1137,7 @@ describe("l'unité d'un service", () => {
   });
 });
 
-describe("les dumps du serveur", () => {
+describe("the server's dumps", () => {
   const ENTRIES = [
     {
       kind: "file",
@@ -1155,7 +1155,7 @@ describe("les dumps du serveur", () => {
     },
   ];
 
-  it("se lisent dans le dossier des dumps, fichiers seulement", async () => {
+  it("are read from the dumps folder, files only", async () => {
     const sent: { cmd: string; params: unknown }[] = [];
 
     stubPupitre({
@@ -1179,7 +1179,7 @@ describe("les dumps du serveur", () => {
     ]);
   });
 
-  it("restaurent un dump choisi dans la base que son nom dit", async () => {
+  it("restore a chosen dump into the database its name indicates", async () => {
     const sent: { cmd: string; params: unknown }[] = [];
 
     stubPupitre({
@@ -1206,7 +1206,7 @@ describe("les dumps du serveur", () => {
     });
   });
 
-  it("suppriment un dump sous le dossier des dumps, puis relisent la liste", async () => {
+  it("delete a dump under the dumps folder, then reread the list", async () => {
     const sent: { cmd: string; params: unknown }[] = [];
 
     stubPupitre({

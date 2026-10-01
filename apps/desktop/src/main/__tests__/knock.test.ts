@@ -23,8 +23,8 @@ const ANSWERED: AddressReach = {
   software: "OpenSSH_9.6",
 };
 
-describe("la frappe sur un compte", () => {
-  it("offre ce que l'ordinateur détient et la clé à importer, sans en écrire aucune", () => {
+describe("knocking on an account", () => {
+  it("offers what the computer holds and the key to import, writing none", () => {
     const args = knockArgs({ ...TARGET, keyFile: "/home/j/.ssh/vps" }, PATHS, [
       "/home/j/.ssh/id_ed25519",
     ]);
@@ -38,7 +38,7 @@ describe("la frappe sur un compte", () => {
     expect(args.at(-1)).toBe("true");
   });
 
-  it("épingle la clé d'hôte dans le known_hosts de l'app, comme le premier contact", () => {
+  it("pins the host key in the app's known_hosts, like the first contact", () => {
     const args = knockArgs(TARGET, PATHS, []);
 
     expect(args).toContain(`UserKnownHostsFile=${PATHS.knownHostsPath}`);
@@ -46,7 +46,7 @@ describe("la frappe sur un compte", () => {
     expect(args).toContain("ControlMaster=no");
   });
 
-  it("n'offre à ssh qu'une clé que le sélecteur a désignée", async () => {
+  it("only offers ssh a key the picker designated", async () => {
     const invented = recorder([{ code: 0 }]);
 
     // The designated set is shared by every test file of the run: this path must be one no other test designates.
@@ -70,7 +70,7 @@ describe("la frappe sur un compte", () => {
     expect(picked.calls[0]?.args.join(" ")).toContain("-i /home/j/.ssh/picked");
   });
 
-  it("dit que le compte s'ouvre déjà quand ssh entre", async () => {
+  it("says the account already opens when ssh gets in", async () => {
     const { spawn } = recorder([{ code: 0 }]);
 
     expect(await probeAccess(TARGET, PATHS, { identities: [], spawn })).toEqual(
@@ -78,7 +78,7 @@ describe("la frappe sur un compte", () => {
     );
   });
 
-  it("dit qu'un mot de passe ouvrirait la porte quand la machine en offre un", async () => {
+  it("says a password would open the door when the machine offers one", async () => {
     const { spawn } = recorder([
       { code: 255, stderr: "Permission denied (publickey,password)." },
     ]);
@@ -92,7 +92,7 @@ describe("la frappe sur un compte", () => {
     ).toEqual({ access: "password" });
   });
 
-  it("annonce la ligne à coller quand la machine n'accepte que des clés", async () => {
+  it("announces the line to paste when the machine only accepts keys", async () => {
     const { spawn } = recorder([
       { code: 255, stderr: "Permission denied (publickey)." },
     ]);
@@ -108,7 +108,7 @@ describe("la frappe sur un compte", () => {
     );
   });
 
-  it("laisse tomber une épingle que plus aucun serveur ne possède, et frappe encore", async () => {
+  it("drops a pin no server holds any more, and knocks again", async () => {
     const { calls, spawn } = recorder([
       { code: 255, stderr: "Host key verification failed." },
       { code: 255, stderr: "Permission denied (publickey,password)." },
@@ -131,7 +131,7 @@ describe("la frappe sur un compte", () => {
     expect(calls).toHaveLength(2);
   });
 
-  it("garde le refus d'une empreinte qu'un serveur de la liste a épinglée", async () => {
+  it("keeps the refusal of a fingerprint that a server in the list pinned", async () => {
     const { calls, spawn } = recorder([
       { code: 255, stderr: "Host key verification failed." },
     ]);
@@ -149,7 +149,7 @@ describe("la frappe sur un compte", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("ne demande pas un mot de passe que Windows ne saurait donner", async () => {
+  it("does not ask for a password that Windows could not supply", async () => {
     const { spawn } = recorder([
       { code: 255, stderr: "Permission denied (publickey,password)." },
     ]);
@@ -167,8 +167,8 @@ describe("la frappe sur un compte", () => {
   });
 });
 
-describe("la frappe sur une adresse puis un compte", () => {
-  it("refuse une adresse ou un compte qui ne peuvent pas devenir un argument de ssh", async () => {
+describe("knocking on an address, then an account", () => {
+  it("refuses an address or an account that cannot become an ssh argument", async () => {
     const { calls, spawn } = recorder([]);
 
     expect(
@@ -184,7 +184,7 @@ describe("la frappe sur une adresse puis un compte", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("ne frappe pas sur un compte quand l'adresse ne répond pas", async () => {
+  it("does not knock on an account when the address does not respond", async () => {
     const { calls, spawn } = recorder([{ code: 0 }]);
     const silent: AddressReach = {
       code: "timeout",
@@ -201,7 +201,7 @@ describe("la frappe sur une adresse puis un compte", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("joint ce qui ouvre le compte à la réponse de l'adresse", async () => {
+  it("joins what opens the account to the address's response", async () => {
     const { spawn } = recorder([
       { code: 255, stderr: "Permission denied (publickey,password)." },
     ]);

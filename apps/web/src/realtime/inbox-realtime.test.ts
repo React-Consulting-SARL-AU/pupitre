@@ -57,12 +57,12 @@ function stateOf(sockets: FakeSocket[]): DurableObjectState {
   } as unknown as DurableObjectState
 }
 
-describe("qui ouvre la socket de la boîte", () => {
-  it("laisse passer un membre de l'équipe de la plateforme", () => {
+describe("who opens the inbox socket", () => {
+  it("lets a member of the platform team through", () => {
     expect(inboxSocketRefusal(context())).toBeNull()
   })
 
-  it("refuse en 403 un compte désactivé, malgré une session valide", () => {
+  it("refuses a deactivated account with 403, despite a valid session", () => {
     const refused = inboxSocketRefusal(
       context({ accountRefusal: { kind: "account_deactivated" } })
     )
@@ -70,7 +70,7 @@ describe("qui ouvre la socket de la boîte", () => {
     expect(refused?.status).toBe(403)
   })
 
-  it("refuse en 401 sans session, en 403 hors de l'équipe", () => {
+  it("refuses with 401 without a session, with 403 outside the team", () => {
     const anonymous = inboxSocketRefusal(
       context({ user: null, session: null, isPlatformAdmin: false })
     )
@@ -83,8 +83,8 @@ describe("qui ouvre la socket de la boîte", () => {
   })
 })
 
-describe("l'origine de la socket", () => {
-  it("refuse une socket ouverte depuis une autre page que la console", async () => {
+describe("the socket origin", () => {
+  it("refuses a socket opened from a page other than the console", async () => {
     // happy-dom's Request drops the Origin header a browser forbids scripts to set; the Worker's keeps it.
     const handshake = {
       url: "https://app.pupitre.studio/api/v1/admin/inbox/events",
@@ -105,8 +105,8 @@ describe("l'origine de la socket", () => {
   })
 })
 
-describe("le retrait d'un membre de l'équipe", () => {
-  it("ferme ses sockets et laisse celles des autres ouvertes", () => {
+describe("removing a team member", () => {
+  it("closes their sockets and leaves the others' open", () => {
     const leaving = fakeSocket()
     const staying = fakeSocket()
     const state = {
@@ -124,8 +124,8 @@ describe("le retrait d'un membre de l'équipe", () => {
   })
 })
 
-describe("la diffusion d'un événement", () => {
-  it("écarte la socket qui jette et sert les autres", () => {
+describe("broadcasting an event", () => {
+  it("drops the socket that throws and serves the others", () => {
     const broken = fakeSocket(true)
     const alive = fakeSocket()
 

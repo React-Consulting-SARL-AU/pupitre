@@ -1,7 +1,7 @@
 # 0004 — Elysia, Better Auth, Prisma 7, Neon
 
-Date : 2026-09-04 · Statut : acceptée, la base remplacée par [0011](./0011-cloudflare-d1.md)
+Date: 2026-09-04 · Status: accepted, the database replaced by [0011](./0011-cloudflare-d1.md)
 
-L'API est une app Elysia dans `packages/api`, consommée par Eden Treaty. L'authentification est Better Auth auto-hébergée dans `packages/auth`, avec l'adaptateur Prisma. Les données sont dans Neon Postgres via Prisma 7 et le driver serverless.
+The API is an Elysia app in `packages/api`, consumed through Eden Treaty. Authentication is self-hosted Better Auth in `packages/auth`, with the Prisma adapter. Data lives in Neon Postgres through Prisma 7 and the serverless driver.
 
-Pourquoi : c'est la stack de React-Box, vérifiée en production, avec son harnais de test et ses conventions. Better Auth donne organisations, invitations, device flow, bearer, et plus tard passkeys, MFA et SSO, sans service externe. WorkOS et Convex ont été écartés.
+Why: it is the React-Box stack, verified in production, with its test harness and conventions. Better Auth provides organizations, invitations, device flow, bearer, and later passkeys, MFA and SSO, without an external service. WorkOS and Convex were ruled out.

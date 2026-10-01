@@ -9,8 +9,8 @@ beforeEach(() => {
   useAppUpdate.setState({ about: null, state: null });
 });
 
-describe("la mise à jour de l'app", () => {
-  it("lit la version, le canal et l'état de l'updater en une fois", async () => {
+describe("the app update", () => {
+  it("reads the version, the channel and the updater state at once", async () => {
     stubPupitre({
       appAbout: () => Promise.resolve({ channel: "stable", version: "0.4.2" }),
       appUpdateState: () => Promise.resolve(IDLE),
@@ -25,7 +25,7 @@ describe("la mise à jour de l'app", () => {
     expect(useAppUpdate.getState().state).toEqual(IDLE);
   });
 
-  it("garde ce que la recherche et l'installation rendent", async () => {
+  it("keeps what the check and the install return", async () => {
     const checking: AppUpdateState = { status: "checking", updates: true };
     const ready: AppUpdateState = {
       status: "ready",
@@ -47,7 +47,7 @@ describe("la mise à jour de l'app", () => {
     expect(useAppUpdate.getState().state).toEqual(ready);
   });
 
-  it("suit ce que le processus principal diffuse, jusqu'à ce qu'on cesse d'écouter", () => {
+  it("follows what the main process broadcasts, until listening stops", () => {
     const listeners: ((state: AppUpdateState) => void)[] = [];
     let stopped = false;
 

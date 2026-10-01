@@ -4,7 +4,7 @@ import { translator } from "@/lib/i18n/i18n"
 import { alertLook, countAlerts } from "./alerts"
 
 describe("alertLook", () => {
-  it("donne une forme, un ton, un libellé et un remède à chaque genre", () => {
+  it("gives each kind a shape, a tone, a label and a remedy", () => {
     const t = translator("fr")
 
     for (const kind of ALERT_KINDS) {
@@ -16,18 +16,18 @@ describe("alertLook", () => {
     }
   })
 
-  it("distingue les genres par la forme avant la couleur", () => {
+  it("tells kinds apart by shape before colour", () => {
     expect(alertLook("server_unreachable").shape).toBe("barred")
     expect(alertLook("agent_outdated").shape).toBe("hollow")
   })
 
-  it("retombe sur un libellé neutre pour un genre inconnu", () => {
+  it("falls back to a neutral label for an unknown kind", () => {
     expect(alertLook("météorite").label.length).toBeGreaterThan(0)
   })
 })
 
-describe("le bandeau de la liste", () => {
-  it("ne compte que les serveurs qui portent une alerte", () => {
+describe("the list banner", () => {
+  it("counts only the servers that carry an alert", () => {
     expect(
       countAlerts([
         { alerts: [{ kind: "disk_high" }, { kind: "agent_outdated" }] },
@@ -37,7 +37,7 @@ describe("le bandeau de la liste", () => {
     ).toEqual({ alerts: 3, servers: 2 })
   })
 
-  it("accorde la phrase du bandeau dans les deux langues", () => {
+  it("agrees the banner sentence in both languages", () => {
     const fr = translator("fr")
     const en = translator("en")
     const banner = (t: typeof fr, alerts: number, servers: number) =>

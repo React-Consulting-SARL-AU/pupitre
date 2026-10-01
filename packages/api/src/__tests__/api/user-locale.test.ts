@@ -83,7 +83,7 @@ async function signUpByMagicLink(email: string, acceptLanguage: string) {
   )
 }
 
-describe("la langue de l'utilisateur", () => {
+describe("the user's language", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -92,7 +92,7 @@ describe("la langue de l'utilisateur", () => {
     await resetDb()
   })
 
-  it("part de l'en-tête Accept-Language à l'inscription", async () => {
+  it("starts from the Accept-Language header at sign-up", async () => {
     const { prisma } = await bootApiTestServer()
 
     await signUpByMagicLink("grace@test.local", "fr-FR,fr;q=0.9,en;q=0.8")
@@ -104,7 +104,7 @@ describe("la langue de l'utilisateur", () => {
     expect(user.locale).toBe("fr")
   })
 
-  it("retombe sur l'anglais quand l'en-tête ne dit rien de connu", async () => {
+  it("falls back to English when the header says nothing known", async () => {
     const { prisma } = await bootApiTestServer()
 
     await signUpByMagicLink("kurt@test.local", "de-DE,de;q=0.9")
@@ -116,7 +116,7 @@ describe("la langue de l'utilisateur", () => {
     expect(user.locale).toBe("en")
   })
 
-  it("suspend en anglais un propriétaire dont la langue est en, hors requête", async () => {
+  it("suspends in English an owner whose language is en, outside a request", async () => {
     const { owner, email } = await suspendOwnerServers("en")
 
     expect(email.to).toBe(owner.user.email)
@@ -124,7 +124,7 @@ describe("la langue de l'utilisateur", () => {
     expect(email.text).toContain("grace period")
   })
 
-  it("suspend en français un propriétaire sans langue connue", async () => {
+  it("suspends in French an owner with no known language", async () => {
     const { owner, email } = await suspendOwnerServers()
 
     expect(email.to).toBe(owner.user.email)
@@ -132,7 +132,7 @@ describe("la langue de l'utilisateur", () => {
     expect(email.text).toContain("tolérance")
   })
 
-  it("écrit à chaque propriétaire dans sa propre langue", async () => {
+  it("writes to each owner in their own language", async () => {
     const { sentEmails } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "owner"],
@@ -163,7 +163,7 @@ describe("la langue de l'utilisateur", () => {
     )
   })
 
-  it("se change depuis la console et se relit sur /me", async () => {
+  it("is changed from the console and read back on /me", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -191,7 +191,7 @@ describe("la langue de l'utilisateur", () => {
     expect(after.json.user.locale).toBe("en")
   })
 
-  it("refuse une langue que la plateforme ne parle pas", async () => {
+  it("refuses a language the platform does not speak", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -207,7 +207,7 @@ describe("la langue de l'utilisateur", () => {
     expect(refused.json.error.code).toBe("validation")
   })
 
-  it("refuse de changer la langue sans session", async () => {
+  it("refuses to change the language without a session", async () => {
     const refused = await apiRequest("/me", {
       method: "PATCH",
       body: { locale: "en" },

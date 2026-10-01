@@ -1,81 +1,81 @@
 # Architecture
 
-Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilote un serveur, l'agent compilé sur ce serveur, la plateforme qui autorise — gratuitement jusqu'à `FREE_SERVERS` serveurs par organisation, par une licence au-delà —, le site qui présente. Le code de tout le monorepo est public, sous Apache 2.0 assortie de la Commons Clause ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)) ; aucune des règles ci-dessous ne repose sur son secret. Le serveur du client est la source de vérité de tout ce qui le concerne ; la plateforme ne connaît de lui que son existence.
+Pupitre is a Bun monorepo. Three surfaces and an agent: the desktop app that drives a server, the compiled agent on that server, the platform that authorizes — for free up to `FREE_SERVERS` servers per organization, by a licence beyond —, and the site that presents. The code of the whole monorepo is public, under Apache 2.0 with the Commons Clause ([decision 0018](./decisions/0018-source-available-and-free.md)); none of the rules below rests on its secrecy. The customer's server is the source of truth for everything that concerns them; the platform knows of it only that it exists.
 
 ## Runtimes
 
-| Workspace | Runtime | Responsabilité |
+| Workspace | Runtime | Responsibility |
 | --- | --- | --- |
-| `apps/desktop` | Electron 44, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
-| `apps/agent` | Go, binaire statique, systemd | Sonde, modules d'installation, registre des projets, pilotage tmux, clés, heartbeat, mise à jour |
-| `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.studio`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
-| `apps/site` | Astro sur un Worker Cloudflare à assets statiques | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
-| `packages/api` | Elysia + Eden | Contrat `/api/v1`, client typé, harnais de test API/DB |
-| `packages/auth` | Better Auth | `createAuth` et ses plugins, clients web et desktop |
-| `packages/db` | Prisma 7 + Cloudflare D1 | Schéma, migrations SQL, clients Bun et Cloudflare |
-| `packages/shared` | TypeScript + Zod | Contrats : protocole agent, catalogue, licence et serveurs gratuits, permissions, erreurs |
-| `packages/design` | CSS + Tailwind 4 | Tokens monochrome partagés |
+| `apps/desktop` | Electron 44, React 19, node-pty, system `ssh` | Server onboarding, service catalogue, projects, terminals, agents, account |
+| `apps/agent` | Go, static binary, systemd | Probe, install modules, project registry, tmux control, keys, heartbeat, update |
+| `apps/web` | TanStack Start on Cloudflare Workers | `app.pupitre.studio` console, mounting of `/api/v1` (Elysia) and `/api/auth` (Better Auth), emails, Workflows |
+| `apps/site` | Astro on a Cloudflare Worker with static assets | `pupitre.studio`: marketing, public docs, blog, legal, download |
+| `packages/api` | Elysia + Eden | `/api/v1` contract, typed client, API/DB test harness |
+| `packages/auth` | Better Auth | `createAuth` and its plugins, web and desktop clients |
+| `packages/db` | Prisma 7 + Cloudflare D1 | Schema, SQL migrations, Bun and Cloudflare clients |
+| `packages/shared` | TypeScript + Zod | Contracts: agent protocol, catalogue, licence and free servers, permissions, errors |
+| `packages/design` | CSS + Tailwind 4 | Shared monochrome tokens |
 
 ```
-Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS du client)
+Pupitre Desktop ──── ssh, customer's key ────▶ pupitred (customer's VPS)
        │                                            │
-       │ https, bearer                              │ https sortant, jeton de serveur
+       │ https, bearer                              │ outbound https, server token
        ▼                                            ▼
-                 apps/web : console + /api/v1 + /api/auth ── D1, R2 (Stripe en sommeil)
+                 apps/web: console + /api/v1 + /api/auth ── D1, R2 (Stripe dormant)
 ```
 
-## Les règles qui ne bougent pas
+## The rules that do not move
 
-1. **Le serveur du client est la source de vérité** pour ses projets, ses services, ses secrets. L'app affiche ce que l'agent renvoie. La plateforme ne stocke ni code, ni secrets, ni contenu.
-2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent. Et donc aucun accès sans un laptop du client : l'agent ne pose une clé transmise que si un appareil qu'il tient déjà pour sûr l'a approuvée ([décision 0014](./decisions/0014-cles-approuvees-par-un-appareil.md)).
-3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
-4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
-5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : la licence est mise en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
-6. **Le contrat avant l'implémentation.** Ce qui traverse une frontière est typé dans `packages/shared` et documenté dans `docs/contracts/` avant d'exister des deux côtés.
-7. **Une mise à jour ne réinstalle rien.** Un binaire ne lit jamais une configuration qu'il n'a pas migrée : chaque changement de forme d'un fichier de `/etc/pupitre` ou d'un fichier de l'app est une migration numérotée, rejouée dans l'ordre, sauvegardée avant et remise en l'état si elle refuse. L'app enchaîne mise à jour du binaire, migration, puis modules ; l'agent migre aussi tout seul au démarrage. Voir [migrations de configuration](./contracts/config-migrations.md).
+1. **The customer's server is the source of truth** for their projects, their services, their secrets. The app displays what the agent returns. The platform stores no code, no secrets, no content.
+2. **No private key outside the customer's laptop.** The app generates its ed25519 keys in its folder, one per device and one per server it installs; only the public halves go up to the platform, which relays them to the agent. And therefore no access without a customer's laptop: the agent places a relayed key only if a device it already holds as trusted has approved it ([decision 0014](./decisions/0014-keys-approved-by-a-device.md)).
+3. **No inbound connection to the customer's server**, neither from the platform nor from support. The agent pulls what it needs over outbound HTTPS. The only open port is SSH, for the customer.
+4. **Nothing readable is deposited on the server.** A binary, generated systemd units, configuration files. No script.
+5. **The app requires a first successful connection, then stays usable without the platform for seven days**: the licence is cached, then the agent goes into restricted mode without breaking anything that is running. Exposure does not depend on it at all: the tunnel is on the customer's Cloudflare account, set up by the app from their laptop, and nothing of the platform is on the path.
+6. **The contract before the implementation.** What crosses a boundary is typed in `packages/shared` and documented in `docs/contracts/` before it exists on both sides.
+7. **An update reinstalls nothing.** A binary never reads a configuration it has not migrated: each change in the shape of a file in `/etc/pupitre` or of an app file is a numbered migration, replayed in order, backed up beforehand and restored if it refuses. The app chains binary update, migration, then modules; the agent also migrates by itself at startup. See [configuration migrations](./contracts/config-migrations.md).
 
 ## Desktop
 
-`apps/desktop` est l'app Electron existante, étendue. Le main process tient un canal SSH unique vers chaque serveur (`ssh -F <config de l'app>`), y écrit des requêtes JSON par ligne et lit des réponses et des événements ([protocole](./contracts/agent-protocol.md)). Les terminaux utilisent node-pty et le `ssh` du système. Le renderer ne touche jamais au système : `contextIsolation`, API explicite du preload, validation des noms de projets contre la liste que l'agent vient de donner.
+`apps/desktop` is the existing Electron app, extended. The main process holds a single SSH channel to each server (`ssh -F <app config>`), writes JSON requests one per line to it and reads responses and events ([protocol](./contracts/agent-protocol.md)). Terminals use node-pty and the system `ssh`. The renderer never touches the system: `contextIsolation`, an explicit preload API, validation of project names against the list the agent has just given.
 
-La configuration SSH de l'app vit dans son dossier de données (`ssh/config`, `keys/<serveur>` en 0600). Le `~/.ssh/config` de l'utilisateur n'est jamais réécrit ; sur sa demande, l'app y pose une seule ligne `Include` vers son propre fichier, et la retire de même, pour que `ssh`, les éditeurs et les agents de code joignent ses serveurs par leur nom ([décision 0012](./decisions/0012-ssh-config-include.md)). Un hôte existant peut être désigné à la place.
+The app's SSH configuration lives in its data folder (`ssh/config`, `keys/<server>` in 0600). The user's `~/.ssh/config` is never rewritten; on their request, the app places a single `Include` line in it pointing to its own file, and removes it the same way, so that `ssh`, editors and coding agents reach its servers by name ([decision 0012](./decisions/0012-ssh-config-include.md)). An existing host can be designated instead.
 
-Le compte est requis. L'app demande une connexion au premier lancement, puis lit la licence de l'organisation active : gratuite jusqu'à `FREE_SERVERS` serveurs, une licence au-delà ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)) ; une licence suspendue, et l'app n'enrôle aucun serveur. Seul un build de développement porte une licence à lui, miroir du tag `dev` de l'agent, et il ne sort jamais du dépôt.
+The account is required. The app asks for a login at first launch, then reads the active organization's licence: free up to `FREE_SERVERS` servers, a licence beyond ([decision 0018](./decisions/0018-source-available-and-free.md)); with a suspended licence, the app enrols no server. Only a development build carries a licence of its own, a mirror of the agent's `dev` tag, and it never leaves the repository.
 
 ## Agent
 
-`apps/agent` produit `pupitred`, un binaire Go statique pour `linux/amd64` et `linux/arm64`, installé en `/usr/local/bin/pupitred`, avec `/etc/pupitre/` en 0600 root et une unité systemd. Il contient la sonde, les modules du catalogue, le registre des projets, le pilotage de tmux, les commandes de l'app, la synchronisation des clés, le heartbeat et sa propre mise à jour.
+`apps/agent` produces `pupitred`, a static Go binary for `linux/amd64` and `linux/arm64`, installed at `/usr/local/bin/pupitred`, with `/etc/pupitre/` in 0600 root and a systemd unit. It contains the probe, the catalogue's modules, the project registry, tmux control, the app's commands, key synchronization, the heartbeat and its own update.
 
-Il porte aussi le registre de migrations de sa propre configuration : `pupitred migrate` sur la machine, `agent.migrate` sur le protocole.
+It also carries the migration registry for its own configuration: `pupitred migrate` on the machine, `agent.migrate` on the protocol.
 
-Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour la licence, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
+Two interfaces: the JSON protocol over SSH for the app (one `pupitred serve` process per session, limited, or `pupitred serve --privileged` which sudo opens only with `dev`'s password), and the platform's API over outbound HTTPS for the licence, keys and updates. The `pupitred dev` subcommand — also callable as `dev`, a link to the binary — gives the same commands to a human in an SSH terminal: it goes through the same handlers, with the same refusals. Hardening closes root last, after checking that `dev` accepts a key.
 
-## Plateforme
+## Platform
 
-`apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/auth/$.ts` délègue à `@pupitre/auth/server`. `/api/v1/*` n'a pas de route TanStack : l'entrée du Worker, `src/worker.ts`, le passe à `@pupitre/api/server` avant Start, en développement comme en production, avec `/internal/*`, le handler `email` d'Email Routing, les Workflows et les Durable Objects.
+`apps/web` combines TanStack Start, React 19, Vite and the Cloudflare plugin. The console's routes live in `src/routes/`; `src/routes/api/auth/$.ts` delegates to `@pupitre/auth/server`. `/api/v1/*` has no TanStack route: the Worker's entry point, `src/worker.ts`, passes it to `@pupitre/api/server` before Start, in development as in production, along with `/internal/*`, the Email Routing `email` handler, the Workflows and the Durable Objects.
 
-Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le contrat unique pour la console et l'app desktop, consommé via Eden Treaty (`@pupitre/api/client`). Les tests d'intégration démarrent la même API sur un fichier SQLite construit par les migrations de D1, via `@pupitre/api/testing`.
+Elysia is mounted on `/api/v1` in `packages/api/src/server.ts` and remains the single contract for the console and the desktop app, consumed through Eden Treaty (`@pupitre/api/client`). Integration tests start the same API on a SQLite file built from D1's migrations, through `@pupitre/api/testing`.
 
-Better Auth vit dans `packages/auth` avec l'adaptateur Prisma : lien magique, GitHub, `deviceAuthorization` et `bearer` pour l'app desktop, `organization` avec les rôles `owner`, `admin`, `member`, `admin` pour le support, `openAPI`. Passkeys, `twoFactor` et `sso` s'ajoutent sans migration. Une organisation personnelle est créée à l'inscription : tout appartient à une organisation.
+Better Auth lives in `packages/auth` with the Prisma adapter: magic link, GitHub, `deviceAuthorization` and `bearer` for the desktop app, `organization` with the `owner`, `admin`, `member` roles, `admin` for support, `openAPI`. Passkeys, `twoFactor` and `sso` are added without a migration. A personal organization is created at sign-up: everything belongs to an organization.
 
-Prisma 7 sur l'adaptateur Cloudflare D1, une base par environnement, liée au Worker sans adresse ni secret ; le Worker est en *smart placement*, exécuté à côté de sa base. Cloudflare Workflows portent les tâches longues (réconciliation des sièges, décommission différée), R2 les binaires signés de l'agent, Cloudflare Email les transactionnels. Stripe Managed Payments encaisse en Merchant of Record par Checkout et Payment Links uniquement.
+Prisma 7 on the Cloudflare D1 adapter, one database per environment, bound to the Worker with no address or secret; the Worker uses *smart placement*, running next to its database. Cloudflare Workflows carry the long tasks (seat reconciliation, deferred decommissioning), R2 the agent's signed binaries, Cloudflare Email the transactional emails. Stripe Managed Payments collects payments as Merchant of Record through Checkout and Payment Links only.
 
 ## Site
 
-`apps/site` est un Astro statique déployé sur un Worker Cloudflare à assets statiques : accueil, tarifs, intégrations, docs publiques en MDX, blog, légal, téléchargement lisant les releases, `llms.txt`. Anglais par défaut, français en `/fr`. Mêmes tokens que la console.
+`apps/site` is a static Astro app deployed on a Cloudflare Worker with static assets: home, pricing, integrations, public docs in MDX, blog, legal, a download page reading the releases, `llms.txt`. English by default, French under `/fr`. Same tokens as the console.
 
-## Frontières
+## Boundaries
 
-- `apps/*` n'importe jamais un autre `apps/*`.
-- `@pupitre/api/lib/*` n'est importable qu'à l'intérieur de `packages/api` ; les apps passent par `./server`, `./client`, `./testing`.
-- Les entrées Prisma Node (`@pupitre/db/client`) sont interdites dans le code qui part sur Workers ; les variantes `@pupitre/db/cloudflare/*` s'y substituent.
-- `apps/agent` ne dépend d'aucun package TypeScript ; il consomme le JSON Schema exporté de `packages/shared`.
-- `scripts/assert-package-boundaries.ts` vérifie tout cela au lint.
+- `apps/*` never imports another `apps/*`.
+- `@pupitre/api/lib/*` is importable only inside `packages/api`; apps go through `./server`, `./client`, `./testing`.
+- The Prisma Node entries (`@pupitre/db/client`) are forbidden in code that ships to Workers; the `@pupitre/db/cloudflare/*` variants substitute for them.
+- `apps/agent` depends on no TypeScript package; it consumes the JSON Schema exported from `packages/shared`.
+- `scripts/assert-package-boundaries.ts` checks all of this at lint time.
 
-## Environnement
+## Environment
 
-Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets Wrangler. `.env.local` à la racine est la source unique des secrets locaux ; `.env.example` en liste les noms, alignés sur `apps/web/wrangler.jsonc`. L'app desktop n'a pas de secret : jeton via `safeStorage`, clés dans son dossier de données.
+The web's public variables are `VITE_*`; secrets are runtime variables or Wrangler secrets. `.env.local` at the root is the single source of local secrets; `.env.example` lists their names, aligned with `apps/web/wrangler.jsonc`. The desktop app has no secret: token through `safeStorage`, keys in its data folder.
 
-## Déploiement
+## Deployment
 
-`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` ne change que par la pull request `staging` → `main`, fusionnée par un merge commit : celle que le dernier job d'une release ouvre et fusionne une fois l'app et l'agent publiés, ou une ouverte à la main quand ni l'app ni l'agent ne changent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, `go build -trimpath` sans obscurcissement — le code est public —, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web`: a single Wrangler environment online, `production`, deployed by Cloudflare Builds on a push to `main` — `build:production` (D1 migrations then build) then `deploy:production` (check of the required secrets then `wrangler deploy --keep-vars`). There is no online staging: everything is tried locally. `main` changes only through the `staging` → `main` pull request, merged by a merge commit: the one that a release's last job opens and merges once the app and the agent are published, or one opened by hand when neither the app nor the agent changes. Runbook in [deploy.md](./deploy.md), exact names in [monorepo.md](./monorepo.md). `apps/site`: a Worker with static assets, Cloudflare Builds on the same push to `main`. `apps/desktop`: GitHub Actions per tag, signed and notarized builds, publication to a public R2 bucket — `dl.pupitre.studio` — and declaration to the platform, which serves the site's download page. `apps/agent`: the same tag, `go build -trimpath` with no obfuscation — the code is public —, signing, publication to the private R2 bucket through the platform's API.

@@ -57,7 +57,7 @@ afterEach(() => {
 })
 
 describe("LocaleToggle", () => {
-  it("montre la langue de l'interface", async () => {
+  it("shows the interface language", async () => {
     const { container, unmount } = await render(toggle("en"))
 
     mounted.push(unmount)
@@ -66,7 +66,7 @@ describe("LocaleToggle", () => {
     expect(container.textContent).not.toContain("Français")
   })
 
-  it("nomme son icône dans une infobulle", async () => {
+  it("names its icon in a tooltip", async () => {
     const { container, unmount } = await render(toggle("fr"))
 
     mounted.push(unmount)
@@ -74,7 +74,7 @@ describe("LocaleToggle", () => {
     expect(trigger(container, "Français").title).toBe("Langue")
   })
 
-  it("montre le français quand c'est la langue choisie", async () => {
+  it("shows French when it is the chosen language", async () => {
     const { container, unmount } = await render(toggle("fr"))
 
     mounted.push(unmount)
@@ -82,7 +82,7 @@ describe("LocaleToggle", () => {
     expect(container.textContent).toContain("Français")
   })
 
-  it("met la langue du compte à jour, comme le pied de page", async () => {
+  it("updates the account language, like the footer", async () => {
     const recorder = recordApiCalls()
     const client = createQueryClient()
 

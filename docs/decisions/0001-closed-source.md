@@ -1,7 +1,7 @@
-# 0001 — Produit fermé
+# 0001 — Closed product
 
-Date : 2026-09-04 · Statut : remplacée le 2026-10-01 par [0018](./0018-source-disponible-et-gratuit.md) — le code est public sous Apache 2.0 + Commons Clause, l'obfuscation est retirée
+Date: 2026-09-04 · Status: superseded on 2026-10-01 by [0018](./0018-source-available-and-free.md) — the code is public under Apache 2.0 + Commons Clause, obfuscation is removed
 
-Pupitre est un produit commercial fermé. Le dépôt est privé, la licence MIT est retirée, l'app et l'agent sont distribués sous licence d'utilisation. Aucune partie du code n'est publiée.
+Pupitre is a closed commercial product. The repository is private, the MIT licence is withdrawn, and the app and the agent are distributed under a licence of use. No part of the code is published.
 
-Conséquences : distribution des binaires par la plateforme uniquement ; protection du code par compilation, obfuscation et droit d'usage ([security.md](../security.md)) ; la valeur est dans l'app, la plateforme et les mises à jour, pas dans le secret des sources.
+Consequences: binaries are distributed by the platform only; the code is protected by compilation, obfuscation and the right of use ([security.md](../security.md)); the value is in the app, the platform and the updates, not in keeping the sources secret.

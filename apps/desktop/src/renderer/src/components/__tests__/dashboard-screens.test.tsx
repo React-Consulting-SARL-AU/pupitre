@@ -46,8 +46,8 @@ function panel(): string {
   );
 }
 
-describe("le tableau de bord", () => {
-  it("rend la machine, les services, les projets et les sessions", () => {
+describe("the dashboard", () => {
+  it("renders the machine, the services, the projects and the sessions", () => {
     const html = panel();
 
     expect(html).toContain("atelier");
@@ -58,7 +58,7 @@ describe("le tableau de bord", () => {
     expect(html).toContain("idea-backend");
   });
 
-  it("offre de relancer la sécurisation tant que l'accès root reste ouvert, et seulement alors", () => {
+  it("offers to rerun the hardening while root access stays open, and only then", () => {
     const open = text(
       renderToStaticMarkup(
         <DashboardPanel
@@ -82,7 +82,7 @@ describe("le tableau de bord", () => {
     expect(text(panel())).not.toContain("Relancer la sécurisation");
   });
 
-  it("offre de relancer la sécurisation tant que dev devient root sans mot de passe", () => {
+  it("offers to rerun the hardening while dev becomes root without a password", () => {
     const open = text(
       renderToStaticMarkup(
         <DashboardPanel
@@ -108,7 +108,7 @@ describe("le tableau de bord", () => {
     expect(open).not.toContain("L'accès root de ce serveur est resté ouvert.");
   });
 
-  it("range les projets avant les services", () => {
+  it("puts the projects before the services", () => {
     const html = panel();
 
     expect(html.indexOf('data-section="projects"')).toBeGreaterThan(-1);
@@ -118,13 +118,13 @@ describe("le tableau de bord", () => {
   });
 
   // In the fixture only flyleaf-api has a public hostname; atlas-web is local only.
-  it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
+  it("offers to open only the projects that have a name on the web", () => {
     const html = panel();
 
     expect(html.split("Ouvrir<").length - 1).toBe(1);
   });
 
-  it("n'offre de tout démarrer ou tout arrêter que ce qui peut l'être", () => {
+  it("offers to start all or stop all only for what can be", () => {
     const halted = SNAPSHOT.projects.map((project) => ({
       ...project,
       processes: project.processes.map((process) => ({
@@ -161,14 +161,14 @@ describe("le tableau de bord", () => {
     expect(text(withProjects([]))).not.toContain("Tout arrêter");
   });
 
-  it("compte les projets en ligne et ceux en échec", () => {
+  it("counts the projects online and those failing", () => {
     const html = panel();
 
     expect(html).toContain("1 en ligne sur 3 projets");
     expect(html).toContain("1 en échec");
   });
 
-  it("montre la mémoire et le disque de la machine, pas une estimation", () => {
+  it("shows the machine's memory and disk, not an estimate", () => {
     const html = renderToStaticMarkup(
       <DashboardMachine
         machine={SNAPSHOT.machine}
@@ -182,7 +182,7 @@ describe("le tableau de bord", () => {
     expect(html).toContain("0,42");
   });
 
-  it("distingue l'état de chaque service par sa forme", () => {
+  it("tells the state of each service apart by shape", () => {
     const html = renderToStaticMarkup(
       <DashboardServices services={SNAPSHOT.services} />
     );
@@ -193,7 +193,7 @@ describe("le tableau de bord", () => {
     expect(html).toContain('data-shape="struck"');
   });
 
-  it("ne montre que les services qui tiennent un processus", () => {
+  it("shows only the services that hold a process", () => {
     const html = renderToStaticMarkup(
       <DashboardServices services={SNAPSHOT.services} />
     );
@@ -202,7 +202,7 @@ describe("le tableau de bord", () => {
     expect(html).not.toContain("GitHub");
   });
 
-  it("dit que rien ne tourne quand la machine n'a que des langages et des outils", () => {
+  it("says nothing is running when the machine only has languages and tools", () => {
     const html = renderToStaticMarkup(
       <DashboardServices
         services={SNAPSHOT.services.filter((service) => !service.runs)}
@@ -212,7 +212,7 @@ describe("le tableau de bord", () => {
     expect(html).toContain("Aucun service ne tourne en continu sur ce serveur");
   });
 
-  it("propose d'ajouter un service quand aucun ne tourne", () => {
+  it("offers to add a service when none is running", () => {
     const idle = SNAPSHOT.services.filter((service) => !service.runs);
 
     expect(
@@ -223,7 +223,7 @@ describe("le tableau de bord", () => {
     ).not.toContain("Ajouter un service");
   });
 
-  it("n'invente rien pour un serveur sans service ni projet", () => {
+  it("invents nothing for a server with no service or project", () => {
     const html = renderToStaticMarkup(
       <DashboardPanel
         attached={[]}
@@ -244,7 +244,7 @@ describe("le tableau de bord", () => {
   });
 });
 
-describe("les alertes de la machine", () => {
+describe("the machine alerts", () => {
   function machine(running: number, strained = STRAINED): string {
     return renderToStaticMarkup(
       <DashboardMachine
@@ -259,14 +259,14 @@ describe("les alertes de la machine", () => {
     );
   }
 
-  it("ne portent aucun remède tant que rien ne dépasse", () => {
+  it("carry no fix while nothing is over the limit", () => {
     const html = machine(1, SNAPSHOT.machine);
 
     expect(html).not.toContain("data-alert");
     expect(html).not.toContain("data-remedy");
   });
 
-  it("disent quoi faire sous chaque jauge en alerte, avec le geste", () => {
+  it("say what to do under each gauge in alert, with the gesture", () => {
     const html = machine(1);
 
     expect(html.match(/data-alert="true"/g)).toHaveLength(3);
@@ -279,7 +279,7 @@ describe("les alertes de la machine", () => {
     expect(text(html)).toContain("Ouvrir un terminal");
   });
 
-  it("n'offrent pas d'arrêter un projet quand aucun ne tourne", () => {
+  it("do not offer to stop a project when none is running", () => {
     const html = machine(0);
 
     expect(text(html)).not.toContain("Arrêter un projet");
@@ -288,8 +288,8 @@ describe("les alertes de la machine", () => {
   });
 });
 
-describe("la carte d'un service", () => {
-  it("dit si le service est connecté quand il travaille pour un compte", () => {
+describe("a service card", () => {
+  it("says whether the service is connected when it works for an account", () => {
     const html = renderToStaticMarkup(
       <DashboardServices
         accounts={{
@@ -315,7 +315,7 @@ describe("la carte d'un service", () => {
     );
   });
 
-  it("ne dit rien du compte tant que personne n'a répondu", () => {
+  it("says nothing of the account until someone has answered", () => {
     const html = renderToStaticMarkup(
       <DashboardServices services={SNAPSHOT.services} />
     );
@@ -323,7 +323,7 @@ describe("la carte d'un service", () => {
     expect(html).not.toContain('data-state="signed_');
   });
 
-  it("ouvre sa fiche", () => {
+  it("opens its page", () => {
     const html = renderToStaticMarkup(
       <DashboardServices onOpen={NOOP} services={SNAPSHOT.services} />
     );
@@ -334,7 +334,7 @@ describe("la carte d'un service", () => {
   });
 });
 
-describe("la carte d'un projet", () => {
+describe("a project card", () => {
   const FLYLEAF = SNAPSHOT.projects[0] as Project;
   const MAIN = FLYLEAF.processes[0] as Project["processes"][number];
 
@@ -349,7 +349,7 @@ describe("la carte d'un projet", () => {
     );
   }
 
-  it("offre chacune des adresses d'un projet qui en publie plusieurs", async () => {
+  it("offers each of the addresses of a project that publishes several", async () => {
     const view = await mount(
       <DashboardProjectCard
         busy={false}
@@ -373,7 +373,7 @@ describe("la carte d'un projet", () => {
     ]);
   });
 
-  it("ouvre d'un geste l'adresse d'un projet qui n'en publie qu'une", () => {
+  it("opens in one gesture the address of a project that publishes only one", () => {
     const html = card({
       ...FLYLEAF,
       processes: [{ ...MAIN, routes: MAIN.routes.slice(0, 1) }],
@@ -383,7 +383,7 @@ describe("la carte d'un projet", () => {
     expect(html).not.toContain('data-open="menu"');
   });
 
-  it("n'offre pas d'ouvrir un projet arrêté", () => {
+  it("does not offer to open a stopped project", () => {
     const html = card({
       ...FLYLEAF,
       processes: [{ ...MAIN, state: "stopped" }],
@@ -393,22 +393,22 @@ describe("la carte d'un projet", () => {
     expect(text(html)).not.toContain("Ouvrir");
   });
 
-  it("montre le nom sur le web du projet plutôt que son adresse sur la machine", () => {
+  it("shows the project's name on the web rather than its address on the machine", () => {
     const html = card(FLYLEAF);
 
     expect(text(html)).toContain("flyleaf.example.org · main");
     expect(text(html)).not.toContain("127.0.0.1:3000");
   });
 
-  it("ne remplit pas de tiret ce qu'un projet arrêté ne mesure pas", () => {
+  it("does not fill with a dash what a stopped project does not measure", () => {
     const html = card(SNAPSHOT.projects[1] as Project);
 
     expect(text(html)).not.toContain("—");
   });
 });
 
-describe("un serveur qui redémarre", () => {
-  it("dit son nom et ce que la personne attend", () => {
+describe("a server that restarts", () => {
+  it("says its name and what the person is waiting for", () => {
     const html = renderToStaticMarkup(
       <ServerRebootingScreen onSettings={NOOP} serverName="atelier" />
     );

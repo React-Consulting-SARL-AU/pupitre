@@ -55,7 +55,7 @@ async function silentServer(minutes: number) {
   return { organization, owner, server: await reload(server.id) }
 }
 
-describe("le serveur injoignable", () => {
+describe("the unreachable server", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -64,7 +64,7 @@ describe("le serveur injoignable", () => {
     await resetDb()
   })
 
-  it("ouvre une alerte et envoie un email après trente minutes de silence", async () => {
+  it("opens an alert and sends an email after thirty minutes of silence", async () => {
     const { owner, server } = await silentServer(31)
 
     const verdict = await evaluateServerAlerts(server)
@@ -88,7 +88,7 @@ describe("le serveur injoignable", () => {
     expect(emails[0].subject).toContain(server.name)
   })
 
-  it("ne renvoie rien à la deuxième évaluation du même état", async () => {
+  it("sends nothing again on the second evaluation of the same state", async () => {
     const { server } = await silentServer(31)
 
     await evaluateServerAlerts(server)
@@ -104,7 +104,7 @@ describe("le serveur injoignable", () => {
     ).toBe(1)
   })
 
-  it("renvoie à la passe suivante l'email d'une alerte encore ouverte dont l'envoi avait échoué", async () => {
+  it("resends on the next pass the email of a still-open alert whose sending had failed", async () => {
     const { server } = await silentServer(31)
 
     await evaluateServerAlerts(server)
@@ -130,7 +130,7 @@ describe("le serveur injoignable", () => {
     ).toBe(1)
   })
 
-  it("ne renvoie rien pour une alerte déjà notifiée ou refermée", async () => {
+  it("sends nothing for an alert already notified or closed", async () => {
     const { server } = await silentServer(31)
 
     await evaluateServerAlerts(server)
@@ -151,7 +151,7 @@ describe("le serveur injoignable", () => {
     expect(alertEmails()).toHaveLength(before)
   })
 
-  it("repart après un retour à la normale suivi d'une nouvelle panne", async () => {
+  it("starts over after a return to normal followed by a new outage", async () => {
     const { server } = await silentServer(31)
 
     await evaluateServerAlerts(server)
@@ -189,7 +189,7 @@ describe("le serveur injoignable", () => {
   })
 })
 
-describe("les autres genres d'alerte", () => {
+describe("the other kinds of alert", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -198,7 +198,7 @@ describe("les autres genres d'alerte", () => {
     await resetDb()
   })
 
-  it("signale un disque au-dessus de 90 %", async () => {
+  it("reports a disk above 90 %", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -230,7 +230,7 @@ describe("les autres genres d'alerte", () => {
     expect(alertEmails().at(-1)?.text).toContain("94")
   })
 
-  it("signale un agent périmé de deux versions", async () => {
+  it("reports an agent two versions out of date", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -263,7 +263,7 @@ describe("les autres genres d'alerte", () => {
     expect(alertEmails().at(-1)?.text).toContain("1.6.0")
   })
 
-  it("signale un droit d'usage en tolérance", async () => {
+  it("reports a licence in grace", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -288,7 +288,7 @@ describe("les autres genres d'alerte", () => {
   })
 })
 
-describe("les alertes de sauvegarde", () => {
+describe("the backup alerts", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -314,7 +314,7 @@ describe("les alertes de sauvegarde", () => {
     return await reload(server.id)
   }
 
-  it("signale une sauvegarde en échec avec l'erreur de l'agent, puis se ferme au succès suivant", async () => {
+  it("reports a failed backup with the agent's error, then closes on the next success", async () => {
     const server = await beating({
       interval_hours: 24,
       last_run_at: minutesAgo(10).toISOString(),
@@ -349,7 +349,7 @@ describe("les alertes de sauvegarde", () => {
     expect(healed.resolved).toEqual(["backup_failed"])
   })
 
-  it("signale une sauvegarde qui n'a pas réussi depuis deux intervalles", async () => {
+  it("reports a backup that has not succeeded for two intervals", async () => {
     const server = await beating({
       interval_hours: 6,
       last_run_at: minutesAgo(60 * 13).toISOString(),
@@ -364,7 +364,7 @@ describe("les alertes de sauvegarde", () => {
     expect(alertEmails()[0].text).toContain("6 h")
   })
 
-  it("laisse tranquille un serveur sans module de sauvegarde ou à la planification coupée", async () => {
+  it("leaves alone a server with no backup module or with scheduling switched off", async () => {
     const off = await beating({
       interval_hours: 0,
       last_ok_at: minutesAgo(60 * 24 * 30).toISOString(),
@@ -389,7 +389,7 @@ describe("les alertes de sauvegarde", () => {
   })
 })
 
-describe("le balayage de tous les serveurs", () => {
+describe("the sweep of all servers", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -398,7 +398,7 @@ describe("le balayage de tous les serveurs", () => {
     await resetDb()
   })
 
-  it("évalue chaque serveur en service et rend son verdict", async () => {
+  it("evaluates each server in service and returns its verdict", async () => {
     const { server } = await silentServer(45)
     const runs = await evaluateAlerts()
     const run = runs.find((entry) => entry.serverId === server.id)
@@ -406,7 +406,7 @@ describe("le balayage de tous les serveurs", () => {
     expect(run?.opened).toEqual(["server_unreachable"])
   })
 
-  it("parcourt les serveurs par lots et ne rend que ceux dont une alerte a bougé", async () => {
+  it("walks the servers in batches and returns only those whose alert changed", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -431,7 +431,7 @@ describe("le balayage de tous les serveurs", () => {
     ])
   })
 
-  it("liste les alertes actives par serveur", async () => {
+  it("lists the active alerts per server", async () => {
     const { server } = await silentServer(45)
 
     await evaluateServerAlerts(server)
@@ -444,7 +444,7 @@ describe("le balayage de tous les serveurs", () => {
   })
 })
 
-describe("la console voit les alertes actives", () => {
+describe("the console sees the active alerts", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
@@ -453,7 +453,7 @@ describe("la console voit les alertes actives", () => {
     await resetDb()
   })
 
-  it("les porte sur la fiche du serveur et dans la liste", async () => {
+  it("carries them on the server detail and in the list", async () => {
     const { owner, server } = await silentServer(45)
 
     await evaluateServerAlerts(server)

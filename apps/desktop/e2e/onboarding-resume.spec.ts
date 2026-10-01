@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 import { answerOnboarding } from "./harness/onboarding";
 
-test.describe("la reprise d'un onboarding", () => {
+test.describe("resuming an onboarding", () => {
   let running: Running;
 
   test.beforeAll(async () => {
@@ -58,23 +58,23 @@ test.describe("la reprise d'un onboarding", () => {
     await running.app.close();
   });
 
-  test("rouvre sur l'étape reprise avec le bouton Retour", async () => {
+  test("reopens on the resumed step with the Back button", async () => {
     const { page } = running;
 
-    await test.step("la séquence reprend sur le catalogue", async () => {
+    await test.step("the sequence resumes on the catalog", async () => {
       await expect(
         page.locator('[data-step="catalog"] [data-current]')
       ).toBeVisible();
       await expect(page.getByText("Socle système").first()).toBeVisible();
     });
 
-    await test.step("le rail compte les étapes de cette machine", async () => {
+    await test.step("the rail counts this machine's steps", async () => {
       await expect(page.locator("[data-step]")).toHaveCount(7);
       await expect(page.locator('[data-step="agent"]')).toHaveCount(0);
       await expect(page.getByText("Étape 3 sur 7")).toBeVisible();
     });
 
-    await test.step("Retour ramène à l'inspection, puis au choix du serveur", async () => {
+    await test.step("Back returns to the inspection, then to the server choice", async () => {
       await page.getByRole("button", { name: "Revenir" }).click();
       await expect(
         page.locator('[data-step="inspection"] [data-current]')

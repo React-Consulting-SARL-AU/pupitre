@@ -113,12 +113,12 @@ interface OverviewBody {
   data: { users: number; organizations: number }
 }
 
-test.describe("plateforme", () => {
+test.describe("platform", () => {
   test.beforeAll(async ({ request }) => {
     await request.post(harnessUrl("/reset"))
   })
 
-  test("un compte sans rôle plateforme n'a ni le groupe ni les pages", async ({
+  test("an account without a platform role gets neither the group nor the pages", async ({
     page,
     request,
   }) => {
@@ -127,14 +127,14 @@ test.describe("plateforme", () => {
 
     const menu = page.getByRole("navigation", { name: "Menu principal" })
 
-    await test.step("la barre latérale ne porte pas le groupe Plateforme", async () => {
+    await test.step("the sidebar does not carry the Plateforme group", async () => {
       await expect(menu.getByText("Plateforme")).toHaveCount(0)
       await expect(
         menu.getByRole("link", { name: "Vue d'ensemble" })
       ).toHaveCount(0)
     })
 
-    await test.step("les adresses de la plateforme ramènent à la console", async () => {
+    await test.step("platform addresses lead back to the console", async () => {
       await grantLicense(request, OWNER_EMAIL, 1)
 
       for (const closed of [
@@ -148,14 +148,14 @@ test.describe("plateforme", () => {
       }
     })
 
-    await test.step("l'API refuse la lecture de la plateforme", async () => {
+    await test.step("the API refuses to read the platform", async () => {
       const refused = await page.request.get("/api/v1/admin/overview")
 
       expect(refused.status()).toBe(FORBIDDEN)
     })
   })
 
-  test("un administrateur plateforme lit les compteurs, les comptes, les serveurs et les liens", async ({
+  test("a platform administrator reads the counters, accounts, servers and links", async ({
     page,
     request,
   }) => {
@@ -168,7 +168,7 @@ test.describe("plateforme", () => {
     const main = page.getByRole("main")
     const toasts = page.getByTestId("toasts")
 
-    await test.step("la plateforme n'apparaît qu'une fois son organisation choisie", async () => {
+    await test.step("the platform only appears once its organization is chosen", async () => {
       await expect(menu.getByText("Plateforme", { exact: true })).toHaveCount(0)
 
       await page.goto("/dashboard/admin")
@@ -177,7 +177,7 @@ test.describe("plateforme", () => {
       await openPlatformOrganization(page)
     })
 
-    await test.step("l'organisation Pupitre n'a ni démarrage ni licence", async () => {
+    await test.step("the Pupitre organization has neither getting started nor a licence", async () => {
       await expect(menu.getByRole("link", { name: START_LINK_RE })).toHaveCount(
         0
       )
@@ -192,7 +192,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_URL_RE)
     })
 
-    await test.step("le groupe Plateforme porte les dix pages", async () => {
+    await test.step("the Plateforme group carries the ten pages", async () => {
       await expect(menu.getByText("Plateforme", { exact: true })).toBeVisible()
 
       for (const label of [
@@ -211,7 +211,7 @@ test.describe("plateforme", () => {
       }
     })
 
-    await test.step("la vue d'ensemble compte ce que la plateforme porte", async () => {
+    await test.step("the overview counts what the platform carries", async () => {
       await menu.getByRole("link", { name: "Vue d'ensemble" }).click()
 
       await expect(page).toHaveURL(ADMIN_URL_RE)
@@ -249,7 +249,7 @@ test.describe("plateforme", () => {
       })
     })
 
-    await test.step("la liste des comptes se resserre sur une recherche", async () => {
+    await test.step("the account list narrows on a search", async () => {
       await menu.getByRole("link", { name: "Utilisateurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
@@ -263,7 +263,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText("1–1 sur 1")).toBeVisible()
     })
 
-    await test.step("le filtre de statut ne garde que les serveurs demandés", async () => {
+    await test.step("the status filter keeps only the requested servers", async () => {
       await seedServer(request, {
         email: OWNER_EMAIL,
         name: RUNNING_SERVER,
@@ -306,7 +306,7 @@ test.describe("plateforme", () => {
       )
     })
 
-    await test.step("suspendre un serveur demande le motif que les propriétaires liront", async () => {
+    await test.step("suspending a server asks for the reason the owners will read", async () => {
       await main
         .getByRole("row")
         .filter({ hasText: RUNNING_SERVER })
@@ -331,7 +331,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText("Aucun serveur ne correspond.")).toBeVisible()
     })
 
-    await test.step("un lien d'affiliation se crée avec son partenaire", async () => {
+    await test.step("an affiliate link is created with its partner", async () => {
       await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
 
       await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
@@ -363,7 +363,7 @@ test.describe("plateforme", () => {
       })
     })
 
-    await test.step("un second lien sur le même code est refusé sous le champ", async () => {
+    await test.step("a second link on the same code is refused under the field", async () => {
       await page.getByRole("button", { name: "Créer un lien" }).click()
 
       const again = page.getByRole("dialog")
@@ -383,7 +383,7 @@ test.describe("plateforme", () => {
       ).toHaveCount(0)
     })
 
-    await test.step("la fiche du lien se modifie depuis ses réglages", async () => {
+    await test.step("the link's record is edited from its settings", async () => {
       await main.getByRole("link", { name: LINK_NAME }).click()
 
       await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
@@ -412,7 +412,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText(LINK_NOTES)).toBeVisible()
     })
 
-    await test.step("le lien se désactive depuis sa zone dangereuse", async () => {
+    await test.step("the link is deactivated from its danger zone", async () => {
       await openTab(page, "Danger")
 
       await expect(
@@ -429,7 +429,7 @@ test.describe("plateforme", () => {
       await expect(main.getByRole("button", { name: "Activer" })).toBeVisible()
     })
 
-    await test.step("un lien qui a déjà amené une organisation ne s'efface pas", async () => {
+    await test.step("a link that already brought in an organization cannot be deleted", async () => {
       await seedReferral(request, { email: OWNER_EMAIL, code: LINK_CODE })
       await main.getByRole("button", { name: "Supprimer le lien" }).click()
 
@@ -450,7 +450,7 @@ test.describe("plateforme", () => {
       await remove.getByRole("button", { name: "Annuler" }).click()
     })
 
-    await test.step("un lien sans provenance s'efface, et la liste le perd", async () => {
+    await test.step("a link with no provenance is deleted, and the list loses it", async () => {
       await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
       await page.getByRole("button", { name: "Créer un lien" }).click()
 
@@ -487,7 +487,7 @@ test.describe("plateforme", () => {
       ).toHaveCount(0)
     })
 
-    await test.step("une licence s'accorde à une organisation qui n'en a pas, puis s'arrête depuis sa page", async () => {
+    await test.step("a licence is granted to an organization that has none, then stopped from its page", async () => {
       await menu.getByRole("link", { name: "Organisations" }).click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
@@ -576,7 +576,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("un membre de la plateforme lit les pages sans y toucher", async ({
+  test("a platform member reads the pages without touching them", async ({
     page,
     request,
   }) => {
@@ -599,7 +599,7 @@ test.describe("plateforme", () => {
     const menu = page.getByRole("navigation", { name: "Menu principal" })
     const main = page.getByRole("main")
 
-    await test.step("le groupe Plateforme porte les pages", async () => {
+    await test.step("the Plateforme group carries the pages", async () => {
       await expect(menu.getByText("Plateforme", { exact: true })).toBeVisible()
 
       for (const label of [
@@ -613,7 +613,7 @@ test.describe("plateforme", () => {
       }
     })
 
-    await test.step("la vue d'ensemble compte ce que la plateforme porte", async () => {
+    await test.step("the overview counts what the platform carries", async () => {
       await menu.getByRole("link", { name: "Vue d'ensemble" }).click()
 
       await expect(page).toHaveURL(ADMIN_URL_RE)
@@ -626,7 +626,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("un compte s'ouvre, ses gestes grisés disent le rôle qu'ils demandent", async () => {
+    await test.step("an account opens, its greyed-out actions name the role they require", async () => {
       await menu.getByRole("link", { name: "Utilisateurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
@@ -656,7 +656,7 @@ test.describe("plateforme", () => {
       await expect(suspend).toHaveAttribute("title", ROLE_REQUIRED)
     })
 
-    await test.step("un serveur en ligne s'affiche sans suspension", async () => {
+    await test.step("an online server shows without a suspension", async () => {
       await menu.getByRole("link", { name: "Tous les serveurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
@@ -669,7 +669,7 @@ test.describe("plateforme", () => {
       ).toHaveCount(0)
     })
 
-    await test.step("les liens d'affiliation se lisent, ni création ni réglages", async () => {
+    await test.step("affiliate links are readable, with neither creation nor settings", async () => {
       await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
 
       await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
@@ -692,7 +692,7 @@ test.describe("plateforme", () => {
       await expect(page.getByRole("tab", { name: "Danger" })).toHaveCount(0)
     })
 
-    await test.step("une conversation se lit sans être fermée ni répondue", async () => {
+    await test.step("a conversation is read without being closed or answered", async () => {
       await menu.getByRole("link", { name: "Boîte de réception" }).click()
 
       await expect(page).toHaveURL(ADMIN_INBOX_URL_RE)
@@ -711,7 +711,7 @@ test.describe("plateforme", () => {
       await expect(page.getByLabel("Attribuée à")).toHaveCount(0)
     })
 
-    await test.step("l'API refuse la création d'un lien", async () => {
+    await test.step("the API refuses to create a link", async () => {
       const refused = await page.request.post("/api/v1/admin/affiliate-links", {
         data: { name: "Refusé" },
       })
@@ -720,7 +720,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("les listes vivent dans l'adresse, la recherche ouvre une fiche, et l'effacement demande le nom", async ({
+  test("lists live in the address, search opens a record, and deletion asks for the name", async ({
     page,
     request,
   }) => {
@@ -748,7 +748,7 @@ test.describe("plateforme", () => {
     const menu = page.getByRole("navigation", { name: "Menu principal" })
     const main = page.getByRole("main")
 
-    await test.step("un filtre de liste survit à un rechargement", async () => {
+    await test.step("a list filter survives a reload", async () => {
       await menu.getByRole("link", { name: "Tous les serveurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
@@ -770,7 +770,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText(SOCLE_SERVER, { exact: true })).toHaveCount(0)
     })
 
-    await test.step("une carte de travail mène à ce qu'elle liste", async () => {
+    await test.step("a work card leads to what it lists", async () => {
       await menu.getByRole("link", { name: "Vue d'ensemble" }).click()
 
       await expect(page).toHaveURL(ADMIN_URL_RE)
@@ -783,7 +783,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTIONS_DRIFTED_URL_RE)
     })
 
-    await test.step("la recherche globale ouvre une fiche", async () => {
+    await test.step("global search opens a record", async () => {
       await page.keyboard.press("ControlOrMeta+k")
 
       const search = page.getByRole("dialog")
@@ -796,7 +796,7 @@ test.describe("plateforme", () => {
       await expect(page.getByRole("tab", { name: "Danger" })).toBeVisible()
     })
 
-    await test.step("effacer une ligne révoquée reste inerte tant que le nom diffère", async () => {
+    await test.step("deleting a revoked row stays inert while the name differs", async () => {
       await menu.getByRole("link", { name: "Tous les serveurs" }).click()
       await main
         .getByRole("row")
@@ -826,7 +826,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("le canal, les alertes, l'échéance d'un octroi, le filtre par organisation et la recherche", async ({
+  test("the channel, alerts, a grant's expiry, the organization filter and search", async ({
     page,
     request,
   }) => {
@@ -852,7 +852,7 @@ test.describe("plateforme", () => {
     const main = page.getByRole("main")
     const toasts = page.getByTestId("toasts")
 
-    await test.step("le canal d'une machine s'applique depuis sa fiche", async () => {
+    await test.step("a machine's channel is applied from its record", async () => {
       await menu.getByRole("link", { name: "Tous les serveurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
@@ -874,7 +874,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("les alertes ouvertes se ferment depuis leur onglet", async () => {
+    await test.step("open alerts are closed from their tab", async () => {
       await openTab(page, "Alertes")
       await page.getByRole("button", { name: "Fermer les alertes" }).click()
 
@@ -890,7 +890,7 @@ test.describe("plateforme", () => {
 
     let fleetOrganizationId = ""
 
-    await test.step("l'échéance d'une licence accordée se prolonge", async () => {
+    await test.step("a granted licence's expiry is extended", async () => {
       await menu.getByRole("link", { name: "Organisations" }).click()
       await main
         .getByRole("link", { name: FLEET_ORGANIZATION, exact: true })
@@ -931,7 +931,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("le filtre d'organisation ne garde que ses licences, et se retire", async () => {
+    await test.step("the organization filter keeps only its licences, and can be removed", async () => {
       await page.goto(
         `/dashboard/admin/subscriptions?organization_id=${fleetOrganizationId}`
       )
@@ -954,7 +954,7 @@ test.describe("plateforme", () => {
       ).toHaveCount(1)
     })
 
-    await test.step("la recherche ouvre la licence d'une autre organisation", async () => {
+    await test.step("search opens another organization's licence", async () => {
       await page.getByLabel("Recherche").fill(LICENSED_ORGANIZATION)
 
       await expect(main.getByText("1–1 sur 1")).toBeVisible()
@@ -970,7 +970,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("un compte se suspend, se désactive et se programme en suppression, chaque geste se reprenant", async ({
+  test("an account is suspended, deactivated and scheduled for deletion, each action being reversible", async ({
     page,
     request,
   }) => {
@@ -985,7 +985,7 @@ test.describe("plateforme", () => {
     const main = page.getByRole("main")
     const toasts = page.getByTestId("toasts")
 
-    await test.step("la liste des comptes se resserre sur un état", async () => {
+    await test.step("the account list narrows on a state", async () => {
       await menu.getByRole("link", { name: "Utilisateurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
@@ -1013,7 +1013,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_USER_URL_RE)
     })
 
-    await test.step("suspendre le compte, puis lever la suspension", async () => {
+    await test.step("suspend the account, then lift the suspension", async () => {
       await openTab(main, "Danger")
       await expect(page).toHaveURL(DANGER_TAB_URL_RE)
 
@@ -1061,7 +1061,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("désactiver le compte, puis le réactiver", async () => {
+    await test.step("deactivate the account, then reactivate it", async () => {
       await page
         .getByRole("button", { name: "Désactiver le compte", exact: true })
         .click()
@@ -1091,7 +1091,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("programmer la suppression derrière l'adresse retapée, puis l'annuler", async () => {
+    await test.step("schedule the deletion behind the retyped address, then cancel it", async () => {
       await page
         .getByRole("button", { name: "Supprimer le compte", exact: true })
         .click()
@@ -1152,7 +1152,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("une organisation se suspend, se ferme, se renomme et change de propriétaire", async ({
+  test("an organization is suspended, closed, renamed and changes owner", async ({
     page,
     request,
   }) => {
@@ -1176,7 +1176,7 @@ test.describe("plateforme", () => {
     const main = page.getByRole("main")
     const toasts = page.getByTestId("toasts")
 
-    await test.step("la liste des organisations mène à la fiche", async () => {
+    await test.step("the organization list leads to the record", async () => {
       await menu.getByRole("link", { name: "Organisations" }).click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
@@ -1189,7 +1189,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
     })
 
-    await test.step("suspendre l'organisation suspend ses serveurs, puis la levée les rend", async () => {
+    await test.step("suspending the organization suspends its servers, then lifting it restores them", async () => {
       await openTab(main, "Danger")
       await page
         .getByRole("button", { name: "Suspendre l'organisation", exact: true })
@@ -1233,7 +1233,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("fermer l'organisation, puis la rouvrir", async () => {
+    await test.step("close the organization, then reopen it", async () => {
       await page
         .getByRole("button", { name: "Fermer l'organisation", exact: true })
         .click()
@@ -1263,7 +1263,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("renommer l'organisation depuis ses réglages", async () => {
+    await test.step("rename the organization from its settings", async () => {
       await openTab(main, "Réglages")
 
       const apply = page.getByRole("button", { name: "Appliquer" })
@@ -1278,7 +1278,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("transférer la propriété depuis le menu de ligne d'un membre", async () => {
+    await test.step("transfer ownership from a member's row menu", async () => {
       await openTab(main, "Membres")
       await main
         .getByRole("listitem")

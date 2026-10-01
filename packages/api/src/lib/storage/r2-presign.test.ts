@@ -28,7 +28,7 @@ async function sign(
 }
 
 describe("presignR2", () => {
-  it("vise le seau sur l'hôte S3 du compte, avec la clé encodée", async () => {
+  it("targets the bucket on the account's S3 host, with the key encoded", async () => {
     const url = await sign()
 
     expect(url.protocol).toBe("https:")
@@ -38,7 +38,7 @@ describe("presignR2", () => {
     )
   })
 
-  it("porte les paramètres SigV4 d'une charge non signée sur le seul hôte", async () => {
+  it("carries the SigV4 parameters of an unsigned payload on the host alone", async () => {
     const url = await sign()
 
     expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256")
@@ -52,7 +52,7 @@ describe("presignR2", () => {
     expect(url.search).not.toContain("UNSIGNED-PAYLOAD")
   })
 
-  it("trie la requête et met la signature en dernier", async () => {
+  it("sorts the query and puts the signature last", async () => {
     const url = await sign({
       query: {
         "response-content-type": "application/pdf",
@@ -76,7 +76,7 @@ describe("presignR2", () => {
     )
   })
 
-  it("signe les paramètres de réponse : les changer change la signature", async () => {
+  it("signs the response parameters: changing them changes the signature", async () => {
     const inline = await sign({
       query: { "response-content-disposition": "inline" },
     })
@@ -93,7 +93,7 @@ describe("presignR2", () => {
     )
   })
 
-  it("signe la clé et la méthode : un autre objet ou un PUT ne partagent pas la signature", async () => {
+  it("signs the key and the method: another object or a PUT do not share the signature", async () => {
     const get = await sign()
     const other = await sign({ key: "mail/inbound/abc/raw.eml" })
     const put = await sign({ method: "PUT" })
@@ -107,7 +107,7 @@ describe("presignR2", () => {
     expect(put.pathname).toBe(get.pathname)
   })
 
-  it("est déterministe pour une même entrée", async () => {
+  it("is deterministic for the same input", async () => {
     expect((await sign()).href).toBe((await sign()).href)
   })
 })

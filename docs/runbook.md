@@ -1,121 +1,121 @@
-# Runbook de production
+# Production runbook
 
-Quoi regarder, dans quel ordre, quand quelque chose casse chez un client ou sur la plateforme. Chaque commande ici existe dans le dépôt ; une commande qui change se corrige ici dans la même passe. Les noms exacts des ressources sont dans [`monorepo.md`](./monorepo.md), les gestes de mise en ligne dans [`deploy.md`](./deploy.md).
+What to look at, in what order, when something breaks at a customer or on the platform. Every command here exists in the repository; a command that changes is fixed here in the same pass. The exact resource names are in [`monorepo.md`](./monorepo.md), the going-live steps in [`deploy.md`](./deploy.md).
 
-## Les trois endroits où lire
+## The three places to read
 
-**La console d'administration**, `app.pupitre.studio/dashboard/admin` : organisations, serveurs, licences, événements (`/dashboard/admin/events`), boîte mail. C'est la première lecture : elle ne demande rien d'autre qu'une session de l'équipe.
+**The admin console**, `app.pupitre.studio/dashboard/admin`: organizations, servers, licences, events (`/dashboard/admin/events`), mailbox. It is the first reading: it asks for nothing more than a team session.
 
-**La base**, quand la console ne montre pas ce qu'on cherche. Depuis `apps/web` :
+**The database**, when the console does not show what you are looking for. From `apps/web`:
 
 ```bash
 bun x wrangler d1 execute DB --env production --remote \
   --command 'SELECT "createdAt","action","targetType","targetId","payload" FROM "Event" ORDER BY "createdAt" DESC LIMIT 50'
 ```
 
-`Event` est le journal d'audit : `action` (`server.enrolled`, `server.exchanged`, `server.suspended`, `subscription.created`, `release.published`…), `targetType` et `targetId`, `organizationId`, `actorUserId`, `payload`. Une requête de lecture ne coûte rien ; une écriture à la main en production ne se fait pas — elle passe par une route de l'API ou par une migration.
+`Event` is the audit log: `action` (`server.enrolled`, `server.exchanged`, `server.suspended`, `subscription.created`, `release.published`…), `targetType` and `targetId`, `organizationId`, `actorUserId`, `payload`. A read query costs nothing; a hand-written write in production is not done — it goes through an API route or a migration.
 
-**Les journaux du Worker** : tableau de bord Cloudflare → *Workers* → `ppt-web-production` → *Logs* (observabilité activée, échantillonnage à 100 %, piles lisibles), ou en direct depuis `apps/web` :
+**The Worker's logs**: Cloudflare dashboard → *Workers* → `ppt-web-production` → *Logs* (observability enabled, 100% sampling, readable stacks), or live from `apps/web`:
 
 ```bash
 bun x wrangler tail --env production
 ```
 
-Aucune erreur ne part vers un service tiers : ce qui n'est pas dans ces journaux n'existe nulle part.
+No error goes to a third-party service: what is not in these logs exists nowhere.
 
-**Le serveur du client**, quand c'est lui qui est en cause. Le client est root chez lui ; on ne s'y connecte jamais sans lui. Ce qu'on lui fait lancer :
+**The customer's server**, when it is the one at fault. The customer is root at home; we never connect to it without them. What we have them run:
 
-| Commande | Ce qu'elle dit |
+| Command | What it says |
 | --- | --- |
-| `sudo pupitred report` | le rapport de la dernière installation, en JSON : chaque module, chaque étape `failed` ou `warned` avec sa commande de rejeu ; une installation coupée y est marquée interrompue |
-| `dev doctor` | outils, services, session tmux et projets, chacun avec son remède |
-| `dev status --json` | la vue de la machine que l'app lit |
-| `sudo tail -n 200 /var/log/pupitre.log` | le journal de l'agent : commandes, chemins, jamais un secret |
-| `sudo cat /var/lib/pupitre/report.json` | le même rapport que `pupitred report`, brut |
-| `sudo cat /var/lib/pupitre/license.json` | la dernière licence lue : `state`, `valid_until`, `checked_at` (`entitlement.json` sur un agent antérieur à 2.0.0, que la migration 8 renomme) |
-| `systemctl status pupitred` · `journalctl -u pupitred -n 200` | le daemon qui lit la plateforme toutes les 30 secondes |
-| `sudo pupitred migrate --status` | la révision de la configuration, ce qui reste dû, les sauvegardes gardées |
+| `sudo pupitred report` | the last installation's report, in JSON: each module, each `failed` or `warned` step with its replay command; an interrupted installation is marked as such there |
+| `dev doctor` | tools, services, tmux session and projects, each with its remedy |
+| `dev status --json` | the view of the machine that the app reads |
+| `sudo tail -n 200 /var/log/pupitre.log` | the agent's log: commands, paths, never a secret |
+| `sudo cat /var/lib/pupitre/report.json` | the same report as `pupitred report`, raw |
+| `sudo cat /var/lib/pupitre/license.json` | the last licence read: `state`, `valid_until`, `checked_at` (`entitlement.json` on an agent older than 2.0.0, which migration 8 renames) |
+| `systemctl status pupitred` · `journalctl -u pupitred -n 200` | the daemon that reads the platform every 30 seconds |
+| `sudo pupitred migrate --status` | the configuration revision, what remains due, the backups kept |
 
-`sudo` demande le mot de passe de `dev` depuis la [décision 0015](./decisions/0015-sudo-par-mot-de-passe.md) : le client le copie depuis la fiche du serveur dans l'app. `dev doctor` et `dev status` n'en ont pas besoin.
+`sudo` asks for `dev`'s password since [decision 0015](./decisions/0015-sudo-by-password.md): the customer copies it from the server's sheet in the app. `dev doctor` and `dev status` do not need it.
 
-## Un onboarding qui meurt
+## An onboarding that dies
 
-L'app enchaîne `server` (adresse, compte, clé), `inspection`, `agent` (le binaire poussé), `catalog`, `config`, `install` (enrôlement puis modules), `harden`, `done`. Savoir à quelle étape il s'est arrêté dit presque tout.
+The app chains `server` (address, account, key), `inspection`, `agent` (the pushed binary), `catalog`, `config`, `install` (enrolment then modules), `harden`, `done`. Knowing at which step it stopped says almost everything.
 
-1. **Avant l'agent** — l'adresse ne répond pas en SSH, la clé est refusée, le mot de passe du compte distant est faux. L'app le dit sous le formulaire ; rien n'est créé ni sur le serveur ni sur la plateforme.
-2. **Le binaire de l'agent** — l'app le télécharge par `GET /api/v1/releases/agent/:version`, qui répond 303 vers une URL R2 signée de cinq minutes. Un échec ici se lit dans les journaux du Worker (la route, puis R2) : une version que `Release` ne tient pas pour cette architecture, ou un objet absent du seau `ppt-agent`. Le 2026-09-14, c'était un 400 de R2.
-3. **L'enrôlement** — dans la base, `server.enrolled` pour ce serveur dit que la plateforme a délivré le jeton d'enrôlement ; `server.exchanged` dit que l'agent l'a échangé contre son jeton de serveur. Le premier sans le second : l'agent n'a jamais joint la plateforme. Sur le serveur, `/etc/pupitre/platform.url` doit nommer `https://app.pupitre.studio`, `journalctl -u pupitred` dit pourquoi la requête échoue, et `/etc/pupitre/server.token` n'existe pas encore. Un enrôlement coupé se reprend : relancer l'étape depuis l'app, ou « Rattacher à nouveau ce serveur » sur sa page.
-4. **Les modules** — `sudo pupitred report` nomme l'étape tombée, sa sortie et sa commande de rejeu ; `/var/log/pupitre.log` a le détail. Un échec n'arrête pas les autres modules : le rapport dit tout en une fois. Rejouer depuis l'app est sûr, les étapes sont idempotentes.
-5. **Le durcissement** — root ne se ferme que si une clé ouvre `dev`. S'il s'arrête, root reste ouvert et l'app le dit ; la cause est dans le rapport (`harden`). Un client qui ne joint plus rien juste après : voir [fail2ban](#fail2ban-a-banni-un-client).
+1. **Before the agent** — the address does not answer over SSH, the key is refused, the remote account's password is wrong. The app says so under the form; nothing is created either on the server or on the platform.
+2. **The agent's binary** — the app downloads it through `GET /api/v1/releases/agent/:version`, which answers 303 to a five-minute signed R2 URL. A failure here is read in the Worker's logs (the route, then R2): a version that `Release` does not hold for this architecture, or an object missing from the `ppt-agent` bucket. On 2026-09-14, it was an R2 400.
+3. **Enrolment** — in the database, `server.enrolled` for this server says that the platform issued the enrolment token; `server.exchanged` says that the agent exchanged it for its server token. The first without the second: the agent never reached the platform. On the server, `/etc/pupitre/platform.url` must name `https://app.pupitre.studio`, `journalctl -u pupitred` says why the request fails, and `/etc/pupitre/server.token` does not exist yet. An interrupted enrolment is resumed: rerun the step from the app, or "Rattacher à nouveau ce serveur" on its page.
+4. **The modules** — `sudo pupitred report` names the step that fell, its output and its replay command; `/var/log/pupitre.log` has the detail. A failure does not stop the other modules: the report says everything at once. Replaying from the app is safe, the steps are idempotent.
+5. **Hardening** — root closes only if a key opens `dev`. If it stops, root stays open and the app says so; the cause is in the report (`harden`). A customer who can no longer reach anything just afterwards: see [fail2ban](#fail2ban-banned-a-customer).
 
-## « Licence requise » qui ne part pas
+## "Licence requise" that does not go away
 
-L'agent passe en mode restreint quand il n'a pas de jeton de serveur, quand sa dernière licence lue a plus de sept jours, ou quand la plateforme a répondu `suspended`. Seules `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`, `agent.migrate`, `enroll` et `platform.sync` répondent ; rien de ce qui tourne ne s'arrête.
+The agent goes into restricted mode when it has no server token, when its last licence read is more than seven days old, or when the platform answered `suspended`. Only `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`, `agent.migrate`, `enroll` and `platform.sync` answer; nothing that is running stops.
 
-1. **L'organisation tient-elle dans sa licence ?** Console → l'organisation : ses serveurs qui occupent un siège contre `FREE_SERVERS` plus les places de sa licence. Gratuite jusqu'à trois serveurs, elle n'a besoin de rien ; au-delà sans licence vivante — un octroi expiré —, la plateforme rend `grace` sept jours puis `suspended` : l'équipe accorde ou prolonge une licence (`subscription.granted`, Console → Licences), ou le client supprime des serveurs. Une organisation suspendue ou fermée par l'équipe est `suspended` quoi qu'elle tienne.
-2. **Le serveur est-il suspendu ou révoqué ?** Console → Serveurs : `status` (`grace`, `suspended`, `revoked`) et `suspendedReason`. Un serveur suspendu par l'équipe se rétablit depuis sa fiche (`server.restored`).
-3. **L'agent lit-il la plateforme ?** `sudo cat /var/lib/pupitre/license.json` : un `checked_at` ancien dit que le daemon ne joint plus la console — `systemctl status pupitred`, `journalctl -u pupitred`. Sans `/etc/pupitre/server.token`, le serveur n'a jamais fini son enrôlement (étape 3 ci-dessus).
-4. **La plateforme dit valide et l'app dit restreint ?** Le daemon relit toutes les 30 secondes ; l'app peut le demander tout de suite par `platform.sync`, qui reste ouverte en mode restreint. Si rien ne bouge, « Rattacher à nouveau ce serveur » ré-enrôle : un jeton perdu ou révoqué se répare ainsi, sans toucher à ce qui tourne.
+1. **Does the organization fit within its licence?** Console → the organization: its servers occupying a seat against `FREE_SERVERS` plus the seats of its licence. Free up to three servers, it needs nothing; beyond that without a live licence — an expired grant —, the platform returns `grace` for seven days then `suspended`: the team grants or extends a licence (`subscription.granted`, Console → Licences), or the customer deletes servers. An organization suspended or closed by the team is `suspended` whatever it holds.
+2. **Is the server suspended or revoked?** Console → Servers: `status` (`grace`, `suspended`, `revoked`) and `suspendedReason`. A server suspended by the team is restored from its sheet (`server.restored`).
+3. **Does the agent read the platform?** `sudo cat /var/lib/pupitre/license.json`: an old `checked_at` says the daemon no longer reaches the console — `systemctl status pupitred`, `journalctl -u pupitred`. Without `/etc/pupitre/server.token`, the server never finished its enrolment (step 3 above).
+4. **The platform says valid and the app says restricted?** The daemon rereads every 30 seconds; the app can ask for it right away through `platform.sync`, which stays open in restricted mode. If nothing moves, "Rattacher à nouveau ce serveur" re-enrols: a lost or revoked token is repaired this way, without touching what is running.
 
-## Une release qui échoue
+## A release that fails
 
-`release.yml` enchaîne `ci` → `agent` → `agent-arm64` → `desktop` (macOS, Windows, Linux) → `publish` → `merge`. Rien n'est signé sans CI verte, et `merge` n'ouvre la pull request `staging` → `main` qu'une fois la version téléchargeable. La marche complète est le skill `release`.
+`release.yml` chains `ci` → `agent` → `agent-arm64` → `desktop` (macOS, Windows, Linux) → `publish` → `merge`. Nothing is signed without a green CI, and `merge` opens the `staging` → `main` pull request only once the version is downloadable. The complete procedure is the `release` skill.
 
-- **Un job tombé sur un aléa** (runner, réseau, notarisation lente) : *Re-run failed jobs* dans GitHub. Chaque étape est idempotente : ce qui est déjà dans le seau est réécrit à l'identique, ce qui est déjà déclaré répond 200.
-- **Un correctif dans la chaîne elle-même** : commit sur `staging`, puis `gh workflow run release.yml --ref staging -f version=X.Y.Z`. Relancer sur le tag rejouerait la chaîne cassée qu'il désigne.
-- **`merge` refuse** faute de check vert sur la tête de `staging` : des commits sont arrivés après le tag. La version est publiée, `main` attend ; la pull request restée ouverte se vérifie puis se fusionne à la main, en merge commit.
-- **Une version publiée est mauvaise** : on ne dépublie rien, on revient en arrière. `gh workflow run promote.yml -f version=<précédente> -f channel=stable` remet la version précédente dans le canal, agent et app, et pointe les flux de mise à jour sur ses fichiers. Une app déjà montée ne redescend pas : elle attend la suivante.
-- **La console ou le site cassés après la fusion** : Cloudflare Builds a redéployé sur le push de `main`. Retour sur la version précédente du Worker : `bun x wrangler rollback --config apps/web/dist/server/wrangler.json`, ou la liste des déploiements dans le tableau de bord. Une migration D1 ne se rejoue pas à l'envers : elle se corrige par une migration suivante.
+- **A job that fell on a fluke** (runner, network, slow notarization): *Re-run failed jobs* in GitHub. Each step is idempotent: what is already in the bucket is rewritten identically, what is already declared answers 200.
+- **A fix in the chain itself**: commit on `staging`, then `gh workflow run release.yml --ref staging -f version=X.Y.Z`. Rerunning on the tag would replay the broken chain it designates.
+- **`merge` refuses** for lack of a green check on `staging`'s head: commits arrived after the tag. The version is published, `main` waits; the pull request left open is checked then merged by hand, as a merge commit.
+- **A published version is bad**: nothing is unpublished, we roll back. `gh workflow run promote.yml -f version=<previous> -f channel=stable` puts the previous version back in the channel, agent and app, and points the update feeds at its files. An app already upgraded does not go back down: it waits for the next one.
+- **The console or the site broken after the merge**: Cloudflare Builds redeployed on the push to `main`. Back to the Worker's previous version: `bun x wrangler rollback --config apps/web/dist/server/wrangler.json`, or the list of deployments in the dashboard. A D1 migration is not replayed backwards: it is fixed by a following migration.
 
-## Un mail qui n'arrive pas
+## A mail that does not arrive
 
-**Un mail envoyé à `@pupitre.studio`** (support, légal…) passe par la règle catch-all d'Email Routing, qui l'envoie au handler `email` du Worker ; il devient une ligne de `MailMessage` (`delivery = 'received'`) dans un fil de la boîte.
+**A mail sent to `@pupitre.studio`** (support, legal…) goes through Email Routing's catch-all rule, which sends it to the Worker's `email` handler; it becomes a `MailMessage` row (`delivery = 'received'`) in a thread of the mailbox.
 
-- Rien dans la boîte : tableau de bord Cloudflare → *Email* → *Email Routing* → l'activité de la zone dit si le message est arrivé, a été rejeté, ou a été remis au Worker. Remis au Worker sans ligne : les journaux du Worker. Un message au-dessus de 20 Mio est refusé à la porte, et l'expéditeur en est averti.
-- Arrivé mais rangé dans « Autres » : aucune `MailMailbox` ne déclare cette adresse. Créer la boîte rattache les fils déjà reçus.
+- Nothing in the mailbox: Cloudflare dashboard → *Email* → *Email Routing* → the zone's activity says whether the message arrived, was rejected, or was handed to the Worker. Handed to the Worker without a row: the Worker's logs. A message above 20 MiB is refused at the door, and the sender is warned.
+- Arrived but filed under "Autres": no `MailMailbox` declares this address. Creating the mailbox attaches the threads already received.
 
-**Un mail que la plateforme envoie** — lien de connexion, alerte, réponse de l'équipe — part par Cloudflare Email Sending, le binding `EMAIL`. En production, un binding absent fait échouer l'envoi au lieu de l'écrire dans les journaux.
+**A mail that the platform sends** — sign-in link, alert, team reply — goes out through Cloudflare Email Sending, the `EMAIL` binding. In production, a missing binding makes the send fail instead of writing it to the logs.
 
-- Une réponse de la boîte qui casse reste dans le fil, `delivery = 'failed'`, la cause dans `error`, avec une activité `reply_failed` : `SELECT "createdAt","address","error" FROM "MailMessage" WHERE "delivery" = 'failed' ORDER BY "createdAt" DESC LIMIT 20`.
-- Un lien de connexion qui n'arrive pas n'a pas de ligne en base : les journaux du Worker, puis l'activité d'Email Sending dans le tableau de bord, puis le dossier indésirable du client.
+- A mailbox reply that breaks stays in the thread, `delivery = 'failed'`, the cause in `error`, with a `reply_failed` activity: `SELECT "createdAt","address","error" FROM "MailMessage" WHERE "delivery" = 'failed' ORDER BY "createdAt" DESC LIMIT 20`.
+- A sign-in link that does not arrive has no row in the database: the Worker's logs, then Email Sending's activity in the dashboard, then the customer's junk folder.
 
-## fail2ban a banni un client
+## fail2ban banned a customer
 
-Le durcissement pose une prison `sshd` (`/etc/fail2ban/jail.d/pupitre.local`) : cinq échecs en dix minutes bannissent l'adresse une heure, sur le port SSH et sur 443 quand il est ouvert. Le symptôme côté client : `Connection reset`, `kex_exchange_identification` ou un délai dépassé, depuis cet ordinateur seulement. Souvent, des essais en root après la fermeture de root, ou un outil qui présente une autre clé en boucle.
+Hardening sets up an `sshd` jail (`/etc/fail2ban/jail.d/pupitre.local`): five failures in ten minutes ban the address for an hour, on the SSH port and on 443 when it is open. The symptom on the customer's side: `Connection reset`, `kex_exchange_identification` or a timeout, from that computer only. Often, root attempts after root was closed, or a tool presenting another key in a loop.
 
-- Attendre l'heure, ou lever le ban depuis une autre adresse ou depuis la console de l'hébergeur :
+- Wait the hour, or lift the ban from another address or from the host's console:
 
 ```bash
 sudo fail2ban-client status sshd
-sudo fail2ban-client set sshd unbanip <adresse>
+sudo fail2ban-client set sshd unbanip <address>
 ```
 
-- Puis trouver ce qui échoue : `journalctl -u ssh -n 100` sur le serveur, et l'hôte que l'outil vise sur l'ordinateur — il doit passer par la configuration SSH de l'app (`ssh <nom du serveur>` une fois la ligne `Include` posée), pas par `root@`.
+- Then find what fails: `journalctl -u ssh -n 100` on the server, and the host the tool targets on the computer — it must go through the app's SSH configuration (`ssh <server name>` once the `Include` line is set), not through `root@`.
 
-## Le mot de passe sudo perdu
+## The lost sudo password
 
-Le mot de passe de `dev` vit dans le trousseau de l'ordinateur qui l'a tiré ([décision 0015](./decisions/0015-sudo-par-mot-de-passe.md)) ; le serveur n'en a que l'empreinte, et la plateforme rien.
+`dev`'s password lives in the keychain of the computer that generated it ([decision 0015](./decisions/0015-sudo-by-password.md)); the server has only its hash, and the platform nothing.
 
-- **Un autre ordinateur du client le tient encore** : il le copie depuis la fiche du serveur, et on le saisit sur celui qui ne l'a plus (« Saisir le mot de passe sudo de dev »).
-- **Plus aucun ordinateur ne le tient** : sans lui, aucun geste privilégié ne passe, et relancer la sécurisation en est un. Depuis la console de l'hébergeur, en root : `passwd dev`, puis ce mot de passe se saisit dans l'app. Relancer ensuite la sécurisation depuis l'app en tire un nouveau et le garde au trousseau : `harden.sudo` rejouée ne change que le mot de passe.
+- **Another of the customer's computers still holds it**: they copy it from the server's sheet, and it is entered on the one that no longer has it ("Saisir le mot de passe sudo de dev").
+- **No computer holds it any more**: without it, no privileged gesture goes through, and rerunning hardening is one. From the host's console, as root: `passwd dev`, then this password is entered in the app. Rerunning hardening from the app afterwards generates a new one and keeps it in the keychain: a replayed `harden.sudo` changes only the password.
 
-L'équipe ne peut rien faire à la place du client : c'est la propriété voulue.
+The team can do nothing in the customer's place: that is the intended property.
 
-## Tous les appareils perdus
+## All devices lost
 
-Depuis la [décision 0014](./decisions/0014-cles-approuvees-par-un-appareil.md), une clé n'entre sur un serveur qu'approuvée par un appareil qui y est déjà. Quand il n'en reste aucun, la plateforme ne peut pas en ajouter, et l'équipe non plus.
+Since [decision 0014](./decisions/0014-keys-approved-by-a-device.md), a key enters a server only approved by a device that is already on it. When none remains, the platform cannot add one, and neither can the team.
 
-1. Sur le nouvel ordinateur : installer l'app, se connecter. L'appareil est ajouté au compte (connexion récente, passkey ou second facteur compris, et un email part). Sa clé publique est `keys/device.pub` dans le dossier de données de l'app.
-2. Depuis la console de l'hébergeur, en root :
+1. On the new computer: install the app, sign in. The device is added to the account (recent sign-in, passkey or second factor included, and an email goes out). Its public key is `keys/device.pub` in the app's data folder.
+2. From the host's console, as root:
 
 ```bash
-pupitred keys reset --key "<clé publique OpenSSH>"
-# ou
-pupitred keys reset --key /chemin/vers/device.pub
+pupitred keys reset --key "<OpenSSH public key>"
+# or
+pupitred keys reset --key /path/to/device.pub
 ```
 
-Le bloc géré d'`authorized_keys` et les signataires ne tiennent plus que cette clé. `keys reset` refuse hors de root.
+The managed `authorized_keys` block and the signers then hold only this key. `keys reset` refuses outside root.
 
-3. Dans l'app, ajouter le serveur par son adresse : l'onboarding reprend cet appareil et repose sa clé par `keys.trust`. Les autres appareils du client s'approuvent ensuite depuis celui-ci.
+3. In the app, add the server by its address: onboarding takes this device back and places its key again through `keys.trust`. The customer's other devices are then approved from this one.
 
-Retirer un appareil perdu du compte, dans la console, retire sa clé de tous les serveurs — sauf là où elle serait la dernière du bloc, que l'agent ne vide jamais.
+Removing a lost device from the account, in the console, removes its key from all servers — except where it would be the last in the block, which the agent never empties.

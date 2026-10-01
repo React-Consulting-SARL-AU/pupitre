@@ -42,8 +42,8 @@ function box(html: string, name: string): string {
   return html.slice(start, html.indexOf(">", role) + 1);
 }
 
-describe("le contenu des sauvegardes", () => {
-  it("nomme chaque base par son moteur, l'instantané Redis compris", () => {
+describe("the backup content", () => {
+  it("names each database by its engine, the Redis snapshot included", () => {
     const html = databases([]);
 
     expect(html).toContain("PostgreSQL · shop");
@@ -51,7 +51,7 @@ describe("le contenu des sauvegardes", () => {
     expect(html).toContain("Redis · snapshot");
   });
 
-  it("décoche ce que les réglages laissent dehors, et garde une exclusion d'une base partie", () => {
+  it("unticks what the settings leave out, and keeps the exclusion of a database that is gone", () => {
     const html = databases(["redis:*", "mysql:archives"]);
 
     expect(html).toContain("MySQL · archives");
@@ -62,19 +62,19 @@ describe("le contenu des sauvegardes", () => {
     expect(box(html, "backup-database-redis:*")).toContain("data-unchecked");
   });
 
-  it("grise les bases quand la catégorie ne part plus", () => {
+  it("greys out the databases when the category is no longer backed up", () => {
     expect(
       box(databases([], false), "backup-database-postgres:shop")
     ).toContain("disabled");
   });
 
-  it("dit quel moteur n'a pas répondu", () => {
+  it("says which engine did not answer", () => {
     expect(databases([], true, ["mongodb"])).toContain(
       "MongoDB n&#x27;a pas répondu"
     );
   });
 
-  it("dit qu'un projet sans dépôt part toujours en entier, et grise le mode quand les projets ne partent pas", () => {
+  it("says a project without a repository is always backed up whole, and greys out the mode when projects are not backed up", () => {
     const html = renderToStaticMarkup(
       <BackupsContentProjects
         carried={false}
@@ -95,7 +95,7 @@ describe("le contenu des sauvegardes", () => {
     expect(html).toContain('data-switch="backup-projects-env-only"');
   });
 
-  it("met un élément dans la liste d'exclusion quand on le décoche, et l'en retire quand on le recoche", () => {
+  it("puts an item in the exclusion list when it is unticked, and takes it out when it is ticked again", () => {
     expect(excluding(["redis:*"], "postgres:shop", false)).toEqual([
       "redis:*",
       "postgres:shop",

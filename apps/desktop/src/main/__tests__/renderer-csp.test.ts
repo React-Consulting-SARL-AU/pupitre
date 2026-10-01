@@ -22,12 +22,12 @@ function directives(): Map<string, string> {
   );
 }
 
-describe("la politique de contenu de la fenêtre", () => {
-  it("n'exécute que les scripts de l'app, sans eval ni script en ligne", () => {
+describe("the window's content policy", () => {
+  it("only runs the app's scripts, with no eval or inline script", () => {
     expect(directives().get("script-src")).toBe("'self'");
   });
 
-  it("ferme les plugins, la base des adresses et l'envoi de formulaires", () => {
+  it("shuts off plugins, the base URI and form submission", () => {
     const policy = directives();
 
     expect(policy.get("object-src")).toBe("'none'");

@@ -42,7 +42,7 @@ function addDevice(session: Session, name: string, locale: "fr" | "en") {
   })
 }
 
-describe("les huit moments envoient leur email", () => {
+describe("the eight moments send their email", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -51,7 +51,7 @@ describe("les huit moments envoient leur email", () => {
     await resetDb()
   })
 
-  it("le lien magique part en HTML et en texte", async () => {
+  it("the magic link goes out in HTML and text", async () => {
     const response = await authRequest("POST", "/sign-in/magic-link", {
       email: "ada@test.local",
       callbackURL: "/dashboard",
@@ -66,7 +66,7 @@ describe("les huit moments envoient leur email", () => {
     expect(email.text).toContain("http")
   })
 
-  it("l'invitation part vers l'adresse invitée", async () => {
+  it("the invitation goes to the invited address", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},
@@ -86,7 +86,7 @@ describe("les huit moments envoient leur email", () => {
     expect(email.html).toContain(organization.name)
   })
 
-  it("l'appareil ajouté prévient son propriétaire, dans sa langue", async () => {
+  it("the added device notifies its owner, in their language", async () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -110,7 +110,7 @@ describe("les huit moments envoient leur email", () => {
     expect(email.html).toContain("MacBook")
   })
 
-  it("le serveur enrôlé prévient quand l'agent répond", async () => {
+  it("the enrolled server notifies when the agent answers", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},
@@ -151,7 +151,7 @@ describe("les huit moments envoient leur email", () => {
     expect(email.html).toContain("1.4.0")
   })
 
-  it("l'attribution prévient la personne attribuée", async () => {
+  it("the assignment notifies the assigned person", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
       subscription: {},
@@ -175,7 +175,7 @@ describe("les huit moments envoient leur email", () => {
     expect(email.subject).toContain("vps-attribue")
   })
 
-  it("la tolérance prévient les propriétaires de l'organisation", async () => {
+  it("the grace notifies the organization's owners", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
       subscription: {},
@@ -197,7 +197,7 @@ describe("les huit moments envoient leur email", () => {
     expect(emails.at(-1)?.to).toBe(owner.user.email)
   })
 
-  it("la suspension prévient les propriétaires une fois la tolérance écoulée", async () => {
+  it("the suspension notifies the owners once the grace has run out", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},
@@ -221,7 +221,7 @@ describe("les huit moments envoient leur email", () => {
     expect(emails.at(-1)?.to).toBe(owner.user.email)
   })
 
-  it("la suppression annonce la décommission dans sept jours", async () => {
+  it("the deletion announces the decommissioning in seven days", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: {},

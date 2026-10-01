@@ -50,14 +50,14 @@ test.describe("console", () => {
     await request.post(harnessUrl("/reset"))
   })
 
-  test("inscription, licence gratuite, téléchargement, liaison, serveurs", async ({
+  test("sign-up, free licence, download, linking, servers", async ({
     browser,
     page,
     request,
   }) => {
     await stayLocal(page)
 
-    await test.step("la page d'entrée accueille aussi une première venue", async () => {
+    await test.step("the entry page also welcomes a first-time visitor", async () => {
       await openHydrated(page, "/auth/sign-in")
 
       await expect(
@@ -66,7 +66,7 @@ test.describe("console", () => {
       await expect(page.getByText("Pas encore de compte ?")).toBeVisible()
     })
 
-    await test.step("le lien magique crée le compte et ouvre la console", async () => {
+    await test.step("the magic link creates the account and opens the console", async () => {
       await page.getByLabel("Adresse email").fill(EMAIL)
       await page
         .getByRole("button", { name: "Recevoir un lien de connexion" })
@@ -94,7 +94,7 @@ test.describe("console", () => {
       await expect(page.getByText("essai")).toHaveCount(0)
     })
 
-    await test.step("la barre latérale compte les pas, et tout s'ouvre sans licence", async () => {
+    await test.step("the sidebar counts the steps, and everything opens without a licence", async () => {
       await expect(
         page.getByRole("link", { name: "Démarrer · 1/3" })
       ).toBeVisible()
@@ -104,7 +104,7 @@ test.describe("console", () => {
       await expect(page.getByText("Licence requise")).toHaveCount(0)
     })
 
-    await test.step("le téléchargement s'ouvre sans recharger la console", async () => {
+    await test.step("the download opens without reloading the console", async () => {
       await page
         .getByRole("main")
         .getByRole("link", { name: "Toutes les plateformes" })
@@ -113,7 +113,7 @@ test.describe("console", () => {
       await expect(page).toHaveURL(DOWNLOAD_URL_RE)
     })
 
-    await test.step("la gratuité vaut droit d'usage, et la console s'ouvre", async () => {
+    await test.step("being free counts as a right of use, and the console opens", async () => {
       const me = await page.request.get("/api/v1/me")
       const identity = (await me.json()) as {
         license: string
@@ -141,7 +141,7 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("la licence compte les serveurs contre les trois gratuits, sans rien vendre", async () => {
+    await test.step("the licence counts servers against the three free ones, selling nothing", async () => {
       await page.goto("/dashboard/billing")
 
       await expect(
@@ -156,7 +156,7 @@ test.describe("console", () => {
       ).toHaveCount(0)
     })
 
-    await test.step("le téléchargement s'ouvre dans la console et dit l'ordre", async () => {
+    await test.step("the download opens in the console and states the order", async () => {
       await page.goto("/download")
 
       await expect(page).toHaveURL(DOWNLOAD_URL_RE)
@@ -177,7 +177,7 @@ test.describe("console", () => {
       await expect(page.getByText("Pas encore publié")).toHaveCount(3)
     })
 
-    await test.step("le device flow passe par la connexion, puis lie l'app au compte", async () => {
+    await test.step("the device flow goes through sign-in, then links the app to the account", async () => {
       const started = await request.post("/api/auth/device/code", {
         data: { client_id: DESKTOP_CLIENT_ID },
       })
@@ -263,7 +263,7 @@ test.describe("console", () => {
       expect(registered.status()).toBe(201)
     })
 
-    await test.step("l'app liée fait le troisième pas", async () => {
+    await test.step("the linked app completes the third step", async () => {
       await page.goto("/dashboard/servers")
 
       await expect(
@@ -277,7 +277,7 @@ test.describe("console", () => {
       ).toHaveAttribute("aria-current", "step")
     })
 
-    await test.step("la liste montre le serveur enrôlé", async () => {
+    await test.step("the list shows the enrolled server", async () => {
       const seeded = await request.post(harnessUrl("/servers"), {
         data: { email: EMAIL, name: SERVER_NAME },
       })
@@ -291,7 +291,7 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("le serveur s'ouvre, et le fil d'Ariane ramène à la liste", async () => {
+    await test.step("the server opens, and the breadcrumb leads back to the list", async () => {
       await page.getByTestId("server-list").getByText(SERVER_NAME).click()
 
       await expect(page).toHaveURL(SERVER_URL_RE)
@@ -308,7 +308,7 @@ test.describe("console", () => {
       await expect(page).toHaveURL(SERVERS_URL_RE)
     })
 
-    await test.step("révoquer un serveur se lit sur la fiche, sans la quitter", async () => {
+    await test.step("revoking a server shows on the record, without leaving it", async () => {
       await page.getByTestId("server-list").getByText(SERVER_NAME).click()
       await page.getByRole("button", { name: "Supprimer le serveur" }).click()
       await page
@@ -326,7 +326,7 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("l'effacement quitte la fiche sur-le-champ, et la liste ne porte plus la ligne", async () => {
+    await test.step("deletion leaves the record at once, and the list no longer carries the row", async () => {
       await page
         .getByRole("button", { name: "Supprimer définitivement" })
         .click()
@@ -342,7 +342,7 @@ test.describe("console", () => {
       await expect(page.getByRole("main").getByText(SERVER_STEP)).toBeVisible()
     })
 
-    await test.step("une ligne révoquée porte elle-même son effacement", async () => {
+    await test.step("a revoked row carries its own deletion", async () => {
       const seeded = await request.post(harnessUrl("/servers"), {
         data: { email: EMAIL, name: SECOND_SERVER_NAME },
       })
@@ -381,7 +381,7 @@ test.describe("console", () => {
       await expect(page.getByRole("main").getByText(SERVER_STEP)).toBeVisible()
     })
 
-    await test.step("un identifiant inconnu ne dit rien d'autre qu'introuvable", async () => {
+    await test.step("an unknown identifier says nothing but not found", async () => {
       await page.goto("/dashboard/servers/unknown-id")
 
       await expect(page.getByText("Rien à cette adresse")).toBeVisible()
@@ -390,7 +390,7 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("un serveur en ligne efface la liste des pas", async () => {
+    await test.step("an online server clears the step list", async () => {
       const seeded = await request.post(harnessUrl("/servers"), {
         data: { email: EMAIL, name: THIRD_SERVER_NAME, status: "active" },
       })

@@ -43,8 +43,8 @@ function trigger(name: string, headers: HeadersInit = {}): Request {
   )
 }
 
-describe("le déclencheur interne des workflows", () => {
-  it("démarre le workflow demandé avec le secret partagé", async () => {
+describe("the internal workflow trigger", () => {
+  it("starts the requested workflow with the shared secret", async () => {
     const { env, started } = envWithWorkflows(SECRET)
     const response = await handleInternalWorkflowTrigger(
       trigger("reconcile-seats", { [INTERNAL_SECRET_HEADER]: SECRET }),
@@ -61,7 +61,7 @@ describe("le déclencheur interne des workflows", () => {
     expect(started).toEqual(["reconcile-seats"])
   })
 
-  it("refuse une invocation sans le secret", async () => {
+  it("refuses an invocation without the secret", async () => {
     const { env, started } = envWithWorkflows(SECRET)
     const response = await handleInternalWorkflowTrigger(
       trigger("expire-enrollments"),
@@ -75,7 +75,7 @@ describe("le déclencheur interne des workflows", () => {
     expect(started).toEqual([])
   })
 
-  it("refuse une invocation avec un mauvais secret", async () => {
+  it("refuses an invocation with the wrong secret", async () => {
     const { env, started } = envWithWorkflows(SECRET)
     const response = await handleInternalWorkflowTrigger(
       trigger("expire-enrollments", { [INTERNAL_SECRET_HEADER]: "au-hasard" }),
@@ -86,7 +86,7 @@ describe("le déclencheur interne des workflows", () => {
     expect(started).toEqual([])
   })
 
-  it("refuse tout quand le secret n'est pas configuré", async () => {
+  it("refuses everything when the secret is not configured", async () => {
     const { env, started } = envWithWorkflows()
     const response = await handleInternalWorkflowTrigger(
       trigger("expire-enrollments", { [INTERNAL_SECRET_HEADER]: SECRET }),
@@ -97,7 +97,7 @@ describe("le déclencheur interne des workflows", () => {
     expect(started).toEqual([])
   })
 
-  it("ignore un workflow inconnu avant même de lire le secret", async () => {
+  it("ignores an unknown workflow before even reading the secret", async () => {
     const { env, started } = envWithWorkflows(SECRET)
     const response = await handleInternalWorkflowTrigger(
       trigger("purge-tout", { [INTERNAL_SECRET_HEADER]: SECRET }),
@@ -108,7 +108,7 @@ describe("le déclencheur interne des workflows", () => {
     expect(started).toEqual([])
   })
 
-  it("refuse une lecture simple", async () => {
+  it("refuses a plain read", async () => {
     const { env, started } = envWithWorkflows(SECRET)
     const request = new Request(
       `https://app.pupitre.studio${INTERNAL_WORKFLOW_PREFIX}reconcile-seats`,

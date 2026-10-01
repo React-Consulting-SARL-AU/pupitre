@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/React-Consulting-SARL-AU/pupitre/security/advisories/new
+    about: Never in a public issue. You can also write to security@pupitre.studio.
+  - name: Documentation
+    url: https://pupitre.studio/docs/
+    about: Installing the app, enrolling a server, the catalogue, troubleshooting.
+  - name: Account, licence or private question
+    url: mailto:support@pupitre.studio
+    about: Anything about your account or a licence beyond three servers.

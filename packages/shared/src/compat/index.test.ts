@@ -8,8 +8,8 @@ import {
   generationOf,
 } from "./index"
 
-describe("la feuille de compatibilité", () => {
-  it("va de la plus ancienne génération à la plus récente", () => {
+describe("the compatibility sheet", () => {
+  it("runs from the oldest generation to the most recent", () => {
     for (const [index, generation] of GENERATIONS.entries()) {
       const previous = GENERATIONS[index - 1]
 
@@ -25,13 +25,13 @@ describe("la feuille de compatibilité", () => {
     }
   })
 
-  it("finit sur le protocole que le contrat porte aujourd'hui", () => {
+  it("ends on the protocol the contract carries today", () => {
     expect(GENERATIONS.at(-1)?.protocol).toBe(PROTOCOL_VERSION)
   })
 })
 
 describe("generationOf", () => {
-  it("range une version dans la dernière génération qu'elle atteint", () => {
+  it("files a version under the latest generation it reaches", () => {
     expect(generationOf("app", "0.1.0")?.protocol).toBe(1)
     expect(generationOf("app", "0.1.9")?.protocol).toBe(1)
     expect(generationOf("app", "1.9.9")?.protocol).toBe(2)
@@ -43,18 +43,18 @@ describe("generationOf", () => {
     expect(generationOf("app", "2.3.0")?.app).toBe("2.0.0")
   })
 
-  it("ne range ni une version d'avant la feuille, ni un build de développement", () => {
+  it("files neither a version from before the sheet nor a development build", () => {
     expect(generationOf("app", "0.0.9")).toBeNull()
     expect(generationOf("agent", "v0.1.0-3-gabc1234")).toBeNull()
   })
 
-  it("range une pré-version dans la lignée qu'elle annonce", () => {
+  it("files a pre-release under the line it announces", () => {
     expect(generationOf("app", "0.1.0-beta.1")?.protocol).toBe(1)
   })
 })
 
-describe("les planchers", () => {
-  it("nomment l'agent qu'une app pilote", () => {
+describe("the floors", () => {
+  it("name the agent that an app drives", () => {
     expect(agentFloorFor("0.1.0")).toBe("0.1.0")
     expect(agentFloorFor("0.2.0")).toBe("0.2.0")
     expect(agentFloorFor("0.9.1")).toBe("0.2.0")
@@ -63,47 +63,47 @@ describe("les planchers", () => {
     expect(agentFloorFor("2.0.0")).toBe("2.0.0")
   })
 
-  it("ne nomment rien pour une version que la feuille ignore", () => {
+  it("name nothing for a version the sheet ignores", () => {
     expect(agentFloorFor("0.0.1")).toBeNull()
     expect(agentFloorFor("dev")).toBeNull()
   })
 })
 
 describe("compatibility", () => {
-  it("accepte deux versions de la même génération", () => {
+  it("accepts two versions of the same generation", () => {
     expect(compatibility("0.1.0", "0.1.0")).toBe("ok")
     expect(compatibility("0.9.1", "0.2.0")).toBe("ok")
     expect(compatibility("0.1.2", "0.1.0")).toBe("ok")
     expect(compatibility("1.4.0", "1.0.0")).toBe("ok")
   })
 
-  it("sépare la 1.0 des 0.x, qui n'ouvrent pas la session privilégiée", () => {
+  it("separates 1.0 from 0.x, which do not open the privileged session", () => {
     expect(compatibility("0.9.1", "1.0.0")).toBe("app_too_old")
     expect(compatibility("1.0.0", "0.9.1")).toBe("agent_too_old")
     expect(compatibility("1.0.0-rc.1", "1.0.0")).toBe("ok")
   })
 
-  it("sépare la 2.0, qui parle de licence, des 1.x", () => {
+  it("separates 2.0, which speaks of licence, from 1.x", () => {
     expect(compatibility("2.0.0", "2.1.0")).toBe("ok")
     expect(compatibility("1.4.0", "2.0.0")).toBe("app_too_old")
     expect(compatibility("2.0.0", "1.2.1")).toBe("agent_too_old")
   })
 
-  it("range une pré-version dans la lignée qu'elle annonce", () => {
+  it("files a pre-release under the line it announces", () => {
     expect(compatibility("0.1.0-beta.1", "0.1.0")).toBe("ok")
   })
 
-  it("ne juge pas un build de développement", () => {
+  it("does not judge a development build", () => {
     expect(compatibility("0.1.0", "v0.1.0-3-gabc1234")).toBe("unknown")
     expect(compatibility("dev", "0.1.0")).toBe("unknown")
   })
 
-  it("nomme le côté à mettre à jour quand une version précède la feuille", () => {
+  it("names the side to update when a version precedes the sheet", () => {
     expect(compatibility("0.0.1", "0.1.0")).toBe("app_too_old")
     expect(compatibility("0.1.0", "0.0.1")).toBe("agent_too_old")
   })
 
-  it("nomme le côté à mettre à jour entre deux générations", () => {
+  it("names the side to update between two generations", () => {
     expect(compatibility("0.1.2", "0.2.0")).toBe("app_too_old")
     expect(compatibility("0.2.0", "0.1.2")).toBe("agent_too_old")
   })

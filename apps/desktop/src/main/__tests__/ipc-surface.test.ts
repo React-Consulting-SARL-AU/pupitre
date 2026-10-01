@@ -72,26 +72,26 @@ function missing(named: Set<string>, answered: Set<string>): string[] {
 
 const stubbed = new Set(all(harness, /answer\(\s*"([^"]+)"/g));
 
-describe("la surface IPC", () => {
-  it("répond à chaque canal que le preload appelle", () => {
+describe("the IPC surface", () => {
+  it("answers every channel the preload calls", () => {
     expect(streams.length).toBeGreaterThan(0);
     expect(missing(invoked, handled)).toEqual([]);
   });
 
-  it("n'enregistre aucun canal que personne n'appelle", () => {
+  it("registers no channel nobody calls", () => {
     expect(missing(handled, invoked)).toEqual([]);
   });
 
-  it("émet chaque canal que le preload écoute", () => {
+  it("emits every channel the preload listens to", () => {
     expect(missing(listened, emitted)).toEqual([]);
   });
 
-  it("écoute chaque canal que le preload pousse sans réponse", () => {
+  it("listens to every channel the preload pushes without a reply", () => {
     expect(missing(pushed, heard)).toEqual([]);
   });
 
   // A stub on an unregistered channel lets the scenario pass on a build where the real call throws.
-  it("ne fait répondre au harnais que des canaux que le main enregistre", () => {
+  it("makes the harness answer only channels the main process registers", () => {
     expect(stubbed.size).toBeGreaterThan(0);
     expect(missing(stubbed, handled)).toEqual([]);
   });

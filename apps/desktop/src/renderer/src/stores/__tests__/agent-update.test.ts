@@ -35,8 +35,8 @@ beforeEach(() => {
   useAgentUpdate.setState({ hidden: null });
 });
 
-describe("la lecture de l'écart", () => {
-  it("garde la comparaison telle que le processus principal la rend", async () => {
+describe("reading the gap", () => {
+  it("keeps the comparison as the main process returns it", async () => {
     stubPupitre({
       agentUpdateState: () =>
         Promise.resolve({
@@ -59,7 +59,7 @@ describe("la lecture de l'écart", () => {
     });
   });
 
-  it("garde le remède quand la lecture échoue", async () => {
+  it("keeps the fix when the read fails", async () => {
     stubPupitre({
       agentUpdateState: () =>
         Promise.resolve({
@@ -81,8 +81,8 @@ describe("la lecture de l'écart", () => {
   });
 });
 
-describe("la mise à jour de l'agent", () => {
-  it("garde le journal de l'agent et relit l'écart", async () => {
+describe("the agent update", () => {
+  it("keeps the agent's journal and rereads the gap", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -131,7 +131,7 @@ describe("la mise à jour de l'agent", () => {
     expect(state.state).toMatchObject({ update: { order: "same" } });
   });
 
-  it("n'annonce aucune réussite quand l'agent refuse la signature", async () => {
+  it("announces no success when the agent refuses the signature", async () => {
     stubPupitre({
       upgradeAgent: (_serverId, onEvent) => {
         onEvent(log("version 0.4.0 téléchargée"));
@@ -161,8 +161,8 @@ describe("la mise à jour de l'agent", () => {
   });
 });
 
-describe("la mise à jour des modules", () => {
-  it("compte les étapes de chaque module et garde le rapport", async () => {
+describe("the module update", () => {
+  it("counts each module's steps and keeps the report", async () => {
     stubPupitre({
       upgradeModules: (_serverId, _modules, onEvent) => {
         onEvent(step("runtime.node", "ok"));
@@ -193,8 +193,8 @@ describe("la mise à jour des modules", () => {
   });
 });
 
-describe("la migration de la configuration", () => {
-  it("garde ce que l'agent a porté, et relit l'écart", async () => {
+describe("the configuration migration", () => {
+  it("keeps what the agent carried over, and rereads the gap", async () => {
     stubPupitre({
       agentUpdateState: () =>
         Promise.resolve({
@@ -229,7 +229,7 @@ describe("la migration de la configuration", () => {
     });
   });
 
-  it("garde le remède quand la migration est refusée", async () => {
+  it("keeps the fix when the migration is refused", async () => {
     stubPupitre({
       agentUpdateState: () =>
         Promise.resolve({
@@ -262,12 +262,12 @@ describe("la migration de la configuration", () => {
   });
 });
 
-describe("ce que le bandeau annonce", () => {
-  it("se tait tant que la comparaison n'est pas revenue", () => {
+describe("what the banner announces", () => {
+  it("stays silent until the comparison is back", () => {
     expect(announces({ status: "idle" }, null)).toBe(false);
   });
 
-  it("parle quand l'app est devant, et quand elle est derrière", () => {
+  it("speaks when the app is ahead, and when it is behind", () => {
     const ahead = {
       serverId: SERVER,
       status: "ready" as const,
@@ -288,7 +288,7 @@ describe("ce que le bandeau annonce", () => {
     expect(announces(behind, null)).toBe(true);
   });
 
-  it("parle toujours d'une configuration que l'agent ne lit pas, même masquée", () => {
+  it("always speaks of a configuration the agent cannot read, even when dismissed", () => {
     const state = {
       serverId: SERVER,
       status: "ready" as const,
@@ -305,7 +305,7 @@ describe("ce que le bandeau annonce", () => {
     expect(announces(state, "0.4.0")).toBe(true);
   });
 
-  it("se tait sur la version que le lecteur a masquée, pas sur la suivante", () => {
+  it("stays silent on the version the reader dismissed, not on the next one", () => {
     const state = {
       serverId: SERVER,
       status: "ready" as const,
@@ -323,8 +323,8 @@ describe("ce que le bandeau annonce", () => {
   });
 });
 
-describe("la relecture sur le battement", () => {
-  it("relit l'écart comme une lecture ordinaire", async () => {
+describe("the reread on the beat", () => {
+  it("rereads the gap like an ordinary read", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -354,7 +354,7 @@ describe("la relecture sur le battement", () => {
     });
   });
 
-  it("s'efface pendant une mise à jour ou une migration en cours", async () => {
+  it("steps aside during a running update or migration", async () => {
     let reads = 0;
 
     stubPupitre({
@@ -388,7 +388,7 @@ describe("la relecture sur le battement", () => {
     expect(reads).toBe(0);
   });
 
-  it("ne double pas une lecture encore en vol pour la même machine", async () => {
+  it("does not double a read still in flight for the same machine", async () => {
     let reads = 0;
     let settle: () => void = () => undefined;
 
@@ -427,8 +427,8 @@ describe("la relecture sur le battement", () => {
   });
 });
 
-describe("un changement de machine", () => {
-  it("laisse tomber la réponse tardive de la machine quittée", async () => {
+describe("a machine switch", () => {
+  it("drops the late answer from the machine that was left", async () => {
     const waiting: Record<string, () => void> = {};
 
     stubPupitre({
@@ -465,7 +465,7 @@ describe("un changement de machine", () => {
     });
   });
 
-  it("garde à chaque geste la machine qu'il concerne", async () => {
+  it("keeps for each gesture the machine it concerns", async () => {
     stubPupitre({
       agentUpdateState: () =>
         Promise.resolve({

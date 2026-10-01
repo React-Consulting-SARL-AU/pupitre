@@ -158,7 +158,7 @@ function harness({
 }
 
 describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
-  it("ne garde que les demandes que cet ordinateur peut signer", async () => {
+  it("keeps only the requests this computer can sign", async () => {
     const mine = pending();
     const theirs = pending({
       device: { ...pending().device, id: "device-3" },
@@ -173,7 +173,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     expect(answer).toEqual({ ok: true, result: [mine] });
   });
 
-  it("refuse de lister sans clé d'appareil sur cet ordinateur", async () => {
+  it("refuses to list without a device key on this computer", async () => {
     const approvals = createKeyApprovals(
       harness({ devicePublicKey: () => null }).deps
     );
@@ -186,7 +186,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     });
   });
 
-  it("signe les octets exacts du contrat avec la clé de l'appareil", async () => {
+  it("signs the exact bytes of the contract with the device key", async () => {
     const { deps, signed } = harness();
     const approvals = createKeyApprovals(deps);
 
@@ -208,7 +208,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     ]);
   });
 
-  it("envoie l'autorisation signée, l'empreinte de cet ordinateur pour signataire", async () => {
+  it("sends the signed authorization, with this computer's fingerprint as signer", async () => {
     const { deps, submitted } = harness();
     const approvals = createKeyApprovals(deps);
 
@@ -238,7 +238,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     ]);
   });
 
-  it("ne signe qu'une demande que la plateforme vient de lister", async () => {
+  it("only signs a request the platform has just listed", async () => {
     const { deps, signed } = harness();
     const approvals = createKeyApprovals(deps);
 
@@ -256,7 +256,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     expect(signed).toEqual([]);
   });
 
-  it("ne signe pas une clé dont l'empreinte affichée ment", async () => {
+  it("does not sign a key whose displayed fingerprint lies", async () => {
     const lying = pending({
       device: { ...pending().device, fingerprint: deviceFingerprint },
     });
@@ -278,7 +278,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     expect(signed).toEqual([]);
   });
 
-  it("rend le refus de la plateforme avec son remède", async () => {
+  it("returns the platform's refusal with its fix", async () => {
     const approvals = createKeyApprovals(
       harness({
         approved: {
@@ -305,7 +305,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
     });
   });
 
-  it("rend l'échec de la signature sans rien envoyer", async () => {
+  it("returns the signing failure without sending anything", async () => {
     const { deps, submitted } = harness({
       sign: sshKeygenSigner("pupitre-no-such-ssh-keygen"),
     });
@@ -323,7 +323,7 @@ describe.skipIf(!SSH_KEYGEN)("les demandes d'autorisation", () => {
 });
 
 describe.skipIf(!SSH_KEYGEN)("la signature par ssh-keygen", () => {
-  it("produit une signature SSHSIG que ssh-keygen vérifie", async () => {
+  it("produces an SSHSIG signature that ssh-keygen verifies", async () => {
     const message = keyApprovalMessage({
       issued_at: "2026-09-25T08:30:12Z",
       public_key: otherPublic,
@@ -361,7 +361,7 @@ describe.skipIf(!SSH_KEYGEN)("la signature par ssh-keygen", () => {
     expect(verified).toContain("Good");
   });
 
-  it("dit l'échec quand la clé ne se lit pas", async () => {
+  it("reports the failure when the key cannot be read", async () => {
     const signed = await sshKeygenSigner()("message\n", join(dir, "missing"));
 
     expect(signed).toMatchObject({
@@ -371,8 +371,8 @@ describe.skipIf(!SSH_KEYGEN)("la signature par ssh-keygen", () => {
   });
 });
 
-describe("les demandes à travers le compte", () => {
-  it("refuse sans session, dans les mots du compte", async () => {
+describe("requests through the account", () => {
+  it("refuses without a session, in the account's words", async () => {
     const account = createAccount({
       build: "production",
       deviceKey: () => Promise.resolve(FAKE_KEY),
@@ -393,7 +393,7 @@ describe("les demandes à travers le compte", () => {
   });
 });
 
-describe("les routes de la plateforme", () => {
+describe("the platform routes", () => {
   function recording(status: number, body: unknown) {
     const seen: { url: string; method: string; body: string | null }[] = [];
     const fetcher = ((input: string, init?: RequestInit) => {
@@ -420,7 +420,7 @@ describe("les routes de la plateforme", () => {
     };
   }
 
-  it("lit les demandes dans l'enveloppe data", async () => {
+  it("reads the requests from the data envelope", async () => {
     const pending = {
       device: {
         fingerprint: `SHA256:${"a".repeat(43)}`,
@@ -448,7 +448,7 @@ describe("les routes de la plateforme", () => {
     ]);
   });
 
-  it("poste l'autorisation telle quelle et rend le refus avec son remède", async () => {
+  it("posts the authorization as is and returns the refusal with its fix", async () => {
     const { platform, seen } = recording(403, {
       error: {
         code: "forbidden",

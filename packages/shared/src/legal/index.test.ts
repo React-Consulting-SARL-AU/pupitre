@@ -18,8 +18,8 @@ import {
   SubProcessorSchema,
 } from "./index"
 
-describe("l'éditeur", () => {
-  it("est la société qui concède la licence du code, avec ses identifiants publiés", () => {
+describe("the publisher", () => {
+  it("is the company that grants the code licence, with its published identifiers", () => {
     expect(LegalEntitySchema.parse(LEGAL_ENTITY)).toEqual(LEGAL_ENTITY)
     expect(LEGAL_ENTITY.status).toBe("incorporated")
     expect(isIncorporated()).toBe(true)
@@ -33,12 +33,12 @@ describe("l'éditeur", () => {
     expect(LEGAL_ENTITY.registeredAddress).toContain("40000 Marrakech")
   })
 
-  it("détient les droits du code, la société qui signe aussi l'app", () => {
+  it("holds the code rights, the company that also signs the app", () => {
     expect(copyrightHolder()).toBe("React Consulting SARL AU")
     expect(copyrightHolder()).toBe(CODE_SIGNING_ENTITY.name)
   })
 
-  it("rend les droits à la personne tant qu'aucune société n'est immatriculée", () => {
+  it("gives the rights to the individual as long as no company is registered", () => {
     const individual = {
       ...LEGAL_ENTITY,
       status: "individual" as const,
@@ -49,7 +49,7 @@ describe("l'éditeur", () => {
     expect(copyrightHolder(individual)).toBe("Jordan Monier")
   })
 
-  it("passe les droits à la société dès qu'elle est immatriculée", () => {
+  it("passes the rights to the company as soon as it is registered", () => {
     const incorporated = {
       ...LEGAL_ENTITY,
       status: "incorporated" as const,
@@ -60,7 +60,7 @@ describe("l'éditeur", () => {
     expect(copyrightHolder(incorporated)).toBe("Pupitre Inc.")
   })
 
-  it("garde la personne tant que la société n'a pas de nom légal", () => {
+  it("keeps the individual as long as the company has no legal name", () => {
     const named = {
       ...LEGAL_ENTITY,
       status: "individual" as const,
@@ -71,8 +71,8 @@ describe("l'éditeur", () => {
   })
 })
 
-describe("les documents légaux", () => {
-  it("couvrent chaque slug, une fois chacun, dans l'ordre", () => {
+describe("the legal documents", () => {
+  it("cover each slug, once each, in order", () => {
     const slugs = LEGAL_DOCUMENTS.map((document) => document.slug)
 
     expect(slugs).toEqual([...LEGAL_DOCUMENT_SLUGS])
@@ -81,22 +81,22 @@ describe("les documents légaux", () => {
     )
   })
 
-  it("portent chacun une date valide", () => {
+  it("each carry a valid date", () => {
     for (const document of LEGAL_DOCUMENTS) {
       expect(LegalDocumentSchema.parse(document)).toEqual(document)
     }
   })
 })
 
-describe("les sous-traitants", () => {
-  it("nomment leur rôle et leur région dans les deux langues", () => {
+describe("the sub-processors", () => {
+  it("name their role and region in both languages", () => {
     expect(SUB_PROCESSORS.length).toBeGreaterThan(0)
     for (const processor of SUB_PROCESSORS) {
       expect(SubProcessorSchema.parse(processor)).toEqual(processor)
     }
   })
 
-  it("ne nomment que ceux qui touchent une donnée personnelle", () => {
+  it("name only those that touch personal data", () => {
     const names = SUB_PROCESSORS.map((processor) => processor.name)
 
     expect(names).toContain("Cloudflare, Inc.")
@@ -105,14 +105,14 @@ describe("les sous-traitants", () => {
   })
 })
 
-describe("les pièces jointes sortantes", () => {
-  it("tiennent en cinq mébioctets, dix pièces et dix minutes d'adresse signée", () => {
+describe("outgoing attachments", () => {
+  it("fit in five mebibytes, ten files and ten minutes of signed URL", () => {
     expect(MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES).toBe(5 * 1024 * 1024)
     expect(MAIL_MAX_OUTBOUND_ATTACHMENTS).toBe(10)
     expect(MAIL_SIGNED_URL_TTL_SECONDS).toBe(600)
   })
 
-  it("refusent un exécutable ou un script, quelle que soit la casse", () => {
+  it("refuse an executable or a script, whatever the case", () => {
     expect(isBlockedAttachment("rapport.exe")).toBe(true)
     expect(isBlockedAttachment("Installer.MSI")).toBe(true)
     expect(isBlockedAttachment("script.ps1")).toBe(true)
@@ -122,7 +122,7 @@ describe("les pièces jointes sortantes", () => {
     expect(MAIL_BLOCKED_ATTACHMENT_EXTENSIONS).toContain("js")
   })
 
-  it("ne s'affichent en ligne que pour une image matricielle ou un PDF", () => {
+  it("display inline only for a raster image or a PDF", () => {
     expect(isPreviewableMailType("image/png")).toBe(true)
     expect(isPreviewableMailType("IMAGE/JPEG; charset=binary")).toBe(true)
     expect(isPreviewableMailType("application/pdf")).toBe(true)

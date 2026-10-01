@@ -29,7 +29,7 @@ async function expiredEnrollment(): Promise<string> {
   return server.id
 }
 
-describe("le workflow ExpireEnrollments", () => {
+describe("the ExpireEnrollments workflow", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -38,7 +38,7 @@ describe("le workflow ExpireEnrollments", () => {
     await resetDb()
   })
 
-  it("appelle expireEnrollments dans une étape nommée", async () => {
+  it("calls expireEnrollments in a named step", async () => {
     const serverId = await expiredEnrollment()
     const recorder = recordSteps()
 

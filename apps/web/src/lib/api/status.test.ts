@@ -30,7 +30,7 @@ async function readStatus(): Promise<PublicStatus> {
   return (await client.fetchQuery(statusQueryOptions())) as PublicStatus
 }
 
-describe("la page de statut", () => {
+describe("the status page", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -40,14 +40,14 @@ describe("la page de statut", () => {
     await useAnonymousApiClient()
   })
 
-  it("se lit sans session", async () => {
+  it("can be read without a session", async () => {
     const status = await readStatus()
 
     expect(status.api).toBe("ok")
     expect(status.database).toBe("ok")
   })
 
-  it("ne divulgue aucune donnée d'un client", async () => {
+  it("discloses no customer data", async () => {
     const { prisma } = await bootApiTestServer()
     const organization = await prisma.organization.create({
       data: {
@@ -79,7 +79,7 @@ describe("la page de statut", () => {
     expect(body).not.toContain(organization.slug)
   })
 
-  it("dit que ses chiffres sont périmés au lieu de rassurer", async () => {
+  it("says its figures are stale instead of reassuring", async () => {
     const { prisma } = await bootApiTestServer()
     const organization = await prisma.organization.create({
       data: {
@@ -113,7 +113,7 @@ describe("la page de statut", () => {
     expect(notice?.headline).toBe("Dernière observation il y a 1 h")
   })
 
-  it("avoue ne rien savoir quand aucun serveur ne rapporte", async () => {
+  it("admits knowing nothing when no server reports", async () => {
     const status = await readStatus()
 
     expect(status.freshness).toBe("unknown")
@@ -123,7 +123,7 @@ describe("la page de statut", () => {
     )
   })
 
-  it("se rafraîchit toutes les trente secondes", () => {
+  it("refreshes every thirty seconds", () => {
     expect(statusQueryOptions().refetchInterval).toBe(STATUS_POLL_INTERVAL_MS)
     expect(STATUS_POLL_INTERVAL_MS).toBe(30_000)
   })

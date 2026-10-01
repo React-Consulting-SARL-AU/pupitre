@@ -1,182 +1,182 @@
-# Sauvegardes
+# Backups
 
-Une sauvegarde est ce qu'il faut pour refaire un serveur Pupitre ailleurs, ou le remettre dans l'état d'hier : sa configuration et ses secrets, ses bases, ses projets tels qu'ils sont, et les sessions du compte `dev`. L'agent la chiffre sur le serveur, la dépose dans le seau S3 du client — Cloudflare R2, AWS S3, tout ce qui parle S3 — et la plateforme n'en garde que l'adresse et un résumé sans un nom. Restaurer, c'est rendre la machine telle qu'elle était, projets démarrés.
+A backup is what it takes to rebuild a Pupitre server elsewhere, or to put it back in yesterday's state: its configuration and secrets, its databases, its projects as they are, and the `dev` account's sessions. The agent encrypts it on the server, drops it in the customer's S3 bucket — Cloudflare R2, AWS S3, anything that speaks S3 — and the platform keeps only its address and a summary without a single name. Restoring means giving the machine back as it was, projects started.
 
-Les types sont dans `packages/shared/src/backup/` (format, manifeste, déclaration) et `packages/shared/src/agent-protocol/backup.ts` (commandes). La décision est la [0013](../decisions/0013-sauvegardes-s3-chiffrees.md).
+The types are in `packages/shared/src/backup/` (format, manifest, declaration) and `packages/shared/src/agent-protocol/backup.ts` (commands). The decision is [0013](../decisions/0013-encrypted-s3-backups.md).
 
-## Ce qu'une sauvegarde contient
+## What a backup contains
 
-Une sauvegarde est un préfixe du seau, un objet par partie, et un `manifest.json` écrit en dernier :
+A backup is a bucket prefix, one object per part, and a `manifest.json` written last:
 
 ```txt
 <prefix>/<server_id>/<backup_id>/
-  manifest.json                      en clair, sans secret
-  setup.pupitre                      configuration, registre, secrets des modules
-  home.pupitre                       clés et sessions du compte dev
-  db-postgres-roles.pupitre          rôles PostgreSQL (pg_dumpall --roles-only)
-  db-postgres-flyleaf.pupitre        une base, pg_dump --format=custom
-  db-mysql-users.pupitre             comptes MySQL faits à la main, empreintes et droits
-  db-mysql-intranet.pupitre          une base, mysqldump
-  db-mongodb-app.pupitre             une base, mongodump --archive
-  db-redis.pupitre                   l'instantané RDB
-  project-intranet.pupitre           le dossier du projet, .git compris
-  path-notes.pupitre                 un dossier supplémentaire de /home/dev
+  manifest.json                      in clear, no secret
+  setup.pupitre                      configuration, registry, module secrets
+  home.pupitre                       keys and sessions of the dev account
+  db-postgres-roles.pupitre          PostgreSQL roles (pg_dumpall --roles-only)
+  db-postgres-flyleaf.pupitre        one database, pg_dump --format=custom
+  db-mysql-users.pupitre             hand-made MySQL accounts, hashes and grants
+  db-mysql-intranet.pupitre          one database, mysqldump
+  db-mongodb-app.pupitre             one database, mongodump --archive
+  db-redis.pupitre                   the RDB snapshot
+  project-intranet.pupitre           the project folder, .git included
+  path-notes.pupitre                 an extra folder of /home/dev
 ```
 
-`backup_id` vaut `YYYYMMDDTHHMMSSZ-xxxxxx` (UTC, six chiffres hexadécimaux tirés au hasard) : il se trie par date. `server_id` est l'identifiant du serveur sur la plateforme, que `/agent/state` rend désormais et que l'agent garde dans `/etc/pupitre/server.id`.
+`backup_id` is `YYYYMMDDTHHMMSSZ-xxxxxx` (UTC, six randomly drawn hexadecimal digits): it sorts by date. `server_id` is the server's identifier on the platform, which `/agent/state` now returns and which the agent keeps in `/etc/pupitre/server.id`.
 
-| Partie | Contenu (en clair, avant gzip) | Quand |
+| Part | Content (in clear, before gzip) | When |
 | --- | --- | --- |
-| `setup` | un tar de `etc/pupitre/install.json`, `etc/pupitre/projects.local.json`, `etc/pupitre/projects.conf`, `etc/pupitre/migrations.json`, `etc/pupitre/env`, `var/lib/pupitre/projects.running.json` — ceux qui existent | toujours |
-| `home` | un tar, relatif à `/home/dev`, des entrées de `BACKUP_HOME_PATHS` qui existent, sans `BACKUP_HOME_EXCLUDED` (`.ssh/authorized_keys`, et `.claude/remote`, les binaires que Claude retélécharge) ; restauré fichier par fichier, chacun écrit à côté puis renommé sur sa place, si bien qu'un binaire qui tourne est remplacé plutôt que refusé (`text file busy`) | `home` coché (défaut) |
-| `database` | une base par partie, au format que dit `format` ; `name: "*"` pour ce qui appartient au serveur entier : les rôles PostgreSQL (`pg_roles`), les comptes MySQL ou MariaDB faits à la main (`mysql_users` : chacun supprimé puis recréé avec l'empreinte de son mot de passe — en hexadécimal sous MySQL 8 —, puis ses droits une fois tous les comptes faits ; `root`, les comptes système et les deux comptes du module n'y sont jamais, le module les refait), l'instantané Redis (`rdb`) | `databases` coché (défaut), pour chaque moteur installé ; les bases système (`postgres`, `template*`, `mysql`, `sys`, `information_schema`, `performance_schema`, `admin`, `config`, `local`) n'en sont pas |
-| `project` | mode `full` : un tar du dossier du projet, `.git` compris, sans les dossiers de `BACKUP_EXCLUDED_DIRS` à quelque profondeur que ce soit ; mode `env` : les seuls fichiers ignorés par git dont le nom commence par `.env`, à la racine et dans le dossier de chaque processus | `projects` coché (défaut) ; le mode suit `projects_env_only`, et un projet sans dépôt est toujours `full` |
-| `path` | un tar d'un chemin de `extra_paths`, relatif à `/home/dev` | un par chemin |
+| `setup` | a tar of `etc/pupitre/install.json`, `etc/pupitre/projects.local.json`, `etc/pupitre/projects.conf`, `etc/pupitre/migrations.json`, `etc/pupitre/env`, `var/lib/pupitre/projects.running.json` — those that exist | always |
+| `home` | a tar, relative to `/home/dev`, of the entries of `BACKUP_HOME_PATHS` that exist, without `BACKUP_HOME_EXCLUDED` (`.ssh/authorized_keys`, and `.claude/remote`, the binaries Claude redownloads); restored file by file, each written beside then renamed into place, so a running binary is replaced rather than refused (`text file busy`) | `home` ticked (default) |
+| `database` | one database per part, in the format `format` says; `name: "*"` for what belongs to the whole server: PostgreSQL roles (`pg_roles`), hand-made MySQL or MariaDB accounts (`mysql_users`: each dropped then recreated with its password hash — in hexadecimal on MySQL 8 —, then its grants once all accounts are made; `root`, the system accounts and the module's two accounts are never in it, the module remakes them), the Redis snapshot (`rdb`) | `databases` ticked (default), for each installed engine; system databases (`postgres`, `template*`, `mysql`, `sys`, `information_schema`, `performance_schema`, `admin`, `config`, `local`) are not part of it |
+| `project` | `full` mode: a tar of the project folder, `.git` included, without the `BACKUP_EXCLUDED_DIRS` folders at any depth; `env` mode: only the git-ignored files whose name starts with `.env`, at the root and in each process's folder | `projects` ticked (default); the mode follows `projects_env_only`, and a project without a repository is always `full` |
+| `path` | a tar of one path of `extra_paths`, relative to `/home/dev` | one per path |
 
-`install.json` porte les secrets des modules en clair — mots de passe des bases, jetons des outils, clés des fournisseurs de modèles, identifiants du tunnel : c'est ce qui fait qu'une restauration ne redemande rien. Le tar garde modes, liens symboliques internes et dates ; l'extraction redonne tout au compte `dev` (ou root pour `setup`), refuse un chemin absolu, un `..` et un lien qui sortirait de sa racine.
+`install.json` carries the modules' secrets in clear — database passwords, tool tokens, model provider keys, tunnel identifiers: that is what makes a restore ask for nothing. The tar keeps modes, internal symbolic links and dates; extraction gives everything back to the `dev` account (or root for `setup`), refuses an absolute path, a `..` and a link that would leave its root.
 
-Un dossier de projet ou un chemin d'`extra_paths` qui est lui-même un lien est suivi s'il mène à un dossier de `/home/dev` : la partie porte ce qu'il y trouve, sous le nom du lien, et la restauration le remet là où le lien mène, le lien gardé. Les liens rencontrés à l'intérieur ne sont jamais suivis. Un lien qui mène hors de `/home/dev`, ou nulle part, laisse la partie de côté avec un avertissement, jamais une archive vide.
+A project folder or an `extra_paths` path that is itself a link is followed if it leads to a folder of `/home/dev`: the part carries what it finds there, under the link's name, and the restore puts it back where the link leads, the link kept. Links met inside are never followed. A link that leads outside `/home/dev`, or nowhere, leaves the part aside with a warning, never an empty archive.
 
-Ce qui n'y est jamais : `server.token`, `platform.url`, `license.json`, les clés d'hôte SSH, `authorized_keys`, les binaires, les paquets, les runtimes, les dépendances des projets, les journaux, la galerie de captures, les volumes Docker.
+What is never in it: `server.token`, `platform.url`, `license.json`, SSH host keys, `authorized_keys`, binaries, packages, runtimes, project dependencies, logs, the screenshot gallery, Docker volumes.
 
-## Le chiffrement
+## Encryption
 
-Le client choisit une **phrase de passe**, une fois, sur son laptop. L'app tire un sel de 16 octets, dérive par PBKDF2-HMAC-SHA256 (600 000 tours) une clé privée X25519 de 32 octets, en tire la clé publique — le *destinataire* — **puis oublie la phrase et la clé privée**. Rien ne garde la phrase : ni l'app, ni son trousseau, ni le serveur, ni la plateforme. Seuls le destinataire et le sel, qui ne sont pas des secrets, sont gardés et partent vers le serveur.
+The customer chooses a **passphrase**, once, on their laptop. The app draws a 16-byte salt, derives a 32-byte X25519 private key through PBKDF2-HMAC-SHA256 (600,000 rounds), draws the public key from it — the *recipient* — **then forgets the passphrase and the private key**. Nothing keeps the passphrase: not the app, not its keychain, not the server, not the platform. Only the recipient and the salt, which are not secrets, are kept and go to the server.
 
-- **Le serveur chiffre et ne peut pas déchiffrer.** Chaque partie est scellée pour le destinataire : un seau exposé, un hébergeur curieux, une clé S3 qui fuit ne rendent que des octets opaques.
-- **La phrase et un manifeste suffisent.** Le manifeste porte le destinataire, l'algorithme, les tours et le sel. Depuis n'importe quel ordinateur, la phrase tapée redonne la clé ; l'app compare le destinataire dérivé à celui du manifeste avant d'envoyer quoi que ce soit, et une mauvaise phrase est refusée sur le laptop.
-- **Une identité par organisation.** Un second ordinateur de l'organisation reprend le destinataire et le sel de la dernière sauvegarde que la plateforme liste : la phrase n'est pas redemandée pour configurer, seulement pour restaurer. Changer de phrase tire un sel neuf ; les sauvegardes suivantes l'emploient, les anciennes restent ouvertes par l'ancienne.
-- **Restaurer demande la phrase.** L'app la demande, dérive, vérifie, et envoie la clé privée sur la ligne de secrets d'une commande de restauration. L'agent s'en sert en mémoire, ne l'écrit ni ne la journalise. Entre la pose de la configuration et le retour des données — l'installation et le durcissement, quelques minutes — le processus principal de l'app garde la clé dérivée en mémoire pour ce seul serveur, jamais sur le disque ni dans la fenêtre, et l'efface dès que les données sont revenues ou que la restauration est abandonnée ; une app relancée entre les deux redemande la phrase.
-- **Perdue, la phrase rend les sauvegardes illisibles.** Personne ne peut la recouvrer, et l'app le dit au moment de la choisir.
+- **The server encrypts and cannot decrypt.** Each part is sealed for the recipient: an exposed bucket, a curious host, a leaked S3 key yield only opaque bytes.
+- **The passphrase and a manifest suffice.** The manifest carries the recipient, the algorithm, the rounds and the salt. From any computer, the typed passphrase gives the key back; the app compares the derived recipient with the manifest's before sending anything, and a wrong passphrase is refused on the laptop.
+- **One identity per organization.** A second computer of the organization takes the recipient and the salt of the latest backup the platform lists: the passphrase is not asked again to configure, only to restore. Changing the passphrase draws a new salt; later backups use it, older ones stay opened by the old one.
+- **Restoring asks for the passphrase.** The app asks for it, derives, verifies, and sends the private key on the secrets line of a restore command. The agent uses it in memory, writes it nowhere and does not log it. Between putting the configuration in place and the return of the data — installation and hardening, a few minutes — the app's main process keeps the derived key in memory for that server alone, never on disk or in the window, and erases it as soon as the data is back or the restore is abandoned; an app relaunched in between asks for the passphrase again.
+- **Lost, the passphrase makes backups unreadable.** Nobody can recover it, and the app says so when it is chosen.
 
-### Le conteneur
+### The container
 
-Chaque partie est `gzip` puis scellée, en flux, dans le conteneur que décrit `BACKUP_CONTAINER` :
+Each part is `gzip`ped then sealed, as a stream, in the container that `BACKUP_CONTAINER` describes:
 
 ```txt
-en-tête  "PUPITRE\x01" · clé publique X25519 éphémère (32) · préfixe de nonce (8) · taille de bloc, uint32 gros-boutiste (4)
-clé      HKDF-SHA256(X25519(éphémère, destinataire), sel = en-tête, info = "pupitre-backup-v1"), 32 octets
-blocs    AES-256-GCM, nonce = préfixe · compteur uint32 gros-boutiste, aad = [1 pour le dernier bloc, 0 sinon]
+header   "PUPITRE\x01" · ephemeral X25519 public key (32) · nonce prefix (8) · block size, big-endian uint32 (4)
+key      HKDF-SHA256(X25519(ephemeral, recipient), salt = header, info = "pupitre-backup-v1"), 32 bytes
+blocks   AES-256-GCM, nonce = prefix · big-endian uint32 counter, aad = [1 for the last block, 0 otherwise]
 ```
 
-Chaque bloc sauf le dernier tient exactement la taille de bloc (1 Mio à l'écriture) ; le dernier en tient moins, éventuellement rien, et lui seul est scellé comme final : une troncature ne s'ouvre pas. `fixtures.json` porte les vecteurs que Go et TypeScript vérifient ; `contracts:export` le recopie dans `apps/agent/internal/contract/backup.fixtures.json`.
+Each block except the last is exactly the block size (1 MiB when writing); the last is smaller, possibly empty, and only it is sealed as final: a truncation does not open. `fixtures.json` carries the vectors that Go and TypeScript verify; `contracts:export` copies it into `apps/agent/internal/contract/backup.fixtures.json`.
 
-### L'intégrité
+### Integrity
 
-Le manifeste porte le `sha256` de chaque objet chiffré ; la plateforme garde celui du manifeste, et l'app le passe dans `location.sha256`. L'agent refuse un manifeste dont l'empreinte diffère (`backup_corrupt`), puis chaque partie dont l'empreinte diffère, avant de la déchiffrer. Une partie scellée par un tiers qui connaîtrait le destinataire ne peut donc pas se glisser dans une sauvegarde que la plateforme a enregistrée.
+The manifest carries the `sha256` of each encrypted object; the platform keeps the manifest's, and the app passes it in `location.sha256`. The agent refuses a manifest whose hash differs (`backup_corrupt`), then each part whose hash differs, before decrypting it. A part sealed by a third party who knew the recipient therefore cannot slip into a backup the platform has recorded.
 
-## Le module `core.backup`
+## The `core.backup` module
 
-Catégorie `core`, facultatif, `runs: false`, `connection: "backup"`. Il ne pose rien sur la machine hormis sa configuration dans `install.json`.
+Category `core`, optional, `runs: false`, `connection: "backup"`. It installs nothing on the machine apart from its configuration in `install.json`.
 
-| Champ | Genre | Défaut | Note |
+| Field | Kind | Default | Note |
 | --- | --- | --- | --- |
-| `endpoint` | text, motif `BACKUP_ENDPOINT_PATTERN`, managed | — | `https://<compte>.r2.cloudflarestorage.com`, `https://s3.<région>.amazonaws.com`. HTTPS seulement : en clair, la signature de chaque requête et l'identifiant de la clé passeraient sur le réseau, rejouables. Un stockage auto-hébergé se met derrière TLS |
+| `endpoint` | text, pattern `BACKUP_ENDPOINT_PATTERN`, managed | — | `https://<account>.r2.cloudflarestorage.com`, `https://s3.<region>.amazonaws.com`. HTTPS only: in clear, each request's signature and the key identifier would travel over the network, replayable. Self-hosted storage goes behind TLS |
 | `region` | text, managed | `auto` | |
 | `bucket` | text, managed | — | |
-| `prefix` | text, managed | `pupitre` | sans barre oblique au bout |
-| `path_style` | boolean, managed | vrai | faux pour un fournisseur qui exige l'adressage virtuel |
+| `prefix` | text, managed | `pupitre` | no trailing slash |
+| `path_style` | boolean, managed | true | false for a provider that requires virtual addressing |
 | `access_key_id` | text, managed | — | |
 | `secret_access_key` | secret, managed | — | |
-| `recipient` | text, managed | — | la clé publique, base64 |
-| `kdf_salt` | text, managed | — | le sel, base64 |
-| `interval_hours` | number 0–720 | 24 | 0 : aucune sauvegarde planifiée, seulement à la demande |
-| `hour` | number 0–23 | 3 | heure locale du serveur où part une sauvegarde d'un jour ou plus |
-| `keep` | number 1–365 | 14 | sauvegardes planifiées gardées ; les manuelles ne sont jamais élaguées |
-| `databases` | boolean | vrai | |
-| `home` | boolean | vrai | clés et sessions du compte `dev` |
-| `projects` | boolean | vrai | les projets du registre |
-| `projects_env_only` | boolean | faux | des projets à dépôt, les seuls fichiers `.env*` : le mode `env` ; décoché, le mode `full`. Un projet sans dépôt est toujours `full` |
-| `extra_paths` | list de text, motif `BACKUP_EXTRA_PATH_PATTERN` | vide | chemins relatifs à `/home/dev` |
-| `exclude_projects` | list de text, motif `BACKUP_PROJECT_ITEM_PATTERN` | vide | les projets laissés hors des sauvegardes, par leur nom |
-| `exclude_databases` | list de text, motif `BACKUP_DATABASE_ITEM_PATTERN` | vide | les bases laissées hors des sauvegardes : `postgres:shop`, `mysql:intranet`, `mongodb:app`, `redis:*` |
+| `recipient` | text, managed | — | the public key, base64 |
+| `kdf_salt` | text, managed | — | the salt, base64 |
+| `interval_hours` | number 0–720 | 24 | 0: no scheduled backup, on demand only |
+| `hour` | number 0–23 | 3 | server local hour at which a backup of a day or more starts |
+| `keep` | number 1–365 | 14 | scheduled backups kept; manual ones are never pruned |
+| `databases` | boolean | true | |
+| `home` | boolean | true | keys and sessions of the `dev` account |
+| `projects` | boolean | true | the registry's projects |
+| `projects_env_only` | boolean | false | of projects with a repository, only the `.env*` files: `env` mode; unticked, `full` mode. A project without a repository is always `full` |
+| `extra_paths` | list of text, pattern `BACKUP_EXTRA_PATH_PATTERN` | empty | paths relative to `/home/dev` |
+| `exclude_projects` | list of text, pattern `BACKUP_PROJECT_ITEM_PATTERN` | empty | the projects left out of backups, by name |
+| `exclude_databases` | list of text, pattern `BACKUP_DATABASE_ITEM_PATTERN` | empty | the databases left out of backups: `postgres:shop`, `mysql:intranet`, `mongodb:app`, `redis:*` |
 
-**Tout part par défaut.** Les réglages nomment ce qui reste en dehors, jamais ce qui part : un projet ou une base créés après les réglages sont sauvegardés tant que personne ne les décoche — une sauvegarde qu'on croit complète et qui oublie le dernier projet serait la pire. `databases` et `projects` restent les interrupteurs de toute la catégorie. Les rôles PostgreSQL et les comptes MySQL partent avec leur moteur dès qu'une de ses bases part : une base restaurée a besoin de ses propriétaires. `backup.contents` rend la liste que l'app coche, avec pour chaque élément s'il part aujourd'hui, et le manifeste garde dans `excluded` ce qui est resté dehors.
+**Everything goes by default.** The settings name what stays out, never what goes: a project or a database created after the settings is backed up until someone unticks it — a backup believed complete that forgets the latest project would be the worst. `databases` and `projects` remain the switches of the whole category. PostgreSQL roles and MySQL accounts go with their engine as soon as one of its databases goes: a restored database needs its owners. `backup.contents` returns the list the app ticks, with for each item whether it goes today, and the manifest keeps in `excluded` what stayed out.
 
-**Ce qu'une restauration fait d'un élément laissé dehors.** Sur un serveur neuf, un projet exclu qui a un dépôt est cloné et installé — son code revient, pas son travail en cours — et un projet exclu sans dépôt quitte le registre, rien ne pouvant le ramener ; une base exclue n'est pas créée. Les deux se disent dans `warnings`. Sur un serveur qu'on remet à la sauvegarde, ce qui était exclu reste tel qu'il est : ni supprimé, ni retiré du registre.
+**What a restore does with an item left out.** On a new server, an excluded project that has a repository is cloned and installed — its code comes back, not its work in progress — and an excluded project without a repository leaves the registry, nothing being able to bring it back; an excluded database is not created. Both are said in `warnings`. On a server being put back to a backup, what was excluded stays as it is: neither deleted nor removed from the registry.
 
-Le préflight (`install.check`) vérifie ce que seule la machine sait : `HeadBucket`, puis l'écriture et la suppression d'un objet sonde sous `<prefix>/<server_id>/`. Chaque refus porte son remède : seau inconnu, accès refusé, point d'accès injoignable, horloge décalée (`RequestTimeTooSkewed`). Il ne juge que si le serveur détient déjà la clé secrète — `install.check` ne porte aucun secret — et rend alors un problème `connection` du module ; à la première installation, c'est l'étape `verify-bucket` de `Configure` qui fait la même sonde avec la clé de la ligne de secrets, et qui échoue avec le même remède.
+The preflight (`install.check`) verifies what only the machine knows: `HeadBucket`, then writing and deleting a probe object under `<prefix>/<server_id>/`. Each refusal carries its remedy: unknown bucket, access denied, unreachable endpoint, skewed clock (`RequestTimeTooSkewed`). It only judges if the server already holds the secret key — `install.check` carries no secret — and then returns a `connection` problem of the module; on first installation, it is the `verify-bucket` step of `Configure` that does the same probe with the key from the secrets line, and fails with the same remedy.
 
-## Le déroulé d'une sauvegarde
+## How a backup runs
 
-1. Prendre le verrou du moteur (`install.lock`) : une sauvegarde n'en croise jamais une autre, ni une installation.
-2. Tirer l'identifiant, lire la dernière sauvegarde réussie dans `/var/lib/pupitre/backup.json`.
-3. Pour chaque partie, dans l'ordre `setup`, `home`, bases, projets, chemins : calculer son empreinte de source quand c'en est une (un dossier : chemins, tailles, modes, dates ; un fichier : son contenu). Si elle égale celle de la même partie dans la sauvegarde précédente, pour le même destinataire, **copier l'objet dans le seau** (`CopyObject`) au lieu de le renvoyer. Sinon, produire la source en flux — `pg_dump` → gzip → scellement → envoi multipart par parts de 8 Mio — sans fichier temporaire sur le disque du serveur.
-4. Une partie qui échoue est notée dans `warnings` avec sa phrase et n'arrête pas les autres ; un `setup` qui échoue arrête tout, car une sauvegarde sans configuration n'en est pas une.
-5. Écrire `manifest.json`, puis déclarer la sauvegarde à la plateforme (`POST /agent/backups`). Une déclaration qui échoue est reprise par le daemon au tour suivant.
-6. Élaguer : lister `<prefix>/<server_id>/`, lire les manifestes, garder les `keep` sauvegardes planifiées les plus récentes, effacer les autres objet par objet puis dire à la plateforme lesquelles sont parties (`DELETE /agent/backups/:id`). Un préfixe sans manifeste plus vieux qu'un jour est un envoi interrompu : il part aussi, avec les envois multipart abandonnés.
-7. Écrire `/var/lib/pupitre/backup.json` : `{ running_since?, running_pid?, last_run_at, last_ok_at?, last_error?, last: { id, key, bytes, recipient, endpoint, bucket, parts[] }, pending_declarations[], pending_forgets? }`. `running_since` et `running_pid` — le processus qui la fait — sont posés le temps d'une sauvegarde : `backup.status` ne la dit en cours que si ce processus vit, sans jamais prendre le verrou du moteur pour le vérifier ; `last` garde de quoi copier dans le même seau et pour le même destinataire ; `pending_forgets` nomme les sauvegardes élaguées dont la plateforme n'a pas encore reçu le `DELETE`, reprises par le daemon comme les déclarations.
+1. Take the engine lock (`install.lock`): a backup never crosses another, nor an installation.
+2. Draw the identifier, read the last successful backup in `/var/lib/pupitre/backup.json`.
+3. For each part, in the order `setup`, `home`, databases, projects, paths: compute its source fingerprint when it has one (a folder: paths, sizes, modes, dates; a file: its content). If it equals that of the same part in the previous backup, for the same recipient, **copy the object within the bucket** (`CopyObject`) instead of sending it again. Otherwise, produce the source as a stream — `pg_dump` → gzip → sealing → multipart upload in 8 MiB parts — with no temporary file on the server's disk.
+4. A part that fails is noted in `warnings` with its sentence and does not stop the others; a `setup` that fails stops everything, because a backup without configuration is not one.
+5. Write `manifest.json`, then declare the backup to the platform (`POST /agent/backups`). A declaration that fails is retried by the daemon on its next round.
+6. Prune: list `<prefix>/<server_id>/`, read the manifests, keep the `keep` most recent scheduled backups, delete the others object by object then tell the platform which are gone (`DELETE /agent/backups/:id`). A prefix without a manifest older than a day is an interrupted upload: it goes too, along with abandoned multipart uploads.
+7. Write `/var/lib/pupitre/backup.json`: `{ running_since?, running_pid?, last_run_at, last_ok_at?, last_error?, last: { id, key, bytes, recipient, endpoint, bucket, parts[] }, pending_declarations[], pending_forgets? }`. `running_since` and `running_pid` — the process doing it — are set for the duration of a backup: `backup.status` only says it is running if that process lives, without ever taking the engine lock to check; `last` keeps what is needed to copy in the same bucket and for the same recipient; `pending_forgets` names the pruned backups whose `DELETE` the platform has not yet received, retried by the daemon like the declarations.
 
-Les commandes lourdes tournent en `nice 10` et `ionice -c3`. Les secrets des moteurs passent comme pour `db.dump` : jamais sur une ligne de commande.
+Heavy commands run under `nice 10` and `ionice -c3`. Engine secrets pass as for `db.dump`: never on a command line.
 
-## L'ordonnancement
+## Scheduling
 
-Le daemon lit `install.json` à chaque tour de trente secondes. Quand `core.backup` est installé et configuré, que `interval_hours` est positif et que l'échéance est passée, il lance une sauvegarde `schedule`. L'échéance suit la dernière tentative : `last_run_at + interval_hours` ; un intervalle d'un jour ou plus s'aligne sur `hour`, heure locale du serveur. Une échéance manquée pendant un arrêt est rattrapée une fois au réveil ; un serveur qui n'a jamais sauvegardé part à `hour` le jour même, ou tout de suite si l'heure est passée. Un verrou tenu fait attendre le tour suivant. Un serveur en mode restreint ne sauvegarde pas ; en tolérance, si.
+The daemon reads `install.json` on each thirty-second round. When `core.backup` is installed and configured, `interval_hours` is positive and the due time has passed, it launches a `schedule` backup. The due time follows the last attempt: `last_run_at + interval_hours`; an interval of a day or more aligns on `hour`, server local time. A due time missed during a shutdown is caught up once on waking; a server that has never backed up starts at `hour` the same day, or right away if the hour has passed. A held lock makes it wait for the next round. A server in restricted mode does not back up; in grace, it does.
 
-Le heartbeat porte `backup: BackupBeat` — `{ interval_hours, last_run_at?, last_ok_at?, last_error?, last_warnings? }` — quand le module est installé. `last_warnings` compte les parties que la dernière sauvegarde n'a pas pu emporter ; `backup.status` en rend les phrases dans `last.warnings`, et l'app les montre sous l'état. Une sauvegarde incomplète existe, mais ce qui lui manque ne reviendrait pas : c'est un échec pour les alertes.
+The heartbeat carries `backup: BackupBeat` — `{ interval_hours, last_run_at?, last_ok_at?, last_error?, last_warnings? }` — when the module is installed. `last_warnings` counts the parts the last backup could not take along; `backup.status` returns their sentences in `last.warnings`, and the app shows them under the state. An incomplete backup exists, but what it lacks would not come back: it is a failure for alerts.
 
-## Les commandes
+## Commands
 
-Dans `agent-protocol.md`, section « Sauvegardes ». Aucune n'est ouverte en mode restreint ni avant l'enrôlement ; aucune ne l'est tant que la configuration attend une migration.
+In `agent-protocol.md`, "Backups" section. None is open in restricted mode nor before enrolment; none is while the configuration awaits a migration.
 
-| Commande | Rôle |
+| Command | Role |
 | --- | --- |
-| `backup.status` | où en sont les sauvegardes de ce serveur |
-| `backup.contents` | les projets et les bases que ce serveur tient, et si chacun part dans les sauvegardes |
-| `backup.run` | une sauvegarde maintenant, avec le nom facultatif que le lecteur lui donne (`name`, 80 caractères au plus, ni espace au bord ni caractère de contrôle — `BACKUP_NAME_PATTERN`), porté par le manifeste et la déclaration ; événements `step` du module `core.backup` (`setup`, `home`, `db:<moteur>:<nom>`, `project:<nom>`, `path:<chemin>`, `manifest`, `declare`, `prune`) |
-| `backup.delete` | efface une sauvegarde de ce serveur dans le seau, puis sur la plateforme |
-| `backup.inspect` | lit et vérifie le manifeste d'une sauvegarde, sans rien écrire |
-| `backup.restore.setup` | pose la configuration d'une sauvegarde, migrée à la révision du binaire |
-| `backup.restore.data` | ramène bases, projets, chemins et `home`, puis démarre les projets |
-| `backup.restore.abort` | abandonne une restauration commencée avant son installation |
+| `backup.status` | where this server's backups stand |
+| `backup.contents` | the projects and databases this server holds, and whether each goes into backups |
+| `backup.run` | a backup now, with the optional name the reader gives it (`name`, 80 characters at most, no space at the edges nor control character — `BACKUP_NAME_PATTERN`), carried by the manifest and the declaration; `step` events of the `core.backup` module (`setup`, `home`, `db:<engine>:<name>`, `project:<name>`, `path:<path>`, `manifest`, `declare`, `prune`) |
+| `backup.delete` | deletes a backup of this server in the bucket, then on the platform |
+| `backup.inspect` | reads and verifies a backup's manifest, writing nothing |
+| `backup.restore.setup` | puts a backup's configuration in place, migrated to the binary's revision |
+| `backup.restore.data` | brings back databases, projects, paths and `home`, then starts the projects |
+| `backup.restore.abort` | abandons a restore begun before its installation |
 
-`backup.inspect`, `backup.restore.setup` et `backup.restore.data` lisent la ligne de secrets `BackupSecrets` : la clé S3 et, pour une restauration, la clé privée.
+`backup.inspect`, `backup.restore.setup` and `backup.restore.data` read the `BackupSecrets` secrets line: the S3 key and, for a restore, the private key.
 
-## Restaurer
+## Restoring
 
-Deux cas, un même chemin.
+Two cases, one path.
 
-**Un serveur neuf**, pendant l'onboarding. `backup.restore.setup` refuse une machine qui a déjà une installation, sauf si la seule configuration qu'elle porte vient d'une restauration en cours.
+**A new server**, during onboarding. `backup.restore.setup` refuses a machine that already has an installation, unless the only configuration it carries comes from a restore in progress.
 
-**Un serveur existant qu'on remet à une sauvegarde** (`revert: true`). L'app propose d'abord une sauvegarde de l'état actuel, cochée par défaut : c'est ce qui permet de revenir en arrière du retour en arrière. Puis l'agent arrête tous les projets, pose la configuration et le registre de la sauvegarde ; les projets que la sauvegarde ne connaît pas quittent le registre (`dropped`), leurs dossiers restent. `extra` nomme les modules installés que la sauvegarde ne tient pas ; l'app propose de les désinstaller.
+**An existing server being put back to a backup** (`revert: true`). The app first offers a backup of the current state, ticked by default: that is what lets you go back from the going back. Then the agent stops all projects, puts the backup's configuration and registry in place; projects the backup does not know leave the registry (`dropped`), their folders stay. `extra` names the installed modules the backup does not hold; the app offers to uninstall them.
 
-Dans les deux cas :
+In both cases:
 
-1. **`backup.restore.setup`** télécharge le manifeste, vérifie son empreinte, puis `setup`, le déchiffre, lit sa révision : en retard, elle est migrée par le registre de migrations exactement comme une configuration sur place ; en avance, refus `backup_unsupported` avec le remède « mettez l'agent à jour ». Un format de manifeste inconnu refuse de même. Les fichiers sont posés, une marque `/var/lib/pupitre/restore.json` dit qu'une restauration est en cours et depuis quelle sauvegarde.
-2. **L'installation** : l'app nomme `modules` et `defer`, `module.config` lui rend les valeurs de chacun, et les secrets restaurés sont tenus pour détenus — un secret absent de la ligne de secrets n'est pas effacé. Une connexion que ce laptop n'a pas ne bloque pas un module restauré : ses champs gérés sont déjà sur la machine.
-3. **Le durcissement**, pour un serveur neuf.
-4. **`backup.restore.data`**, les parties choisies, dans l'ordre `home`, bases, chemins, projets. Une base est recréée par son import, et rien n'est supprimé avant que le disque ait été pesé : la partie est lue une fois en entier pour sa taille, et si le disque de données du moteur, rendu de ce que la suppression libère, ne la tient pas avec 512 Mio de marge, la partie échoue avec la place qu'il faut et la base reste telle qu'elle est. PostgreSQL met la base d'avant de côté sous un autre nom, la rend à son nom si l'import échoue et ne la supprime qu'une fois l'import passé ; MySQL et MongoDB ne savent pas renommer une base — un dump MySQL nomme la sienne dans ses vues et ses déclencheurs —, ils la suppriment juste avant l'import. Un instantané Redis est écrit à côté du fichier du serveur et ne le remplace qu'entier ; Redis est redémarré sur ses données d'avant si l'écriture échoue. Les rôles PostgreSQL passent avant les bases, un rôle déjà là n'est pas une erreur. Un projet `full` voit son dossier remplacé en entier — branche, fichiers modifiés, commits non poussés reviennent tels quels, sans clone ; un projet `env` est cloné (`project.pull`) puis reçoit ses fichiers `.env*`. Chaque projet reçoit ensuite ce que `project.add` fait après sa ligne : hôtes `.localhost`, routes de l'exposition, épingles de runtimes, `project.install`. Enfin, avec `start` (défaut), les projets que le manifeste dit en marche sont démarrés, et ceux qui démarrent au boot aussi. Une partie qui échoue est notée `failed` avec sa commande de rejeu et n'arrête pas les autres. La marque de restauration est effacée à la fin.
+1. **`backup.restore.setup`** downloads the manifest, verifies its hash, then `setup`, decrypts it, reads its revision: behind, it is migrated by the migration registry exactly like a configuration in place; ahead, `backup_unsupported` refusal with the remedy "update the agent". An unknown manifest format refuses likewise. The files are put in place, a `/var/lib/pupitre/restore.json` mark says a restore is in progress and from which backup.
+2. **The installation**: the app names `modules` and `defer`, `module.config` hands it each one's values, and the restored secrets are held as owned — a secret absent from the secrets line is not erased. A connection this laptop does not have does not block a restored module: its managed fields are already on the machine.
+3. **Hardening**, for a new server.
+4. **`backup.restore.data`**, the chosen parts, in the order `home`, databases, paths, projects. A database is recreated by its import, and nothing is deleted before the disk has been weighed: the part is read once in full for its size, and if the engine's data disk, accounting for what the deletion frees, does not hold it with a 512 MiB margin, the part fails with the space needed and the database stays as it is. PostgreSQL sets the previous database aside under another name, gives it back its name if the import fails and deletes it only once the import has passed; MySQL and MongoDB cannot rename a database — a MySQL dump names its own in its views and triggers —, they delete it just before the import. A Redis snapshot is written beside the server's file and replaces it only whole; Redis is restarted on its earlier data if the write fails. PostgreSQL roles come before databases, a role already there is not an error. A `full` project has its folder replaced entirely — branch, modified files, unpushed commits come back as they were, with no clone; an `env` project is cloned (`project.pull`) then receives its `.env*` files. Each project then receives what `project.add` does after its line: `.localhost` hosts, exposure routes, runtime pins, `project.install`. Finally, with `start` (default), the projects the manifest says were running are started, and those that start at boot too. A part that fails is noted `failed` with its replay command and does not stop the others. The restore mark is erased at the end.
 
-Les étapes de `backup.restore.data` s'appellent comme celles d'une sauvegarde pour les parties, puis `hosts`, `runtimes`, `routes`, `install:<projet>` et `start:<projet>`. Une restauration n'a pas de commande sur la machine — la clé privée n'y reste pas — : le `replay` d'une étape en échec est la requête que l'app renvoie, `backup.restore.data {"parts":["<clé>"]}`, `project.install {"name":"<projet>"}`, `project.up {"name":"<projet>"}` ou `tunnel.sync` ; un projet exclu que la restauration clone ou retire du registre passe par une étape `project:<projet>`, rejouée par `project.pull` ou `project.remove`. Une étape d'après les parties qui échoue va dans `warnings`, pas dans `failed`, qui ne nomme que des parties.
-5. **L'app** appelle `platform.sync`, puis `POST /backups/:id/restored`.
+The steps of `backup.restore.data` are named like those of a backup for the parts, then `hosts`, `runtimes`, `routes`, `install:<project>` and `start:<project>`. A restore has no command on the machine — the private key does not stay there —: the `replay` of a failed step is the request the app sends again, `backup.restore.data {"parts":["<key>"]}`, `project.install {"name":"<project>"}`, `project.up {"name":"<project>"}` or `tunnel.sync`; an excluded project that the restore clones or removes from the registry goes through a `project:<project>` step, replayed by `project.pull` or `project.remove`. A step after the parts that fails goes into `warnings`, not `failed`, which names only parts.
+5. **The app** calls `platform.sync`, then `POST /backups/:id/restored`.
 
-`backup.restore.abort` efface la marque et, si aucune installation n'a eu lieu depuis, remet la configuration d'avant la restauration : rien pour un serveur neuf — `install.json` et le registre à vide —, celle que la machine portait pour un `revert`. `backup.restore.setup` la garde de côté pour ça sous `/var/lib/pupitre/restore/before/` (0700 root), à la première restauration seulement, et la marque retient l'empreinte d'`install.json` telle que la restauration l'a laissée : une installation passée depuis la change, et l'abandon n'efface alors que la marque.
+`backup.restore.abort` erases the mark and, if no installation has taken place since, puts back the configuration from before the restore: nothing for a new server — `install.json` and the registry empty —, the one the machine carried for a `revert`. `backup.restore.setup` keeps it aside for that under `/var/lib/pupitre/restore/before/` (0700 root), on the first restore only, and the mark retains the hash of `install.json` as the restore left it: an installation run since changes it, and the abort then erases only the mark.
 
-Un client ouvre une partie sans Pupitre : `pupitred backup open --salt=<sel du manifeste> FICHIER` lit la phrase de passe sur l'entrée standard, `pupitred backup open --private-key FICHIER` la clé privée, et la partie sort déchiffrée et décompressée sur la sortie standard.
+A customer opens a part without Pupitre: `pupitred backup open --salt=<manifest salt> FILE` reads the passphrase on standard input, `pupitred backup open --private-key FILE` the private key, and the part comes out decrypted and decompressed on standard output.
 
-## La plateforme
+## The platform
 
-Une table `Backup`, des routes, deux alertes. Le détail est dans [platform-api.md](./platform-api.md#sauvegardes).
+A `Backup` table, routes, two alerts. The detail is in [platform-api.md](./platform-api.md#backups).
 
-- `POST /agent/backups` (jeton de serveur) déclare une sauvegarde, `BackupDeclaration` ; idempotent sur l'identifiant.
-- `DELETE /agent/backups/:id` (jeton de serveur) retire la référence d'une sauvegarde de ce serveur.
-- `GET /backups` et `GET /servers/:id/backups` (session) listent les sauvegardes de l'organisation, les plus récentes d'abord ; un `member` ne voit que celles des serveurs qui lui sont attribués. Chaque ligne est un `PlatformBackup` (`@pupitre/shared/backup`) : la déclaration, plus `server_id` et `server_name`. La route et l'app le prennent de là ; `created_at` et les dates du battement suivent `InstantSchema`.
-- `POST /backups/:id/forget` (`admin`) efface une référence sans toucher au seau.
-- `POST /backups/:id/restored` (session) note une restauration dans le journal.
-- `backup_failed` quand le dernier battement porte une erreur plus récente que le dernier succès, ou une dernière sauvegarde incomplète (`last_warnings` positif) ; `backup_stale` quand deux intervalles sont passés sans succès.
+- `POST /agent/backups` (server token) declares a backup, `BackupDeclaration`; idempotent on the identifier.
+- `DELETE /agent/backups/:id` (server token) removes the reference to a backup of this server.
+- `GET /backups` and `GET /servers/:id/backups` (session) list the organization's backups, most recent first; a `member` sees only those of the servers assigned to them. Each row is a `PlatformBackup` (`@pupitre/shared/backup`): the declaration, plus `server_id` and `server_name`. The route and the app take it from there; `created_at` and the heartbeat dates follow `InstantSchema`.
+- `POST /backups/:id/forget` (`admin`) deletes a reference without touching the bucket.
+- `POST /backups/:id/restored` (session) notes a restore in the log.
+- `backup_failed` when the last heartbeat carries an error more recent than the last success, or an incomplete last backup (`last_warnings` positive); `backup_stale` when two intervals have passed without success.
 
-## L'app
+## The app
 
-- **La page Sauvegardes d'un serveur** — l'assistant de mise en place, puis l'onglet Destination, qui applique au serveur tout changement aussitôt enregistré ; plus rien dans les Réglages : point d'accès, région, seau, préfixe, adressage, clé d'accès et clé secrète (au trousseau), et la phrase de passe — tapée deux fois, ou générée, puis oubliée. Si l'organisation a déjà des sauvegardes, l'identité de la plus récente est reprise sans phrase.
-- **La fiche du serveur, section Sauvegardes** : l'état, le formulaire du module (intervalle, heure, rétention, contenu), « Sauvegarder maintenant », la liste lue de la plateforme avec, pour chacune, « Revenir à cette sauvegarde » et « Supprimer ».
-- **L'onboarding** : quand l'organisation a des sauvegardes, l'étape « Repartir d'une sauvegarde ? » vient après l'agent et avant le catalogue ; l'étape « Données » vient après le durcissement.
+- **A server's Backups page** — the setup wizard, then the Destination tab, which applies to the server any change as soon as it is saved; nothing left in Settings: endpoint, region, bucket, prefix, addressing, access key and secret key (in the keychain), and the passphrase — typed twice, or generated, then forgotten. If the organization already has backups, the most recent one's identity is taken without a passphrase.
+- **The server's record, Backups section**: the state, the module's form (interval, hour, retention, contents), "Back up now", the list read from the platform with, for each, "Revert to this backup" and "Delete".
+- **Onboarding**: when the organization has backups, the "Start from a backup?" step comes after the agent and before the catalogue; the "Data" step comes after hardening.
 
-## Limites
+## Limits
 
-- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand `runtime.docker` est installé.
-- Un mot de passe de base de données changé à la main hors de Pupitre revient à celui que `install.json` tient.
-- La plateforme voit une adresse, des tailles, des comptes, une révision, une clé publique et, pour une sauvegarde manuelle, le nom que le lecteur lui a donné ; elle ne voit aucun nom de projet ni de base.
-- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du seau sont la parade, et le guide les mentionne.
-- Qui lit le seau lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, un secret ni un fichier : ceux-là sont scellés. C'est le prix d'un écran de restauration qui montre ce qu'une sauvegarde contient avant qu'on donne la phrase, et le guide le dit.
-- La confidentialité est de bout en bout ; l'authenticité d'une sauvegarde repose sur l'empreinte de son manifeste que garde la plateforme. Une plateforme compromise ne lirait rien, mais pourrait désigner une sauvegarde plus ancienne du même client à la place de la dernière.
-- La clé dérive de la phrase par PBKDF2-SHA256 à 600 000 tours, au niveau recommandé aujourd'hui ; une phrase tapée de douze caractères est le maillon faible, et l'app propose une phrase tirée de 120 bits.
+- Docker volumes are not backed up; the app says so when `runtime.docker` is installed.
+- A database password changed by hand outside Pupitre reverts to the one `install.json` holds.
+- The platform sees an address, sizes, accounts, a revision, a public key and, for a manual backup, the name the reader gave it; it sees no project or database name.
+- Whoever holds the S3 key can delete the backups: bucket versioning or object locking is the remedy, and the guide mentions them.
+- Whoever reads the bucket reads the manifests, in clear: the server name, the names of projects, databases and folders, the address and branch of repositories. Never a content, a secret or a file: those are sealed. That is the price of a restore screen that shows what a backup contains before the passphrase is given, and the guide says so.
+- Confidentiality is end to end; the authenticity of a backup rests on the hash of its manifest that the platform keeps. A compromised platform would read nothing, but could point to an older backup of the same customer in place of the latest.
+- The key derives from the passphrase by PBKDF2-SHA256 at 600,000 rounds, at the level recommended today; a typed passphrase of twelve characters is the weak link, and the app offers a drawn passphrase of 120 bits.

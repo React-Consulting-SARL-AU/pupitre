@@ -18,7 +18,7 @@
     "release:public-key": "go run ./tools/release public-key",
     "release:keygen": "go run ./tools/release keygen",
     "test": "go test ./... && go test -tags dev ./...",
-    "lint": "test -z \"$(gofmt -l .)\" && go vet ./... && go vet -tags dev ./... && { command -v staticcheck >/dev/null && command -v govulncheck >/dev/null || { echo 'staticcheck ou govulncheck est absent : bun --cwd=apps/agent run tools:install, et le bin de Go dans le PATH'; exit 1; }; } && staticcheck ./... && staticcheck -tags dev ./... && govulncheck ./...",
+    "lint": "test -z \"$(gofmt -l .)\" && go vet ./... && go vet -tags dev ./... && { command -v staticcheck >/dev/null && command -v govulncheck >/dev/null || { echo 'staticcheck or govulncheck is missing: bun --cwd=apps/agent run tools:install, with the Go bin folder in your PATH'; exit 1; }; } && staticcheck ./... && staticcheck -tags dev ./... && govulncheck ./...",
     "lint:fix": "gofmt -w .",
     "tools:install": "go install honnef.co/go/tools/cmd/staticcheck@v0.8.1 && go install golang.org/x/vuln/cmd/govulncheck@v1.8.0",
     "check:types": "go build ./... && go build -tags dev ./..."

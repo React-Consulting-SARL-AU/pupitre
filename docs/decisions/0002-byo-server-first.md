@@ -1,9 +1,9 @@
-# 0002 — L'offre « apportez votre serveur » d'abord
+# 0002 — The "bring your own server" offer first
 
-Date : 2026-09-04 · Statut : acceptée
+Date: 2026-09-04 · Status: accepted
 
-La première offre vendue est celle où le client apporte son VPS. L'offre hébergée (serveur fourni par Pupitre, stock de machines netcup géré par l'API SCP) vient après 100 serveurs payants.
+The first offer sold is the one where the customer brings their own VPS. The hosted offer (a server supplied by Pupitre, from a stock of netcup machines managed through the SCP API) comes after 100 paying servers.
 
-Pourquoi : pas de coût de machine, pas de statut d'hébergeur, pas de stock à gérer, une commercialisation plus simple. Le MVP est une app complète sur un VPS apporté.
+Why: no machine cost, no hosting-provider status, no stock to manage, simpler commercialization. The MVP is a complete app on a customer-supplied VPS.
 
-Amendée le 2026-09-05 : la formulation d'origine dispensait le MVP de compte et de paiement. Le parcours est désormais site, compte, essai, téléchargement, liaison, serveur ; aucun serveur ne s'enrôle sans abonnement en cours, l'essai en étant un.
+Amended on 2026-09-05: the original wording exempted the MVP from accounts and payment. The flow is now site, account, trial, download, linking, server; no server enrols without a subscription in progress, the trial being one.

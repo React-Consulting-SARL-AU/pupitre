@@ -20,8 +20,8 @@ function render(drawn: string | null, noted: boolean, attempted: boolean) {
   );
 }
 
-describe("la phrase de passe tirée", () => {
-  it("demande de dire qu'elle est notée ailleurs, une fois tirée", () => {
+describe("the drawn passphrase", () => {
+  it("asks to confirm it is noted elsewhere, once drawn", () => {
     const html = render(DRAWN, false, false);
 
     expect(html).toContain(DRAWN);
@@ -30,7 +30,7 @@ describe("la phrase de passe tirée", () => {
     );
   });
 
-  it("dit ce qui manque quand on enregistre sans l'avoir cochée", () => {
+  it("says what is missing when saving without having ticked it", () => {
     expect(render(DRAWN, false, true)).toContain(
       "Cochez cette case une fois la passphrase notée"
     );
@@ -39,7 +39,7 @@ describe("la phrase de passe tirée", () => {
     );
   });
 
-  it("ne demande rien de tel pour une phrase tapée deux fois", () => {
+  it("asks for nothing of the kind for a passphrase typed twice", () => {
     expect(render(null, false, true)).not.toContain(
       "J&#x27;ai noté cette phrase"
     );

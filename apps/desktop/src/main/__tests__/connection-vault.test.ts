@@ -34,8 +34,8 @@ function vault(sealer: Sealer = SEALED) {
   return { dir, vault: createConnectionVault({ dir, sealer }) };
 }
 
-describe("le coffre des connexions", () => {
-  it("garde un jeton par fournisseur, chiffré, et le compte à côté", () => {
+describe("the connections vault", () => {
+  it("keeps one encrypted token per provider, with the account beside it", () => {
     const { dir, vault: held } = vault();
 
     held.connect("github", "ghp_de_test", { id: "42", name: "ada" });
@@ -53,7 +53,7 @@ describe("le coffre des connexions", () => {
     );
   });
 
-  it("oublie un fournisseur sans toucher aux autres", () => {
+  it("forgets a provider without touching the others", () => {
     const { vault: held } = vault();
 
     held.connect("github", "ghp_de_test", { id: "42", name: "ada" });
@@ -67,7 +67,7 @@ describe("le coffre des connexions", () => {
   });
 
   // A service account token answers no call from the laptop, so no provider can name its account.
-  it("tient un jeton que personne ne sait nommer", () => {
+  it("holds a token nobody can name", () => {
     const { vault: held } = vault();
 
     held.connect("1password", "ops_de_test", null);
@@ -77,7 +77,7 @@ describe("le coffre des connexions", () => {
     expect(held.token("1password")).toBe("ops_de_test");
   });
 
-  it("se souvient du compte quand l'ordinateur n'a pas de trousseau", () => {
+  it("remembers the account when the computer has no keychain", () => {
     const { vault: held } = vault(OPEN);
 
     held.connect("github", "ghp_de_test", { id: "42", name: "ada" });
@@ -87,7 +87,7 @@ describe("le coffre des connexions", () => {
     expect(held.account("github")).toEqual({ id: "42", name: "ada" });
   });
 
-  it("garde à côté du jeton ce qui n'est pas un secret : l'adresse d'un seau", () => {
+  it("keeps beside the token what is not a secret: a bucket's address", () => {
     const { dir, vault: held } = vault();
 
     held.connect(
@@ -108,7 +108,7 @@ describe("le coffre des connexions", () => {
   });
 
   // Before a second connection existed, Cloudflare stored the account as `accountId`/`accountName`.
-  it("relit le compte Cloudflare écrit par une version précédente", () => {
+  it("reads back the Cloudflare account written by a previous version", () => {
     const { dir, vault: held } = vault();
 
     writeFileSync(
@@ -132,7 +132,7 @@ describe("le coffre des connexions", () => {
     expect(existsSync(join(dir, "cloudflare.json.r0"))).toBe(true);
   });
 
-  it("écrit chaque fiche avec sa révision, en 0600", () => {
+  it("writes each record with its revision, with mode 0600", () => {
     const { dir, vault: held } = vault();
 
     held.connect("github", "ghp_de_test", { id: "42", name: "ada" });

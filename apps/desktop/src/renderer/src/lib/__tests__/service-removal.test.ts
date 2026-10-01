@@ -20,8 +20,8 @@ function target(manifest: (typeof INSTALLED)[number]) {
   return { id: manifest.id, manifest, name: manifest.name };
 }
 
-describe("ce que retirer un module fait perdre", () => {
-  it("nomme les données de la catégorie du module", () => {
+describe("what removing a module loses", () => {
+  it("names the data of the module's category", () => {
     const removal = removalOf(target(DB_POSTGRES), INSTALLED);
 
     expect(removal.allowed).toBe(true);
@@ -30,7 +30,7 @@ describe("ce que retirer un module fait perdre", () => {
     );
   });
 
-  it("dit que les secrets envoyés ne reviendront pas", () => {
+  it("says the secrets that were sent will not come back", () => {
     const removal = removalOf(target(DB_POSTGRES), INSTALLED);
 
     expect(
@@ -38,7 +38,7 @@ describe("ce que retirer un module fait perdre", () => {
     ).toBe(true);
   });
 
-  it("nomme les modules installés qui en dépendent", () => {
+  it("names the installed modules that depend on it", () => {
     const removal = removalOf(target(RUNTIME_JAVA), INSTALLED);
 
     expect(removal.dependents.map((module) => module.id)).toEqual([
@@ -49,14 +49,14 @@ describe("ce que retirer un module fait perdre", () => {
     ).toBe(true);
   });
 
-  it("refuse ce que le catalogue déclare obligatoire", () => {
+  it("refuses what the catalogue declares mandatory", () => {
     const removal = removalOf(target(CORE_SYSTEM), INSTALLED);
 
     expect(removal.allowed).toBe(false);
     expect(removal.refusal).toContain("obligatoire");
   });
 
-  it("garde une facture pour un module que le catalogue ne déclare plus", () => {
+  it("keeps a fallback for a module the catalogue no longer declares", () => {
     const removal = removalOf(
       { id: "db.clickhouse", manifest: null, name: "ClickHouse" },
       INSTALLED

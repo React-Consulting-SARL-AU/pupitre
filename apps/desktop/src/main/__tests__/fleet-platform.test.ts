@@ -139,7 +139,7 @@ async function fleetOf(
   return listed.result;
 }
 
-describe("le membre invité, contre l'API de la plateforme", () => {
+describe("the invited member, against the platform API", () => {
   beforeAll(async () => {
     await bootApiTestServer();
   });
@@ -152,7 +152,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     }
   });
 
-  it("voit son serveur attribué et s'y connecte sans saisir ni adresse ni clé", async () => {
+  it("sees the assigned server and connects to it without typing an address or a key", async () => {
     const { invited, organization, server } = await assignedServer();
     const { account, paths } = await laptopOf(invited.user.id);
 
@@ -197,7 +197,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     expect(adopted.keyPath).toBe(join(paths.keysDir, "device"));
   });
 
-  it("ne voit pas les serveurs attribués à quelqu'un d'autre", async () => {
+  it("does not see servers assigned to someone else", async () => {
     const { invited, organization } = await assignedServer();
 
     await createServer({
@@ -214,7 +214,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     expect(granted.map((one) => one.name)).toEqual(["vps-atelier"]);
   });
 
-  it("attend que la plateforme ait une clé de ce compte", async () => {
+  it("waits until the platform has a key for this account", async () => {
     const { prisma } = await bootApiTestServer();
     const { invited } = await assignedServer();
     const { account } = await laptopOf(invited.user.id);
@@ -224,7 +224,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     expect((await fleetOf(account))[0]).toMatchObject({ keyReady: false });
   });
 
-  it("voit la révocation : le serveur quitte la liste que l'app avait remplie", async () => {
+  it("sees the revocation: the server leaves the list the app had filled", async () => {
     const { prisma } = await bootApiTestServer();
     const { invited, server } = await assignedServer();
     const { account, paths } = await laptopOf(invited.user.id);
@@ -254,7 +254,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     expect(after.config.servers).toEqual([]);
   });
 
-  it("laisse dehors un serveur dont la plateforme ignore l'adresse", async () => {
+  it("leaves out a server whose address the platform does not know", async () => {
     const { invited } = await assignedServer(null);
     const { account, paths } = await laptopOf(invited.user.id);
 

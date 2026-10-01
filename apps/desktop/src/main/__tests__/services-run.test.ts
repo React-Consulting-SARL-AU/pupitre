@@ -106,8 +106,8 @@ afterEach(() => {
   forgetCredentials();
 });
 
-describe("l'état d'un service", () => {
-  it("rend ce que l'agent a dit de la machine", async () => {
+describe("a service's state", () => {
+  it("returns what the agent said about the machine", async () => {
     const { deps, sent } = agent({ "service.status": STATUS });
 
     const answer = await readService(SERVER, "db.postgres", deps);
@@ -121,7 +121,7 @@ describe("l'état d'un service", () => {
     expect(answer.ok && answer.result.version).toBe("17.2");
   });
 
-  it("rend ce que le CLI dit de son compte, et rien quand il n'en a pas", async () => {
+  it("returns what the CLI says about its account, and nothing when it has none", async () => {
     const signed = agent({
       "service.status": {
         ...STATUS,
@@ -144,7 +144,7 @@ describe("l'état d'un service", () => {
     expect(silent.ok && "login" in silent.result).toBe(false);
   });
 
-  it("nomme les identifiants sans en livrer un seul", async () => {
+  it("names the credentials without delivering a single one", async () => {
     const { deps } = agent({ "service.status": STATUS });
 
     const answer = await readService(SERVER, "db.postgres", deps);
@@ -156,7 +156,7 @@ describe("l'état d'un service", () => {
     expect(JSON.stringify(answer)).not.toContain(PASSWORD);
   });
 
-  it("va chercher la valeur sur demande, une clé à la fois", async () => {
+  it("fetches the value on demand, one key at a time", async () => {
     const { deps, sent } = agent({ "service.status": STATUS }, ENV);
 
     await readService(SERVER, "db.postgres", deps);
@@ -176,7 +176,7 @@ describe("l'état d'un service", () => {
     ).toBeNull();
   });
 
-  it("les oublie avec le serveur", async () => {
+  it("forgets them with the server", async () => {
     const { deps } = agent({ "service.status": STATUS }, ENV);
 
     await readService(SERVER, "db.postgres", deps);
@@ -187,7 +187,7 @@ describe("l'état d'un service", () => {
     ).toBeNull();
   });
 
-  it("refuse un serveur qui n'est plus dans la liste", async () => {
+  it("refuses a server that is no longer in the list", async () => {
     const { deps, sent } = agent({ "service.status": STATUS });
 
     const answer = await readService("srv-inconnu", "db.postgres", deps);
@@ -196,7 +196,7 @@ describe("l'état d'un service", () => {
     expect(sent).toEqual([]);
   });
 
-  it("refuse un service que l'agent n'a pas listé, sans rien lui demander", async () => {
+  it("refuses a service the agent did not list, asking it nothing", async () => {
     const { deps, sent } = agent({ "service.status": STATUS });
 
     const answer = await readService(SERVER, "db.inventé", deps);
@@ -215,12 +215,12 @@ describe("l'état d'un service", () => {
   });
 });
 
-describe("les services que l'agent a listés", () => {
+describe("the services the agent listed", () => {
   afterEach(() => {
     forgetServices();
   });
 
-  it("retient ce qu'un snapshot ou un status a listé, et rien d'autre", () => {
+  it("retains what a snapshot or a status listed, and nothing else", () => {
     expect(declaresService(SERVER, "db.postgres")).toBe(false);
 
     noteServices(SERVER, "snapshot", {
@@ -254,7 +254,7 @@ describe("les services que l'agent a listés", () => {
     expect(declaresService(SERVER, "db.mysql")).toBe(true);
   });
 
-  it("ignore une réponse qui ne liste pas les services", () => {
+  it("ignores a response that does not list the services", () => {
     noteServices(SERVER, "service.status", {
       ok: true,
       result: { id: "db.postgres" },
@@ -267,7 +267,7 @@ describe("les services que l'agent a listés", () => {
     expect(declaresService(SERVER, "db.postgres")).toBe(false);
   });
 
-  it("s'oublie avec le serveur", () => {
+  it("is forgotten with the server", () => {
     noteServices(SERVER, "snapshot", {
       ok: true,
       result: { services: [{ id: "db.postgres" }] },
@@ -279,8 +279,8 @@ describe("les services que l'agent a listés", () => {
   });
 });
 
-describe("l'URL de connexion d'une base", () => {
-  it("déduit le moteur de l'identifiant du module", async () => {
+describe("a database's connection URL", () => {
+  it("infers the engine from the module id", async () => {
     const { deps, sent } = agent({ "db.url": { url: URL } });
 
     const answer = await readDatabaseUrl(SERVER, "db.postgres", null, deps);
@@ -290,7 +290,7 @@ describe("l'URL de connexion d'une base", () => {
     expect(JSON.stringify(answer)).not.toContain(PASSWORD);
   });
 
-  it("la range avec les autres identifiants du module", async () => {
+  it("files it with the module's other credentials", async () => {
     const { deps } = agent({ "db.url": { url: URL } });
 
     await readDatabaseUrl(SERVER, "db.postgres", "flyleaf", deps);
@@ -300,7 +300,7 @@ describe("l'URL de connexion d'une base", () => {
     ).toBe(URL);
   });
 
-  it("refuse un module qui n'est pas une base", async () => {
+  it("refuses a module that is not a database", async () => {
     const { deps, sent } = agent({ "db.url": { url: URL } });
 
     const answer = await readDatabaseUrl(SERVER, "runtime.node", null, deps);
@@ -310,8 +310,8 @@ describe("l'URL de connexion d'une base", () => {
   });
 });
 
-describe("un identifiant révélé", () => {
-  it("n'apparaît dans aucune ligne écrite par l'app", async () => {
+describe("a revealed credential", () => {
+  it("appears in no line written by the app", async () => {
     const written: string[] = [];
     const kept = { error: console.error, log: console.log, warn: console.warn };
 
@@ -346,14 +346,14 @@ describe("un identifiant révélé", () => {
   });
 });
 
-describe("ce qui ne passe pas par le pont générique", () => {
-  it("nomme les commandes qui répondent avec un identifiant", () => {
+describe("what does not go through the generic bridge", () => {
+  it("names the commands that respond with a credential", () => {
     expect(carriesCredential("service.status")).toBe(true);
     expect(carriesCredential("db.url")).toBe(true);
     expect(carriesCredential("snapshot")).toBe(false);
   });
 
-  it("lit le moteur dans l'identifiant du module, sans table de l'app", () => {
+  it("reads the engine from the module id, with no app-side table", () => {
     expect(databaseEngineOf("db.mongodb")).toBe("mongodb");
     expect(databaseEngineOf("db.postgres")).toBe("postgres");
     expect(databaseEngineOf("db.redis")).toBeNull();

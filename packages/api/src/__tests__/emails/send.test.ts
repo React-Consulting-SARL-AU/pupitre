@@ -33,7 +33,7 @@ describe("buildMimeMessage", () => {
     date: new Date("2026-09-04T10:00:00Z"),
   })
 
-  it("porte les en-têtes que Cloudflare Email exige", () => {
+  it("carries the headers Cloudflare Email requires", () => {
     expect(mime).toContain(`From: ${EMAIL_FROM}`)
     expect(mime).toContain("To: ada@test.local")
     expect(mime).toContain("Message-ID: <abc@pupitre.studio>")
@@ -41,7 +41,7 @@ describe("buildMimeMessage", () => {
     expect(mime).toContain("Date: ")
   })
 
-  it("encode un sujet non ASCII en base64 RFC 2047", () => {
+  it("encodes a non-ASCII subject in base64 RFC 2047", () => {
     const accented = buildMimeMessage({
       from: EMAIL_FROM,
       to: "ada@test.local",
@@ -56,7 +56,7 @@ describe("buildMimeMessage", () => {
     expect(accented).not.toContain("Subject: Votre serveur est prêt")
   })
 
-  it("porte les deux parts, texte d'abord", () => {
+  it("carries both parts, text first", () => {
     expect(mime).toContain("multipart/alternative")
     expect(mime.indexOf("text/plain")).toBeLessThan(mime.indexOf("text/html"))
     expect(partOf(mime, "text/plain")).toContain("https://app.pupitre.studio")
@@ -64,12 +64,12 @@ describe("buildMimeMessage", () => {
   })
 })
 
-describe("le transport", () => {
-  it("ne trouve pas de binding EMAIL hors du Worker", async () => {
+describe("the transport", () => {
+  it("finds no EMAIL binding outside the Worker", async () => {
     expect(await cloudflareEmailBinding()).toBeNull()
   })
 
-  it("retombe sur le journal quand le binding manque", async () => {
+  it("falls back to the log when the binding is missing", async () => {
     const lines: string[] = []
     const send = createEmailSender((line) => lines.push(line))
 
@@ -84,7 +84,7 @@ describe("le transport", () => {
     expect(lines[0]).toContain("ada@test.local")
   })
 
-  it("refuse d'envoyer en production quand le binding manque", async () => {
+  it("refuses to send in production when the binding is missing", async () => {
     const lines: string[] = []
     const send = createEmailSender(
       (line) => lines.push(line),
@@ -107,7 +107,7 @@ describe("le transport", () => {
     expect(lines).toHaveLength(0)
   })
 
-  it("journalise hors production quand le binding manque", async () => {
+  it("logs outside production when the binding is missing", async () => {
     const lines: string[] = []
     const send = createEmailSender(
       (line) => lines.push(line),
@@ -126,7 +126,7 @@ describe("le transport", () => {
 })
 
 describe("deliver", () => {
-  it("rend faux et ne jette pas quand l'envoi échoue", async () => {
+  it("returns false and does not throw when sending fails", async () => {
     const failures: unknown[] = []
     const delivered = await deliver(
       {
@@ -145,7 +145,7 @@ describe("deliver", () => {
     expect(failures).toHaveLength(1)
   })
 
-  it("rend vrai quand l'envoi passe", async () => {
+  it("returns true when sending succeeds", async () => {
     const sent: string[] = []
     const delivered = await deliver(
       {

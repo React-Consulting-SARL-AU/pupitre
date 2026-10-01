@@ -9,12 +9,12 @@ function placeholdersOf(value: string): string[] {
   return [...value.matchAll(PLACEHOLDER_RE)].map((match) => match[1]).sort()
 }
 
-describe("parité des dictionnaires", () => {
-  it("le français et l'anglais portent exactement les mêmes clés", () => {
+describe("dictionary parity", () => {
+  it("French and English carry exactly the same keys", () => {
     expect(Object.keys(EMAIL_EN).sort()).toEqual(Object.keys(EMAIL_FR).sort())
   })
 
-  it("chaque gabarit a son bloc de clés dans les deux langues", () => {
+  it("each template has its block of keys in both languages", () => {
     for (const id of EMAIL_TEMPLATE_IDS) {
       const french = Object.keys(EMAIL_FR).filter((key) =>
         key.startsWith(`${id}.`)
@@ -28,7 +28,7 @@ describe("parité des dictionnaires", () => {
     }
   })
 
-  it("une clé porte les mêmes paramètres dans les deux langues", () => {
+  it("a key carries the same parameters in both languages", () => {
     for (const [key, french] of Object.entries(EMAIL_FR)) {
       expect(placeholdersOf(EMAIL_EN[key as keyof typeof EMAIL_FR])).toEqual(
         placeholdersOf(french)
@@ -36,7 +36,7 @@ describe("parité des dictionnaires", () => {
     }
   })
 
-  it("aucune traduction n'est vide", () => {
+  it("no translation is empty", () => {
     for (const value of [
       ...Object.values(EMAIL_FR),
       ...Object.values(EMAIL_EN),
@@ -46,8 +46,8 @@ describe("parité des dictionnaires", () => {
   })
 })
 
-describe("parité des rendus", () => {
-  it("les deux langues rendent le même gabarit avec les mêmes liens", async () => {
+describe("render parity", () => {
+  it("both languages render the same template with the same links", async () => {
     for (const preview of EMAIL_PREVIEWS) {
       const [french, english] = await Promise.all([
         preview.render("fr"),

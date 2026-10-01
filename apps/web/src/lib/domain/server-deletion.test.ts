@@ -1,18 +1,18 @@
 import { describe, expect, it } from "bun:test"
 import { deletionLook, purgeable } from "@/lib/domain/server-deletion"
 
-describe("la suppression d'un serveur", () => {
-  it("révoque un serveur que la plateforme tient encore", () => {
+describe("deleting a server", () => {
+  it("revokes a server the platform still holds", () => {
     for (const status of ["enrolling", "active", "grace", "suspended"]) {
       expect(deletionLook(status).deletion).toBe("revoke")
     }
   })
 
-  it("efface un serveur déjà révoqué", () => {
+  it("deletes an already revoked server", () => {
     expect(deletionLook("revoked").deletion).toBe("purge")
   })
 
-  it("nomme le geste par ce qu'il fait, jamais par le même mot deux fois", () => {
+  it("names the action by what it does, never by the same word twice", () => {
     expect(deletionLook("active").confirm).not.toBe(
       deletionLook("revoked").confirm
     )
@@ -21,7 +21,7 @@ describe("la suppression d'un serveur", () => {
     )
   })
 
-  it("ne porte le geste d'effacement que sur une ligne révoquée", () => {
+  it("carries the deletion action only on a revoked row", () => {
     expect(purgeable("revoked")).toBe(true)
 
     for (const status of ["enrolling", "active", "grace", "suspended"]) {

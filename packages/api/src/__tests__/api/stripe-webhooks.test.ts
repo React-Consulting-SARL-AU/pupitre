@@ -103,7 +103,7 @@ describe("POST /webhooks/stripe", () => {
     owner = created.members[0]
   })
 
-  it("refuse une signature invalide", async () => {
+  it("refuses an invalid signature", async () => {
     const response = await postStripeWebhook<ErrorBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -118,7 +118,7 @@ describe("POST /webhooks/stripe", () => {
     expect(await server.prisma.stripeEvent.count()).toBe(0)
   })
 
-  it("refuse un en-tête absent ou illisible", async () => {
+  it("refuses a missing or unreadable header", async () => {
     const missing = await postStripeWebhook<ErrorBody>(
       stripeEvent("customer.subscription.created", {}),
       { signature: "" }
@@ -134,7 +134,7 @@ describe("POST /webhooks/stripe", () => {
     expect(malformed.json.error.code).toBe("stripe_signature_invalid")
   })
 
-  it("refuse une signature hors de la tolérance de cinq minutes", async () => {
+  it("refuses a signature outside the five-minute tolerance", async () => {
     const stale = new Date(Date.now() - SIGNATURE_TOLERANCE_MS - 60 * SECOND_MS)
     const response = await postStripeWebhook<ErrorBody>(
       stripeEvent(
@@ -149,7 +149,7 @@ describe("POST /webhooks/stripe", () => {
     expect(await server.prisma.subscription.count()).toBe(0)
   })
 
-  it("miroir de l'abonnement à la création, puis à la mise à jour", async () => {
+  it("mirrors the subscription on creation, then on update", async () => {
     const created = await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -205,7 +205,7 @@ describe("POST /webhooks/stripe", () => {
     ])
   })
 
-  it("ne fait rien de plus quand un événement est rejoué", async () => {
+  it("does nothing more when an event is replayed", async () => {
     const event = stripeEvent(
       "customer.subscription.created",
       stripeSubscriptionObject({ organizationId, quantity: 2 }),
@@ -224,7 +224,7 @@ describe("POST /webhooks/stripe", () => {
     ).toBe(1)
   })
 
-  it("branche le client Stripe et l'abonnement à la fin du checkout", async () => {
+  it("attaches the Stripe customer and the subscription at the end of checkout", async () => {
     billing.put(
       remoteSubscription({
         id: "sub_checkout",
@@ -266,7 +266,7 @@ describe("POST /webhooks/stripe", () => {
     ).toBe(3)
   })
 
-  it("passe en tolérance les serveurs au-delà des gratuits à la résiliation", async () => {
+  it("puts the servers beyond the free ones into grace on cancellation", async () => {
     const periodEnd = secondsFloor(Date.now() + 3 * 86_400_000)
     const enrolled = await beyondFreeServers(organizationId)
 
@@ -317,7 +317,7 @@ describe("POST /webhooks/stripe", () => {
     expect(canceled.organizationId).toBe(organizationId)
   })
 
-  it("laisse actifs les serveurs gratuits à la résiliation", async () => {
+  it("leaves the free servers active on cancellation", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
@@ -347,7 +347,7 @@ describe("POST /webhooks/stripe", () => {
     expect(state.json.license).toBe("valid")
   })
 
-  it("met l'organisation en tolérance sept jours sur un impayé, puis suspend", async () => {
+  it("puts the organization in grace for seven days on an unpaid invoice, then suspends", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
@@ -404,7 +404,7 @@ describe("POST /webhooks/stripe", () => {
     expect(afterGrace.json.license).toBe("suspended")
   })
 
-  it("lit l'abonnement d'une facture rangé sous parent.subscription_details", async () => {
+  it("reads an invoice's subscription stored under parent.subscription_details", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -443,7 +443,7 @@ describe("POST /webhooks/stripe", () => {
     ).toBe("sub_test_1")
   })
 
-  it("rend leur droit d'usage aux serveurs quand l'abonnement repart", async () => {
+  it("gives the servers their licence back when the subscription restarts", async () => {
     const enrolled = await createServer({ organizationId, status: "grace" })
 
     await postStripeWebhook<AckBody>(
@@ -466,7 +466,7 @@ describe("POST /webhooks/stripe", () => {
     expect(state.json.license).toBe("valid")
   })
 
-  it("rend leur droit d'usage aux serveurs suspendus par la facturation", async () => {
+  it("gives the servers suspended by billing their licence back", async () => {
     const enrolled = await createServer({ organizationId, status: "suspended" })
 
     await server.prisma.server.update({
@@ -494,7 +494,7 @@ describe("POST /webhooks/stripe", () => {
     expect(state.json.license).toBe("valid")
   })
 
-  it("laisse suspendu un serveur que l'équipe a suspendu, abonnement ou pas", async () => {
+  it("leaves suspended a server the team suspended, subscription or not", async () => {
     const enrolled = await createServer({ organizationId, status: "suspended" })
 
     await server.prisma.server.update({
@@ -516,7 +516,7 @@ describe("POST /webhooks/stripe", () => {
     expect(stored.suspendedReason).toBe("admin")
   })
 
-  it("ramène les serveurs suspendus après une résiliation quand un nouvel abonnement arrive", async () => {
+  it("restores the servers suspended after a cancellation when a new subscription arrives", async () => {
     const enrolled = await beyondFreeServers(organizationId)
 
     await postStripeWebhook<AckBody>(
@@ -567,7 +567,7 @@ describe("POST /webhooks/stripe", () => {
     expect(me.json.license_grant?.status).toBe("active")
   })
 
-  it("ne repousse jamais la tolérance ni ne renvoie l'email sur les relances d'un impayé", async () => {
+  it("never extends the grace nor resends the email on unpaid-invoice retries", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
@@ -604,7 +604,7 @@ describe("POST /webhooks/stripe", () => {
     expect(subjectsSent(server)).toHaveLength(1)
   })
 
-  it("ne traite qu'une fois deux livraisons concurrentes du même événement", async () => {
+  it("processes only once two concurrent deliveries of the same event", async () => {
     await createServer({ organizationId })
     await postStripeWebhook<AckBody>(
       stripeEvent(
@@ -634,7 +634,7 @@ describe("POST /webhooks/stripe", () => {
     expect(subjectsSent(server)).toHaveLength(1)
   })
 
-  it("refuse une livraison pendant qu'une autre traite encore l'événement, pour que Stripe la rejoue", async () => {
+  it("refuses a delivery while another is still processing the event, so Stripe replays it", async () => {
     const event = invoicePaymentFailed("in_in_flight")
 
     await server.prisma.stripeEvent.create({
@@ -660,7 +660,7 @@ describe("POST /webhooks/stripe", () => {
     ).toBe("processing")
   })
 
-  it("reprend un événement resté en cours au-delà du bail, quand son isolate est mort", async () => {
+  it("takes over an event left in progress beyond the lease, when its isolate died", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -700,7 +700,7 @@ describe("POST /webhooks/stripe", () => {
     ).toBe("past_due")
   })
 
-  it("ne ressuscite pas un abonnement résilié sur un impayé livré en retard", async () => {
+  it("does not resurrect a cancelled subscription on a late-delivered unpaid invoice", async () => {
     const periodEnd = secondsFloor(Date.now() + 86_400_000)
     const canceled = remoteSubscription({
       organizationId,
@@ -732,7 +732,7 @@ describe("POST /webhooks/stripe", () => {
     ).toMatchObject({ status: "canceled" })
   })
 
-  it("ne met pas en impayé un abonnement que Stripe dit réglé depuis", async () => {
+  it("does not mark unpaid a subscription that Stripe has since said is settled", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
@@ -756,7 +756,7 @@ describe("POST /webhooks/stripe", () => {
     expect(subjectsSent(server)).toHaveLength(0)
   })
 
-  it("garde un événement dont le traitement a échoué pour que Stripe le rejoue", async () => {
+  it("keeps an event whose processing failed so Stripe replays it", async () => {
     const event = stripeEvent("checkout.session.completed", {
       id: "cs_test_retry",
       object: "checkout.session",
@@ -799,7 +799,7 @@ describe("POST /webhooks/stripe", () => {
     expect(await server.prisma.subscription.count()).toBe(1)
   })
 
-  it("relit l'abonnement chez Stripe plutôt que de croire un événement en retard", async () => {
+  it("rereads the subscription at Stripe rather than trusting a late event", async () => {
     const periodEnd = secondsFloor(Date.now() + 86_400_000)
     const enrolled = await beyondFreeServers(organizationId)
 
@@ -844,7 +844,7 @@ describe("POST /webhooks/stripe", () => {
     expect(stored.status).toBe("grace")
   })
 
-  it("met les serveurs en tolérance sept jours quand Stripe dit past_due, et /me le dit aussi", async () => {
+  it("puts the servers in grace for seven days when Stripe says past_due, and /me says so too", async () => {
     const periodEnd = new Date(Date.now() + 25 * 86_400_000)
     const enrolled = await createServer({ organizationId })
 
@@ -893,7 +893,7 @@ describe("POST /webhooks/stripe", () => {
     ).toEqual([enrolled.server.id])
   })
 
-  it("lit un abonnement incomplete comme aucune licence", async () => {
+  it("reads an incomplete subscription as no licence", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -910,7 +910,7 @@ describe("POST /webhooks/stripe", () => {
     )
   })
 
-  it("préfère l'abonnement vivant à l'ancien qui reçoit encore des événements", async () => {
+  it("prefers the live subscription to the old one that still receives events", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
@@ -954,7 +954,7 @@ describe("POST /webhooks/stripe", () => {
     expect(me.json.servers).toMatchObject({ limit: FREE_SERVERS + 4 })
   })
 
-  it("ignore un événement dont l'organisation est inconnue", async () => {
+  it("ignores an event whose organization is unknown", async () => {
     const response = await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -968,7 +968,7 @@ describe("POST /webhooks/stripe", () => {
     expect(await server.prisma.stripeEvent.count()).toBe(1)
   })
 
-  it("garde la résiliation en fin de période, et la retire quand Stripe la retire", async () => {
+  it("keeps the end-of-period cancellation, and removes it when Stripe removes it", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.updated",
@@ -1000,7 +1000,7 @@ describe("POST /webhooks/stripe", () => {
     ).toMatchObject({ cancelAtPeriodEnd: false })
   })
 
-  it("classe chaque livraison sous l'abonnement qu'elle nomme", async () => {
+  it("files each delivery under the subscription it names", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",

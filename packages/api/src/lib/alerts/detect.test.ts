@@ -40,21 +40,21 @@ function hoursAgo(hours: number): string {
   return minutesAgo(hours * 60).toISOString()
 }
 
-describe("serveur injoignable", () => {
-  it("se déclenche après trente minutes sans heartbeat", () => {
+describe("unreachable server", () => {
+  it("fires after thirty minutes without a heartbeat", () => {
     expect(UNREACHABLE_AFTER_MS).toBe(30 * MINUTE_MS)
     expect(isUnreachable(state({ lastHeartbeatAt: minutesAgo(31) }), NOW)).toBe(
       true
     )
   })
 
-  it("laisse passer un serveur vu il y a vingt-neuf minutes", () => {
+  it("lets pass a server seen twenty-nine minutes ago", () => {
     expect(isUnreachable(state({ lastHeartbeatAt: minutesAgo(29) }), NOW)).toBe(
       false
     )
   })
 
-  it("compte depuis l'enrôlement quand aucun heartbeat n'est arrivé", () => {
+  it("counts from enrolment when no heartbeat has arrived", () => {
     expect(
       isUnreachable(
         state({ lastHeartbeatAt: null, createdAt: minutesAgo(45) }),
@@ -69,7 +69,7 @@ describe("serveur injoignable", () => {
     ).toBe(false)
   })
 
-  it("ignore un serveur en enrôlement, suspendu ou révoqué", () => {
+  it("ignores a server that is enrolling, suspended or revoked", () => {
     for (const status of ["enrolling", "suspended", "revoked"] as const) {
       expect(
         isUnreachable(state({ status, lastHeartbeatAt: minutesAgo(120) }), NOW)
@@ -78,24 +78,24 @@ describe("serveur injoignable", () => {
   })
 })
 
-describe("disque au-dessus de 90 %", () => {
-  it("se déclenche à 91 %", () => {
+describe("disk above 90 %", () => {
+  it("fires at 91 %", () => {
     expect(DISK_ALERT_PERCENT).toBe(90)
     expect(isDiskHigh(state({ disk: 91 }))).toBe(true)
   })
 
-  it("laisse passer 90 % pile et 89 %", () => {
+  it("lets exactly 90 % and 89 % pass", () => {
     expect(isDiskHigh(state({ disk: 90 }))).toBe(false)
     expect(isDiskHigh(state({ disk: 89 }))).toBe(false)
   })
 
-  it("ne décide rien sans mesure", () => {
+  it("decides nothing without a measurement", () => {
     expect(isDiskHigh(state({ disk: null }))).toBe(false)
   })
 })
 
-describe("agent périmé", () => {
-  it("compte les versions publiées plus récentes", () => {
+describe("outdated agent", () => {
+  it("counts the more recent published versions", () => {
     expect(
       versionsBehind(
         state({
@@ -106,7 +106,7 @@ describe("agent périmé", () => {
     ).toBe(2)
   })
 
-  it("se déclenche à deux versions de retard", () => {
+  it("fires at two versions behind", () => {
     expect(OUTDATED_AFTER_VERSIONS).toBe(2)
     expect(
       isAgentOutdated(
@@ -115,7 +115,7 @@ describe("agent périmé", () => {
     ).toBe(true)
   })
 
-  it("laisse passer une seule version de retard", () => {
+  it("lets a single version behind pass", () => {
     expect(
       isAgentOutdated(
         state({ agentVersion: "1.4.0", publishedVersions: ["1.5.0"] })
@@ -123,7 +123,7 @@ describe("agent périmé", () => {
     ).toBe(false)
   })
 
-  it("ne décide rien tant que l'agent n'a pas dit sa version", () => {
+  it("decides nothing until the agent has stated its version", () => {
     expect(
       isAgentOutdated(
         state({ agentVersion: null, publishedVersions: ["1.5.0", "1.6.0"] })
@@ -131,26 +131,26 @@ describe("agent périmé", () => {
     ).toBe(false)
   })
 
-  it("nomme la version publiée la plus récente", () => {
+  it("names the most recent published version", () => {
     expect(latestVersionOf(["1.9.0", "1.10.0", "1.2.0"])).toBe("1.10.0")
     expect(latestVersionOf([])).toBeNull()
   })
 })
 
-describe("droit d'usage en tolérance", () => {
-  it("suit le statut du serveur", () => {
+describe("licence in grace", () => {
+  it("follows the server status", () => {
     expect(isLicenseGrace(state({ status: "grace" }))).toBe(true)
     expect(isLicenseGrace(state({ status: "active" }))).toBe(false)
     expect(isLicenseGrace(state({ status: "suspended" }))).toBe(false)
   })
 })
 
-describe("la décision d'ensemble", () => {
-  it("ne lève rien sur un serveur en bonne santé", () => {
+describe("the overall decision", () => {
+  it("raises nothing on a healthy server", () => {
     expect(detectAlerts(state(), NOW)).toEqual([])
   })
 
-  it("lève chaque genre indépendamment", () => {
+  it("raises each kind independently", () => {
     const kinds = detectAlerts(
       state({
         status: "grace",
@@ -179,8 +179,8 @@ describe("la décision d'ensemble", () => {
   })
 })
 
-describe("sauvegarde en échec", () => {
-  it("se lève quand la dernière tentative a échoué après le dernier succès", () => {
+describe("failed backup", () => {
+  it("raises when the last attempt failed after the last success", () => {
     expect(
       isBackupFailed(
         state({
@@ -195,7 +195,7 @@ describe("sauvegarde en échec", () => {
     ).toBe(true)
   })
 
-  it("se lève pour un serveur qui n'a jamais réussi", () => {
+  it("raises for a server that has never succeeded", () => {
     expect(
       isBackupFailed(
         state({
@@ -209,7 +209,7 @@ describe("sauvegarde en échec", () => {
     ).toBe(true)
   })
 
-  it("se lève quand la dernière sauvegarde a laissé des parties derrière elle", () => {
+  it("raises when the last backup left parts behind", () => {
     expect(
       isBackupFailed(
         state({
@@ -224,7 +224,7 @@ describe("sauvegarde en échec", () => {
     ).toBe(true)
   })
 
-  it("se tait quand un succès a suivi l'erreur", () => {
+  it("stays quiet when a success followed the error", () => {
     expect(
       isBackupFailed(
         state({
@@ -239,7 +239,7 @@ describe("sauvegarde en échec", () => {
     ).toBe(false)
   })
 
-  it("se tait sans erreur, sans battement, ou sur un serveur suspendu", () => {
+  it("stays quiet without an error, without a beat, or on a suspended server", () => {
     const failing = {
       interval_hours: 24,
       last_run_at: hoursAgo(1),
@@ -258,8 +258,8 @@ describe("sauvegarde en échec", () => {
   })
 })
 
-describe("sauvegarde en retard", () => {
-  it("se lève après deux intervalles sans succès", () => {
+describe("overdue backup", () => {
+  it("raises after two intervals without success", () => {
     expect(
       isBackupStale(
         state({ backup: { interval_hours: 24, last_ok_at: hoursAgo(49) } }),
@@ -268,7 +268,7 @@ describe("sauvegarde en retard", () => {
     ).toBe(true)
   })
 
-  it("laisse passer un succès vieux de moins de deux intervalles", () => {
+  it("lets pass a success less than two intervals old", () => {
     expect(
       isBackupStale(
         state({ backup: { interval_hours: 24, last_ok_at: hoursAgo(47) } }),
@@ -277,7 +277,7 @@ describe("sauvegarde en retard", () => {
     ).toBe(false)
   })
 
-  it("se tait quand la planification est coupée ou qu'aucun succès n'existe", () => {
+  it("stays quiet when scheduling is switched off or no success exists", () => {
     expect(
       isBackupStale(
         state({ backup: { interval_hours: 0, last_ok_at: hoursAgo(500) } }),

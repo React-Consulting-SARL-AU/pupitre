@@ -49,8 +49,8 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("le mot de passe sudo sur la fiche du serveur", () => {
-  it("reste masqué jusqu'à ce qu'on le demande, et se copie sans passer par l'écran", async () => {
+describe("the sudo password on the server sheet", () => {
+  it("stays hidden until asked for, and is copied without going through the screen", async () => {
     const copied: string[] = [];
 
     await holding(true, copied);
@@ -72,7 +72,7 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
     view.unmount();
   });
 
-  it("tient une ligne entière de la fiche et se lit en entier une fois montré", async () => {
+  it("takes a whole line of the sheet and reads in full once shown", async () => {
     await holding(true);
 
     const view = await mount(<ServerSudoFact serverId="srv-1" />);
@@ -91,7 +91,7 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
   });
 
   // Securing is itself a privileged gesture, so the only way in is the password typed here.
-  it("sur un ordinateur qui ne le tient pas, le fait saisir et le garde une fois accepté", async () => {
+  it("on a computer that does not hold it, has it typed and keeps it once accepted", async () => {
     const entered: string[] = [];
     let held = false;
 
@@ -125,7 +125,7 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
     view.unmount();
   });
 
-  it("dit sous le champ pourquoi sudo a refusé ce mot de passe", async () => {
+  it("says under the field why sudo refused this password", async () => {
     stubPupitre({
       enterSudoPassword: () =>
         Promise.resolve({
@@ -167,8 +167,8 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
   });
 });
 
-describe("la fin de la sécurisation", () => {
-  it("dit que sudo demande désormais le mot de passe, et le montre à la demande", async () => {
+describe("the end of the hardening", () => {
+  it("says sudo now asks for the password, and shows it on request", async () => {
     await holding(true);
 
     const view = await mount(
@@ -181,7 +181,7 @@ describe("la fin de la sécurisation", () => {
     view.unmount();
   });
 
-  it("demande de le noter quand l'ordinateur n'a pas de trousseau", async () => {
+  it("asks to note it down when the computer has no keychain", async () => {
     await holding(false);
 
     const view = await mount(
@@ -196,7 +196,7 @@ describe("la fin de la sécurisation", () => {
     view.unmount();
   });
 
-  it("rend le refus de l'agent tel quel, avec de quoi réessayer", async () => {
+  it("renders the agent's refusal as it is, with a way to retry", async () => {
     await holding(true);
 
     const view = await mount(

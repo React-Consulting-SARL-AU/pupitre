@@ -112,8 +112,8 @@ beforeEach(() => {
   useInspection.setState({ inspection: { status: "idle" }, probes: {} });
 });
 
-describe("le catalogue vient de l'agent", () => {
-  it("garde ce que la commande a renvoyé, sans y toucher", async () => {
+describe("the catalogue comes from the agent", () => {
+  it("keeps what the command returned, untouched", async () => {
     await ready();
 
     const state = useCatalog.getState().catalog;
@@ -122,7 +122,7 @@ describe("le catalogue vient de l'agent", () => {
     expect(state.status === "ready" && state.catalog).toEqual(CATALOG);
   });
 
-  it("oublie au reset ce qu'un chargement oublie aussi", async () => {
+  it("forgets on reset what a load forgets too", async () => {
     await ready();
 
     useCatalog.getState().adoptRestore({
@@ -147,7 +147,7 @@ describe("le catalogue vient de l'agent", () => {
     });
   });
 
-  it("garde l'erreur et son remède tels quels", async () => {
+  it("keeps the error and its fix as is", async () => {
     stubPupitre(fakeMain().api);
 
     await useCatalog.getState().load("srv-inconnu");
@@ -158,7 +158,7 @@ describe("le catalogue vient de l'agent", () => {
     });
   });
 
-  it("coche les obligatoires du catalogue dès qu'il arrive", async () => {
+  it("ticks the catalogue's required modules as soon as it arrives", async () => {
     await ready();
 
     expect(useCatalog.getState().selected).toEqual([
@@ -167,7 +167,7 @@ describe("le catalogue vient de l'agent", () => {
     ]);
   });
 
-  it("montre un module que l'app ne connaît pas, sans une ligne de plus", async () => {
+  it("shows a module the app does not know, without an extra line", async () => {
     await ready(CATALOG_NEXT);
 
     const state = useCatalog.getState().catalog;
@@ -182,8 +182,8 @@ describe("le catalogue vient de l'agent", () => {
   });
 });
 
-describe("la sélection", () => {
-  it("entraîne les dépendances et libère les dépendants", async () => {
+describe("the selection", () => {
+  it("pulls in dependencies and releases dependents", async () => {
     await ready();
 
     useCatalog.getState().toggle("editor.jetbrains");
@@ -195,7 +195,7 @@ describe("la sélection", () => {
     expect(useCatalog.getState().selected).not.toContain("editor.jetbrains");
   });
 
-  it("pose les valeurs par défaut des champs du module choisi", async () => {
+  it("sets the default values of the chosen module's fields", async () => {
     await ready();
 
     useCatalog.getState().toggle("db.mysql");
@@ -207,7 +207,7 @@ describe("la sélection", () => {
   });
 
   // A deferred service lets the install go on without it rather than refusing.
-  it("cesse de peser un service remis à plus tard, et le reprend", async () => {
+  it("stops counting a deferred service, and counts it again", async () => {
     await ready();
 
     useCatalog.getState().toggle("db.mysql");
@@ -242,7 +242,7 @@ describe("la sélection", () => {
     ).toBe(before.length);
   });
 
-  it("part d'un préréglage du catalogue", async () => {
+  it("starts from a catalogue preset", async () => {
     await ready();
 
     useCatalog.getState().usePreset("web-js");
@@ -257,7 +257,7 @@ describe("la sélection", () => {
   });
 
   // A preset ticking what the architecture cannot run would only be refused at install.
-  it("ne coche pas, par préréglage, ce que l'architecture ne porte pas", async () => {
+  it("does not tick, through a preset, what the architecture cannot run", async () => {
     await ready({
       ...CATALOG,
       presets: [
@@ -275,7 +275,7 @@ describe("la sélection", () => {
     expect(useCatalog.getState().selected).not.toContain("tool.legacy");
   });
 
-  it("ne coche pas non plus ce qui se dispute la machine avec un module déjà posé", async () => {
+  it("does not tick either what competes for the machine with an already installed module", async () => {
     const main = fakeMain(CATALOG);
 
     stubPupitre(main.api);
@@ -287,8 +287,8 @@ describe("la sélection", () => {
   });
 });
 
-describe("les ressources cumulées face à la sonde", () => {
-  it("avertit quand postgres s'ajoute à jetbrains sur 4 Go", async () => {
+describe("the combined resources against the probe", () => {
+  it("warns when postgres is added to jetbrains on 4 GB", async () => {
     await ready();
     useInspection.setState({ probes: { "srv-1": SMALL_MACHINE } });
 
@@ -307,8 +307,8 @@ describe("les ressources cumulées face à la sonde", () => {
   });
 });
 
-describe("les secrets ne vivent pas ici", () => {
-  it("génère à la sélection ce que le manifeste dit de générer", async () => {
+describe("secrets do not live here", () => {
+  it("generates on selection what the manifest says to generate", async () => {
     const main = await ready();
 
     useCatalog.getState().toggle("db.postgres");
@@ -322,7 +322,7 @@ describe("les secrets ne vivent pas ici", () => {
     });
   });
 
-  it("ne garde jamais la valeur, ni saisie ni générée", async () => {
+  it("never keeps the value, neither typed nor generated", async () => {
     const main = await ready();
 
     useCatalog.getState().toggle("db.postgres");
@@ -342,7 +342,7 @@ describe("les secrets ne vivent pas ici", () => {
     expect(main.kept.get("db.postgres|app_password")).toBe("s3cr3t-a-moi");
   });
 
-  it("révèle une fois, puis ne peut plus", async () => {
+  it("reveals once, then cannot anymore", async () => {
     await ready();
 
     useCatalog.getState().toggle("db.postgres");
@@ -363,7 +363,7 @@ describe("les secrets ne vivent pas ici", () => {
     expect(JSON.stringify(useCatalog.getState())).not.toContain("généré-1");
   });
 
-  it("laisse le processus principal oublier quand l'écran se ferme", async () => {
+  it("lets the main process forget when the screen closes", async () => {
     const main = await ready();
 
     useCatalog.getState().toggle("db.postgres");
@@ -374,7 +374,7 @@ describe("les secrets ne vivent pas ici", () => {
     expect(useCatalog.getState().secrets).toEqual({});
   });
 
-  it("ne fait pas passer un secret pour une valeur de configuration", async () => {
+  it("does not pass a secret off as a configuration value", async () => {
     const main = await ready();
 
     useCatalog.getState().toggle("db.postgres");
@@ -388,8 +388,8 @@ describe("les secrets ne vivent pas ici", () => {
   });
 });
 
-describe("la configuration pesée par le serveur", () => {
-  it("pose sur les champs ce que la machine seule savait", async () => {
+describe("the configuration weighed by the server", () => {
+  it("sets on the fields what only the machine knew", async () => {
     const main = await ready();
 
     stubPupitre({
@@ -416,7 +416,7 @@ describe("la configuration pesée par le serveur", () => {
     expect(refused[0]?.declared?.key).toBe("buffer_pool");
   });
 
-  it("ignore un champ que l'app remplit elle-même à la sortie", async () => {
+  it("ignores a field the app fills in itself on the way out", async () => {
     const main = await ready();
 
     stubPupitre({
@@ -442,7 +442,7 @@ describe("la configuration pesée par le serveur", () => {
     expect(refused).toEqual([]);
   });
 
-  it("laisse passer l'installation quand le pont ne répond pas", async () => {
+  it("lets the installation through when the bridge does not answer", async () => {
     const main = await ready();
 
     stubPupitre({
@@ -456,8 +456,8 @@ describe("la configuration pesée par le serveur", () => {
   });
 });
 
-describe("les comptes et les valeurs lues avec le catalogue", () => {
-  it("sait dès le chargement quels comptes sont connectés", async () => {
+describe("the accounts and values read with the catalogue", () => {
+  it("knows from loading which accounts are connected", async () => {
     stubPupitre({
       ...fakeMain().api,
       connectionsState: () =>
@@ -489,7 +489,7 @@ describe("les comptes et les valeurs lues avec le catalogue", () => {
     ).toEqual([]);
   });
 
-  it("dit ce qui manque quand le compte n'est pas connecté", async () => {
+  it("tells what is missing when the account is not connected", async () => {
     stubPupitre(fakeMain().api);
 
     await useCatalog.getState().load("srv-1");
@@ -503,7 +503,7 @@ describe("les comptes et les valeurs lues avec le catalogue", () => {
     ).toContain("exposure.cloudflare:connection");
   });
 
-  it("préremplit ce qu'un build de développement sait, sans écraser une réponse", async () => {
+  it("prefills what a development build knows, without overwriting an answer", async () => {
     stubPupitre({
       ...fakeMain().api,
       devDefaults: () =>

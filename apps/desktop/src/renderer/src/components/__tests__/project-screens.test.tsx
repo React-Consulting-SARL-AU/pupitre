@@ -39,8 +39,8 @@ const SESSION = {
 
 const STOPPED = SNAPSHOT.projects[1];
 
-describe("l'en-tête d'un projet", () => {
-  it("montre l'état, la branche et ce qui n'est pas commité, sans l'écart distant", () => {
+describe("a project header", () => {
+  it("shows the state, the branch and what is not committed, without the remote gap", () => {
     const html = renderToStaticMarkup(
       <ProjectMeta git={GIT_STATUS} onSeeDiff={NOOP} project={PROJECT} />
     );
@@ -51,7 +51,7 @@ describe("l'en-tête d'un projet", () => {
     expect(html).not.toContain("↓3");
   });
 
-  it("tait la branche d'un dossier qui n'est pas un dépôt", () => {
+  it("hides the branch of a folder that is not a repository", () => {
     const html = renderToStaticMarkup(
       <ProjectMeta git={null} onSeeDiff={NOOP} project={PROJECT} />
     );
@@ -60,7 +60,7 @@ describe("l'en-tête d'un projet", () => {
     expect(html).not.toContain("<button");
   });
 
-  it("relance un projet en ligne et le synchronise", () => {
+  it("restarts an online project and syncs it", () => {
     const html = renderToStaticMarkup(
       <ProjectActions
         busy={false}
@@ -79,7 +79,7 @@ describe("l'en-tête d'un projet", () => {
     expect(html).toContain("Retirer du registre");
   });
 
-  it("propose de démarrer un projet arrêté, pas de l'arrêter", () => {
+  it("offers to start a stopped project, not to stop it", () => {
     const html = renderToStaticMarkup(
       <ProjectActions
         busy={false}
@@ -97,8 +97,8 @@ describe("l'en-tête d'un projet", () => {
   });
 });
 
-describe("les onglets d'un projet", () => {
-  it("séparent les shells des agents, sous deux onglets", () => {
+describe("a project's tabs", () => {
+  it("separate shells from agents, under two tabs", () => {
     expect(tabsFor({ repo: true })).toEqual([
       "overview",
       "configuration",
@@ -110,17 +110,17 @@ describe("les onglets d'un projet", () => {
     ]);
   });
 
-  it("retirent le diff d'un dossier qui n'est pas un dépôt", () => {
+  it("drop the diff of a folder that is not a repository", () => {
     expect(tabsFor({ repo: false })).not.toContain("diff");
   });
 
-  it("renvoient un shell sous Terminaux et un agent sous Agents", () => {
+  it("route a shell under Terminaux and an agent under Agents", () => {
     expect(tabOfKind("shell")).toBe("terminals");
     expect(tabOfKind("claude")).toBe("agents");
     expect(tabOfKind("codex")).toBe("agents");
   });
 
-  it("portent le nombre de fichiers changés, de sessions ouvertes, et leur état", () => {
+  it("carry the number of changed files, of open sessions, and their state", () => {
     const html = renderToStaticMarkup(
       <ProjectTabBar
         active="overview"
@@ -148,7 +148,7 @@ describe("les onglets d'un projet", () => {
     expect(html).toContain('data-shape="ringed"');
   });
 
-  it("disent sur chaque onglet le raccourci qui y mène", () => {
+  it("state on each tab the shortcut that leads to it", () => {
     const html = renderToStaticMarkup(
       <ProjectTabBar
         active="overview"
@@ -167,8 +167,8 @@ describe("les onglets d'un projet", () => {
   });
 });
 
-describe("le choix d'un agent", () => {
-  it("offre une carte par agent que la machine tient, sous le logo de son module, et lance celui qu'on presse", async () => {
+describe("choosing an agent", () => {
+  it("offers a card per agent the machine holds, under its module logo, and launches the one pressed", async () => {
     const picked: string[] = [];
     const view = await mount(
       <ProjectAgentsPicker
@@ -213,7 +213,7 @@ describe("le choix d'un agent", () => {
     view.unmount();
   });
 
-  it("dit où un agent s'installe quand la machine n'en tient aucun", async () => {
+  it("says where an agent is installed when the machine holds none", async () => {
     let asked = 0;
     const view = await mount(
       <ProjectAgentsPicker
@@ -236,8 +236,8 @@ describe("le choix d'un agent", () => {
   });
 });
 
-describe("la vue d'ensemble d'un projet", () => {
-  it("rend l'adresse, les branches, les processus et la mémoire", () => {
+describe("a project overview", () => {
+  it("renders the address, the branches, the processes and the memory", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ branches: BRANCHES, status: "read" }}
@@ -269,7 +269,7 @@ describe("la vue d'ensemble d'un projet", () => {
     expect(html).toContain("3 commits à récupérer");
   });
 
-  it("dit d'où vient la commande d'installation que l'agent n'a pas écrite", () => {
+  it("says where the install command the agent did not write comes from", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ status: "idle" }}
@@ -294,8 +294,8 @@ describe("la vue d'ensemble d'un projet", () => {
   });
 });
 
-describe("les adresses d'un projet", () => {
-  it("montrent un port sans nom sur la boucle locale, et un port nommé comme un lien", () => {
+describe("a project's addresses", () => {
+  it("show an unnamed port on the loopback, and a named port as a link", () => {
     const html = renderToStaticMarkup(
       <ProjectAddresses onPublish={NOOP} project={STOPPED} />
     );
@@ -319,7 +319,7 @@ describe("les adresses d'un projet", () => {
     expect(bare).toContain("127.0.0.1:3100");
   });
 
-  it("n'offrent d'ouvrir un nom sur le web que tant que son processus tourne", () => {
+  it("only offer to open a web name while its process is running", () => {
     const online = renderToStaticMarkup(
       <ProjectAddresses onPublish={NOOP} project={PROJECT} />
     );
@@ -344,8 +344,8 @@ describe("les adresses d'un projet", () => {
   });
 });
 
-describe("le diff d'un projet", () => {
-  it("groupe les fichiers comme git les groupe", () => {
+describe("a project diff", () => {
+  it("groups files the way git groups them", () => {
     const html = renderToStaticMarkup(
       <ProjectDiff
         diff={{ diff: DIFF, path: DIFF.path, status: "read" }}
@@ -364,7 +364,7 @@ describe("le diff d'un projet", () => {
     expect(html).toContain("Lecture seule");
   });
 
-  it("marque les lignes du patch par leur signe autant que par leur fond", () => {
+  it("marks patch lines by their sign as much as by their background", () => {
     const html = renderToStaticMarkup(
       <ProjectDiff
         diff={{ diff: DIFF, path: DIFF.path, status: "read" }}
@@ -381,7 +381,7 @@ describe("le diff d'un projet", () => {
     expect(html).toContain('data-kind="hunk"');
   });
 
-  it("le dit quand le dossier n'est pas un dépôt", () => {
+  it("says so when the folder is not a repository", () => {
     const html = renderToStaticMarkup(
       <ProjectDiff
         diff={{ status: "idle" }}
@@ -400,8 +400,8 @@ describe("le diff d'un projet", () => {
   });
 });
 
-describe("les éditeurs distants", () => {
-  it("ne proposent que ceux dont le module est installé", () => {
+describe("remote editors", () => {
+  it("only offer those whose module is installed", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
@@ -423,7 +423,7 @@ describe("les éditeurs distants", () => {
     expect(html).not.toContain('data-logo="editor.zed"');
   });
 
-  it("n'affichent rien tant que l'agent n'a pas donné de chemin absolu", () => {
+  it("show nothing until the agent has given an absolute path", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
@@ -437,7 +437,7 @@ describe("les éditeurs distants", () => {
     expect(html).toBe("");
   });
 
-  it("demandent d'abord la ligne du fichier du système quand il ne la porte pas", () => {
+  it("first ask for the system file line when it does not carry it", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}

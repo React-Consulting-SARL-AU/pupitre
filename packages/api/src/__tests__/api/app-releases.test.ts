@@ -296,7 +296,7 @@ describe("app releases", () => {
     })
   })
 
-  describe("le jeton de publication", () => {
+  describe("the publish token", () => {
     const TOKEN = `${PUBLISH_TOKEN_PREFIX}pipeline-token-for-the-tests`
     let held: string | undefined
 
@@ -313,7 +313,7 @@ describe("app releases", () => {
       }
     })
 
-    it("ouvre la publication sans session", async () => {
+    it("opens publishing without a session", async () => {
       const response = await apiRequest<BuildBody & ErrorBody>(
         "/admin/app-releases",
         { body: publication(), bearer: TOKEN }
@@ -323,7 +323,7 @@ describe("app releases", () => {
       expect(response.json.data.version).toBe("1.4.0")
     })
 
-    it("dit le pipeline plutôt qu'un utilisateur dans le journal", async () => {
+    it("names the pipeline rather than a user in the log", async () => {
       const { prisma } = await bootApiTestServer()
 
       await apiRequest("/admin/app-releases", {
@@ -339,7 +339,7 @@ describe("app releases", () => {
       expect(event?.payload).toMatchObject({ by: "pipeline" })
     })
 
-    it("refuse un jeton qui n'est pas celui-là", async () => {
+    it("refuses a token that is not the right one", async () => {
       const response = await apiRequest<ErrorBody>("/admin/app-releases", {
         body: publication(),
         bearer: `${PUBLISH_TOKEN_PREFIX}autre-chose`,
@@ -349,7 +349,7 @@ describe("app releases", () => {
       expect(response.json.error.code).toBe("unauthenticated")
     })
 
-    it("refuse tout jeton quand la plateforme n'en déclare aucun", async () => {
+    it("refuses any token when the platform declares none", async () => {
       process.env[PUBLISH_TOKEN_VARIABLE] = undefined
 
       const response = await apiRequest<ErrorBody>("/admin/app-releases", {
@@ -360,15 +360,15 @@ describe("app releases", () => {
       expect(response.status).toBe(401)
     })
 
-    it("laisse la console publier avec sa session", async () => {
+    it("lets the console publish with its session", async () => {
       const session = await platformAdmin()
 
       expect((await publish(session)).status).toBe(201)
     })
   })
 
-  describe("la clé de l'artefact", () => {
-    it("refuse une clé qui sortirait du dossier des versions", async () => {
+  describe("the artifact key", () => {
+    it("refuses a key that would escape the versions folder", async () => {
       const session = await platformAdmin()
 
       for (const r2_key of [
@@ -383,7 +383,7 @@ describe("app releases", () => {
       }
     })
 
-    it("compose l'adresse depuis le seau, jamais depuis l'appelant", async () => {
+    it("composes the address from the bucket, never from the caller", async () => {
       const session = await platformAdmin()
 
       await publish(session)
@@ -609,15 +609,15 @@ describe("app releases", () => {
     })
   })
 
-  describe("la lecture publique", () => {
-    it("répond à n'importe quelle origine et se laisse mettre en cache", async () => {
+  describe("public reading", () => {
+    it("answers any origin and can be cached", async () => {
       const response = await apiRequest<ReleaseListBody>("/releases/app")
 
       expect(response.raw.headers.get("access-control-allow-origin")).toBe("*")
       expect(response.raw.headers.get("cache-control")).toContain("max-age=300")
     })
 
-    it("coupe une adresse qui dépasse son budget, sans toucher aux autres", async () => {
+    it("cuts off an address that exceeds its budget, without touching the others", async () => {
       const flooding = { [CLIENT_IP_HEADER]: "203.0.113.7" }
       const statuses = new Set<number>()
 
@@ -649,7 +649,7 @@ describe("app releases", () => {
       expect(neighbour.status).toBe(200)
     })
 
-    it("garde son budget pour elle : la console reste joignable", async () => {
+    it("keeps its budget to itself: the console stays reachable", async () => {
       const flooding = { [CLIENT_IP_HEADER]: "203.0.113.9" }
 
       for (

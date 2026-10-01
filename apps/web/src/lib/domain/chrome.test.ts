@@ -6,14 +6,14 @@ import {
   sidebarCarriesChrome,
 } from "./chrome"
 
-describe("la section de la console", () => {
-  it("reste la même d'une page à l'autre d'une même section", () => {
+describe("the console section", () => {
+  it("stays the same from one page to another within a section", () => {
     expect(consoleSection("/dashboard/admin/inbox/thr_1")).toBe("admin")
     expect(consoleSection("/dashboard/admin/users")).toBe("admin")
     expect(consoleSection("/dashboard/servers/srv_1")).toBe("servers")
   })
 
-  it("change quand la barre latérale change de section", () => {
+  it("changes when the sidebar changes section", () => {
     expect(consoleSection("/dashboard/billing")).not.toBe(
       consoleSection("/dashboard/servers")
     )
@@ -21,8 +21,8 @@ describe("la section de la console", () => {
   })
 })
 
-describe("le chrome de la console", () => {
-  it("laisse la barre latérale porter le thème et le légal dans la console", () => {
+describe("the console chrome", () => {
+  it("lets the sidebar carry the theme and the legal pages in the console", () => {
     for (const pathname of [
       "/dashboard",
       "/dashboard/servers",
@@ -33,7 +33,7 @@ describe("le chrome de la console", () => {
     }
   })
 
-  it("garde le pied de page partout ailleurs", () => {
+  it("keeps the footer everywhere else", () => {
     for (const pathname of [
       "/",
       "/auth/sign-in",
@@ -46,8 +46,8 @@ describe("le chrome de la console", () => {
   })
 })
 
-describe("la touche d'un raccourci", () => {
-  it("est la touche commande sur un appareil Apple", () => {
+describe("a shortcut's key", () => {
+  it("is the command key on an Apple device", () => {
     for (const agent of [
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
@@ -56,7 +56,7 @@ describe("la touche d'un raccourci", () => {
     }
   })
 
-  it("est la touche contrôle partout ailleurs, et avant que le navigateur parle", () => {
+  it("is the control key everywhere else, and before the browser speaks", () => {
     for (const agent of [
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
       "Mozilla/5.0 (X11; Linux x86_64)",
