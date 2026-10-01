@@ -55,7 +55,7 @@ export function CreateOrganizationDialog({
       })
       await queryClient.invalidateQueries({ queryKey: queryKeys.me })
       await router.invalidate()
-      await navigate({ to: "/dashboard/servers" })
+      await navigate({ to: "/dashboard" })
     },
   })
 

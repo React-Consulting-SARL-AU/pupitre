@@ -2,7 +2,7 @@
 title: "Privacy"
 description: "What Pupitre collects, what it never collects, where it lives, how long it stays, and how to get it back or have it deleted."
 locale: en
-updated: 2026-09-25
+updated: 2026-10-01
 order: 4
 ---
 
@@ -10,7 +10,7 @@ import SubProcessors from "../../../components/SubProcessors.astro"
 
 ## Who is responsible
 
-The data controller is Jordan Monier, a natural person residing in Morocco, who publishes Pupitre. Write to `privacy@pupitre.studio` for anything about your data; we answer within thirty days.
+The data controller is React Consulting SARL AU, a company established in Morocco, represented by its manager Jordan Monier, which publishes Pupitre. Write to `privacy@pupitre.studio` for anything about your data; we answer within thirty days.
 
 For the data an organisation entrusts to us about its members and its machines, we also act on behalf of that organisation, as the [data processing agreement](/legal/data-processing/) says.
 
@@ -26,11 +26,11 @@ For the data an organisation entrusts to us about its members and its machines, 
 
 **Your backups.** When you turn them on, a reference for each backup, as the [terms](/legal/terms/) list it: its date, its place in your own storage (endpoint, region, bucket, object prefix), the digest of its manifest, its size, what it holds in numbers — never in names —, the configuration revision, the agent version, the public key it is encrypted to and its salt, and the name you give a backup you start yourself, if you give one; with the heartbeat, the backup interval and the outcome of the last attempt; and, when you restore one, on which machine. The backup itself lives in your storage, encrypted to a key only your passphrase gives; we never receive it, and nobody keeps the passphrase. The access key to your storage stays in your computer's keychain and on your machine: the platform never receives it and refuses a reference that would carry it. A reference is kept until the machine deletes the backup or an administrator of your organisation forgets it.
 
-**Your subscription.** During the free launch: the fact that your organisation holds the launch subscription, and its dates. No payment data exists, because nothing is paid.
+**Your licence.** How many machines your organisation enrolled and, when it holds a licence beyond the free servers, its number of seats, its dates and who granted it. No payment data exists, because nothing is paid.
 
 **What you write to us.** Every email sent to an address at `pupitre.studio` is stored on the platform — its text, its headers and its attachments — and read by the team from the console, where each reading of a sensitive thread is itself journaled.
 
-**Where you came from.** When you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can note which link brought your organisation when it starts its subscription. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set. The platform also counts one visit for that link, once per browsing session, keeping nothing about you. During the launch, that note only says where you came from.
+**Where you came from.** When you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can note which link brought you when you create your account. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set. The platform also counts one visit for that link, once per browsing session, keeping nothing about you, and, for each link, how many machines the organisations it brought have enrolled. That note only says where you came from: no offer, price or reward is attached to it.
 
 Everything the site and the console write to your browser is described in the [cookie policy](/legal/cookies/).
 
@@ -40,12 +40,12 @@ No code, no project file, no service secret, no application log, no terminal con
 
 ## Why, and on what basis
 
-- **To provide the service**, that is to perform the contract the [terms](/legal/terms/) form: your account, your devices, your organisation, your machines, your backups, your subscription and the emails that make the account work.
+- **To provide the service**, that is to perform the contract the [terms](/legal/terms/) form: your account, your devices, your organisation, your machines, your backups, your licence and the emails that make the account work.
 - **To protect the service and the organisations**, on the basis of our legitimate interest: the IP address and the device of each session, the journal of each organisation, the journaling of readings of sensitive threads.
 - **To answer you**, on the basis of our legitimate interest, or to prepare the contract you ask us for: the emails you write to us.
 - **To know which link brought you**, on the basis of our legitimate interest: the affiliate code and the visit count of a link.
 - **To measure the site's audience**, with your consent, which you can withdraw at any time.
-- **To comply with the law**, the day invoices exist: keeping them.
+- **To comply with the law**: keeping what the law obliges us to keep, and answering the authorities that may lawfully ask.
 
 No decision about you is made by automated processing alone, except what the contract itself provides: a machine without a valid right of use enters restricted mode.
 
@@ -61,11 +61,11 @@ We use no advertising network, no advertising cookie, and we never sell or share
 
 ## Transactional email
 
-We send what makes the account work: address confirmation, sign-in link, invitation to an organisation, alert about a machine, notice about your subscription or about a change to these documents. Those cannot be turned off while the account exists. Any other message — news, tips — is turned off in one click from the message itself.
+We send what makes the account work: address confirmation, sign-in link, invitation to an organisation, alert about a machine, notice about your licence or about a change to these documents. Those cannot be turned off while the account exists. Any other message — news, tips — is turned off in one click from the message itself.
 
 ## Payments
 
-Nothing is paid during the launch, and no payment data exists. The day billing opens, Stripe will collect payments as merchant of record: it will invoice, handle taxes and hold the payment data. We will keep a Stripe customer identifier, the plan, the state of the subscription and the invoice history, never a card number. That day is announced by email at least thirty days ahead.
+Nothing is paid, and no payment data exists. Should paid licences be offered one day, this page will say first who collects the payments and what we keep of them, and the change will be announced by email at least thirty days ahead.
 
 ## Sub-processors
 
@@ -79,7 +79,7 @@ Your data is therefore processed outside the European Union: by the controller i
 
 ## Retention
 
-Your account and your organisation are kept while the account exists. Deleting the account from the console deletes it immediately, with your devices and their public keys; a deletion we perform at your request or as a sanction is scheduled seven days ahead, so that a mistake can be undone, then carried out. Sign-in sessions expire after sixty days. Machine metrics are a sliding window of seven days. The journal of an organisation is kept with the organisation; when an account is deleted, its lines lose their author. Emails you sent us are kept as long as the exchange may still be needed to help you, and deleted on request. Audience measurement is kept for twelve months, and is never joined to your account. Invoices, the day they exist, will be kept for as long as accounting law requires.
+Your account and your organisation are kept while the account exists. Deleting the account from the console deletes it immediately, with your devices and their public keys; a deletion we perform at your request or as a sanction is scheduled seven days ahead, so that a mistake can be undone, then carried out. Sign-in sessions expire after sixty days. Machine metrics are a sliding window of seven days. The journal of an organisation is kept with the organisation; when an account is deleted, its lines lose their author. Emails you sent us are kept as long as the exchange may still be needed to help you, and deleted on request. Audience measurement is kept for twelve months, and is never joined to your account.
 
 ## Your rights
 

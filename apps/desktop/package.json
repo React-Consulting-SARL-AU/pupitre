@@ -8,6 +8,7 @@
   "main": "out/main/index.cjs",
   "type": "module",
   "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "bun run check:types && electron-vite build",

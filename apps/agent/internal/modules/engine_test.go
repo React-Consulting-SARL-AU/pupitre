@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
@@ -23,11 +23,11 @@ import (
 
 const secret = "s3cret-de-test"
 
-func entitled(value contract.Entitlement) func() contract.Entitlement {
-	return func() contract.Entitlement { return value }
+func licensed(value contract.License) func() contract.License {
+	return func() contract.License { return value }
 }
 
-func newEngine(t *testing.T, fake *modtest.FakeSys, registry *modules.Registry, current func() contract.Entitlement) *modules.Engine {
+func newEngine(t *testing.T, fake *modtest.FakeSys, registry *modules.Registry, current func() contract.License) *modules.Engine {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -36,7 +36,7 @@ func newEngine(t *testing.T, fake *modtest.FakeSys, registry *modules.Registry, 
 		Registry:     registry,
 		Sys:          fake,
 		Now:          modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement:  current,
+		License:      current,
 		AgentVersion: "0.0.0-test",
 		ReportPath:   filepath.Join(dir, "report.json"),
 		LogPath:      filepath.Join(dir, "pupitre.log"),
@@ -105,7 +105,7 @@ func TestFailedModuleDoesNotStopTheNext(t *testing.T) {
 		modtest.Failing{ID: "db.broken", FailAt: "install-package", Message: "E: Unable to locate package db-broken"},
 		modtest.Passing{ID: "tool.demo", Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	var events []contract.StepEvent
 	result, err := engine.Install(modules.Request{
@@ -173,7 +173,7 @@ func TestReplayOnInstalledMachineChangesNothing(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 	request := modules.Request{
 		Modules: []string{"tool.demo"},
 		Config:  map[string]map[string]any{"tool.demo": {"port": 9000}},
@@ -229,57 +229,57 @@ func TestReplayOnInstalledMachineChangesNothing(t *testing.T) {
 	}
 }
 
-func TestInstallRefusesWithoutEntitlement(t *testing.T) {
-	for _, state := range []contract.Entitlement{contract.EntitlementRestricted, ""} {
+func TestInstallRefusesWithoutLicense(t *testing.T) {
+	for _, state := range []contract.License{contract.LicenseRestricted, ""} {
 		fake := modtest.NewFakeSys()
-		engine := newEngine(t, fake, demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(state))
+		engine := newEngine(t, fake, demoRegistry(modtest.Passing{ID: "tool.demo"}), licensed(state))
 
 		var events []contract.StepEvent
 		_, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}}, collect(&events))
-		if code := protocolCode(t, err); code != contract.ErrorEntitlementRequired {
-			t.Fatalf("entitlement %q: code = %s, want entitlement_required", state, code)
+		if code := protocolCode(t, err); code != contract.ErrorLicenseRequired {
+			t.Fatalf("license %q: code = %s, want license_required", state, code)
 		}
 
-		if _, err := engine.Uninstall([]string{"tool.demo"}, nil); protocolCode(t, err) != contract.ErrorEntitlementRequired {
+		if _, err := engine.Uninstall([]string{"tool.demo"}, nil); protocolCode(t, err) != contract.ErrorLicenseRequired {
 			t.Fatalf("uninstall must refuse too")
 		}
 
-		if _, err := engine.Upgrade(modules.Request{}, nil); protocolCode(t, err) != contract.ErrorEntitlementRequired {
+		if _, err := engine.Upgrade(modules.Request{}, nil); protocolCode(t, err) != contract.ErrorLicenseRequired {
 			t.Fatalf("upgrade must refuse too")
 		}
 
 		if len(events) != 0 || len(fake.Calls) != 0 {
-			t.Fatalf("nothing must run without entitlement: %d events, %d calls", len(events), len(fake.Calls))
+			t.Fatalf("nothing must run without license: %d events, %d calls", len(events), len(fake.Calls))
 		}
 
 		if _, err := os.Stat(engine.ReportPath); err == nil {
-			t.Fatal("no report must be written without entitlement")
+			t.Fatal("no report must be written without license")
 		}
 	}
 
-	for _, state := range []contract.Entitlement{contract.EntitlementValid, contract.EntitlementGrace, contract.EntitlementDev} {
-		engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(state))
+	for _, state := range []contract.License{contract.LicenseValid, contract.LicenseGrace, contract.LicenseDev} {
+		engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), licensed(state))
 
 		result, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}}, nil)
 		if err != nil || len(result.Failed) != 0 {
-			t.Fatalf("entitlement %q: install = %+v, %v", state, result, err)
+			t.Fatalf("license %q: install = %+v, %v", state, result, err)
 		}
 	}
 }
 
-func TestDefaultEntitlementIsTheBuild(t *testing.T) {
+func TestDefaultLicenseIsTheBuild(t *testing.T) {
 	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), nil)
 
 	_, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}}, nil)
 
-	if entitlement.Current() == contract.EntitlementDev {
+	if license.Current() == contract.LicenseDev {
 		if err != nil {
 			t.Fatalf("dev build must install: %v", err)
 		}
 		return
 	}
 
-	if protocolCode(t, err) != contract.ErrorEntitlementRequired {
+	if protocolCode(t, err) != contract.ErrorLicenseRequired {
 		t.Fatalf("release build must refuse, got %v", err)
 	}
 }
@@ -341,7 +341,7 @@ func TestInstallRefusesAConflictWithAnInstalledModule(t *testing.T) {
 		modtest.Passing{ID: "db.mysql", Conflicts: []string{"db.mariadb"}},
 		modtest.Passing{ID: "db.mariadb"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	_, err := engine.Install(modules.Request{Modules: []string{"db.mysql"}}, nil)
 	if protocolCode(t, err) != contract.ErrorBadRequest || !strings.Contains(err.Error(), "already installed") {
@@ -355,7 +355,7 @@ func TestPanicAndBareErrorsAreFailuresOfTheModuleOnly(t *testing.T) {
 		modtest.Failing{ID: "ai.panic", FailAt: "write-config", Panics: true},
 		modtest.Passing{ID: "tool.demo"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementDev))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseDev))
 
 	result, err := engine.Install(modules.Request{Modules: []string{"ai.panic", "tool.demo"}}, nil)
 	if err != nil {
@@ -382,7 +382,7 @@ func TestPanicAndBareErrorsAreFailuresOfTheModuleOnly(t *testing.T) {
 }
 
 func TestWarningsAreAccountedWithoutFailing(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Failing{ID: "tool.noisy", WarnWith: "port 8080 is already taken"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Failing{ID: "tool.noisy", WarnWith: "port 8080 is already taken"}), licensed(contract.LicenseDev))
 
 	result, err := engine.Install(modules.Request{Modules: []string{"tool.noisy"}}, nil)
 	if err != nil {
@@ -415,7 +415,7 @@ func TestUninstallRunsInReverseOrderAndForgetsTheRequest(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}, Persist: true}, nil); err != nil {
 		t.Fatal(err)
@@ -452,7 +452,7 @@ func TestUpgradeOnlyTouchesInstalledModulesAndKeepsTheirValues(t *testing.T) {
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 		modtest.Passing{ID: "tool.absent"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	request := modules.Request{
 		Modules: []string{"tool.demo"},
@@ -491,7 +491,7 @@ const openReport = `{"started_at":"2026-09-17T10:00:00Z","agent_version":"0.0.0-
 `
 
 func TestAnOpenReportWithNoLockHolderIsAnsweredInterrupted(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
+	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), licensed(contract.LicenseValid))
 	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
 	if err := os.WriteFile(engine.ReportPath, []byte(fmt.Sprintf(openReport, engine.ReportPath)), 0o644); err != nil {
 		t.Fatal(err)
@@ -517,7 +517,7 @@ func TestAnOpenReportWithNoLockHolderIsAnsweredInterrupted(t *testing.T) {
 }
 
 func TestAnOpenReportWhileTheLockIsHeldStaysOpen(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
+	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), licensed(contract.LicenseValid))
 	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
 	if err := os.WriteFile(engine.ReportPath, []byte(fmt.Sprintf(openReport, engine.ReportPath)), 0o644); err != nil {
 		t.Fatal(err)
@@ -543,7 +543,7 @@ func TestAnOpenReportWhileTheLockIsHeldStaysOpen(t *testing.T) {
 }
 
 func TestTheReportIsRootsAlone(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), licensed(contract.LicenseDev))
 	if err := os.WriteFile(engine.ReportPath, []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -563,7 +563,7 @@ func TestTheReportIsRootsAlone(t *testing.T) {
 }
 
 func TestReportBeforeAnyInstall(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
+	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), licensed(contract.LicenseValid))
 
 	_, err := engine.Report()
 	if protocolCode(t, err) != contract.ErrorNoReport {
@@ -575,7 +575,7 @@ func TestSecretsNeverLeak(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailProgram("systemctl", "Failed to enable unit: "+secret+" rejected")
 	registry := demoRegistry(modtest.Passing{ID: "tool.demo", Unit: "demo", EnvKey: "DEMO_PASSWORD"})
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	var events []contract.StepEvent
 	result, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}}, collect(&events))
@@ -610,7 +610,7 @@ func TestSecretsNeverLeak(t *testing.T) {
 }
 
 func TestStepDurationsComeFromTheClock(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), licensed(contract.LicenseDev))
 	engine.Now = modtest.NewClock(time.Second).Now
 
 	var events []contract.StepEvent
@@ -653,7 +653,7 @@ func demoEngine(t *testing.T) (*modules.Engine, *modtest.FakeSys) {
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
 
-	return newEngine(t, fake, registry, entitled(contract.EntitlementDev)), fake
+	return newEngine(t, fake, registry, licensed(contract.LicenseDev)), fake
 }
 
 func TestAnInvalidConfigurationIsRefusedBeforeAnythingIsTouched(t *testing.T) {
@@ -737,7 +737,7 @@ func TestADeferredModuleWaitsForTheRequestThatAnswersForIt(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	var events []contract.StepEvent
 	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Defer: []string{"tool.demo"}, Persist: true}, collect(&events)); err != nil {
@@ -795,7 +795,7 @@ func TestADeferredModuleWaitsForTheRequestThatAnswersForIt(t *testing.T) {
 func TestDeferringAMandatoryModuleIsRefused(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	registry := demoRegistry(modtest.Passing{ID: "core.system", Mandatory: true})
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 	request := modules.Request{Modules: []string{"core.system"}, Defer: []string{"core.system"}, Persist: true}
 
 	if _, err := engine.Install(request, nil); protocolCode(t, err) != contract.ErrorBadRequest {
@@ -812,7 +812,7 @@ func TestDeferringAMandatoryModuleIsRefused(t *testing.T) {
 func TestUninstallForgetsThatAModuleWasDeferred(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	registry := demoRegistry(modtest.Passing{ID: "tool.demo", Unit: "demo", EnvKey: "DEMO_PASSWORD"})
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Defer: []string{"tool.demo"}, Persist: true}, nil); err != nil {
 		t.Fatal(err)
@@ -833,7 +833,7 @@ func TestAddingAModuleKeepsWhatItsRequirementWasToldBefore(t *testing.T) {
 		modtest.Passing{ID: "core.system", Mandatory: true, Asks: []contract.Field{identity}},
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	first := modules.Request{Modules: []string{"core.system"}, Config: map[string]map[string]any{"core.system": {"git_name": "Ada"}}, Persist: true}
 	if _, err := engine.Install(first, nil); err != nil {
@@ -875,7 +875,7 @@ func TestARequirementLeftForLaterStaysForLater(t *testing.T) {
 		modtest.Passing{ID: "tool.base", Unit: "base", EnvKey: "BASE_PASSWORD"},
 		modtest.Passing{ID: "tool.top", Requires: []string{"tool.base"}},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	if _, err := engine.Install(modules.Request{Modules: []string{"tool.base"}, Defer: []string{"tool.base"}, Persist: true}, nil); err != nil {
 		t.Fatal(err)
@@ -897,7 +897,7 @@ func TestARequirementLeftForLaterStaysForLater(t *testing.T) {
 }
 
 func TestTheReportIsOnDiskBeforeEveryStepEvent(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}, modtest.Passing{ID: "tool.other"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}, modtest.Passing{ID: "tool.other"}), licensed(contract.LicenseDev))
 
 	var seen []string
 	sink := func(event contract.StepEvent) {
@@ -947,7 +947,7 @@ func TestUninstallRefusesAModuleAnotherInstalledOneStillRequires(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}, Persist: true}, nil); err != nil {
 		t.Fatal(err)
@@ -974,7 +974,7 @@ func TestInspectAnswersWhileAnotherProcessHoldsTheLock(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages["tool-demo"] = "1.0"
 	registry := demoRegistry(modtest.Passing{ID: "tool.demo"})
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
 
 	held, err := os.OpenFile(engine.LockPath, os.O_CREATE|os.O_RDWR, 0o600)
@@ -1025,7 +1025,7 @@ func installVersioned(t *testing.T, engine *modules.Engine) {
 
 func TestUpgradeAndUninstallReadTheModuleOnTheRememberedValues(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	engine := newEngine(t, fake, versionedRegistry(), entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, versionedRegistry(), licensed(contract.LicenseValid))
 	installVersioned(t, engine)
 	fake.Upgrades[modtest.Passing{ID: "db.demo"}.PackageAt(modtest.OtherVersion)] = "2.1"
 
@@ -1057,7 +1057,7 @@ func TestUpgradeAndUninstallReadTheModuleOnTheRememberedValues(t *testing.T) {
 
 func TestSnapshotReadsTheModuleOnTheRememberedValues(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	engine := newEngine(t, fake, versionedRegistry(), entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, versionedRegistry(), licensed(contract.LicenseValid))
 	installVersioned(t, engine)
 
 	reader := state.FromEngine(engine, state.Options{})
@@ -1081,7 +1081,7 @@ func TestUpgradeAndUninstallLeaveAPackageTheClientInstalledAlone(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		modtest.Passing{ID: "db.theirs", Requires: []string{"core.system"}, Unit: "theirs"},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	if _, err := engine.Install(modules.Request{Modules: []string{"core.system"}, Persist: true}, nil); err != nil {
 		t.Fatal(err)
@@ -1116,7 +1116,7 @@ func TestConfigureAndPreflightSeeWhatTheMachineHolds(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	holding := &heldRecorder{}
 	registry := demoRegistry(modtest.Passing{ID: "core.system"}, holding)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
 
 	first := modules.Request{Modules: []string{"tool.held"}, Config: map[string]map[string]any{"tool.held": {"port": 9000}}, Persist: true}
 	if _, err := engine.Install(first, nil); err != nil {
@@ -1154,7 +1154,7 @@ func TestAModuleIsConfiguredWithTheValueThatWasJudged(t *testing.T) {
 		ID:   "tool.domain",
 		Asks: []contract.Field{{Key: "domain", Kind: contract.FieldText, Label: "Domaine", Format: contract.FormatDomain, Required: true}},
 	}}
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(recorder), entitled(contract.EntitlementValid))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(recorder), licensed(contract.LicenseValid))
 
 	request := modules.Request{Modules: []string{"tool.domain"}, Config: map[string]map[string]any{"tool.domain": {"domain": "  Flyleaf.DEV\n"}}, Persist: true}
 	if result, err := engine.Install(request, nil); err != nil || len(result.Failed) != 0 {

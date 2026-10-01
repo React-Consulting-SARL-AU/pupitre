@@ -340,16 +340,6 @@ export function cancelSubscription(
     .then((response) => unwrap(response).data)
 }
 
-export function extendSubscriptionTrial(
-  id: string,
-  endsAt: string
-): Promise<AdminSubscription> {
-  return api()
-    .api.v1.admin.subscriptions({ id })
-    .trial.post({ ends_at: endsAt })
-    .then((response) => unwrap(response).data)
-}
-
 export function resumeSubscription(id: string): Promise<AdminSubscription> {
   return api()
     .api.v1.admin.subscriptions({ id })
@@ -562,8 +552,6 @@ export function affiliateLinkQueryOptions(id: string) {
 export interface AffiliateLinkInput {
   name: string
   code?: string
-  free_months: number
-  seats?: number
   partner_name?: string | null
   partner_email?: string | null
   notes?: string | null
@@ -580,8 +568,6 @@ export function createAffiliateLink(input: AffiliateLinkInput): Promise<void> {
 export interface AffiliateLinkUpdate {
   disabled?: boolean
   name?: string
-  free_months?: number
-  seats?: number
   partner_name?: string | null
   partner_email?: string | null
   notes?: string | null

@@ -357,9 +357,9 @@ var stateCatalog = map[string]Message{
 		FR: "Elle naît au premier project.up : aucun projet n'a encore démarré.",
 		EN: "It is born on the first project.up: no project has started yet.",
 	},
-	"state.diag.entitlement": {
-		FR: "droit d'usage : %s",
-		EN: "usage right: %s",
+	"state.diag.license": {
+		FR: "licence : %s",
+		EN: "licence: %s",
 	},
 	// One key for the whole line: labels, units and word order differ between the two languages.
 	"state.diag.machine": {

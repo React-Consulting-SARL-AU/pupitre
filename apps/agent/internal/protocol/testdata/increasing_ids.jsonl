@@ -1,10 +1,10 @@
-> {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":5,"cmd":"ping"}
 > {"id":4,"cmd":"ping"}
 > {"id":6}
 > {"id":6,"cmd":"ping"}
 > {"id":9007199254740991,"cmd":"ping"}
-< {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
+< {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"id":5,"ok":false,"error":{"code":"bad_request","message":"id 5 is refused: an id has to grow strictly, last id received 5"}}
 < {"id":4,"ok":false,"error":{"code":"bad_request","message":"id 4 is refused: an id has to grow strictly, last id received 5"}}
 < {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: required field"}}

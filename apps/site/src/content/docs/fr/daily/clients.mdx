@@ -142,7 +142,7 @@ dev db url                    la chaîne de connexion, pour un client sur votre 
 dev doctor                    un diagnostic court de la machine
 ```
 
-L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : la commande parle donc à `sudo -n pupitred serve`, que sudo lance sans mot de passe. `dev db dump`, `dev db import` et `dev backup now` passent par une session privilégiée, pour laquelle sudo demande le mot de passe sudo de `dev` dans le terminal. Taper `sudo dev …` vous-même ne change rien.
+L’agent lit son rattachement et sa licence dans des fichiers que seul root ouvre : la commande parle donc à `sudo -n pupitred serve`, que sudo lance sans mot de passe. `dev db dump`, `dev db import` et `dev backup now` passent par une session privilégiée, pour laquelle sudo demande le mot de passe sudo de `dev` dans le terminal. Taper `sudo dev …` vous-même ne change rien.
 
 `dev db` accepte aussi `shell`, `dump` et `import`, et le moteur va de soi quand la machine n’a qu’une base — `dev db url postgres` quand elle en a deux.
 

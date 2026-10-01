@@ -46,7 +46,7 @@ type Options struct {
 	Sys          sys.Sys
 	Now          func() time.Time
 	Registry     *modules.Registry
-	Entitlement  func() contract.Entitlement
+	License      func() contract.License
 	AgentVersion string
 	Paths        registry.Paths
 	Tmux         tmux.Options
@@ -55,7 +55,7 @@ type Options struct {
 	InstallPath string
 	// Modules installed without their settings: the one thing a module cannot tell of itself.
 	Deferred func() []string
-	// Runs a module action under the run lock and entitlement, the same door the engine's install takes.
+	// Runs a module action under the run lock and license, the same door the engine's install takes.
 	Command    func(id string, sink modules.Sink, fn func(*modules.Context) error) error
 	Follow     FollowOptions
 	Shots      ShotOptions
@@ -163,12 +163,12 @@ func (r *Reader) domain() string {
 	return value
 }
 
-func (r *Reader) entitlement() contract.Entitlement {
-	if r.options.Entitlement == nil {
-		return contract.EntitlementDev
+func (r *Reader) license() contract.License {
+	if r.options.License == nil {
+		return contract.LicenseDev
 	}
 
-	return r.options.Entitlement()
+	return r.options.License()
 }
 
 type silent struct {
@@ -195,8 +195,8 @@ func FromEngine(engine *modules.Engine, options Options) *Reader {
 	if options.Registry == nil {
 		options.Registry = engine.Registry
 	}
-	if options.Entitlement == nil {
-		options.Entitlement = engine.Entitlement
+	if options.License == nil {
+		options.License = engine.License
 	}
 	if options.AgentVersion == "" {
 		options.AgentVersion = engine.AgentVersion

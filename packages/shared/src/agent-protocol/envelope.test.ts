@@ -9,8 +9,8 @@ import {
 } from "./envelope"
 
 describe("PROTOCOL_VERSION", () => {
-  it("is the integer 2", () => {
-    expect(PROTOCOL_VERSION).toBe(2)
+  it("is the integer 3", () => {
+    expect(PROTOCOL_VERSION).toBe(3)
     expect(Number.isInteger(PROTOCOL_VERSION)).toBe(true)
   })
 })

@@ -4,13 +4,13 @@ export const securityEn: SecurityContent = {
   meta: {
     title: "Security — Pupitre",
     description:
-      "What Pupitre can and cannot do on your server, what the platform knows about it, and the command that checks each claim. Why the code is closed, what happens if Pupitre stops, and how to remove it.",
+      "What Pupitre can and cannot do on your server, what the platform knows about it, and the command that checks each claim. Where to read the code, what happens if Pupitre stops, and how to remove it.",
   },
   hero: {
     label: "Security",
     headline:
       "You install our agent as root. Here is what it can and cannot do.",
-    lead: "Pupitre puts a compiled binary on a server of yours, with root rights, and the code is closed. That asks for trust, so every claim below comes with the command that checks it on your own machine.",
+    lead: "Pupitre puts a compiled binary on a server of yours, with root rights. That asks for trust, so the source is public, and every claim below comes with the command that checks it on your own machine.",
     cta: "Read the security docs",
   },
   guarantees: {
@@ -90,13 +90,13 @@ export const securityEn: SecurityContent = {
     title: "The questions worth asking before you install",
     items: [
       {
-        id: "closed-source",
-        question: "Why is the code closed?",
+        id: "source",
+        question: "Can I read the code?",
         paragraphs: [
-          "Pupitre is a paid product, and selling it is what pays for the updates. We chose a closed product over an open core with paid features on top.",
+          "Yes. The code of the app, the agent and the platform is public, under the Apache 2.0 licence with the Commons Clause: you may read it, change it, build the agent yourself and run your own platform. The one thing the licence forbids is selling Pupitre, or a service built mainly on it.",
           "You do not have to read the source to know what the agent did to your machine. Everything it installs is standard software, configured in ordinary files you can open, such as /etc/ssh/sshd_config.d/10-pupitre.conf or the Caddyfile. The documentation says what every module installs, changes and removes.",
         ],
-        link: { href: "/docs/services/", label: "What each module does" },
+        link: { href: "/legal/licence/", label: "What the licence allows" },
       },
       {
         id: "shutdown",

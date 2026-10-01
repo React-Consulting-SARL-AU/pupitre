@@ -2,9 +2,12 @@ import { type Locale, localeOrDefault } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma, withOrganization } from "../api/prisma"
-import { entitlementForOrganization } from "../billing/entitlement"
-import { countSeatedServers, seatQuotaFor } from "../billing/seats"
-import { liveSubscriptionOf } from "../billing/subscription"
+import { licenseForOrganization } from "../billing/license"
+import {
+  countSeatedServers,
+  payingSubscriptionOf,
+  seatQuotaFor,
+} from "../billing/seats"
 import { actsOnPlatform } from "../platform/actor"
 import {
   organizationReasonOf,
@@ -18,23 +21,33 @@ export interface MeInput {
   platformRole: OrgRole | null
 }
 
-export interface MeSubscriptionView {
-  status: string
-  trial_ends_at: Date | null
-  current_period_end: Date | null
-  servers: { used: number; limit: number }
+export interface MeServersView {
+  used: number
+  limit: number
 }
 
-// Stripe ends the first period with the trial, so while trialing the period end is the trial's end.
-export async function subscriptionForMe(
+export interface MeLicenseGrantView {
+  status: string
+  seats: number
+  current_period_end: Date | null
+}
+
+export async function serversForMe(
   organizationId: string
-): Promise<MeSubscriptionView | null> {
+): Promise<MeServersView> {
   const scoped = withOrganization(getPrisma(), organizationId)
-  const [subscription, used, { quota }] = await Promise.all([
-    liveSubscriptionOf(organizationId),
+  const [used, limit] = await Promise.all([
     countSeatedServers(scoped),
     seatQuotaFor(scoped, organizationId),
   ])
+
+  return { used, limit }
+}
+
+export async function licenseGrantForMe(
+  organizationId: string
+): Promise<MeLicenseGrantView | null> {
+  const subscription = await payingSubscriptionOf(organizationId)
 
   if (!subscription) {
     return null
@@ -42,11 +55,19 @@ export async function subscriptionForMe(
 
   return {
     status: subscription.status,
-    trial_ends_at:
-      subscription.status === "trialing" ? subscription.currentPeriodEnd : null,
+    seats: subscription.quantity,
     current_period_end: subscription.currentPeriodEnd,
-    servers: { used, limit: quota },
   }
+}
+
+async function activeLicenseOf(organizationId: string) {
+  const [license, servers, grant] = await Promise.all([
+    licenseForOrganization(organizationId).then((held) => held.state),
+    serversForMe(organizationId),
+    licenseGrantForMe(organizationId),
+  ])
+
+  return { license, servers, grant }
 }
 
 export async function loadMe({
@@ -86,12 +107,9 @@ export async function loadMe({
     memberships.find(
       (membership) => membership.organizationId === organizationId
     )?.organization ?? null
-  const [entitlement, subscription] = active
-    ? await Promise.all([
-        entitlementForOrganization(active.id).then((held) => held.state),
-        subscriptionForMe(active.id),
-      ])
-    : ["none" as const, null]
+  const { license, servers, grant } = active
+    ? await activeLicenseOf(active.id)
+    : { license: "none" as const, servers: null, grant: null }
 
   return {
     user: {
@@ -121,8 +139,11 @@ export async function loadMe({
     role,
     platform_role: platformRole,
     platform_can_act: actsOnPlatform(platformRole),
-    entitlement,
-    subscription,
+    license,
+    servers,
+    license_grant: grant,
+    entitlement: license,
+    subscription: null,
   }
 }
 

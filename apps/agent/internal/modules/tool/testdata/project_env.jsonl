@@ -5,13 +5,13 @@
 @file /home/dev/projects/flyleaf/apps/web/.env.1password.tpl DATABASE_URL={{ op://{{OP_VAULT}}/{{OP_ITEM}}/url }}
 @file /home/dev/projects/flyleaf/op.config.json {"vault":"Dev","item":"flyleaf"}
 @answer op inject :: DATABASE_URL=postgres://dev:motdepasse@127.0.0.1/flyleaf\nAUTH_SECRET=au-secret
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"project.env","params":{"name":"web","process":"web"}}
 > {"id":3,"cmd":"project.env","params":{"name":"web","process":"web"}}
 > {"id":4,"cmd":"secrets.sync","params":{"project":"web","process":"web"}}
 > {"id":5,"cmd":"project.env","params":{"name":"ghost"}}
 > {"id":6,"cmd":"project.env","params":{"name":"intranet"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"path":"/home/dev/projects/flyleaf/apps/web/.env.local","written":true,"keys":["DATABASE_URL","AUTH_SECRET"],"template":true}}
 < {"id":3,"ok":true,"result":{"path":"/home/dev/projects/flyleaf/apps/web/.env.local","written":false,"keys":["DATABASE_URL","AUTH_SECRET"],"template":true}}
 < {"id":4,"ok":true,"result":{"path":"/home/dev/projects/flyleaf/apps/web/.env.local","written":true,"keys":["DATABASE_URL","AUTH_SECRET"],"template":true}}

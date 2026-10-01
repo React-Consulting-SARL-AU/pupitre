@@ -1,6 +1,6 @@
 import { copyrightHolder } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
-import { SIGNUP_URL } from "../lib/urls"
+import { SIGNUP_URL, SOURCE_REPOSITORY_URL } from "../lib/urls"
 import {
   actionTo,
   offersDownloadAsMainAction,
@@ -51,6 +51,15 @@ describe("Nav", () => {
       label: "Créer un compte",
       main: true,
     })
+  })
+
+  it("links the source code on GitHub, named for readers in both languages", async () => {
+    const en = await render(Nav, { path: "/" })
+    const fr = await render(Nav, { path: "/fr/" })
+
+    expect(en).toContain(`href="${SOURCE_REPOSITORY_URL}"`)
+    expect(en).toContain('aria-label="Source code on GitHub"')
+    expect(fr).toContain('aria-label="Code source sur GitHub"')
   })
 
   it("offers the same links behind a menu on a narrow screen", async () => {

@@ -7,6 +7,8 @@ sectionOrder: 3
 order: 5
 ---
 
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+
 ## Pourquoi pas Claude Code sur le web ?
 
 La version web convient à une tâche isolée sur un dépôt. Elle ne vous donne pas une machine : pas de base à côté du code, pas de navigateur headless, pas de service qui tourne la nuit, rien qui persiste une fois la session finie. Pupitre vous donne la machine, et votre abonnement y fonctionne tel quel.
@@ -35,7 +37,11 @@ L’app desktop tourne sur macOS, Windows 11 et Ubuntu desktop. Le serveur est t
 
 ## Faut-il un compte ?
 
-Oui. L’app demande de vous connecter à son premier lancement, et elle n’enrôle un serveur que sous un abonnement : le lancement gratuit tant qu’il dure, puis l’essai ou un abonnement payant. Le compte porte votre organisation, ses serveurs et ses membres. Voir [installer l’app](/fr/docs/start/install/) et la [facturation](/fr/docs/account/billing/).
+Oui. L’app demande de vous connecter à son premier lancement, et elle enrôle un serveur pour une organisation : gratuitement jusqu’à {FREE_SERVERS} serveurs, avec une licence au-delà. Le compte porte votre organisation, ses serveurs et ses membres. Voir [installer l’app](/fr/docs/start/install/) et la [licence](/fr/docs/account/licence/).
+
+## Est-ce que ça coûte quelque chose ?
+
+Pas pour les {FREE_SERVERS} premiers serveurs d’une organisation : ni carte, ni essai, ni abonnement. Au-delà, une licence est accordée sur demande. Vous payez le serveur à votre hébergeur et vos agents à votre fournisseur de modèle, comme avant. Voir la [licence](/fr/docs/account/licence/).
 
 ## Que se passe-t-il si je perds mon laptop ?
 
@@ -55,7 +61,7 @@ Personne sans clé d’accès. Une adresse publiée demande une clé. L’app aj
 
 ## Puis-je lire le code de l’agent ?
 
-Non. Pupitre est un produit commercial fermé. Ce que fait l’agent est documenté ici, module par module, et tout ce qu’il installe est un outil standard que vous pouvez inspecter sur votre propre machine. La [page sécurité](/fr/security/) liste ce que l’agent peut et ne peut pas faire, avec la commande qui vérifie chaque affirmation.
+Oui. Le code de l’app, de l’agent et de la plateforme est public, sous licence Apache 2.0 avec la Commons Clause : vous pouvez le lire, le modifier, compiler l’agent vous-même et faire tourner votre propre plateforme, mais pas vendre Pupitre ni un service bâti pour l’essentiel sur lui. Voir la [licence](/fr/legal/licence/). Ce que fait l’agent est aussi documenté ici, module par module, et tout ce qu’il installe est un outil standard que vous pouvez inspecter sur votre propre machine. La [page sécurité](/fr/security/) liste ce que l’agent peut et ne peut pas faire, avec la commande qui vérifie chaque affirmation.
 
 ## Que se passe-t-il si Pupitre s’arrête ?
 

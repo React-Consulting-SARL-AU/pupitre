@@ -1,17 +1,18 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import {
+  FREE_SERVERS,
   isPlatformProduct,
   LIVE_SUBSCRIPTION_STATUSES,
+  PLATFORM_ORGANIZATION_SEATS,
   PLATFORM_PRODUCTS,
 } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { inBatches } from "../api/batches"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { getBillingMode, getBillingProvider } from "./runtime"
+import { assertBillingOn, getBillingProvider } from "./runtime"
 import {
   billedSubscriptionOf,
-  KEPT_LAUNCH_SEAT,
   liveSubscriptionOf,
   readSubscription,
   type SubscriptionView,
@@ -26,63 +27,21 @@ export const SEATED_STATUSES: ServerStatus[] = [
 
 export const PAYING_SUBSCRIPTION_STATUSES = LIVE_SUBSCRIPTION_STATUSES
 
-export type SeatQuotaSource = "subscription" | "platform" | "none"
-
-export interface SeatQuota {
-  quota: number
-  source: SeatQuotaSource
-}
-
 export async function seatQuotaFor(
   prisma: OrganizationPrisma,
   organizationId: string
-): Promise<SeatQuota> {
+): Promise<number> {
   if (organizationId === PLATFORM_ORGANIZATION_ID) {
-    return { quota: getBillingMode().adminSeats, source: "platform" }
+    return PLATFORM_ORGANIZATION_SEATS
   }
 
-  const [subscription, keptLaunchSeat] = await Promise.all([
-    prisma.subscription.findFirst({
-      where: {
-        status: { in: PAYING_SUBSCRIPTION_STATUSES },
-        NOT: KEPT_LAUNCH_SEAT,
-      },
-      orderBy: { updatedAt: "desc" },
-      select: { quantity: true },
-    }),
-    prisma.subscription.findFirst({
-      where: KEPT_LAUNCH_SEAT,
-      select: { quantity: true },
-    }),
-  ])
+  const license = await prisma.subscription.findFirst({
+    where: { status: { in: PAYING_SUBSCRIPTION_STATUSES } },
+    orderBy: { updatedAt: "desc" },
+    select: { quantity: true },
+  })
 
-  if (!(subscription || keptLaunchSeat)) {
-    return { quota: 0, source: "none" }
-  }
-
-  return {
-    quota: (subscription?.quantity ?? 0) + (keptLaunchSeat?.quantity ?? 0),
-    source: "subscription",
-  }
-}
-
-async function keptLaunchSeatsOf(
-  organizationIds: string[]
-): Promise<Map<string, number>> {
-  const kept = new Map<string, number>()
-
-  for (const batch of inBatches(organizationIds)) {
-    const rows = await getPrisma().subscription.findMany({
-      where: { ...KEPT_LAUNCH_SEAT, organizationId: { in: batch } },
-      select: { organizationId: true, quantity: true },
-    })
-
-    for (const row of rows) {
-      kept.set(row.organizationId, row.quantity)
-    }
-  }
-
-  return kept
+  return FREE_SERVERS + (license?.quantity ?? 0)
 }
 
 export function countSeatedServers(
@@ -91,16 +50,31 @@ export function countSeatedServers(
   return prisma.server.count({ where: { status: { in: SEATED_STATUSES } } })
 }
 
+// The free servers are never billed: a licence pays for the seats beyond them.
+export function licensedSeatsFor(seated: number): number {
+  return Math.max(0, seated - FREE_SERVERS)
+}
+
 export interface SeatUsagePage {
   after: string | null
   take: number
 }
 
-function billedSubscriptions(page?: SeatUsagePage) {
+const BILLED_PRODUCTS = { product: { notIn: [...PLATFORM_PRODUCTS] } }
+
+// The platform organisation's quota never comes from a licence.
+const LICENSED_ORGANIZATIONS = {
+  organizationId: { not: PLATFORM_ORGANIZATION_ID },
+}
+
+function liveSubscriptions(
+  scope: typeof BILLED_PRODUCTS | typeof LICENSED_ORGANIZATIONS,
+  page?: SeatUsagePage
+) {
   return getPrisma().subscription.findMany({
     where: {
       status: { in: PAYING_SUBSCRIPTION_STATUSES },
-      product: { notIn: [...PLATFORM_PRODUCTS] },
+      ...scope,
       ...(page?.after ? { id: { gt: page.after } } : {}),
     },
     orderBy: { id: "asc" },
@@ -110,8 +84,8 @@ function billedSubscriptions(page?: SeatUsagePage) {
 }
 
 export interface SeatUsage {
-  subscription: Awaited<ReturnType<typeof billedSubscriptions>>[number]
-  /** Excludes the seat kept from the launch, which is never billed. */
+  subscription: Awaited<ReturnType<typeof liveSubscriptions>>[number]
+  /** Excludes the free servers, which are never billed. */
   seated: number
 }
 
@@ -138,33 +112,35 @@ async function seatedServersOf(
   return seated
 }
 
-export async function readSeatUsage(
-  page?: SeatUsagePage
+async function usageOf(
+  subscriptions: SeatUsage["subscription"][]
 ): Promise<SeatUsage[]> {
-  const subscriptions = await billedSubscriptions(page)
-
   if (subscriptions.length === 0) {
     return []
   }
 
-  const organizationIds = [
+  const seated = await seatedServersOf([
     ...new Set(
       subscriptions.map((subscription) => subscription.organizationId)
     ),
-  ]
-
-  const [seated, kept] = await Promise.all([
-    seatedServersOf(organizationIds),
-    keptLaunchSeatsOf(organizationIds),
   ])
 
-  return subscriptions.map((subscription) => {
-    const { organizationId } = subscription
-    const billable =
-      (seated.get(organizationId) ?? 0) - (kept.get(organizationId) ?? 0)
+  return subscriptions.map((subscription) => ({
+    subscription,
+    seated: licensedSeatsFor(seated.get(subscription.organizationId) ?? 0),
+  }))
+}
 
-    return { subscription, seated: Math.max(0, billable) }
-  })
+// Only Stripe rows: the seats Stripe is told about.
+export async function readSeatUsage(
+  page?: SeatUsagePage
+): Promise<SeatUsage[]> {
+  return await usageOf(await liveSubscriptions(BILLED_PRODUCTS, page))
+}
+
+// Granted licences included: their seats never follow usage on their own.
+export async function readLicenseUsage(): Promise<SeatUsage[]> {
+  return await usageOf(await liveSubscriptions(LICENSED_ORGANIZATIONS))
 }
 
 export async function payingSubscriptionOf(organizationId: string) {
@@ -178,14 +154,14 @@ export async function payingSubscriptionOf(organizationId: string) {
 
 export class NoPayingSubscriptionError extends Error {
   constructor() {
-    super("this organization has no subscription to resize")
+    super("this organization has no licence to resize")
     this.name = "NoPayingSubscriptionError"
   }
 }
 
 export class SeatsLockedError extends Error {
   constructor() {
-    super("seats do not change while trialing or on a platform product")
+    super("seats do not change on a platform product")
     this.name = "SeatsLockedError"
   }
 }
@@ -194,7 +170,7 @@ export class SeatsBelowUsageError extends Error {
   readonly used: number
 
   constructor(used: number) {
-    super(`this organization already seats ${used} servers`)
+    super(`this organization already seats ${used} servers past the free ones`)
     this.name = "SeatsBelowUsageError"
     this.used = used
   }
@@ -205,22 +181,17 @@ export interface SeatsActor {
   userId: string
 }
 
-/** The seat kept from the launch covers one server on top of the quantity asked for. */
 export async function assertSeatsCoverUsage(
   organizationId: string,
   quantity: number
 ): Promise<void> {
-  const [seated, kept] = await Promise.all([
-    getPrisma().server.count({
-      where: { organizationId, status: { in: SEATED_STATUSES } },
-    }),
-    keptLaunchSeatsOf([organizationId]),
-  ])
+  const seated = await getPrisma().server.count({
+    where: { organizationId, status: { in: SEATED_STATUSES } },
+  })
+  const licensed = licensedSeatsFor(seated)
 
-  const billable = seated - (kept.get(organizationId) ?? 0)
-
-  if (quantity < billable) {
-    throw new SeatsBelowUsageError(billable)
+  if (quantity < licensed) {
+    throw new SeatsBelowUsageError(licensed)
   }
 }
 
@@ -228,6 +199,8 @@ export async function resizeSeats(
   actor: SeatsActor,
   quantity: number
 ): Promise<SubscriptionView | null> {
+  assertBillingOn()
+
   const { organizationId } = actor
   const subscription =
     (await billedSubscriptionOf(organizationId)) ??
@@ -237,14 +210,9 @@ export async function resizeSeats(
     throw new NoPayingSubscriptionError()
   }
 
-  if (
-    subscription.status === "trialing" ||
-    isPlatformProduct(subscription.product)
-  ) {
+  if (isPlatformProduct(subscription.product)) {
     throw new SeatsLockedError()
   }
-
-  const prisma = getPrisma()
 
   await assertSeatsCoverUsage(organizationId, quantity)
 
@@ -257,7 +225,7 @@ export async function resizeSeats(
     quantity
   )
 
-  await prisma.subscription.update({
+  await getPrisma().subscription.update({
     where: { id: subscription.id },
     data: { quantity: remote.quantity },
   })

@@ -1,6 +1,6 @@
 # Le canal de lecture : la liste, la configuration rouverte, le retrait.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.add","project.list","project.remove","project.update"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.add","project.list","project.remove","project.update"]}}
 > {"id":2,"cmd":"project.list"}
 < {"id":2,"ok":true,"result":{"projects":[]}}
 > {"id":3,"cmd":"project.update","params":{"name":"shop","patch":{"processes":[{"cmd":"bunx turbo run dev","dir":".","host":"127.0.0.1","id":"shop","install":"","pkgmgr":"bun","port":3100,"routes":[{"label":"web","port":3100,"subdomain":"boutique"},{"label":"docs","port":3102}]}]}}}

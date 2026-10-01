@@ -254,7 +254,8 @@ function identityOf(body: Me): AccountIdentity {
 
   return {
     email: body.user.email,
-    entitlement: body.entitlement,
+    license: body.license,
+    licenseGrant: body.license_grant,
     name: body.user.name,
     organization: active
       ? { id: active.id, name: active.name, slug: active.slug }
@@ -266,7 +267,7 @@ function identityOf(body: Me): AccountIdentity {
       slug,
     })),
     role: body.role,
-    subscription: body.subscription,
+    servers: body.servers,
   };
 }
 

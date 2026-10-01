@@ -32,7 +32,7 @@ export type HarnessOrganization = Pick<
 export interface DashboardHarness {
   organization?: HarnessOrganization | null
   role?: OrgRole
-  entitlement?: string
+  license?: string
   platformRole?: OrgRole | null
   platformCanAct?: boolean
 }
@@ -44,7 +44,7 @@ export function withDashboard(
   {
     organization = null,
     role = "owner",
-    entitlement = "suspended",
+    license = "valid",
     platformRole = null,
     platformCanAct = ACTING_PLATFORM_ROLES.includes(platformRole),
   }: DashboardHarness = {}
@@ -65,7 +65,7 @@ export function withDashboard(
             ? { state: "active", reason: null, ...organization }
             : null,
           role: organization ? role : null,
-          entitlement,
+          license,
           platformRole,
           platformCanAct,
         }}

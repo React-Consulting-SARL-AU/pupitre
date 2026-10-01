@@ -1,8 +1,8 @@
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"reboot"}
 > {"id":3,"cmd":"probe","params":{}}
 > {"id":4,"cmd":"ping"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"id":2,"ok":false,"error":{"code":"internal","message":"internal error: boom"}}
 < {"id":3,"ok":false,"error":{"code":"busy","message":"an installation is in progress","fix":"Wait for the installation to finish."}}
 < {"id":4,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

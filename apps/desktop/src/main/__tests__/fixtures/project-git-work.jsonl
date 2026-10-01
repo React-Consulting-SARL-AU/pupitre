@@ -1,5 +1,5 @@
 # Un projet ouvert : l'écart distant — un fetch vers le dépôt distant, qui tient un canal le temps du réseau.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.down","project.list","project.branches","project.git_status","project.working_tree","project.diff","project.checkout","project.restart","project.remove"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.down","project.list","project.branches","project.git_status","project.working_tree","project.diff","project.checkout","project.restart","project.remove"]}}
 > {"id":4,"cmd":"project.git_status","params":{"name":"flyleaf-api"}}
 < {"id":4,"ok":true,"result":{"repo":true,"root":"/home/dev/projects/flyleaf","current":"main","upstream":"origin/main","behind":3,"ahead":0,"dirty":false,"changed":1,"last":1770000000,"subject":"Corrige la TVA","problem":""}}

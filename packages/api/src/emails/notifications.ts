@@ -15,10 +15,10 @@ import {
   renderAlertBackupFailedEmail,
   renderAlertBackupStaleEmail,
   renderAlertDiskHighEmail,
-  renderAlertEntitlementGraceEmail,
+  renderAlertLicenseGraceEmail,
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
-  renderEntitlementGraceEmail,
+  renderLicenseGraceEmail,
   renderOrganizationClosedEmail,
   renderOrganizationRestoredEmail,
   renderOrganizationSuspendedEmail,
@@ -150,18 +150,18 @@ export async function sendDeviceAddedEmail({
   )
 }
 
-export interface EntitlementGraceInput extends Addressed {
+export interface LicenseGraceInput extends Addressed {
   organizationId: string
   deadline: Date
   serverCount: number
 }
 
-export async function sendEntitlementGraceEmail({
+export async function sendLicenseGraceEmail({
   organizationId,
   deadline,
   serverCount,
   ...input
-}: EntitlementGraceInput): Promise<void> {
+}: LicenseGraceInput): Promise<void> {
   if (serverCount === 0) {
     return
   }
@@ -172,7 +172,7 @@ export async function sendEntitlementGraceEmail({
   ])
 
   await deliverTo(recipients, input, (locale) =>
-    renderEntitlementGraceEmail({
+    renderLicenseGraceEmail({
       locale,
       organizationName: organization,
       deadline,
@@ -489,7 +489,7 @@ export async function sendServerGraceEmail({
   ])
 
   return await deliverTo(recipients, input, (locale) =>
-    renderAlertEntitlementGraceEmail({
+    renderAlertLicenseGraceEmail({
       locale,
       serverName: server.name,
       organizationName: organization,

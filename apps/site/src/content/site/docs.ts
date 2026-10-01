@@ -35,8 +35,8 @@ export const DOCS_SECTION_META: Record<DocsSectionId, DocsSectionMeta> = {
   account: {
     title: { en: "Account", fr: "Compte" },
     lead: {
-      en: "Teams, billing, security, the questions that come back, troubleshooting and uninstalling.",
-      fr: "Équipes, facturation, sécurité, les questions qui reviennent, le dépannage et la désinstallation.",
+      en: "Teams, the licence, security, the questions that come back, troubleshooting and uninstalling.",
+      fr: "Équipes, licence, sécurité, les questions qui reviennent, le dépannage et la désinstallation.",
     },
   },
 }

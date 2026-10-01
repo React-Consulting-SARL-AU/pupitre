@@ -119,7 +119,7 @@ func (r *Reader) Diag() contract.Diag {
 	var report strings.Builder
 
 	fmt.Fprintf(&report, "pupitred %s · %s · %s %s · %s\n", machine.AgentVersion, machine.Hostname, machine.OS, machine.Version, machine.Arch)
-	report.WriteString(i18n.T("state.diag.entitlement", r.entitlement()) + "\n")
+	report.WriteString(i18n.T("state.diag.license", r.license()) + "\n")
 	report.WriteString(i18n.T("state.diag.machine",
 		machine.Load[0], machine.Load[1], machine.Load[2],
 		machine.RAMUsedMB, machine.RAMTotalMB, machine.DiskFreeGB, machine.DiskTotalGB,

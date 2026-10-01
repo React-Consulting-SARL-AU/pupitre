@@ -17,8 +17,8 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/platform"
 )
@@ -76,7 +76,7 @@ func (p *fakePlatform) serve() *httptest.Server {
 		case "/agent/state":
 			p.states++
 			answer := map[string]any{
-				"entitlement":     p.state,
+				"license":         p.state,
 				"valid_until":     p.validUntil,
 				"authorized_keys": p.legacy,
 				"target_version":  p.target,
@@ -239,8 +239,8 @@ func TestAKeyApprovedByATrustedDeviceOpensTheServer(t *testing.T) {
 		t.Fatalf("an admitted key becomes a signer: %+v", trust)
 	}
 
-	if synced.Entitlement == contract.EntitlementRestricted {
-		t.Fatalf("a read that just succeeded restricts the agent: %s", synced.Entitlement)
+	if synced.License == contract.LicenseRestricted {
+		t.Fatalf("a read that just succeeded restricts the agent: %s", synced.License)
 	}
 }
 
@@ -526,7 +526,7 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	}
 }
 
-func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) {
+func TestARevokedServerTokenSuspendsTheLicenseAndKeepsTheKeys(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
 	b.platform.want(asked(laptopDevice))
@@ -543,8 +543,8 @@ func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) 
 		t.Fatalf("the keys must stay:\n%s", b.authorized())
 	}
 
-	if got := b.recorded(); got != contract.EntitlementRestricted {
-		t.Fatalf("the entitlement must be suspended on the spot, got %s", got)
+	if got := b.recorded(); got != contract.LicenseRestricted {
+		t.Fatalf("the license must be suspended on the spot, got %s", got)
 	}
 
 	if !strings.Contains(b.journal(), "revoked") {
@@ -552,7 +552,7 @@ func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) 
 	}
 }
 
-func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
+func TestANetworkFailureLeavesTheKeysAndTheLicenseInPlace(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
 	b.platform.want(asked(laptopDevice))
@@ -569,7 +569,7 @@ func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 		t.Fatalf("the keys were dropped on a silence:\n%s", b.authorized())
 	}
 
-	if got := b.recorded(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.LicenseValid {
 		t.Fatalf("the last answer of the platform still holds, got %s", got)
 	}
 }
@@ -586,8 +586,8 @@ func TestARefusalWithoutTheTokenCodeIsNotARevocation(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if got := b.recorded(); got != contract.EntitlementValid {
-		t.Fatalf("the entitlement moved on a refusal that names no token, got %s", got)
+	if got := b.recorded(); got != contract.LicenseValid {
+		t.Fatalf("the license moved on a refusal that names no token, got %s", got)
 	}
 }
 
@@ -604,8 +604,8 @@ func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if got := b.recorded(); got != contract.EntitlementValid {
-		t.Fatalf("the entitlement must not move during a rotation, got %s", got)
+	if got := b.recorded(); got != contract.LicenseValid {
+		t.Fatalf("the license must not move during a rotation, got %s", got)
 	}
 }
 
@@ -745,7 +745,7 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 		Sys:               b.fake,
 		Now:               func() time.Time { return b.now },
 		Platform:          platform.Client{BaseURL: b.server.URL},
-		Entitlement:       entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }}),
+		License:           license.New(license.Options{Sys: b.fake, Now: func() time.Time { return b.now }}),
 		AgentVersion:      "1.2.3",
 		StateInterval:     time.Millisecond,
 		HeartbeatInterval: time.Millisecond,

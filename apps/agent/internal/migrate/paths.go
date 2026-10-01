@@ -4,6 +4,7 @@ import (
 	"path"
 
 	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
@@ -30,6 +31,9 @@ const (
 	// The pre-revision-1 local registry; only migration 1 reads it.
 	TargetProjectsConf Target = "projects.local.conf"
 	TargetSigners      Target = "signers.json"
+	TargetLicense      Target = "license.json"
+	// The licence cache's name until 2.0.0; only migration 8 reads it.
+	TargetEntitlement Target = "entitlement.json"
 )
 
 type Paths struct {
@@ -44,6 +48,8 @@ type Paths struct {
 	// dev's authorized_keys: a migration reads it, never writes it.
 	Keys    string
 	Signers string
+	// The licence cache, under /var/lib/pupitre rather than /etc/pupitre: the daemon rewrites it on every read of the platform.
+	License string
 }
 
 func (p Paths) Resolved() Paths {
@@ -79,6 +85,10 @@ func (p Paths) Resolved() Paths {
 		p.Signers = keys.DefaultSignersPath
 	}
 
+	if p.License == "" {
+		p.License = license.DefaultCachePath
+	}
+
 	return p
 }
 
@@ -94,6 +104,10 @@ func (p Paths) Of(target Target) string {
 		return resolved.Projects
 	case TargetSigners:
 		return resolved.Signers
+	case TargetLicense:
+		return resolved.License
+	case TargetEntitlement:
+		return path.Join(path.Dir(resolved.License), string(TargetEntitlement))
 	}
 
 	return path.Join(resolved.Dir, string(target))

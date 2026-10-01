@@ -2,7 +2,7 @@ import { LIVE_SUBSCRIPTION_STATUSES } from "@pupitre/shared/plans"
 import { drainBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { graceOrganizationServers } from "./grace"
+import { settleUnlicensedOrganization } from "./grace"
 
 /** Each ended row costs a few writes: a batch stays well inside one workflow step. */
 export const EXPIRY_BATCH_SIZE = 25
@@ -47,17 +47,14 @@ export async function cancelEndedSubscriptionsBatch(
   }
 
   const covered = await organizationsCoveredElsewhere(ended)
-  const graced = new Set<string>()
+  const settled = new Set<string>()
 
   for (const subscription of ended) {
     const { organizationId } = subscription
 
-    if (!(covered.has(organizationId) || graced.has(organizationId))) {
-      graced.add(organizationId)
-      await graceOrganizationServers(
-        organizationId,
-        subscription.currentPeriodEnd ?? now
-      )
+    if (!(covered.has(organizationId) || settled.has(organizationId))) {
+      settled.add(organizationId)
+      await settleUnlicensedOrganization(organizationId, now)
     }
 
     await recordEvent({

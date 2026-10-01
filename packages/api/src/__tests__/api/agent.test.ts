@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import {
-  ENTITLEMENT_REFRESH_MS,
+  LICENSE_REFRESH_MS,
   recordHeartbeat,
 } from "../../lib/servers/agent-state"
 import { SshAddressInvalidError } from "../../lib/servers/ssh-address"
@@ -25,6 +25,7 @@ interface ErrorBody {
 }
 
 interface StateBody {
+  license: string
   entitlement: string
   valid_until: string
   authorized_keys: string[]
@@ -114,7 +115,7 @@ describe("POST /agent/exchange", () => {
     expect(server.hostFingerprint).toBe(HOST_FINGERPRINT)
     expect(server.serverTokenHash).not.toBeNull()
     expect(server.serverTokenHash).not.toBe(response.json.server_token)
-    expect(server.entitlementValidUntil).not.toBeNull()
+    expect(server.licenseValidUntil).not.toBeNull()
   })
 
   it("refuses a second exchange with enrollment_used", async () => {
@@ -214,7 +215,7 @@ describe("GET /agent/state", () => {
     expect(response.json.error.code).toBe("invalid_server_token")
   })
 
-  it("hands the agent its keys, its target version and a 24 hour entitlement", async () => {
+  it("hands the agent its keys, its target version and a 24 hour licence", async () => {
     const { prisma } = await bootApiTestServer()
     const { owner, serverId, enrollmentToken } = await enrolling("vps.test")
 
@@ -226,6 +227,7 @@ describe("GET /agent/state", () => {
     })
 
     expect(response.status).toBe(200)
+    expect(response.json.license).toBe("valid")
     expect(response.json.entitlement).toBe("valid")
     expect(response.json.hostname).toBe("vps.test")
     expect([...response.json.authorized_keys].sort()).toEqual(
@@ -243,10 +245,10 @@ describe("GET /agent/state", () => {
     })
     const lag =
       Date.parse(response.json.valid_until) -
-      (server.entitlementValidUntil?.getTime() ?? 0)
+      (server.licenseValidUntil?.getTime() ?? 0)
 
     expect(lag).toBeGreaterThanOrEqual(0)
-    expect(lag).toBeLessThan(ENTITLEMENT_REFRESH_MS)
+    expect(lag).toBeLessThan(LICENSE_REFRESH_MS)
   })
 
   it("writes the row only when the horizon or the target moved", async () => {
@@ -265,7 +267,7 @@ describe("GET /agent/state", () => {
       where: { id: server.id },
     })
 
-    expect(written.entitlementValidUntil).not.toBeNull()
+    expect(written.licenseValidUntil).not.toBeNull()
     expect(written.updatedAt.getTime()).toBeGreaterThan(
       server.updatedAt.getTime()
     )
@@ -281,8 +283,8 @@ describe("GET /agent/state", () => {
     expect(untouched.updatedAt.toISOString()).toBe(
       written.updatedAt.toISOString()
     )
-    expect(untouched.entitlementValidUntil?.toISOString()).toBe(
-      written.entitlementValidUntil?.toISOString() ?? ""
+    expect(untouched.licenseValidUntil?.toISOString()).toBe(
+      written.licenseValidUntil?.toISOString() ?? ""
     )
   })
 
@@ -300,6 +302,7 @@ describe("GET /agent/state", () => {
     })
 
     expect(response.status).toBe(200)
+    expect(response.json.license).toBe("suspended")
     expect(response.json.entitlement).toBe("suspended")
     expect(response.json.authorized_keys).toEqual([])
   })
@@ -317,6 +320,7 @@ describe("GET /agent/state", () => {
       bearer: token,
     })
 
+    expect(response.json.license).toBe("grace")
     expect(response.json.entitlement).toBe("grace")
   })
 })

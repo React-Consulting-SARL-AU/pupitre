@@ -5,7 +5,12 @@ const EXTERNAL_URL_RE = /^https?:\/\/(?!localhost|127\.0\.0\.1)/
 const HMR_SOCKET_RE = new RegExp(`^ws://localhost:${HARNESS_PORT}/`)
 // Only has to outlast a contended runner: a broken sign-in fails on its own.
 const MAGIC_LINK_TIMEOUT_MS = 60_000
-const START_URL_RE = /\/dashboard\/start$/
+const LANDING_URL_RE = {
+  start: /\/dashboard\/start$/,
+  servers: /\/dashboard\/servers$/,
+} as const
+
+export type Landing = keyof typeof LANDING_URL_RE
 
 export function harnessUrl(path: string): string {
   return `${HARNESS_ORIGIN}${HARNESS_PREFIX}${path}`
@@ -45,7 +50,8 @@ export async function magicLinkFor(
 export async function signIn(
   page: Page,
   request: APIRequestContext,
-  email: string
+  email: string,
+  landing: Landing = "start"
 ): Promise<void> {
   await openHydrated(page, "/auth/sign-in")
   await page.getByLabel("Adresse email").fill(email)
@@ -62,16 +68,19 @@ export async function signIn(
   const url = await magicLinkFor(request, email)
 
   await page.goto(url ?? "/")
-  await expect(page).toHaveURL(START_URL_RE)
+  await expect(page).toHaveURL(LANDING_URL_RE[landing])
 }
 
-export async function openTrial(
+export async function grantLicense(
   request: APIRequestContext,
-  email: string
+  email: string,
+  seats: number
 ): Promise<void> {
-  const opened = await request.post(harnessUrl("/trial"), { data: { email } })
+  const granted = await request.post(harnessUrl("/license"), {
+    data: { email, seats },
+  })
 
-  expect(((await opened.json()) as { handled: boolean }).handled).toBe(true)
+  expect(granted.ok()).toBe(true)
 }
 
 export async function promotePlatformMember(
@@ -93,18 +102,6 @@ export async function receiveEmail(
   const received = await request.post(harnessUrl("/inbound-emails"), { data })
 
   expect(received.ok()).toBe(true)
-}
-
-export async function chooseBillingMode(
-  request: APIRequestContext,
-  mode: "stripe" | "launch",
-  endsAt?: string
-): Promise<void> {
-  const chosen = await request.post(harnessUrl("/billing-mode"), {
-    data: { mode, ...(endsAt ? { ends_at: endsAt } : {}) },
-  })
-
-  expect(chosen.ok()).toBe(true)
 }
 
 export async function seedReferral(

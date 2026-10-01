@@ -12,7 +12,7 @@ import {
 import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
-// garble builds are not reproducible, so a version already in the bucket is reused, never rebuilt.
+// The platform holds the hashes of a version's first declaration, so a version already in the bucket is reused, never rebuilt.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 export const AGENT_DIR = path.join(ROOT, "apps/agent")
@@ -26,22 +26,6 @@ export const AGENT_FILES = [
   "release.json",
   "publications.json",
 ]
-
-const READABLE_LIMIT = 10
-
-const NEEDLE = Buffer.from("pupitre")
-
-export function readableOccurrences(binary: Buffer): number {
-  let count = 0
-  let at = binary.indexOf(NEEDLE)
-
-  while (at !== -1) {
-    count += 1
-    at = binary.indexOf(NEEDLE, at + NEEDLE.length)
-  }
-
-  return count
-}
 
 function binaryPath(arch: string): string {
   return path.join(AGENT_DIST, `pupitred-linux-${arch}`)
@@ -79,13 +63,6 @@ function smoke(version: string, publicKey: string): void {
   for (const arch of ARCHES) {
     const binary = binaryPath(arch)
     const bytes = readFileSync(binary)
-    const readable = readableOccurrences(bytes)
-
-    say(`${binary}: ${readable} readable occurrences of the name`)
-
-    if (readable > READABLE_LIMIT) {
-      throw new Error(`${binary} is not obfuscated enough.`)
-    }
 
     if (!bytes.includes(publicKey)) {
       throw new Error(
@@ -164,7 +141,6 @@ export async function buildAgent(
     return
   }
 
-  run(["bun", "run", "garble:install"], { cwd: AGENT_DIR, dryRun })
   run(["bun", "run", "release"], { cwd: AGENT_DIR, dryRun })
 
   if (dryRun) {

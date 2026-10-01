@@ -46,8 +46,7 @@ describe("suspendedReasonKey", () => {
 })
 
 describe("productKey", () => {
-  it("names the two products of the platform, and Stripe for every other", () => {
-    expect(productKey("launch")).toBe("admin.subscriptions.product.launch")
+  it("names the product of the platform, and Stripe for every other", () => {
     expect(productKey("granted")).toBe("admin.subscriptions.product.granted")
     expect(productKey("stripe")).toBe("admin.subscriptions.product.stripe")
     expect(productKey("prod_server")).toBe("admin.subscriptions.product.stripe")
@@ -55,12 +54,8 @@ describe("productKey", () => {
     expect(productKey(null)).toBeNull()
   })
 
-  it("offers the launch, the granted one and Stripe as filters", () => {
-    expect([...SUBSCRIPTION_PRODUCT_FILTERS]).toEqual([
-      "launch",
-      "granted",
-      "stripe",
-    ])
+  it("offers the granted licence and Stripe as filters", () => {
+    expect([...SUBSCRIPTION_PRODUCT_FILTERS]).toEqual(["granted", "stripe"])
   })
 })
 
@@ -274,39 +269,35 @@ describe("overviewFigures", () => {
       revoked: 1,
     },
     subscriptions: {
-      total: 6,
-      trialing: 2,
+      total: 4,
       active: 3,
       past_due: 0,
       canceled: 1,
       other: 0,
-      launch: 2,
     },
     affiliate_links: 3,
     referrals: 5,
   }
 
-  it("lays the seven figures out, servers and subscriptions with their parts", () => {
+  it("lays the six figures out, servers and licences with their parts", () => {
     const figures = overviewFigures(overview)
 
     expect(figures.map((figure) => [figure.id, figure.value])).toEqual([
       ["users", 12],
       ["organizations", 9],
       ["servers", 7],
-      ["subscriptions", 6],
-      ["launch", 2],
+      ["subscriptions", 4],
       ["affiliate_links", 3],
       ["referrals", 5],
     ])
     expect(figures[2].parts.map((part) => part.value)).toEqual([1, 4, 0, 1, 1])
   })
 
-  it("keeps the launch out of the status breakdown, which counts each line once", () => {
+  it("breaks the licences down by status, each line counted once", () => {
     const figures = overviewFigures(overview)
     const subscriptions = figures[3]
 
     expect(subscriptions.parts.map((part) => part.label)).toEqual([
-      "billing.status.trialing",
       "billing.status.active",
       "billing.status.past_due",
       "billing.status.canceled",
@@ -315,7 +306,6 @@ describe("overviewFigures", () => {
     expect(subscriptions.parts.reduce((sum, part) => sum + part.value, 0)).toBe(
       subscriptions.value
     )
-    expect(figures[4].parts).toEqual([])
   })
 
   it("counts a status the API left out as zero", () => {
@@ -327,6 +317,5 @@ describe("overviewFigures", () => {
 
     expect(figures[2].parts.every((part) => part.value === 0)).toBe(true)
     expect(figures[3].parts.every((part) => part.value === 0)).toBe(true)
-    expect(figures[4].value).toBe(0)
   })
 })

@@ -9,7 +9,7 @@ import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 
 // A field the agent would not fill is absent here too.
 export const SNAPSHOT: SnapshotResult = {
-  entitlement: "dev",
+  license: "dev",
   machine: {
     agent_version: "0.1.0",
     arch: "amd64",

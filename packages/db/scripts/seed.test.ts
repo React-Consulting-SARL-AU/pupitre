@@ -78,7 +78,7 @@ function existingAccount(database: Database): void {
     `INSERT INTO "ServerRevokedDevice" ("serverId", "deviceId", "revokedByUserId", "revokedAt") VALUES ('srv_1', 'dev_1', '${GENERATED}', '${AT}')`
   )
   database.run(
-    `INSERT INTO "AffiliateLink" ("id", "code", "name", "freeMonths", "seats", "createdById", "createdAt") VALUES ('aff_1', 'CODE', 'Parrainage', 1, 1, '${GENERATED}', '${AT}')`
+    `INSERT INTO "AffiliateLink" ("id", "code", "name", "createdById", "createdAt") VALUES ('aff_1', 'CODE', 'Parrainage', '${GENERATED}', '${AT}')`
   )
   database.run(
     `INSERT INTO "deviceCode" ("id", "deviceCode", "userCode", "userId", "expiresAt", "status") VALUES ('dc_1', 'device-1', 'USER-1', '${GENERATED}', '${AT}', 'approved')`

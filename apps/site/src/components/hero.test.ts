@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { homeContent, STACK } from "../content/site/home"
 import { driftFor } from "../lib/drift"
 import { LOCALES } from "../lib/i18n"
+import { SOURCE_REPOSITORY_URL } from "../lib/urls"
 import { render } from "../test/render"
 import Hero from "./Hero.astro"
 
@@ -32,8 +33,20 @@ describe("Hero", () => {
     }
     expect(html.match(/<svg/g)).toHaveLength(
       STACK.filter((item) => item.module || item.mark).length +
-        driftFor("hero").length
+        driftFor("hero").length +
+        1
     )
+  })
+
+  it("opens on a free, source-available pill that leads to the repository", async () => {
+    for (const locale of LOCALES) {
+      const html = await render(Hero, { path: paths[locale] })
+
+      expect(html, locale).toContain(
+        `<a href="${SOURCE_REPOSITORY_URL}" class="pill`
+      )
+      expect(html, locale).toContain(homeContent(locale).hero.eyebrow)
+    }
   })
 
   it("sets eight of those logos adrift in the margins, named and hidden from readers", async () => {

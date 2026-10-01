@@ -18,18 +18,20 @@ const SIGNED_IN = {
   },
   identity: {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada Lovelace",
     organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
     organizations: [
       { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
     ],
     role: "owner",
+    servers: { limit: 3, used: 1 },
   },
   refusal: null,
   sealed: true,
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: null,
@@ -65,7 +67,7 @@ function stubRestricted(
       ipcMain.handle("reenroll:start", () => {
         state.pupitreRepaired = true;
 
-        return { ok: true, result: { enrolled: true, entitlement: "valid" } };
+        return { ok: true, result: { enrolled: true, license: "valid" } };
       });
 
       ipcMain.removeHandler("agent:call");
@@ -87,7 +89,7 @@ function stubRestricted(
               String(cmd) === "snapshot"
                 ? {
                     ...(result as object),
-                    entitlement: state.pupitreRepaired ? "valid" : "restricted",
+                    license: state.pupitreRepaired ? "valid" : "restricted",
                   }
                 : result,
           };
@@ -118,11 +120,16 @@ test.describe("serveur en mode restreint", () => {
     const { page } = running;
 
     await expect(
-      page.getByText("se laisse lire, et refuse tout le reste")
+      page.getByText(
+        "Licence requise : ce serveur se laisse lire, et refuse tout le reste"
+      )
     ).toBeVisible();
     await expect(
-      page.getByText("Régularisez l'abonnement de ce serveur dans la console")
+      page.getByText(
+        "Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà"
+      )
     ).toBeVisible();
+    await expect(page.getByText("support@pupitre.studio")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Ouvrir la console" })
     ).toBeVisible();
@@ -155,7 +162,7 @@ test.describe("réparer un serveur restreint depuis l'app", () => {
     await running.app.close();
   });
 
-  test("rend le serveur à son droit d'usage sans passer par la console", async () => {
+  test("rend le serveur à sa licence sans passer par la console", async () => {
     const { page } = running;
 
     await expect(

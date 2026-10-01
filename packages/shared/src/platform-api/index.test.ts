@@ -11,10 +11,10 @@ import {
 } from "./account"
 import { AgentExchangeSchema, AgentStateSchema, HeartbeatSchema } from "./agent"
 import {
-  AccountEntitlementSchema,
+  AccountLicenseSchema,
   InstantSchema,
-  isEntitled,
-  ServerEntitlementSchema,
+  isLicensed,
+  ServerLicenseSchema,
 } from "./index"
 
 const KEY =
@@ -22,6 +22,7 @@ const KEY =
 
 function agentState(overrides: Record<string, unknown> = {}) {
   return {
+    license: "valid",
     entitlement: "valid",
     valid_until: "2026-09-26T00:00:00.000Z",
     authorized_keys: [KEY],
@@ -57,20 +58,19 @@ function me(overrides: Record<string, unknown> = {}) {
     role: "owner",
     platform_role: null,
     platform_can_act: false,
+    license: "valid",
+    servers: { used: 1, limit: 3 },
+    license_grant: null,
     entitlement: "valid",
     subscription: null,
     ...overrides,
   }
 }
 
-describe("the entitlements", () => {
+describe("the licences", () => {
   it("grant a server one of three states and tell an account without organization apart", () => {
-    expect(ServerEntitlementSchema.options).toEqual([
-      "valid",
-      "grace",
-      "suspended",
-    ])
-    expect(AccountEntitlementSchema.options).toEqual([
+    expect(ServerLicenseSchema.options).toEqual(["valid", "grace", "suspended"])
+    expect(AccountLicenseSchema.options).toEqual([
       "none",
       "valid",
       "grace",
@@ -78,10 +78,10 @@ describe("the entitlements", () => {
     ])
   })
 
-  it("let grace run like a valid right", () => {
-    expect(isEntitled("grace")).toBe(true)
-    expect(isEntitled("suspended")).toBe(false)
-    expect(isEntitled("none")).toBe(false)
+  it("let grace run like a valid licence", () => {
+    expect(isLicensed("grace")).toBe(true)
+    expect(isLicensed("suspended")).toBe(false)
+    expect(isLicensed("none")).toBe(false)
   })
 })
 
@@ -106,10 +106,16 @@ describe("the agent's side of the platform", () => {
   it("reads the state the platform answers, keys and floor included", () => {
     expect(AgentStateSchema.safeParse(agentState()).success).toBe(true)
     expect(
-      AgentStateSchema.safeParse(agentState({ entitlement: "none" })).success
+      AgentStateSchema.safeParse(agentState({ license: "none" })).success
     ).toBe(false)
     expect(
       AgentStateSchema.safeParse(agentState({ valid_until: "demain" })).success
+    ).toBe(false)
+  })
+
+  it("still sends the legacy entitlement that agents older than 2.0.0 read", () => {
+    expect(
+      AgentStateSchema.safeParse(agentState({ entitlement: undefined })).success
     ).toBe(false)
   })
 
@@ -177,6 +183,26 @@ describe("the app's side of the platform", () => {
     const parsed = MeSchema.safeParse(me({ platform_can_act: undefined }))
 
     expect(parsed.success && parsed.data.platform_can_act).toBe(false)
+  })
+
+  it("reads the servers against the free tier, a licence, and the legacy fields of apps older than 2.0.0", () => {
+    expect(
+      MeSchema.safeParse(
+        me({
+          servers: { used: 5, limit: 13 },
+          license_grant: {
+            status: "active",
+            seats: 10,
+            current_period_end: null,
+          },
+        })
+      ).success
+    ).toBe(true)
+    expect(MeSchema.safeParse(me({ servers: null })).success).toBe(true)
+    expect(MeSchema.safeParse(me({ subscription: {} })).success).toBe(false)
+    expect(MeSchema.safeParse(me({ entitlement: undefined })).success).toBe(
+      false
+    )
   })
 
   it("lets an older reader ignore a field the platform added later", () => {

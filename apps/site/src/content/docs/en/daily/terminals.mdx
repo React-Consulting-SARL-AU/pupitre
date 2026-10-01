@@ -32,7 +32,7 @@ The agent binary is also linked as `dev`. In a plain SSH terminal, `dev` gives t
 | `dev db url` | the connection string, the shell, a dump, an import |
 | `dev doctor` | a short diagnosis of the machine |
 
-Nothing to prefix. The agent reads its enrolment and its entitlement from files only root can open, so when `dev` is typed by an account that cannot open them, the command speaks to `sudo -n pupitred serve`, which sudo runs without a password. Where that sudo is missing, it says so rather than answering with a refusal that names the wrong cause. `dev db dump`, `dev db import` and `dev backup now` need more: sudo then asks for the sudo password of `dev` on the terminal, and without a terminal, the command refuses and says so.
+Nothing to prefix. The agent reads its enrolment and its licence from files only root can open, so when `dev` is typed by an account that cannot open them, the command speaks to `sudo -n pupitred serve`, which sudo runs without a password. Where that sudo is missing, it says so rather than answering with a refusal that names the wrong cause. `dev db dump`, `dev db import` and `dev backup now` need more: sudo then asks for the sudo password of `dev` on the terminal, and without a terminal, the command refuses and says so.
 
 `dev` with no argument prints that grammar. Add `--json` to any of them and the agent's own answer comes back instead of a rendering of it — which is what an agent, or a script, reads. Typing `dev` from your own terminal rather than from the app's is the same thing: see [your own client](/docs/daily/clients/).
 

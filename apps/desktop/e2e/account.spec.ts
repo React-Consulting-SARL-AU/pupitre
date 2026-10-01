@@ -9,13 +9,6 @@ const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const APPROVAL_MS = 300;
 
-const MS_PER_DAY = 86_400_000;
-
-// An hour short of the mark: Stripe counts a day begun as a whole day.
-function trialEndingIn(days: number): string {
-  return new Date(Date.now() + days * MS_PER_DAY - 3_600_000).toISOString();
-}
-
 function stubAccount(app: ElectronApplication): Promise<void> {
   return app.evaluate(
     ({ ipcMain }, fixtures) => {
@@ -26,7 +19,7 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         device: null,
         identity: null,
         refusal: {
-          code: "entitlement_required",
+          code: "license_required",
           fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${fixtures.consoleUrl}`,
           message: "Installer un serveur demande un compte Pupitre.",
         },
@@ -44,23 +37,19 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         },
         identity: {
           email: "ada@pupitre.studio",
-          entitlement: "valid",
+          license: "valid",
+          licenseGrant: null,
           name: "Ada Lovelace",
           organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
           organizations: [
             { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
           ],
           role: "owner",
-          subscription: {
-            current_period_end: fixtures.trialEndsAt,
-            servers: { limit: 2, used: 1 },
-            status: "trialing",
-            trial_ends_at: fixtures.trialEndsAt,
-          },
+          servers: { limit: 3, used: 1 },
         },
         refusal: null,
         usage: {
-          entitlement: "valid",
+          license: "valid",
           source: "platform",
           status: "granted",
           validUntil: new Date().toISOString(),
@@ -77,31 +66,23 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         ipcMain.handle(channel, (_event, ...args: unknown[]) => reply(...args));
       };
 
-      const withTrial = (state: Record<string, unknown>, endsAt: string) => {
+      const withServers = (state: Record<string, unknown>, used: number) => {
         const identity = state.identity as Record<string, unknown> | null;
 
         return identity
           ? {
               ...state,
-              identity: {
-                ...identity,
-                subscription: {
-                  current_period_end: endsAt,
-                  servers: { limit: 2, used: 1 },
-                  status: "trialing",
-                  trial_ends_at: endsAt,
-                },
-              },
+              identity: { ...identity, servers: { limit: 3, used } },
             }
           : state;
       };
 
-      const clock = globalThis as { trialEndingSoon?: boolean };
+      const fleet = globalThis as { freeServersTaken?: boolean };
 
       answer("account:state", () => current);
       answer("account:refresh", () => {
-        if (clock.trialEndingSoon) {
-          current = withTrial(current, fixtures.trialEndingSoon);
+        if (fleet.freeServersTaken) {
+          current = withServers(current, 3);
         }
 
         return current;
@@ -137,8 +118,6 @@ function stubAccount(app: ElectronApplication): Promise<void> {
     {
       approvalMs: APPROVAL_MS,
       consoleUrl: CONSOLE_URL,
-      trialEndingSoon: trialEndingIn(2),
-      trialEndsAt: trialEndingIn(5),
       userCode: USER_CODE,
     }
   );
@@ -180,29 +159,30 @@ test.describe("compte", () => {
     await page.getByRole("tab", { name: "Compte" }).click();
 
     await expect(page.getByText("ada@pupitre.studio")).toBeVisible();
-    await expect(page.getByText("Abonnement actif")).toBeVisible();
+    await expect(page.getByText("Licence valide")).toBeVisible();
     await expect(page.getByText("Atelier Ada")).toBeVisible();
 
-    const subscription = page.locator("[data-subscription]");
+    const license = page.locator("[data-license]");
 
-    await expect(subscription).toHaveAttribute("data-subscription", "trialing");
-    await expect(subscription.getByText("5 jours restants")).toBeVisible();
-    await expect(subscription).toHaveAttribute("data-trial-tone", "ok");
+    await expect(license).toHaveAttribute("data-license", "free");
+    await expect(license.getByText("1 sur 3 serveurs utilisés")).toBeVisible();
     await expect(
-      subscription.getByRole("button", { name: "Gérer l'abonnement" })
+      license.getByText("une licence est requise au-delà")
     ).toBeVisible();
+    await expect(
+      license.getByRole("button", { name: "Écrire au support" })
+    ).toHaveCount(0);
 
     await assertAccessible(page, "reglages/compte");
 
     await running.app.evaluate(() => {
-      (globalThis as { trialEndingSoon?: boolean }).trialEndingSoon = true;
+      (globalThis as { freeServersTaken?: boolean }).freeServersTaken = true;
     });
     await page.getByRole("button", { name: "Actualiser" }).click();
 
-    await expect(subscription.getByText("2 jours restants")).toBeVisible();
-    await expect(subscription).toHaveAttribute("data-trial-tone", "warn");
+    await expect(license.getByText("3 sur 3 serveurs utilisés")).toBeVisible();
     await expect(
-      subscription.getByText("Choisissez une offre dans la console")
+      license.getByRole("button", { name: "Écrire au support" })
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Se déconnecter" }).click();

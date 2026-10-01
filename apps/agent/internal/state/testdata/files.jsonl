@@ -3,7 +3,7 @@
 @dir /home/dev/notes
 @file /home/dev/notes/readme.md # flyleaf
 @file /etc/pupitre/env PUPITRE_DOMAIN=flyleaf.dev
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"fs.list","params":{"path":"notes"}}
 > {"id":3,"cmd":"fs.stat","params":{"path":"notes/readme.md","hash":true}}
 > {"id":4,"cmd":"fs.read","params":{"path":"notes/readme.md"}}
@@ -16,7 +16,7 @@
 > {"id":11,"cmd":"fs.remove","params":{"path":"notes/drafts","recursive":true}}
 > {"id":12,"cmd":"fs.read","params":{"path":"../../etc/pupitre/env"}}
 > {"id":13,"cmd":"fs.list","params":{"path":"/etc/pupitre"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"path":"notes","entries":[{"name":"readme.md","kind":"file","size_bytes":10,"modified_at":"2026-09-04T12:00:00Z","mode":"0644"}],"truncated":false}}
 < {"id":3,"ok":true,"result":{"path":"notes/readme.md","kind":"file","size_bytes":10,"modified_at":"2026-09-04T12:00:00Z","mode":"0644","media_type":"text/plain","sha256":"2f743197aacbeaff86c9cd636c53df07c4102a2344c7385ea4cb01557b01dc7a"}}
 < {"bytes":"IyBmbHlsZWFmCg==","event":"file","id":4,"seq":0}

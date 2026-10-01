@@ -174,7 +174,7 @@ func waiting(err error) bool {
 		return false
 	}
 
-	return refusal.Code == contract.ErrorBusy || refusal.Code == contract.ErrorEntitlementRequired
+	return refusal.Code == contract.ErrorBusy || refusal.Code == contract.ErrorLicenseRequired
 }
 
 func (s *Service) log(format string, args ...any) {

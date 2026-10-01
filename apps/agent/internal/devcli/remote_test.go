@@ -10,8 +10,8 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/protocol"
 )
 
@@ -26,7 +26,7 @@ func (b *sudoBench) launch(argv []string) (devcli.Pipe, error) {
 
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: "1.2.0",
-		Entitlement:  entitlement.Fixed(contract.EntitlementValid),
+		License:      license.Fixed(contract.LicenseValid),
 		Limited:      !slices.Contains(argv, "--privileged"),
 	})
 

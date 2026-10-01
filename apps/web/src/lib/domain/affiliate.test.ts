@@ -3,12 +3,12 @@ import {
   AFFILIATE_LINK_TAB,
   AFFILIATE_LINK_TABS,
   affiliateCodeFrom,
-  affiliateConversionFigures,
   affiliateCookieDomain,
   affiliateCookieFor,
   affiliateCookieToWrite,
   affiliateLinkTab,
   affiliateLinkTabFor,
+  affiliateReachFigures,
   filterAffiliateLinks,
   isAffiliateCode,
 } from "@/lib/domain/affiliate"
@@ -141,26 +141,20 @@ describe("filterAffiliateLinks", () => {
   })
 })
 
-describe("affiliateConversionFigures", () => {
-  it("counts what arrived first, and the seats last", () => {
-    const figures = affiliateConversionFigures({
-      referred: 4,
-      trialing: 1,
-      active: 2,
-      past_due: 0,
-      canceled: 1,
-      seats: 6,
+describe("affiliateReachFigures", () => {
+  it("follows the visitor from the click to the server installed", () => {
+    const figures = affiliateReachFigures({
+      clicks: { total: 40, last_30_days: 12 },
+      conversion: { referred: 4, servers: 6 },
     })
 
     expect(figures.map((figure) => figure.id)).toEqual([
+      "clicks",
+      "clicks_30_days",
       "referred",
-      "trialing",
-      "active",
-      "past_due",
-      "canceled",
-      "seats",
+      "servers",
     ])
-    expect(figures[0]).toMatchObject({
+    expect(figures[2]).toMatchObject({
       label: "admin.links.conversion.referred",
       value: 4,
     })

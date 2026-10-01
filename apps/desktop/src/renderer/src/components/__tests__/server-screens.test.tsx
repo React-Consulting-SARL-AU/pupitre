@@ -306,7 +306,8 @@ describe("l'étape que l'assistant ouvre", () => {
 describe("l'organisation de l'enrôlement", () => {
   const identity: AccountIdentity = {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada Lovelace",
     organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
     organizations: [
@@ -314,7 +315,7 @@ describe("l'organisation de l'enrôlement", () => {
       { id: "org-2", name: "Fonderie", role: "member", slug: "fonderie" },
     ],
     role: "admin",
-    subscription: null,
+    servers: { limit: 3, used: 1 },
   };
 
   const note = (given: AccountIdentity): string =>
@@ -358,8 +359,8 @@ describe("l'offre d'installer sur la fiche d'un serveur", () => {
   const HELLO: HelloResult = {
     agent_version: "1.0.0",
     capabilities: [],
-    entitlement: "valid",
-    protocol: 2,
+    license: "valid",
+    protocol: 3,
   };
 
   const offered = () =>

@@ -101,16 +101,11 @@
     "EMAIL_FROM": "no-reply@pupitre.studio",
     "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio",
     "R2_MAIL_BUCKET_NAME": "ppt-mail",
-    "BILLING_MODE": "launch",
-    "LAUNCH_ENDS_AT": "2026-12-31T23:59:59Z"
+    "BILLING_MODE": "off"
   },
   "secrets": {
     "required": [
       "BETTER_AUTH_SECRET",
-      "STRIPE_SECRET_KEY",
-      "STRIPE_WEBHOOK_SECRET",
-      "STRIPE_PRICE_SERVER_MONTH",
-      "STRIPE_PRICE_SERVER_YEAR",
       "INTERNAL_WORKFLOW_SECRET",
       "PUPITRE_PUBLISH_TOKEN",
       "GITHUB_CLIENT_ID",
@@ -216,17 +211,12 @@
         "EMAIL_FROM": "no-reply@pupitre.studio",
         "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio",
         "R2_MAIL_BUCKET_NAME": "ppt-mail",
-        "BILLING_MODE": "launch",
-        "LAUNCH_ENDS_AT": "2026-12-31T23:59:59Z"
+        "BILLING_MODE": "off"
       },
       "secrets": {
         "required": [
           "BETTER_AUTH_SECRET",
           "INTERNAL_WORKFLOW_SECRET",
-          "STRIPE_SECRET_KEY",
-          "STRIPE_WEBHOOK_SECRET",
-          "STRIPE_PRICE_SERVER_MONTH",
-          "STRIPE_PRICE_SERVER_YEAR",
           "R2_ACCOUNT_ID",
           "R2_ACCESS_KEY_ID",
           "R2_SECRET_ACCESS_KEY",

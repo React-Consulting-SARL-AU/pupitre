@@ -1,6 +1,6 @@
 # Les octets sortent sur des événements shot ; l'accusé dit combien et quelle empreinte.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","shots.list","shots.read"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","shots.list","shots.read"]}}
 > {"id":2,"cmd":"shots.read","params":{"path":"2026-09-04/login.png"}}
 < {"id":2,"event":"shot","seq":0,"bytes":"Y2FwdHVyZS1kZS10"}
 < {"id":2,"event":"shot","seq":1,"bytes":"ZXN0"}

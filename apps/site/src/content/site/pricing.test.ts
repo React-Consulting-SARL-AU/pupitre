@@ -1,9 +1,10 @@
-import { PLAN_IDS } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import { LOCALES } from "../../lib/i18n"
 import { pricingContent } from "./pricing"
 
 const DELAY_RE = /\d+\s*(days?|jours?|weeks?|semaines?|months?|mois)/i
+const TRIAL_RE =
+  /\blaunch\b|\blancement\b|\{days\}|\{date\}|essai de|-day trial/i
 
 function leaves(value: unknown, trail = "root"): [string, string][] {
   if (typeof value === "string") {
@@ -45,36 +46,37 @@ describe("pricing content", () => {
     }
   })
 
-  it("takes the numbers from placeholders, never from the text", () => {
+  it("takes the number of free servers from a placeholder, never from the text", () => {
     for (const locale of LOCALES) {
       const content = pricingContent(locale)
 
-      expect(placeholders(content.hero.lead)).toEqual(
-        ["days", "months", "price"].sort()
-      )
-      expect(placeholders(content.meta.description)).toContain("price")
-      expect(placeholders(content.billing.yearNote)).toEqual(["months"])
-      expect(placeholders(content.plans.trial)).toEqual(["days"])
-      expect(placeholders(content.plans.serversUpTo)).toEqual(["count"])
+      expect(placeholders(content.hero.headline)).toEqual(["count"])
+      expect(placeholders(content.hero.unit)).toEqual(["count"])
+      expect(placeholders(content.meta.description)).toEqual(["count"])
+      expect(placeholders(content.offer)).toEqual(["count"])
+      expect(placeholders(content.beyond.lead)).toEqual(["count"])
       expect(placeholders(content.catalog.available)).toEqual(["count"])
     }
   })
 
-  it("describes every shared plan, with a button only for the available ones", () => {
+  it("speaks of no trial and no launch", () => {
     for (const locale of LOCALES) {
-      const { items } = pricingContent(locale).plans
-
-      expect(Object.keys(items).sort()).toEqual([...PLAN_IDS].sort())
-      expect(items.solo.cta).toBeDefined()
-      expect(items.team.cta).toBeDefined()
-      expect(items.hosted.cta).toBeUndefined()
-      for (const id of PLAN_IDS) {
-        expect(items[id].includes.length, id).toBeGreaterThanOrEqual(3)
+      for (const [path, text] of leaves(pricingContent(locale))) {
+        expect(text, `${locale} ${path}`).not.toMatch(TRIAL_RE)
       }
     }
   })
 
-  it("says what stays and what goes when the subscription stops, without a deadline", () => {
+  it("says what may and may not be done with the source", () => {
+    for (const locale of LOCALES) {
+      const { source } = pricingContent(locale)
+
+      expect(source.allowed.lines.length).toBeGreaterThanOrEqual(3)
+      expect(source.forbidden.lines.length).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it("says what stays and what goes when Pupitre is removed, without a deadline", () => {
     for (const locale of LOCALES) {
       const { stop } = pricingContent(locale)
 

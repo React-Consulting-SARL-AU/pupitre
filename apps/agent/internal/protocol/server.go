@@ -13,14 +13,14 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 )
 
 type Options struct {
 	AgentVersion string
-	Entitlement  func() entitlement.State
-	// Nil means no ledger to consult: commands are then gated by the entitlement alone.
+	License      func() license.State
+	// Nil means no ledger to consult: commands are then gated by the license alone.
 	Config   func() contract.ConfigRevision
 	ServerID func() string
 	Now      func() time.Time
@@ -58,12 +58,12 @@ func (s *Server) Register(cmd string, handler Handler) {
 }
 
 // Resolved per command so a long-lived session reopens as soon as the platform is back.
-func (s *Server) Entitlement() entitlement.State {
-	if s.options.Entitlement == nil {
-		return entitlement.State{Entitlement: contract.EntitlementDev, Enrolled: true}
+func (s *Server) License() license.State {
+	if s.options.License == nil {
+		return license.State{License: contract.LicenseDev, Enrolled: true}
 	}
 
-	return s.options.Entitlement()
+	return s.options.License()
 }
 
 // Resolved per command so a migration run mid-session reopens it without a reconnection.
@@ -125,8 +125,8 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 		return nil, refused
 	}
 
-	if !s.Entitlement().Allows(cmd) {
-		return nil, EntitlementRequired()
+	if !s.License().Allows(cmd) {
+		return nil, LicenseRequired()
 	}
 
 	if config, gated := s.gate(cmd); gated {
@@ -313,8 +313,8 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 		return nil, refused
 	}
 
-	if !s.server.Entitlement().Allows(cmd) {
-		return nil, EntitlementRequired()
+	if !s.server.License().Allows(cmd) {
+		return nil, LicenseRequired()
 	}
 
 	if config, gated := s.server.gate(cmd); gated {

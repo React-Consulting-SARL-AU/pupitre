@@ -12,18 +12,19 @@ function view(email: string | null): AccountView {
     identity: email
       ? {
           email,
-          entitlement: "valid",
+          license: "valid",
+          licenseGrant: null,
           name: "Ada",
           organization: null,
           organizations: [],
           role: null,
-          subscription: null,
+          servers: { limit: 3, used: 1 },
         }
       : null,
     refusal: null,
     sealed: false,
     usage: {
-      entitlement: "valid",
+      license: "valid",
       source: "platform",
       status: "granted",
       validUntil: null,

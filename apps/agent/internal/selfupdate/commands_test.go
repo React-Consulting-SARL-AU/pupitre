@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/selfupdate"
 )
@@ -19,10 +19,10 @@ type response struct {
 	Error  *protocol.Error `json:"error"`
 }
 
-func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...string) []response {
+func serve(t *testing.T, b *bench, granted contract.License, requests ...string) []response {
 	t.Helper()
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: currentAgent, Entitlement: entitlement.Fixed(granted)})
+	server := protocol.NewServer(protocol.Options{AgentVersion: currentAgent, License: license.Fixed(granted)})
 	selfupdate.RegisterCommands(server, b.options)
 
 	var out strings.Builder
@@ -46,8 +46,8 @@ func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 	b := newBench(t)
 	b.stateStatus = http.StatusUnauthorized
 
-	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
+	answers := serve(t, b, contract.LicenseRestricted,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":3}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+nextAgent+`"}}`,
 	)
 
@@ -72,8 +72,8 @@ func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 func TestAgentUpgradeIsAnnouncedAmongTheCapabilities(t *testing.T) {
 	b := newBench(t)
 
-	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
+	answers := serve(t, b, contract.LicenseRestricted,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":3}}`,
 	)
 
 	if !strings.Contains(string(answers[0].Result), `"agent.upgrade"`) {
@@ -84,8 +84,8 @@ func TestAgentUpgradeIsAnnouncedAmongTheCapabilities(t *testing.T) {
 func TestAgentUpgradeRefusesADowngradeThroughTheProtocol(t *testing.T) {
 	b := newBench(t)
 
-	answers := serve(t, b, contract.EntitlementValid,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
+	answers := serve(t, b, contract.LicenseValid,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":3}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`"}}`,
 	)
 
@@ -101,8 +101,8 @@ func TestAgentUpgradeRefusesADowngradeThroughTheProtocol(t *testing.T) {
 func TestAgentUpgradeInstallsAnOlderVersionOnTheOwnersWord(t *testing.T) {
 	b := newBench(t)
 
-	answers := serve(t, b, contract.EntitlementValid,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
+	answers := serve(t, b, contract.LicenseValid,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":3}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`","allow_downgrade":true}}`,
 	)
 
@@ -119,8 +119,8 @@ func TestAgentUpgradeSurfacesBadSignatureThroughTheProtocol(t *testing.T) {
 	b := newBench(t)
 	b.signedVersion = nextAgent
 
-	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
+	answers := serve(t, b, contract.LicenseRestricted,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":3}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"2.0.0"}}`,
 	)
 

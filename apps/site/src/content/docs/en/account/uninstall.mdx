@@ -49,7 +49,7 @@ It removes:
 - `/usr/local/bin/pupitred`, and the `dev` and `shot` commands in `/usr/local/bin`, which are links to it;
 - in `/etc/sudoers.d/90-dev`, the two lines that let `pupitred` run without a password: `dev` keeps `sudo` on its password. The new rule is checked by `visudo` before it replaces the old one. A server hardened before the password keeps its passwordless rule as it is;
 - `/etc/pupitre`, except `/etc/pupitre/env`;
-- `/var/lib/pupitre`, the agent's state: the cached usage right, the last install report, where the backups stand, the copies taken before a configuration migration;
+- `/var/lib/pupitre`, the agent's state: the cached licence, the last install report, where the backups stand, the copies taken before a configuration migration;
 - `/var/log/pupitre.log`, its rotated copies, and their rotation in `/etc/logrotate.d/pupitre`.
 
 `/etc/pupitre/env` stays, readable by root only: it holds the passwords and tokens of your services — database passwords, tunnel token, API keys — and nowhere else keeps them. Copy what you still need somewhere safe, then delete it if you wish:

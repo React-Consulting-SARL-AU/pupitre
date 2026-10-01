@@ -12,6 +12,7 @@ import {
   createServer,
   subscribeOrganization,
 } from "@pupitre/api/testing/factories"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import {
   AdminSubscriptionList,
   type AdminSubscriptionListSearch,
@@ -51,7 +52,10 @@ async function twoOrganizations() {
     status: "active",
     quantity: 5,
   })
-  await createServer({ organizationId: tight.id })
+  for (let index = 0; index <= FREE_SERVERS; index += 1) {
+    await createServer({ organizationId: tight.id })
+  }
+
   await createServer({ organizationId: tight.id, status: "grace" })
 }
 

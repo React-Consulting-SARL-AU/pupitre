@@ -27,7 +27,7 @@ func TestCheckKeepsThePortTheInstalledModuleHolds(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		listeningDemo{modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"}},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementDev))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseDev))
 
 	if _, err := engine.Install(modules.Request{
 		Modules: []string{"tool.demo"},
@@ -70,7 +70,7 @@ func TestCheckStillRefusesAPortAnotherProgramHolds(t *testing.T) {
 		modtest.Passing{ID: "core.system"},
 		listeningDemo{modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"}},
 	)
-	engine := newEngine(t, fake, registry, entitled(contract.EntitlementDev))
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseDev))
 
 	answer, err := engine.Check(modules.Request{
 		Modules: []string{"tool.demo"},

@@ -3,25 +3,30 @@ import { CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import {
   AFFILIATE_CODE_LENGTH,
+  AFFILIATE_COOKIE,
   AFFILIATE_NOTES_MAX_LENGTH,
-  DAYS_PER_FREE_MONTH,
-  TRIAL_DAYS,
-  TRIAL_SEATS,
 } from "@pupitre/shared/plans"
 import {
   AffiliateCodeTakenError,
+  affiliateCodeFromCookie,
   createAffiliateLink,
   recordReferral,
+  recordSignUpReferral,
 } from "../../lib/affiliates/affiliates"
 import { AFFILIATE_HIT_RATE_LIMIT } from "../../lib/api/rate-limit"
 import type { FakeBilling } from "../../lib/billing/fake"
-import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
+import {
+  type ApiTestServer,
+  bootApiTestServer,
+  resetDb,
+  TEST_BASE_URL,
+} from "../../testing"
 import { useFakeBilling } from "../../testing/billing"
 import {
   createOrganizationWithMembers,
-  subscribeOrganization,
+  createServer,
 } from "../../testing/factories"
-import { apiRequest } from "../../testing/request"
+import { apiRequest, authRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
 
 interface Session {
@@ -32,11 +37,10 @@ interface AffiliateLink {
   id: string
   code: string
   name: string
-  free_months: number
-  seats: number
   disabled: boolean
   created_at: string
   referrals: number
+  servers: number
   partner_name: string | null
   clicks_30_days: number
   url: string
@@ -46,20 +50,15 @@ interface AffiliateLinkDetail extends AffiliateLink {
   partner: { name: string | null; email: string | null } | null
   notes: string | null
   clicks: { total: number; last_30_days: number }
-  conversion: {
-    referred: number
-    trialing: number
-    active: number
-    past_due: number
-    canceled: number
-    seats: number
-  }
-  organizations: { id: string; subscription_status: string | null }[]
+  conversion: { referred: number; servers: number }
+  organizations: { id: string; servers: number }[]
 }
 
 interface ErrorBody {
   error: { code: string; message: string; fix?: string }
 }
+
+const URL_RE = /https?:\/\/\S+/
 
 async function platformAdmin() {
   const { user } = await createUser({
@@ -121,6 +120,18 @@ function checkout(
   })
 }
 
+function signUp(
+  organizationId: string,
+  userId: string,
+  code: string | null
+): Promise<void> {
+  return recordSignUpReferral({
+    organizationId,
+    userId,
+    cookie: code ? `theme=dark; ${AFFILIATE_COOKIE}=${code}` : "theme=dark",
+  })
+}
+
 describe("les liens d'affiliation", () => {
   let harness: ApiTestServer
 
@@ -139,7 +150,7 @@ describe("les liens d'affiliation", () => {
     const calls = [
       apiRequest<ErrorBody>("/admin/affiliate-links"),
       apiRequest<ErrorBody>("/admin/affiliate-links", { session: owner }),
-      createLink(owner, { name: "Newsletter", free_months: 1 }),
+      createLink(owner, { name: "Newsletter" }),
       apiRequest<ErrorBody>("/admin/affiliate-links/nope", {
         method: "PATCH",
         body: { disabled: true },
@@ -160,21 +171,19 @@ describe("les liens d'affiliation", () => {
     }
   })
 
-  it("crée un lien avec un code tiré, et le liste avec son adresse", async () => {
+  it("crée un lien avec un code tiré, sans offre, et le liste avec son adresse", async () => {
     const admin = await platformAdmin()
-    const created = await createLink(admin, {
-      name: "Newsletter",
-      free_months: 3,
-    })
+    const created = await createLink(admin, { name: "Newsletter" })
 
     expect(created.status).toBe(201)
     expect(created.json.data).toMatchObject({
       name: "Newsletter",
-      free_months: 3,
-      seats: 1,
       disabled: false,
       referrals: 0,
+      servers: 0,
     })
+    expect(created.json.data).not.toHaveProperty("free_months")
+    expect(created.json.data).not.toHaveProperty("seats")
     expect(created.json.data.code).toMatch(
       new RegExp(`^[a-z0-9]{${AFFILIATE_CODE_LENGTH}}$`)
     )
@@ -199,6 +208,10 @@ describe("les liens d'affiliation", () => {
     expect(event.actorUserId).toBe(admin.session.userId)
     expect(event.targetType).toBe("affiliate_link")
     expect(event.targetId).toBe(created.json.data.id)
+    expect(event.payload).toEqual({
+      code: created.json.data.code,
+      name: "Newsletter",
+    })
   })
 
   it("accepte un code choisi, refuse un code pris ou mal formé", async () => {
@@ -206,52 +219,40 @@ describe("les liens d'affiliation", () => {
     const chosen = await createLink(admin, {
       name: "Podcast",
       code: "podcast-42",
-      free_months: 2,
-      seats: 3,
     })
     const taken = await createLink(admin, {
       name: "Encore",
       code: "podcast-42",
-      free_months: 0,
     })
     const malformed = await createLink(admin, {
       name: "Majuscules",
       code: "PODCAST",
-      free_months: 0,
-    })
-    const tooLong = await createLink(admin, {
-      name: "Trop",
-      free_months: 25,
     })
 
     expect(chosen.status).toBe(201)
-    expect(chosen.json.data).toMatchObject({ code: "podcast-42", seats: 3 })
+    expect(chosen.json.data).toMatchObject({ code: "podcast-42" })
     expect(taken.status).toBe(409)
     expect(taken.json.error.code).toBe("conflict")
     expect(taken.json.error.message).toContain("podcast-42")
     expect(taken.json.error.fix).toBeString()
     expect(malformed.status).toBe(422)
-    expect(tooLong.status).toBe(422)
   })
 
   it("pose le partenaire et la note dès la création, et refuse un partenaire illisible", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, {
       name: "Salon",
-      free_months: 1,
       partner_name: "  Ada Lovelace  ",
       partner_email: "ada@partner.test",
       notes: "  Rencontrée au salon  ",
     })
     const blank = await createLink(admin, {
       name: "Sans partenaire",
-      free_months: 1,
       partner_name: "   ",
       notes: "",
     })
     const unreadable = await createLink(admin, {
       name: "Illisible",
-      free_months: 1,
       partner_email: "ada",
     })
 
@@ -275,7 +276,7 @@ describe("les liens d'affiliation", () => {
 
   it("désactive puis réactive un lien, et ne connaît pas les autres", async () => {
     const admin = await platformAdmin()
-    const created = await createLink(admin, { name: "Blog", free_months: 1 })
+    const created = await createLink(admin, { name: "Blog" })
     const disabled = await apiRequest<{ data: AffiliateLink }>(
       `/admin/affiliate-links/${created.json.data.id}`,
       { method: "PATCH", body: { disabled: true }, session: admin }
@@ -329,17 +330,23 @@ describe("la provenance d'une organisation", () => {
     billing = useFakeBilling()
   })
 
-  it("se note une fois au checkout, et jamais deux", async () => {
+  it("lit le code du cookie du site, et rien d'autre", () => {
+    expect(affiliateCodeFromCookie(`a=b; ${AFFILIATE_COOKIE}=blog-1`)).toBe(
+      "blog-1"
+    )
+    expect(affiliateCodeFromCookie(`${AFFILIATE_COOKIE}=PAS VALIDE`)).toBeNull()
+    expect(affiliateCodeFromCookie("theme=dark")).toBeNull()
+    expect(affiliateCodeFromCookie(null)).toBeNull()
+  })
+
+  it("se note une fois à l'inscription, et jamais deux", async () => {
     const admin = await platformAdmin()
-    const first = await createLink(admin, { name: "Blog", free_months: 1 })
-    const second = await createLink(admin, { name: "Forum", free_months: 1 })
+    const first = await createLink(admin, { name: "Blog" })
+    const second = await createLink(admin, { name: "Forum" })
     const { organizationId, owner } = await ownerOfNewOrganization()
 
-    const response = await checkout(organizationId, owner, first.json.data.code)
-
-    expect(response.status).toBe(200)
-
-    await checkout(organizationId, owner, second.json.data.code)
+    await signUp(organizationId, owner.user.id, first.json.data.code)
+    await signUp(organizationId, owner.user.id, second.json.data.code)
 
     const referral = await harness.prisma.referral.findUniqueOrThrow({
       where: { organizationId },
@@ -368,9 +375,68 @@ describe("la provenance d'une organisation", () => {
     ])
   })
 
-  it("n'écrit qu'une provenance quand deux checkouts partent ensemble", async () => {
+  it("se note quand un compte s'inscrit par lien magique avec le cookie du site", async () => {
     const admin = await platformAdmin()
-    const link = await createLink(admin, { name: "Blog", free_months: 1 })
+    const link = await createLink(admin, { name: "Blog" })
+    const email = "arrivee@test.local"
+    const requested = await authRequest("POST", "/sign-in/magic-link", {
+      email,
+      callbackURL: "/dashboard",
+    })
+
+    expect(requested.status).toBe(200)
+
+    const token = new URL(
+      harness.sentEmails.at(-1)?.text.match(URL_RE)?.[0] ?? TEST_BASE_URL
+    ).searchParams.get("token")
+
+    await authRequest(
+      "GET",
+      `/magic-link/verify?token=${token}&callbackURL=/dashboard`,
+      undefined,
+      { cookie: `${AFFILIATE_COOKIE}=${link.json.data.code}` }
+    )
+
+    const user = await harness.prisma.user.findFirstOrThrow({
+      where: { email },
+      include: { members: true },
+    })
+    const referral = await harness.prisma.referral.findUniqueOrThrow({
+      where: { organizationId: user.members[0]?.organizationId ?? "" },
+    })
+
+    expect(referral.linkId).toBe(link.json.data.id)
+  })
+
+  it("n'écrit rien à l'inscription sans cookie de provenance", async () => {
+    const { organizationId, owner } = await ownerOfNewOrganization()
+
+    await signUp(organizationId, owner.user.id, null)
+
+    expect(await harness.prisma.referral.count()).toBe(0)
+  })
+
+  it("se note aussi au checkout quand Stripe vend", async () => {
+    const admin = await platformAdmin()
+    const link = await createLink(admin, { name: "Blog" })
+    const { organizationId, owner } = await ownerOfNewOrganization()
+
+    const response = await checkout(organizationId, owner, link.json.data.code)
+
+    expect(response.status).toBe(200)
+    expect(
+      (
+        await harness.prisma.referral.findUniqueOrThrow({
+          where: { organizationId },
+        })
+      ).linkId
+    ).toBe(link.json.data.id)
+    expect(billing.checkouts[0]).toMatchObject({ organizationId, quantity: 5 })
+  })
+
+  it("n'écrit qu'une provenance quand deux inscriptions partent ensemble", async () => {
+    const admin = await platformAdmin()
+    const link = await createLink(admin, { name: "Blog" })
     const { organizationId, owner } = await ownerOfNewOrganization()
     const code = link.json.data.code
     const written = await Promise.all([
@@ -391,7 +457,7 @@ describe("la provenance d'une organisation", () => {
 
   it("refuse le second de deux liens créés ensemble sur le même code", async () => {
     const { user } = await createUser({ email: "equipe@pupitre.studio" })
-    const input = { name: "Blog", code: "atelier", free_months: 1 }
+    const input = { name: "Blog", code: "atelier" }
     const outcomes = await Promise.allSettled([
       createAffiliateLink({ userId: user.id }, input),
       createAffiliateLink({ userId: user.id }, { ...input, name: "Forum" }),
@@ -415,7 +481,7 @@ describe("la provenance d'une organisation", () => {
 
   it("ignore en silence un code inconnu, désactivé ou mal formé", async () => {
     const admin = await platformAdmin()
-    const link = await createLink(admin, { name: "Blog", free_months: 1 })
+    const link = await createLink(admin, { name: "Blog" })
 
     await apiRequest(`/admin/affiliate-links/${link.json.data.id}`, {
       method: "PATCH",
@@ -426,67 +492,10 @@ describe("la provenance d'une organisation", () => {
     const { organizationId, owner } = await ownerOfNewOrganization()
 
     for (const code of ["unknown1", link.json.data.code, "NOT VALID"]) {
-      const response = await checkout(organizationId, owner, code)
-
-      expect(response.status).toBe(200)
+      await signUp(organizationId, owner.user.id, code)
     }
 
     expect(await harness.prisma.referral.count()).toBe(0)
-    expect(billing.checkouts).toHaveLength(3)
-  })
-
-  it("ouvre le premier checkout aux conditions du lien", async () => {
-    const admin = await platformAdmin()
-    const link = await createLink(admin, {
-      name: "Partenaire",
-      free_months: 3,
-      seats: 2,
-    })
-    const { organizationId, owner } = await ownerOfNewOrganization()
-
-    await checkout(organizationId, owner, link.json.data.code)
-
-    expect(billing.checkouts[0]).toMatchObject({
-      organizationId,
-      trialDays: 3 * DAYS_PER_FREE_MONTH,
-      quantity: 2,
-    })
-  })
-
-  it("garde l'essai par défaut sur un lien qui ne fait que tracer", async () => {
-    const admin = await platformAdmin()
-    const link = await createLink(admin, {
-      name: "Trace",
-      free_months: 0,
-      seats: 3,
-    })
-    const { organizationId, owner } = await ownerOfNewOrganization()
-
-    await checkout(organizationId, owner, link.json.data.code)
-
-    expect(billing.checkouts[0]).toMatchObject({
-      trialDays: TRIAL_DAYS,
-      quantity: 3,
-    })
-  })
-
-  it("ouvre un seul essai par organisation, d'un siège sans lien", async () => {
-    const { organizationId, owner } = await ownerOfNewOrganization()
-
-    await checkout(organizationId, owner)
-
-    expect(billing.checkouts[0]).toMatchObject({
-      trialDays: TRIAL_DAYS,
-      quantity: TRIAL_SEATS,
-    })
-
-    await subscribeOrganization({ organizationId, status: "canceled" })
-    await checkout(organizationId, owner)
-
-    expect(billing.checkouts[1]).toMatchObject({
-      trialDays: null,
-      quantity: 5,
-    })
   })
 })
 
@@ -505,12 +514,10 @@ describe("la fiche d'un lien d'affiliation", () => {
 
   it("modifie chaque champ, efface un champ facultatif, et n'écrit que ce qui change", async () => {
     const admin = await platformAdmin()
-    const created = await createLink(admin, { name: "Blog", free_months: 1 })
+    const created = await createLink(admin, { name: "Blog" })
     const { id, code } = created.json.data
     const changed = await patchLink(admin, id, {
       name: "Infolettre",
-      free_months: 2,
-      seats: 4,
       partner_name: "Camille Roy",
       partner_email: "camille@exemple.fr",
       notes: "Paiement trimestriel.",
@@ -519,8 +526,6 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(changed.status).toBe(200)
     expect(changed.json.data).toMatchObject({
       name: "Infolettre",
-      free_months: 2,
-      seats: 4,
       partner_name: "Camille Roy",
     })
 
@@ -547,7 +552,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     })
     expect(after.json.data.notes).toBeNull()
 
-    await patchLink(admin, id, { name: "Infolettre", seats: 4 })
+    await patchLink(admin, id, { name: "Infolettre" })
 
     const payloads = (
       await harness.prisma.event.findMany({
@@ -559,8 +564,6 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(payloads).toContainEqual({
       code,
       name: "Infolettre",
-      free_months: 2,
-      seats: 4,
       partner_name: "Camille Roy",
       partner_email: "camille@exemple.fr",
       notes: "Paiement trimestriel.",
@@ -572,8 +575,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, {
       name: "Blog",
-      free_months: 1,
-      seats: 2,
+      partner_name: "Camille Roy",
     })
     const disabled = await patchLink(admin, created.json.data.id, {
       disabled: true,
@@ -582,7 +584,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(disabled.json.data).toMatchObject({
       disabled: true,
       name: "Blog",
-      seats: 2,
+      partner_name: "Camille Roy",
     })
 
     const enabled = await patchLink(admin, created.json.data.id, {
@@ -594,19 +596,13 @@ describe("la fiche d'un lien d'affiliation", () => {
 
   it("laisse la date de modification où elle est quand rien ne change", async () => {
     const admin = await platformAdmin()
-    const created = await createLink(admin, {
-      name: "Blog",
-      free_months: 1,
-      seats: 2,
-    })
+    const created = await createLink(admin, { name: "Blog" })
     const { id } = created.json.data
     const before = await harness.prisma.affiliateLink.findUniqueOrThrow({
       where: { id },
     })
     const same = await patchLink(admin, id, {
       name: "Blog",
-      free_months: 1,
-      seats: 2,
       disabled: false,
     })
     const after = await harness.prisma.affiliateLink.findUniqueOrThrow({
@@ -614,7 +610,7 @@ describe("la fiche d'un lien d'affiliation", () => {
     })
 
     expect(same.status).toBe(200)
-    expect(same.json.data).toMatchObject({ name: "Blog", seats: 2 })
+    expect(same.json.data).toMatchObject({ name: "Blog" })
     expect(after.updatedAt).toEqual(before.updatedAt)
     expect(
       await harness.prisma.event.count({
@@ -623,18 +619,16 @@ describe("la fiche d'un lien d'affiliation", () => {
     ).toBe(0)
   })
 
-  it("refuse un partenaire illisible, une note trop longue et des bornes dépassées", async () => {
+  it("refuse un partenaire illisible, une note trop longue et un nom vide", async () => {
     const admin = await platformAdmin()
-    const created = await createLink(admin, { name: "Blog", free_months: 1 })
+    const created = await createLink(admin, { name: "Blog" })
     const { id } = created.json.data
     const refused = await Promise.all([
       patchLink(admin, id, { partner_email: "camille" }),
       patchLink(admin, id, {
         notes: "n".repeat(AFFILIATE_NOTES_MAX_LENGTH + 1),
       }),
-      patchLink(admin, id, { free_months: 999 }),
       patchLink(admin, id, { name: "" }),
-      patchLink(admin, id, { seats: 0 }),
     ])
 
     for (const response of refused) {
@@ -651,11 +645,11 @@ describe("la fiche d'un lien d'affiliation", () => {
 
   it("efface un lien que personne n'a suivi, refuse celui qui a amené une organisation", async () => {
     const admin = await platformAdmin()
-    const unused = await createLink(admin, { name: "Essai", free_months: 0 })
-    const used = await createLink(admin, { name: "Blog", free_months: 1 })
+    const unused = await createLink(admin, { name: "Essai" })
+    const used = await createLink(admin, { name: "Blog" })
     const { organizationId, owner } = await ownerOfNewOrganization()
 
-    await checkout(organizationId, owner, used.json.data.code)
+    await signUp(organizationId, owner.user.id, used.json.data.code)
     await hit(unused.json.data.code)
 
     const deleted = await apiRequest<ErrorBody>(
@@ -700,51 +694,70 @@ describe("la fiche d'un lien d'affiliation", () => {
     })
   })
 
-  it("compte ce que le lien a rapporté, une organisation à la fois", async () => {
+  it("compte les serveurs enrôlés par les organisations venues du lien", async () => {
     const admin = await platformAdmin()
-    const link = await createLink(admin, { name: "Blog", free_months: 1 })
+    const link = await createLink(admin, { name: "Blog" })
+    const other = await createLink(admin, { name: "Forum" })
     const code = link.json.data.code
-    const trialing = await ownerOfNewOrganization()
-    const active = await ownerOfNewOrganization()
-    const gone = await ownerOfNewOrganization()
+    const busy = await ownerOfNewOrganization()
+    const quiet = await ownerOfNewOrganization()
+    const elsewhere = await ownerOfNewOrganization()
 
-    for (const arrival of [trialing, active, gone]) {
-      await checkout(arrival.organizationId, arrival.owner, code)
-    }
+    await signUp(busy.organizationId, busy.owner.user.id, code)
+    await signUp(quiet.organizationId, quiet.owner.user.id, code)
+    await signUp(
+      elsewhere.organizationId,
+      elsewhere.owner.user.id,
+      other.json.data.code
+    )
 
-    await subscribeOrganization({
-      organizationId: trialing.organizationId,
-      status: "trialing",
-      quantity: 2,
+    await createServer({ organizationId: busy.organizationId })
+    await createServer({ organizationId: busy.organizationId, status: "grace" })
+    await createServer({
+      organizationId: busy.organizationId,
+      status: "enrolling",
     })
-    await subscribeOrganization({
-      organizationId: active.organizationId,
-      status: "active",
-      quantity: 3,
+    await createServer({
+      organizationId: busy.organizationId,
+      status: "revoked",
     })
-    await subscribeOrganization({
-      organizationId: gone.organizationId,
-      status: "canceled",
-      quantity: 9,
-    })
+    await createServer({ organizationId: elsewhere.organizationId })
 
     const detail = await readLink(admin, link.json.data.id)
 
-    expect(detail.json.data.conversion).toEqual({
-      referred: 3,
-      trialing: 1,
-      active: 1,
-      past_due: 0,
-      canceled: 1,
-      seats: 5,
-    })
-    expect(detail.json.data.referrals).toBe(3)
+    expect(detail.json.data.referrals).toBe(2)
+    expect(detail.json.data.servers).toBe(2)
+    expect(detail.json.data.conversion).toEqual({ referred: 2, servers: 2 })
+    expect(
+      new Map(
+        detail.json.data.organizations.map((organization) => [
+          organization.id,
+          organization.servers,
+        ])
+      )
+    ).toEqual(
+      new Map([
+        [busy.organizationId, 2],
+        [quiet.organizationId, 0],
+      ])
+    )
+
+    const list = await apiRequest<{ data: AffiliateLink[] }>(
+      "/admin/affiliate-links",
+      { session: admin }
+    )
+    const servers = new Map(
+      list.json.data.map((entry) => [entry.name, entry.servers])
+    )
+
+    expect(servers.get("Blog")).toBe(2)
+    expect(servers.get("Forum")).toBe(1)
   })
 
   it("compte les visites du jour et celles des trente derniers jours", async () => {
     const admin = await platformAdmin()
-    const link = await createLink(admin, { name: "Blog", free_months: 1 })
-    const other = await createLink(admin, { name: "Forum", free_months: 0 })
+    const link = await createLink(admin, { name: "Blog" })
+    const other = await createLink(admin, { name: "Forum" })
 
     await hit(link.json.data.code)
     await hit(link.json.data.code)
@@ -800,8 +813,8 @@ describe("le compteur public de visites", () => {
 
   it("répond 204 sans session, et ne compte que le lien activé", async () => {
     const admin = await platformAdmin()
-    const live = await createLink(admin, { name: "Blog", free_months: 1 })
-    const off = await createLink(admin, { name: "Forum", free_months: 0 })
+    const live = await createLink(admin, { name: "Blog" })
+    const off = await createLink(admin, { name: "Forum" })
 
     await patchLink(admin, off.json.data.id, { disabled: true })
 

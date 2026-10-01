@@ -209,7 +209,7 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	console := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/agent/state":
-			w.Write([]byte(`{"entitlement":"valid","valid_until":"2030-01-01T00:00:00Z","authorized_keys":[],"target_version":"1.4.0"}`))
+			w.Write([]byte(`{"license":"valid","valid_until":"2030-01-01T00:00:00Z","authorized_keys":[],"target_version":"1.4.0"}`))
 		case "/agent/exchange":
 			w.Write([]byte(`{"server_token":"jeton-de-serveur-neuf"}`))
 		default:

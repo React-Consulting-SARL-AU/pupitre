@@ -216,7 +216,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 		if r.URL.Path != "/agent/state" || r.Method != http.MethodGet {
 			t.Errorf("%s %s", r.Method, r.URL.Path)
 		}
-		w.Write([]byte(`{"entitlement":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":["ssh-ed25519 AAAA jordan@laptop"],"target_version":"1.4.0","hostname":"vps"}`))
+		w.Write([]byte(`{"license":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":["ssh-ed25519 AAAA jordan@laptop"],"target_version":"1.4.0","hostname":"vps"}`))
 	}))
 	defer server.Close()
 
@@ -225,7 +225,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 		t.Fatalf("State: %v", err)
 	}
 
-	if state.Entitlement != "grace" || state.TargetVersion != "1.4.0" || state.Hostname != "vps" {
+	if state.License != "grace" || state.TargetVersion != "1.4.0" || state.Hostname != "vps" {
 		t.Fatalf("state = %+v", state)
 	}
 
@@ -234,10 +234,26 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 	}
 }
 
+func TestStateReadsTheLicenseAndNeverTheLegacyEntitlement(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"license":"suspended","entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[]}`))
+	}))
+	defer server.Close()
+
+	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
+	if err != nil {
+		t.Fatalf("State: %v", err)
+	}
+
+	if state.License != "suspended" {
+		t.Fatalf("license = %q, want the platform's license, not its legacy entitlement", state.License)
+	}
+}
+
 func TestStateTellsAbsentKeysFromAnEmptyList(t *testing.T) {
 	answers := map[string]int{
-		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[]}`: 0,
-		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[{"public_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIqIikYhGRpaqoJuvKifjn/NLVieWICV3MrBVyZO2Lj","user_id":"u1","device_id":"d1","approvals":[]}]}`: 1,
+		`{"license":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[]}`: 0,
+		`{"license":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[{"public_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIqIikYhGRpaqoJuvKifjn/NLVieWICV3MrBVyZO2Lj","user_id":"u1","device_id":"d1","approvals":[]}]}`: 1,
 	}
 
 	for answer, want := range answers {
@@ -256,7 +272,7 @@ func TestStateTellsAbsentKeysFromAnEmptyList(t *testing.T) {
 
 func TestStateCarriesTheVersionFloorOfTheServer(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps"}`))
+		w.Write([]byte(`{"license":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps"}`))
 	}))
 	defer server.Close()
 
@@ -305,7 +321,7 @@ func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 
 func TestStateAcceptsANullTargetVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":null,"hostname":"vps"}`))
+		w.Write([]byte(`{"license":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":null,"hostname":"vps"}`))
 	}))
 	defer server.Close()
 

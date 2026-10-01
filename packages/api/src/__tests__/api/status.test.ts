@@ -10,11 +10,7 @@ import {
   resetDb,
   TEST_AUTH_ENV,
 } from "../../testing"
-import {
-  TEST_LAUNCH_END,
-  useFakeBilling,
-  useLaunchBilling,
-} from "../../testing/billing"
+import { useBillingOff, useFakeBilling } from "../../testing/billing"
 import {
   createOrganizationWithMembers,
   createServer,
@@ -35,7 +31,7 @@ interface StatusBody {
     freshness: string
     checked_at: string
     social_providers: string[]
-    billing: { mode: string; launch_ends_at: string | null }
+    billing: { mode: string }
   }
 }
 
@@ -82,24 +78,18 @@ describe("GET /status", () => {
     expect(response.json.data.checked_at).toMatch(ISO_DATE_RE)
   })
 
-  it("dit le mode de facturation et la fin du lancement", async () => {
-    useLaunchBilling()
+  it("dit le mode de facturation", async () => {
+    useBillingOff()
 
-    const launch = await statusRequest()
+    const off = await statusRequest()
 
-    expect(launch.json.data.billing).toEqual({
-      mode: "launch",
-      launch_ends_at: TEST_LAUNCH_END.toISOString(),
-    })
+    expect(off.json.data.billing).toEqual({ mode: "off" })
 
     useFakeBilling()
 
     const stripe = await statusRequest()
 
-    expect(stripe.json.data.billing).toEqual({
-      mode: "stripe",
-      launch_ends_at: null,
-    })
+    expect(stripe.json.data.billing).toEqual({ mode: "stripe" })
   })
 
   it("répond quand même quand le mode de facturation est illisible", async () => {
@@ -114,10 +104,7 @@ describe("GET /status", () => {
       expect(response.status).toBe(200)
       expect(response.json.data.api).toBe("ok")
       expect(response.json.data.database).toBe("ok")
-      expect(response.json.data.billing).toEqual({
-        mode: "stripe",
-        launch_ends_at: null,
-      })
+      expect(response.json.data.billing).toEqual({ mode: "off" })
     } finally {
       if (previous === undefined) {
         Reflect.deleteProperty(process.env, "BILLING_MODE")

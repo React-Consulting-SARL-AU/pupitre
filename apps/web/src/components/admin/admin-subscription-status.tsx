@@ -4,17 +4,15 @@ import { cn } from "@/lib/utils/cn"
 
 export interface AdminSubscriptionStatusProps {
   status: string
-  product: string | null
   className?: string
 }
 
 // A status Stripe adds later still shows, in Stripe's own words.
 export function AdminSubscriptionStatus({
   status,
-  product,
   className,
 }: AdminSubscriptionStatusProps) {
-  const look = subscriptionStatusLook(status, product)
+  const look = subscriptionStatusLook(status)
 
   if (look) {
     return <StatusBadge className={className} look={look} />

@@ -100,7 +100,7 @@ func renameTimezone(ctx *Context) error {
 }
 ```
 
-Les cibles : `TargetInstall` (`install.json`), `TargetEnv` (`env`), `TargetProjects` (`projects.local.json`), `TargetProjectsConf` (`projects.local.conf`, la forme d'avant la révision 1, que seule la migration 1 lit). Une cible non déclarée se résout sous `/etc/pupitre` par son nom — utile pour un marqueur, à n'employer que si le fichier appartient vraiment au registre et non à un module.
+Les cibles : `TargetInstall` (`install.json`), `TargetEnv` (`env`), `TargetProjects` (`projects.local.json`), `TargetProjectsConf` (`projects.local.conf`, la forme d'avant la révision 1, que seule la migration 1 lit), `TargetLicense` (`/var/lib/pupitre/license.json`, le cache de licence, sous `PUPITRE_LICENSE_PATH`) et `TargetEntitlement` (`entitlement.json` à côté, sa forme d'avant 2.0.0, que seule la migration 8 lit). Une cible non déclarée se résout sous `/etc/pupitre` par son nom — utile pour un marqueur, à n'employer que si le fichier appartient vraiment au registre et non à un module.
 
 Les helpers du `Context` : `JSON`/`SetJSON` pour un document, `Lines`/`SetLines` pour un fichier en lignes, `Read`/`Write` pour des octets, `Exists`, `Remove`, `Logf`.
 

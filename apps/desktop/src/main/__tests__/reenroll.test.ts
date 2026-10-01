@@ -17,7 +17,7 @@ const PLATFORM_SERVER = "srv-platform-1";
 const GRANTED: AccountResponse<UsageRight> = {
   ok: true,
   result: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: null,
@@ -30,7 +30,7 @@ const ABSENT_FIX =
 const ABSENT: AccountResponse<UsageRight> = {
   ok: false,
   error: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: ABSENT_FIX,
     message: "Installer un serveur demande un compte Pupitre.",
   },
@@ -120,8 +120,8 @@ describe("un serveur restreint au jeton révoqué", () => {
     expect(before).toMatchObject({
       ok: false,
       error: {
-        code: "entitlement_required",
-        message: "droit d'usage requis : ce serveur est en mode restreint",
+        code: "license_required",
+        message: "licence requise : ce serveur est en mode restreint",
       },
     });
 
@@ -131,14 +131,14 @@ describe("un serveur restreint au jeton révoqué", () => {
       ok: true,
       result: {
         enrolled: true,
-        entitlement: "valid",
+        license: "valid",
         synced_at: "2026-09-05T10:00:00Z",
       },
     });
 
     const snapshot = await client.request(SERVER, "snapshot");
 
-    expect(snapshot.ok && snapshot.result.entitlement).toBe("valid");
+    expect(snapshot.ok && snapshot.result.license).toBe("valid");
 
     const acted = await client.request(SERVER, "project.down", { name: "api" });
 
@@ -275,7 +275,7 @@ describe("un compte sans droit d'usage", () => {
     expect(repaired).toEqual({
       ok: false,
       error: {
-        code: "entitlement_required",
+        code: "license_required",
         fix: ABSENT_FIX,
         message: "Installer un serveur demande un compte Pupitre.",
       },
@@ -295,7 +295,7 @@ describe("un compte sans droit d'usage", () => {
 
     expect(refused).toMatchObject({
       ok: false,
-      error: { code: "entitlement_required" },
+      error: { code: "license_required" },
     });
     expect(fake?.started()).toBe(0);
   });

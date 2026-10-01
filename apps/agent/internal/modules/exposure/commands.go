@@ -80,7 +80,7 @@ func report(engine *modules.Engine, ctx *protocol.Context, chosen provider, run 
 	return answer, nil
 }
 
-// Read-only, so it skips the run lock and the entitlement: an install under way must not read as absent.
+// Read-only, so it skips the run lock and the license: an install under way must not read as absent.
 func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error) {
 	var answer routes.Report
 

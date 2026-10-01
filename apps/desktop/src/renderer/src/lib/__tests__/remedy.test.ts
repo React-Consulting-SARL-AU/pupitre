@@ -14,7 +14,7 @@ describe("un remède", () => {
     expect(looksLikeCommand("Vérifiez le port 22.")).toBe(false);
     expect(
       looksLikeCommand(
-        "Ouvrez https://app.pupitre.studio pour renouveler l'abonnement."
+        "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà."
       )
     ).toBe(false);
     expect(

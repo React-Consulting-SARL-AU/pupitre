@@ -1,6 +1,6 @@
 # 0009 — Droit d'usage lié au serveur, tolérance de sept jours
 
-Date : 2026-09-04 · Statut : acceptée
+Date : 2026-09-04 · Statut : amendée le 2026-10-01 par [0018](./0018-source-disponible-et-gratuit.md) — le droit d'usage s'appelle la licence (`license`, `license_required`) ; elle est valide sans paiement jusqu'à trois serveurs par organisation ; le mécanisme du jeton et la tolérance de sept jours ne changent pas
 
 L'agent ne fonctionne qu'avec un jeton de serveur obtenu par échange d'un jeton d'enrôlement émis par la plateforme pour un appareil et un compte. Il revalide toutes les 24 heures ; sans validation pendant sept jours il passe en mode restreint : ce qui tourne continue, les commandes de l'app ne répondent plus.
 

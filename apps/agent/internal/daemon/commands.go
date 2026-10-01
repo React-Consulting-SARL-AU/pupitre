@@ -31,9 +31,9 @@ type platformSyncResult struct {
 }
 
 type enrollResult struct {
-	Enrolled    bool                 `json:"enrolled"`
-	Entitlement contract.Entitlement `json:"entitlement"`
-	SyncedAt    string               `json:"synced_at,omitempty"`
+	Enrolled bool             `json:"enrolled"`
+	License  contract.License `json:"license"`
+	SyncedAt string           `json:"synced_at,omitempty"`
 }
 
 func RegisterCommands(server *protocol.Server, options Options) {
@@ -60,11 +60,11 @@ func RegisterCommands(server *protocol.Server, options Options) {
 			return nil, enrollFailed(err)
 		}
 
-		result := enrollResult{Enrolled: true, Entitlement: contract.EntitlementRestricted}
+		result := enrollResult{Enrolled: true, License: contract.LicenseRestricted}
 
 		// The exchange alone enrols: a failed first read is retried by the daemon, never undone.
 		if synced, err := agent.SyncAt(context.Background(), params.PlatformURL); err == nil {
-			result.Entitlement = synced.Entitlement
+			result.License = synced.License
 			result.SyncedAt = synced.SyncedAt.UTC().Format(time.RFC3339)
 		}
 
@@ -169,7 +169,7 @@ func enrollmentToken(line json.RawMessage) (string, *protocol.Error) {
 func enrollFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.enroll.refused", platform.Describe(cause))).
+		return protocol.NewError(contract.ErrorLicenseRequired, i18n.T("daemon.enroll.refused", platform.Describe(cause))).
 			WithFix(i18n.T("daemon.enroll.refused.fix"))
 	}
 
@@ -189,7 +189,7 @@ func syncFailed(cause error) *protocol.Error {
 
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.token.refused", platform.Describe(cause))).
+		return protocol.NewError(contract.ErrorLicenseRequired, i18n.T("daemon.token.refused", platform.Describe(cause))).
 			WithFix(i18n.T("daemon.token.refused.fix", failure.Console()))
 	}
 

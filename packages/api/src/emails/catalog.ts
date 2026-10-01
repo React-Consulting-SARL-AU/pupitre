@@ -6,13 +6,13 @@ import {
   renderAlertBackupFailedEmail,
   renderAlertBackupStaleEmail,
   renderAlertDiskHighEmail,
-  renderAlertEntitlementGraceEmail,
+  renderAlertLicenseGraceEmail,
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEmailChangeEmail,
   renderEmailVerificationEmail,
-  renderEntitlementGraceEmail,
   renderInvitationEmail,
+  renderLicenseGraceEmail,
   renderMagicLinkEmail,
   renderOrganizationClosedEmail,
   renderOrganizationRestoredEmail,
@@ -128,8 +128,8 @@ const RENDERERS: Record<
       fingerprint: SAMPLE.deviceFingerprint,
       addedAt: SAMPLE.addedAt,
     }),
-  entitlement_grace: (locale) =>
-    renderEntitlementGraceEmail({
+  license_grace: (locale) =>
+    renderLicenseGraceEmail({
       locale,
       organizationName: SAMPLE.organizationName,
       deadline: SAMPLE.deadline,
@@ -184,8 +184,8 @@ const RENDERERS: Record<
       agentVersion: SAMPLE.agentVersion,
       latestVersion: SAMPLE.latestVersion,
     }),
-  alert_entitlement_grace: (locale) =>
-    renderAlertEntitlementGraceEmail({
+  alert_license_grace: (locale) =>
+    renderAlertLicenseGraceEmail({
       locale,
       serverName: SAMPLE.serverName,
       organizationName: SAMPLE.organizationName,

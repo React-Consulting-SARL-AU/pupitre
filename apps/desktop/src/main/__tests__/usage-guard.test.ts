@@ -24,7 +24,7 @@ const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 const GRANTED: AccountResponse<UsageRight> = {
   ok: true,
   result: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: null,
@@ -34,7 +34,7 @@ const GRANTED: AccountResponse<UsageRight> = {
 const ABSENT: AccountResponse<UsageRight> = {
   ok: false,
   error: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`,
     message: "Installer un serveur demande un compte Pupitre.",
   },
@@ -43,10 +43,10 @@ const ABSENT: AccountResponse<UsageRight> = {
 const STALE: AccountResponse<UsageRight> = {
   ok: false,
   error: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
     message:
-      "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La plateforme n'a pas répondu depuis plus de sept jours : la licence a expiré.",
   },
 };
 
@@ -54,8 +54,8 @@ const SUSPENDED: AccountResponse<UsageRight> = {
   ok: false,
   error: {
     code: "server_suspended",
-    fix: `Régularise l'abonnement dans la console : ${CONSOLE_URL}`,
-    message: "Le droit d'usage de cette organisation est suspendu.",
+    fix: `Écris à support@pupitre.studio : ${CONSOLE_URL}`,
+    message: "Cette organisation est suspendue.",
   },
 };
 
@@ -193,7 +193,7 @@ describe("un droit d'usage absent ou expiré", () => {
 
       expect(answer).toMatchObject({
         ok: false,
-        error: { code: "entitlement_required" },
+        error: { code: "license_required" },
       });
     }
 
@@ -233,11 +233,11 @@ describe("un canal mutant ajouté demain", () => {
 
       await expect(
         guarded.call("srv-1", cmd as "reboot")
-      ).rejects.toMatchObject({ code: "entitlement_required" });
+      ).rejects.toMatchObject({ code: "license_required" });
 
       await expect(
         guarded.stream("srv-1", cmd as "reboot", {}, () => undefined)
-      ).rejects.toMatchObject({ code: "entitlement_required" });
+      ).rejects.toMatchObject({ code: "license_required" });
     }
 
     expect(agent?.started()).toBe(0);
@@ -300,7 +300,7 @@ describe("les deux sources de refus restent distinctes", () => {
 
     const snapshot = await guarded.request("srv-1", "snapshot");
 
-    expect(snapshot.ok && snapshot.result.entitlement).toBe("restricted");
+    expect(snapshot.ok && snapshot.result.license).toBe("restricted");
 
     const refused = await guarded.request("srv-1", "project.down", {
       name: "api",
@@ -309,9 +309,9 @@ describe("les deux sources de refus restent distinctes", () => {
     expect(refused).toMatchObject({
       ok: false,
       error: {
-        code: "entitlement_required",
-        fix: "Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.",
-        message: "droit d'usage requis : ce serveur est en mode restreint",
+        code: "license_required",
+        fix: "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
+        message: "licence requise : ce serveur est en mode restreint",
       },
     });
 
@@ -334,7 +334,7 @@ describe("les deux sources de refus restent distinctes", () => {
     expect(refused).toMatchObject({
       ok: false,
       error: {
-        message: "droit d'usage requis : ce serveur est en mode restreint",
+        message: "licence requise : ce serveur est en mode restreint",
       },
     });
 

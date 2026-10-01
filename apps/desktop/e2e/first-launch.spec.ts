@@ -12,7 +12,7 @@ const NO_ACCOUNT = {
   device: null,
   identity: null,
   refusal: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`,
     message: "Installer un serveur demande un compte Pupitre.",
   },
@@ -24,10 +24,10 @@ const EIGHTH_DAY = {
   ...NO_ACCOUNT,
   checkedAt: "2026-08-01T10:00:00.000Z",
   refusal: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
     message:
-      "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La console n'a pas répondu depuis plus de sept jours : la licence doit être vérifiée à nouveau.",
   },
   usage: {
     consoleUrl: CONSOLE_URL,

@@ -1,6 +1,6 @@
 # Le canal revient, livre un rapport encore en cours, et retombe à la relecture suivante, sans y répondre.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
 > {"id":2,"cmd":"report"}
 < {"id":2,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"","agent_version":"0.0.0-test","modules":[{"id":"db.postgres","status":"ok","steps":[{"step":"apt","status":"start","ms":0},{"step":"apt","status":"ok","ms":4200},{"step":"cluster","status":"start","ms":0}]}],"failed":[],"warned":[],"report_path":"/var/lib/pupitre/report.json"}}
 @die

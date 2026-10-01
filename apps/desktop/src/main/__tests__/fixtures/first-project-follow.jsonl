@@ -1,6 +1,6 @@
 # Le canal des suivis : le journal d'un processus suivi, ligne par ligne, jusqu'à ce que le lecteur parte.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.pull","project.up","project.url"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.pull","project.up","project.url"]}}
 > {"id":2,"cmd":"project.logs","params":{"follow":true,"lines":200,"name":"vite-starter","process":"vite-starter"}}
 < {"id":2,"event":"log","line":"> vite-starter@0.0.0 dev"}
 < {"id":2,"event":"log","line":"VITE v7.3.5  ready in 312 ms"}

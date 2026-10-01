@@ -197,19 +197,20 @@ export const ACCOUNT: AccountState = {
   },
   identity: {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada Lovelace",
     organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
     organizations: [
       { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
     ],
     role: "owner",
-    subscription: null,
+    servers: { limit: 3, used: 1 },
   },
   refusal: null,
   sealed: true,
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: null,

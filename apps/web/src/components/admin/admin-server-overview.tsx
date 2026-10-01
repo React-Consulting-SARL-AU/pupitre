@@ -81,9 +81,9 @@ export function AdminServerOverview({
               value: reason ? t(reason) : t("format.none"),
             },
             {
-              label: t("admin.servers.entitlementValidUntil"),
-              value: server.entitlement_valid_until
-                ? formatDateTime(server.entitlement_valid_until, t)
+              label: t("admin.servers.licenseValidUntil"),
+              value: server.license_valid_until
+                ? formatDateTime(server.license_valid_until, t)
                 : t("format.none"),
             },
             {

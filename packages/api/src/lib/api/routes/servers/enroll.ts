@@ -3,15 +3,15 @@ import { Elysia } from "elysia"
 import { translate } from "../../../i18n"
 import {
   EnrollmentDeviceUnknownError,
-  EntitlementMissingError,
   enrollServer,
+  LicenseMissingError,
   SeatQuotaReachedError,
   ServerRepairForbiddenError,
 } from "../../../servers/enrollment"
 import { SshAddressInvalidError } from "../../../servers/ssh-address"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
-import { requireEntitlement, requireOrg } from "../../plugins/guards"
+import { requireLicense, requireOrg } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import { describeMalformedBodyField } from "../../validation-errors"
 import { enrollBody, enrollmentSchema } from "./schemas"
@@ -21,11 +21,7 @@ interface Refusal {
   payload: ApiErrorPayload
 }
 
-function refusalFor(
-  error: unknown,
-  locale: Locale,
-  organizationId: string
-): Refusal | null {
+function refusalFor(error: unknown, locale: Locale): Refusal | null {
   if (error instanceof SshAddressInvalidError) {
     const { message, fix } = describeMalformedBodyField(error.field, locale)
 
@@ -39,7 +35,7 @@ function refusalFor(
     }
   }
 
-  if (error instanceof EntitlementMissingError) {
+  if (error instanceof LicenseMissingError) {
     return {
       status: 403,
       payload: apiError(
@@ -67,9 +63,7 @@ function refusalFor(
       payload: apiError(
         "seat_quota_reached",
         translate(locale, "seat_quota_reached", { quota: error.quota }),
-        translate(locale, "seat_quota_reached_fix", {
-          organization: organizationId,
-        })
+        translate(locale, "seat_quota_reached_fix")
       ),
     }
   }
@@ -79,7 +73,7 @@ function refusalFor(
 
 export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
   .use(requireOrg)
-  .use(requireEntitlement)
+  .use(requireLicense)
   .post(
     "/servers/enroll",
     async ({ user, organizationId, body, request, set }) => {
@@ -93,11 +87,7 @@ export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
 
         return serializeData(enrolled)
       } catch (error) {
-        const refusal = refusalFor(
-          error,
-          resolveLocale(request.headers),
-          organizationId
-        )
+        const refusal = refusalFor(error, resolveLocale(request.headers))
 
         if (!refusal) {
           throw error

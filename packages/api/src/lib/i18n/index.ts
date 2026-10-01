@@ -1,5 +1,6 @@
 import type { Locale } from "@pupitre/shared/i18n"
 import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 
 const FR = {
   unauthenticated: "Authentification requise.",
@@ -83,7 +84,7 @@ const FR = {
   server_not_admin_suspended:
     "Ce serveur n'a pas été suspendu par l'équipe Pupitre.",
   server_not_admin_suspended_fix:
-    "Une suspension de facturation se lève en rétablissant l'abonnement de l'organisation.",
+    "Une suspension de licence se lève quand l'organisation revient dans ses serveurs gratuits ou reçoit une licence.",
   user_not_found: "Ce compte n'existe pas.",
   platform_member_protected: "Ce compte est membre de l'organisation Pupitre.",
   platform_member_protected_fix:
@@ -102,13 +103,13 @@ const FR = {
   user_active_fix:
     "Une suspension se lève par POST /admin/users/:id/unban ; ce compte n'a rien d'autre.",
   sole_owner:
-    "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement.",
+    "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou une licence.",
   sole_owner_fix:
     "Transférez l'organisation à un autre membre, ou fermez-la : POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
   account_sole_owner:
-    "Votre compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement payant.",
+    "Votre compte est le seul propriétaire d'une organisation qui porte encore un serveur ou une licence payante.",
   account_sole_owner_fix:
-    "Retirez les serveurs de cette organisation et résiliez son abonnement depuis la facturation, ou donnez le rôle de propriétaire à un autre membre, puis supprimez le compte.",
+    "Retirez les serveurs de cette organisation et résiliez sa licence depuis la facturation, ou donnez le rôle de propriétaire à un autre membre, puis supprimez le compte.",
   email_verified: "L'adresse de ce compte est déjà vérifiée.",
   email_verified_fix:
     "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
@@ -169,61 +170,46 @@ const FR = {
     "Redirection vers le binaire signé sur R2, valable {seconds} secondes.",
   release_url_local:
     "Le stockage R2 n'est pas configuré : cette URL est locale et ne télécharge rien.",
-  seat_quota_reached:
-    "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
-  seat_quota_reached_fix:
-    "Ajoutez des sièges depuis la facturation de la console (POST /orgs/{organization}/seats), ou supprimez un serveur.",
-  subscription_missing: "Cette organisation n'a aucun abonnement à ajuster.",
-  subscription_missing_fix:
-    "Démarrez l'essai ou commandez des sièges depuis /dashboard/billing.",
-  seats_below_usage: "Cette organisation occupe déjà {used} sièges.",
+  seat_quota_reached: `Cette organisation utilise ses {quota} serveurs. Pupitre est gratuit jusqu'à ${FREE_SERVERS} serveurs ; au-delà, une licence est nécessaire.`,
+  seat_quota_reached_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour obtenir une licence, ou supprimez un serveur.`,
+  subscription_missing: "Cette organisation n'a aucune licence à ajuster.",
+  subscription_missing_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour obtenir une licence.`,
+  seats_below_usage:
+    "Cette organisation occupe déjà {used} sièges au-delà des serveurs gratuits.",
   seats_below_usage_fix:
     "Supprimez d'abord des serveurs, puis réduisez le nombre de sièges.",
   seats_locked:
-    "Le nombre de sièges ne change pas pendant l'essai, pendant le lancement, ni sur un abonnement accordé par Pupitre.",
-  seats_locked_fix:
-    "Attendez la fin de l'essai : un abonnement payé se redimensionne depuis /dashboard/billing.",
-  billing_launch:
-    "Pendant le lancement, l'abonnement est accordé par Pupitre : il n'y a pas de portail de paiement.",
-  billing_launch_fix:
-    "Rien à payer avant la fin du lancement. Le portail s'ouvrira avec le premier abonnement facturé.",
+    "Le nombre de sièges d'une licence accordée par Pupitre ne change que par l'équipe.",
+  seats_locked_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour changer votre licence.`,
+  billing_off:
+    "Pupitre ne vend rien pour l'instant : il n'y a ni paiement ni portail.",
+  billing_off_fix: `Pupitre est gratuit jusqu'à ${FREE_SERVERS} serveurs ; pour aller au-delà, écrivez à ${LEGAL_CONTACTS.support}.`,
   billing_granted:
-    "Cet abonnement est accordé par Pupitre : il n'y a pas de portail de paiement.",
+    "Cette licence est accordée par Pupitre : il n'y a pas de portail de paiement.",
   billing_granted_fix:
-    "Rien à payer tant qu'il court. Le portail s'ouvrira avec le premier abonnement facturé.",
-  subscription_not_found: "Cet abonnement n'existe pas.",
-  subscription_live: "Cette organisation a encore un abonnement en cours.",
+    "Rien à payer tant qu'elle court. Le portail s'ouvrira avec la première licence facturée.",
+  subscription_not_found: "Cette licence n'existe pas.",
+  subscription_live: "Cette organisation a encore une licence en cours.",
   subscription_live_fix:
-    "Arrêtez-le d'abord : POST /admin/subscriptions/:id/cancel.",
-  platform_organization:
-    "L'organisation Pupitre n'a besoin d'aucun abonnement.",
+    "Arrêtez-la d'abord : POST /admin/subscriptions/:id/cancel.",
+  platform_organization: "L'organisation Pupitre n'a besoin d'aucune licence.",
   platform_organization_fix:
     "Son droit d'usage tient à ce qu'elle est ; il n'y a rien à accorder.",
   subscription_not_granted:
-    "Cet abonnement n'a pas été accordé par l'équipe Pupitre.",
+    "Cette licence n'a pas été accordée par l'équipe Pupitre.",
   subscription_not_granted_fix:
-    "Un abonnement Stripe se redimensionne par son propriétaire, depuis la facturation de la console.",
-  subscription_already_canceled: "Cet abonnement est déjà arrêté.",
+    "Une licence Stripe se redimensionne par son propriétaire, depuis la facturation de la console.",
+  subscription_already_canceled: "Cette licence est déjà arrêtée.",
   subscription_already_canceled_fix:
-    "Effacez-le s'il n'a plus à figurer : DELETE /admin/subscriptions/:id.",
-  billing_launch_stripe:
-    "Pendant le lancement, la plateforme n'appelle pas Stripe.",
-  billing_launch_stripe_fix:
-    "Changez la fin d'un abonnement accordé : PATCH /admin/subscriptions/:id avec ends_at.",
-  subscription_not_stripe:
-    "Cet abonnement est un produit de la plateforme : Stripe ne le connaît pas.",
-  subscription_not_stripe_fix:
-    "Changez sa fin : PATCH /admin/subscriptions/:id avec ends_at.",
-  subscription_not_trialing: "Cet abonnement n'est pas en essai.",
-  subscription_not_trialing_fix:
-    "Seul un essai se prolonge ; un abonnement déjà facturé se change depuis le portail Stripe.",
+    "Effacez-la si elle n'a plus à figurer : DELETE /admin/subscriptions/:id.",
+  billing_off_stripe:
+    "La facturation est coupée (BILLING_MODE=off) : la plateforme n'appelle pas Stripe.",
+  billing_off_stripe_fix:
+    "Changez la fin d'une licence accordée : PATCH /admin/subscriptions/:id avec ends_at.",
   subscription_not_resumable:
-    "Cet abonnement n'est pas résilié à la fin de la période.",
+    "Cette licence n'est pas résiliée à la fin de la période.",
   subscription_not_resumable_fix:
-    "Seule une résiliation encore facturée jusqu'au terme se reprend ; un abonnement arrêté se rouvre par un nouveau paiement.",
-  trial_end_not_future: "La fin d'essai demandée est déjà passée.",
-  trial_end_not_future_fix:
-    "Donnez une date postérieure à maintenant, au format ISO.",
+    "Seule une résiliation encore facturée jusqu'au terme se reprend ; une licence arrêtée se rouvre par un nouveau paiement.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
     "Choisissez un autre code, ou laissez la plateforme en générer un.",
@@ -295,12 +281,10 @@ const FR = {
     "La boîte nommée par cette réponse type n'existe pas.",
   mail_template_mailbox_unknown_fix:
     "Choisissez une boîte existante, ou laissez la réponse type sans boîte.",
-  entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
-  entitlement_required_fix:
-    "Démarrez votre essai de trente jours, sans carte, depuis /dashboard/billing.",
-  server_suspended: "L'abonnement de cette organisation est suspendu.",
-  server_suspended_fix:
-    "Reprenez un abonnement depuis /dashboard/billing pour retrouver vos serveurs.",
+  license_required: `Licence requise : cette organisation dépasse les ${FREE_SERVERS} serveurs gratuits sans licence en cours.`,
+  license_required_fix: `Supprimez des serveurs pour revenir à ${FREE_SERVERS}, ou écrivez à ${LEGAL_CONTACTS.support} pour obtenir une licence.`,
+  server_suspended: "Cette organisation est suspendue par l'équipe Pupitre.",
+  server_suspended_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour en connaître la raison.`,
   organization_not_found: "Cette organisation n'existe pas.",
   billing_customer_missing:
     "Cette organisation n'a pas encore de client Stripe.",
@@ -310,9 +294,6 @@ const FR = {
     "Cette organisation paie déjà un abonnement en cours : un second checkout la facturerait deux fois.",
   billing_already_subscribed_fix:
     "Ajoutez des sièges à l'abonnement en cours (POST /orgs/{organization}/seats), ou gérez-le depuis le portail (POST /orgs/{organization}/portal).",
-  launch_subscription_ended:
-    "L'abonnement du lancement de cette organisation est arrêté : il ne se rouvre pas.",
-  launch_subscription_ended_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour le faire rouvrir par l'équipe Pupitre.`,
   stripe_event_in_flight:
     "Une autre livraison traite déjà cet événement Stripe.",
   stripe_event_in_flight_fix:
@@ -433,7 +414,7 @@ const EN: Record<MessageKey, string> = {
     "Its row is erased at decommission; a revoked server receives no update any more.",
   server_not_admin_suspended: "The Pupitre team did not suspend this server.",
   server_not_admin_suspended_fix:
-    "A billing suspension lifts by restoring the organization's subscription.",
+    "A licence suspension lifts once the organization is back within its free servers or receives a licence.",
   user_not_found: "This account does not exist.",
   platform_member_protected:
     "This account belongs to the Pupitre organization.",
@@ -453,13 +434,13 @@ const EN: Record<MessageKey, string> = {
   user_active_fix:
     "A suspension lifts with POST /admin/users/:id/unban; this account has nothing else.",
   sole_owner:
-    "This account is the sole owner of an organization that still holds a server or a subscription.",
+    "This account is the sole owner of an organization that still holds a server or a licence.",
   sole_owner_fix:
     "Transfer the organization to another member, or close it: POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
   account_sole_owner:
-    "Your account is the sole owner of an organization that still holds a server or a paid subscription.",
+    "Your account is the sole owner of an organization that still holds a server or a paid licence.",
   account_sole_owner_fix:
-    "Remove that organization's servers and cancel its subscription from billing, or make another member an owner, then delete the account.",
+    "Remove that organization's servers and cancel its licence from billing, or make another member an owner, then delete the account.",
   email_verified: "This account's address is already verified.",
   email_verified_fix:
     "There is nothing to send again; the account signs in with a magic link or a passkey.",
@@ -517,55 +498,42 @@ const EN: Record<MessageKey, string> = {
     "Redirecting to the signed binary on R2, valid for {seconds} seconds.",
   release_url_local:
     "R2 storage is not configured: this URL is local and downloads nothing.",
-  seat_quota_reached:
-    "Your subscription covers {quota} servers, and they are all in use.",
-  seat_quota_reached_fix:
-    "Add seats from the console billing page (POST /orgs/{organization}/seats), or delete a server.",
-  subscription_missing: "This organization has no subscription to resize.",
-  subscription_missing_fix:
-    "Start the trial or order seats from /dashboard/billing.",
-  seats_below_usage: "This organization already seats {used} servers.",
+  seat_quota_reached: `This organization uses its {quota} servers. Pupitre is free up to ${FREE_SERVERS} servers; beyond them, a licence is required.`,
+  seat_quota_reached_fix: `Write to ${LEGAL_CONTACTS.support} to get a licence, or delete a server.`,
+  subscription_missing: "This organization has no licence to resize.",
+  subscription_missing_fix: `Write to ${LEGAL_CONTACTS.support} to get a licence.`,
+  seats_below_usage:
+    "This organization already seats {used} servers beyond the free ones.",
   seats_below_usage_fix: "Delete servers first, then lower the seat count.",
   seats_locked:
-    "The seat count does not change during the trial, during the launch, or on a subscription Pupitre granted.",
-  seats_locked_fix:
-    "Wait for the trial to end: a paid subscription resizes from /dashboard/billing.",
-  billing_launch:
-    "During the launch, Pupitre grants the subscription itself: there is no payment portal.",
-  billing_launch_fix:
-    "Nothing to pay before the launch ends. The portal opens with the first billed subscription.",
-  billing_granted:
-    "Pupitre granted this subscription: there is no payment portal.",
+    "The seat count of a licence Pupitre granted only changes through the team.",
+  seats_locked_fix: `Write to ${LEGAL_CONTACTS.support} to change your licence.`,
+  billing_off:
+    "Pupitre sells nothing for now: there is no payment and no portal.",
+  billing_off_fix: `Pupitre is free up to ${FREE_SERVERS} servers; to go beyond them, write to ${LEGAL_CONTACTS.support}.`,
+  billing_granted: "Pupitre granted this licence: there is no payment portal.",
   billing_granted_fix:
-    "Nothing to pay while it runs. The portal opens with the first billed subscription.",
-  subscription_not_found: "This subscription does not exist.",
-  subscription_live: "This organization still has a live subscription.",
+    "Nothing to pay while it runs. The portal opens with the first billed licence.",
+  subscription_not_found: "This licence does not exist.",
+  subscription_live: "This organization still has a live licence.",
   subscription_live_fix: "Stop it first: POST /admin/subscriptions/:id/cancel.",
-  platform_organization: "The Pupitre organization needs no subscription.",
+  platform_organization: "The Pupitre organization needs no licence.",
   platform_organization_fix:
-    "It is entitled by what it is; there is nothing to grant.",
-  subscription_not_granted: "The Pupitre team did not grant this subscription.",
+    "It is licensed by what it is; there is nothing to grant.",
+  subscription_not_granted: "The Pupitre team did not grant this licence.",
   subscription_not_granted_fix:
-    "A Stripe subscription is resized by its owner, from the console billing page.",
-  subscription_already_canceled: "This subscription is already stopped.",
+    "A Stripe licence is resized by its owner, from the console billing page.",
+  subscription_already_canceled: "This licence is already stopped.",
   subscription_already_canceled_fix:
     "Delete it if it no longer belongs in the list: DELETE /admin/subscriptions/:id.",
-  billing_launch_stripe: "During the launch, the platform never calls Stripe.",
-  billing_launch_stripe_fix:
-    "Change the end of a granted subscription: PATCH /admin/subscriptions/:id with ends_at.",
-  subscription_not_stripe:
-    "This subscription is a platform product: Stripe never sees it.",
-  subscription_not_stripe_fix:
-    "Change its end: PATCH /admin/subscriptions/:id with ends_at.",
-  subscription_not_trialing: "This subscription is not trialing.",
-  subscription_not_trialing_fix:
-    "Only a trial extends; a subscription already billed changes from the Stripe portal.",
+  billing_off_stripe:
+    "Billing is off (BILLING_MODE=off): the platform never calls Stripe.",
+  billing_off_stripe_fix:
+    "Change the end of a granted licence: PATCH /admin/subscriptions/:id with ends_at.",
   subscription_not_resumable:
-    "This subscription was not cancelled at the end of the period.",
+    "This licence was not cancelled at the end of the period.",
   subscription_not_resumable_fix:
-    "Only a cancellation still billed to the term resumes; a stopped subscription reopens with a new payment.",
-  trial_end_not_future: "The trial end asked for is already past.",
-  trial_end_not_future_fix: "Give an ISO date later than now.",
+    "Only a cancellation still billed to the term resumes; a stopped licence reopens with a new payment.",
   affiliate_code_taken: 'The code "{code}" is already taken.',
   affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
   affiliate_link_not_found: "This affiliate link does not exist.",
@@ -631,12 +599,10 @@ const EN: Record<MessageKey, string> = {
     "The mailbox this canned reply names does not exist.",
   mail_template_mailbox_unknown_fix:
     "Pick an existing mailbox, or leave the canned reply without one.",
-  entitlement_required: "This organization has no active subscription.",
-  entitlement_required_fix:
-    "Start your thirty-day trial, no card needed, from /dashboard/billing.",
-  server_suspended: "This organization's subscription is suspended.",
-  server_suspended_fix:
-    "Resume a subscription from /dashboard/billing to get your servers back.",
+  license_required: `Licence required: this organization holds more than the ${FREE_SERVERS} free servers without a live licence.`,
+  license_required_fix: `Delete servers to get back to ${FREE_SERVERS}, or write to ${LEGAL_CONTACTS.support} to get a licence.`,
+  server_suspended: "The Pupitre team suspended this organization.",
+  server_suspended_fix: `Write to ${LEGAL_CONTACTS.support} to learn why.`,
   organization_not_found: "This organization does not exist.",
   billing_customer_missing: "This organization has no Stripe customer yet.",
   billing_customer_missing_fix:
@@ -645,9 +611,6 @@ const EN: Record<MessageKey, string> = {
     "This organization already pays a live subscription: a second checkout would bill it twice.",
   billing_already_subscribed_fix:
     "Add seats to the live subscription (POST /orgs/{organization}/seats), or manage it from the portal (POST /orgs/{organization}/portal).",
-  launch_subscription_ended:
-    "This organization's launch subscription was stopped: it does not reopen.",
-  launch_subscription_ended_fix: `Write to ${LEGAL_CONTACTS.support} to have the Pupitre team reopen it.`,
   stripe_event_in_flight:
     "Another delivery is already processing this Stripe event.",
   stripe_event_in_flight_fix:

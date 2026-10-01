@@ -101,7 +101,7 @@ func TestNoFieldOfAPayloadIsUnknownToTheContract(t *testing.T) {
 }
 
 func TestTheStateOfTheContractIsReadWhole(t *testing.T) {
-	answer := `{"entitlement":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"keys":[{"public_key":"` + sampleKey + `","user_id":"u1","device_id":"d1","approvals":[]}],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps","server_id":"cm0k2x9q80000a1b2c3d4e5f6"}`
+	answer := `{"license":"grace","entitlement":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"keys":[{"public_key":"` + sampleKey + `","user_id":"u1","device_id":"d1","approvals":[]}],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps","server_id":"cm0k2x9q80000a1b2c3d4e5f6"}`
 
 	decoded, err := contract.Decode([]byte(answer))
 	if err != nil {
@@ -117,7 +117,7 @@ func TestTheStateOfTheContractIsReadWhole(t *testing.T) {
 	defer server.Close()
 
 	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
-	if err != nil || state.Entitlement != "grace" || state.MinimumVersion != "1.2.0" || state.ServerID != "cm0k2x9q80000a1b2c3d4e5f6" || state.Keys == nil || len(*state.Keys) != 1 {
+	if err != nil || state.License != "grace" || state.MinimumVersion != "1.2.0" || state.ServerID != "cm0k2x9q80000a1b2c3d4e5f6" || state.Keys == nil || len(*state.Keys) != 1 {
 		t.Fatalf("state = %+v, err = %v", state, err)
 	}
 }

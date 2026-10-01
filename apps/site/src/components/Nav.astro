@@ -5,8 +5,9 @@ import {
   stripLocale,
   translator,
 } from "../lib/i18n"
-import { SIGNUP_URL } from "../lib/urls"
+import { SIGNUP_URL, SOURCE_REPOSITORY_URL } from "../lib/urls"
 import Brand from "./Brand.astro"
+import BrandLogo from "./BrandLogo.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
 import ThemeToggle from "./ThemeToggle.astro"
 
@@ -58,6 +59,15 @@ const isCurrent = (href: string) =>
         <ThemeToggle />
         <LocaleSwitch href={translation} />
       </div>
+      <a
+        href={SOURCE_REPOSITORY_URL}
+        aria-label={t("nav.source")}
+        title={t("nav.source")}
+        class="grid size-8 place-items-center rounded-full border border-line text-ink-2 hover:bg-raised hover:text-ink"
+        data-nav-source
+      >
+        <BrandLogo name="GitHub" module="tool.github" size="xs" />
+      </a>
       <a
         data-emphasis="main"
         href={SIGNUP_URL}

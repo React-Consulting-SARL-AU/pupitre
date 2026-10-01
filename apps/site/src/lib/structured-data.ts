@@ -3,37 +3,23 @@ import {
   LEGAL_ENTITY,
   type LegalEntity,
 } from "@pupitre/shared/legal"
-import {
-  BILLING_INTERVALS,
-  type BillingInterval,
-  getPlan,
-  PLANS,
-  yearlyPriceUsd,
-} from "@pupitre/shared/plans"
-import { type Locale, localizePath, planName } from "./i18n"
+import { type Locale, localizePath } from "./i18n"
 import { canonicalUrl } from "./seo"
 import { CONSOLE_URL } from "./urls"
 
 const SCHEMA_CONTEXT = "https://schema.org"
 
-export interface LaunchOffer {
-  endsAt: Date
-  name: string
-}
-
 export interface SoftwareApplicationInput {
   locale: Locale
   name: string
   description: string
-  launch?: LaunchOffer
 }
 
 export interface ProductInput {
   locale: Locale
   name: string
   description: string
-  intervals: Record<BillingInterval, string>
-  launch?: LaunchOffer
+  offer: string
 }
 
 export interface FaqEntry {
@@ -68,18 +54,15 @@ export function jsonLd(data: unknown): string {
   return JSON.stringify(data).replaceAll("<", "\\u003c")
 }
 
-function lastDay(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
+const FREE_PRICE = "0"
+
+const PRICE_CURRENCY = "USD"
 
 export function softwareApplication({
   locale,
   name,
   description,
-  launch,
 }: SoftwareApplicationInput) {
-  const pricing = canonicalUrl(localizePath("/pricing/", locale))
-
   return {
     "@context": SCHEMA_CONTEXT,
     "@type": "SoftwareApplication",
@@ -89,65 +72,16 @@ export function softwareApplication({
     inLanguage: locale,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "macOS, Windows, Linux",
-    offers: launch
-      ? {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-          priceValidUntil: lastDay(launch.endsAt),
-          url: pricing,
-        }
-      : {
-          "@type": "Offer",
-          price: String(getPlan("solo").monthlyPriceUsd),
-          priceCurrency: "USD",
-          url: pricing,
-        },
+    offers: {
+      "@type": "Offer",
+      price: FREE_PRICE,
+      priceCurrency: PRICE_CURRENCY,
+      url: canonicalUrl(localizePath("/pricing/", locale)),
+    },
   }
 }
 
-function launchOffers(launch: LaunchOffer) {
-  return [
-    {
-      "@type": "Offer",
-      name: launch.name,
-      price: "0",
-      priceCurrency: "USD",
-      priceValidUntil: lastDay(launch.endsAt),
-      url: CONSOLE_URL,
-      availability: "https://schema.org/InStock",
-    },
-  ]
-}
-
-function paidOffers(
-  locale: Locale,
-  intervals: Record<BillingInterval, string>
-) {
-  return PLANS.filter((plan) => plan.availability === "available").flatMap(
-    (plan) =>
-      BILLING_INTERVALS.map((interval) => ({
-        "@type": "Offer",
-        name: `${planName(plan, locale)}, ${intervals[interval]}`,
-        price: String(
-          interval === "month" ? plan.monthlyPriceUsd : yearlyPriceUsd(plan)
-        ),
-        priceCurrency: "USD",
-        url: CONSOLE_URL,
-        availability: "https://schema.org/InStock",
-      }))
-  )
-}
-
-export function product({
-  locale,
-  name,
-  description,
-  intervals,
-  launch,
-}: ProductInput) {
-  const offers = launch ? launchOffers(launch) : paidOffers(locale, intervals)
-
+export function product({ locale, name, description, offer }: ProductInput) {
   return {
     "@context": SCHEMA_CONTEXT,
     "@type": "Product",
@@ -155,7 +89,16 @@ export function product({
     description,
     url: canonicalUrl(localizePath("/pricing/", locale)),
     brand: { "@type": "Brand", name },
-    offers,
+    offers: [
+      {
+        "@type": "Offer",
+        name: offer,
+        price: FREE_PRICE,
+        priceCurrency: PRICE_CURRENCY,
+        url: CONSOLE_URL,
+        availability: "https://schema.org/InStock",
+      },
+    ],
   }
 }
 

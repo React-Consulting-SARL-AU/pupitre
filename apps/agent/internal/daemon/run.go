@@ -46,7 +46,7 @@ func (d *Daemon) syncOnce(ctx context.Context) {
 	}
 
 	if synced.KeysChanged {
-		d.journal.Logf("entitlement %s, target version %s", synced.Entitlement, orNone(synced.TargetVersion))
+		d.journal.Logf("license %s, target version %s", synced.License, orNone(synced.TargetVersion))
 	}
 }
 

@@ -8,8 +8,8 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
@@ -47,7 +47,7 @@ func newElevator(t *testing.T, sealed ...string) *elevator {
 
 	fake := modtest.NewFakeSys()
 	fake.Files[platform.DefaultTokenPath] = []byte("jeton-de-serveur\n")
-	fake.Files[entitlement.DefaultCachePath] = []byte("{}\n")
+	fake.Files[license.DefaultCachePath] = []byte("{}\n")
 
 	refused := map[string]bool{}
 
@@ -58,7 +58,7 @@ func newElevator(t *testing.T, sealed ...string) *elevator {
 	held := &elevator{fake: fake}
 	held.elevation = devcli.Elevation{
 		Sys:      sealedSys{FakeSys: fake, sealed: refused},
-		State:    []string{platform.DefaultTokenPath, entitlement.DefaultCachePath},
+		State:    []string{platform.DefaultTokenPath, license.DefaultCachePath},
 		Euid:     func() int { return 1000 },
 		LookPath: func(name string) (string, error) { return "/usr/bin/" + name, nil },
 		Launch: func(argv []string) (devcli.Pipe, error) {
@@ -72,7 +72,7 @@ func newElevator(t *testing.T, sealed ...string) *elevator {
 }
 
 func TestASealedMachineIsAskedOfTheServerSudoRuns(t *testing.T) {
-	for _, sealed := range []string{platform.DefaultTokenPath, entitlement.DefaultCachePath} {
+	for _, sealed := range []string{platform.DefaultTokenPath, license.DefaultCachePath} {
 		held := newElevator(t, sealed)
 
 		caller, err := held.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0")
@@ -111,7 +111,7 @@ func TestElevationSaysSoWhenItCannotBecomeRoot(t *testing.T) {
 	_, err := noSudo.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0")
 
 	var refusal *protocol.Error
-	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorEntitlementRequired || refusal.Fix != i18n.T("devcli.elevate.root.fix") {
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorLicenseRequired || refusal.Fix != i18n.T("devcli.elevate.root.fix") {
 		t.Fatalf("refusal = %v", err)
 	}
 }

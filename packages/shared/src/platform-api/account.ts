@@ -1,11 +1,11 @@
 import { z } from "zod"
 import { LOCALES } from "../i18n/locale"
 import { ORG_ROLES } from "../permissions"
-import { MeSubscriptionSchema } from "../plans"
+import { MeLicenseGrantSchema, MeServersSchema } from "../plans"
 import { ORGANIZATION_STATES } from "../platform"
 import { ReleaseChannelSchema } from "../releases"
 import {
-  AccountEntitlementSchema,
+  AccountLicenseSchema,
   InstantSchema,
   ServerStatusSchema,
 } from "./index"
@@ -42,8 +42,13 @@ export const MeSchema = z.object({
   platform_role: OrgRoleSchema.nullable(),
   // A new app may read an older platform during a release: an absent right reads as none.
   platform_can_act: z.boolean().default(false),
-  entitlement: AccountEntitlementSchema,
-  subscription: MeSubscriptionSchema.nullable(),
+  license: AccountLicenseSchema,
+  // Null without an active organization.
+  servers: MeServersSchema.nullable(),
+  license_grant: MeLicenseGrantSchema.nullable(),
+  // For apps older than the licence, which read these instead of `license` and `license_grant`.
+  entitlement: AccountLicenseSchema,
+  subscription: z.null(),
 })
 
 export type Me = z.infer<typeof MeSchema>

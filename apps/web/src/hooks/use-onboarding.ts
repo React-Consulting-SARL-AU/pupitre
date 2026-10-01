@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query"
-import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { devicesQueryOptions, serversQueryOptions } from "@/lib/api/queries"
 import {
   type OnboardingProgress,
@@ -17,12 +16,10 @@ export interface Onboarding {
 }
 
 export function useOnboarding(): Onboarding {
-  const { entitlement } = useDashboardContext()
   const devices = useQuery(devicesQueryOptions())
   const servers = useQuery(serversQueryOptions())
   const known = servers.data ?? null
   const steps = onboardingSteps({
-    entitlement,
     devices: devices.data?.length ?? null,
     servers: known,
   })

@@ -96,7 +96,7 @@ describe("la lecture des serveurs attribués", () => {
       fleet: {
         ok: false,
         error: {
-          code: "entitlement_required",
+          code: "license_required",
           fix: "Connecte-toi depuis les réglages.",
           message: "Cet appareil n'est connecté à aucun compte Pupitre.",
         },
@@ -200,7 +200,7 @@ describe("la première ouverture d'un serveur attribué", () => {
       open: {
         ok: false,
         error: {
-          code: "entitlement_required",
+          code: "license_required",
           fix: "Demande à un administrateur de te l'attribuer à nouveau.",
           message: "Ce serveur ne t'est plus attribué.",
         },

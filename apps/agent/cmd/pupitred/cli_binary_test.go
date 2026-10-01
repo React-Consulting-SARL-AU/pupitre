@@ -8,7 +8,7 @@ import (
 	"pupitre.studio/agent/internal/selfupdate"
 )
 
-const pushedHello = `{"id":1,"ok":true,"result":{"agent_version":"1.1.0","protocol":2,"entitlement":"restricted","capabilities":["hello"]}}` + "\n"
+const pushedHello = `{"id":1,"ok":true,"result":{"agent_version":"1.1.0","protocol":3,"license":"restricted","capabilities":["hello"]}}` + "\n"
 
 func TestBinaryInstallPlacesThePushedAgentAndPrintsItsDigest(t *testing.T) {
 	fake, _ := setupCLI(t)
@@ -111,7 +111,7 @@ func TestHardenSudoTakesItsHashOnTheSecretLine(t *testing.T) {
 	fake, dir := setupCLI(t)
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":2,"cmd":"harden.sudo","params":{"user":"dev","secrets_stdin":true}}`,
 		`{"password_hash":"k7mp-q2xw-9hdt-3vzc-u8fa-6rne"}`,
 	)

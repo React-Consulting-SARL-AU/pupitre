@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router"
 import { CircleStop, PlayCircle, Trash2 } from "lucide-react"
 import { AdminSubscriptionResizeForm } from "@/components/admin/admin-subscription-resize-form"
-import { AdminSubscriptionTrialForm } from "@/components/admin/admin-subscription-trial-form"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { DangerZone } from "@/components/ui/danger-zone"
@@ -99,14 +98,6 @@ export function AdminSubscriptionActions({
           organization={organization}
           quantity={subscription.quantity}
           subscriptionId={subscription.id}
-        />
-      ) : null}
-
-      {allowed.has("extend_trial") ? (
-        <AdminSubscriptionTrialForm
-          organization={organization}
-          subscriptionId={subscription.id}
-          trialEndsAt={subscription.current_period_end}
         />
       ) : null}
 

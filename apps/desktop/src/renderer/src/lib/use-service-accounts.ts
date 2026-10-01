@@ -42,7 +42,7 @@ export function useServiceAccounts(
   const connections = useConnections((state) => state.state);
   const readConnections = useConnections((state) => state.read);
   const restricted = useSnapshot(
-    (state) => snapshotOf(state.state, serverId)?.entitlement === "restricted"
+    (state) => snapshotOf(state.state, serverId)?.license === "restricted"
   );
 
   const key = services.map((service) => service.id).join(" ");

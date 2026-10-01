@@ -4,6 +4,7 @@ import {
   createOrganizationWithMembers,
   createServer,
 } from "@pupitre/api/testing/factories"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { recordSteps } from "@/testing/workflow"
 import { RECONCILE_SEATS_STEP, runReconcileSeats } from "./reconcile-seats"
 import { batchStep } from "./steps"
@@ -25,7 +26,9 @@ async function organizationWithOneSeatUsed(): Promise<string> {
       status: "active",
     },
   })
-  await createServer({ organizationId: organization.id })
+  for (let index = 0; index <= FREE_SERVERS; index += 1) {
+    await createServer({ organizationId: organization.id })
+  }
 
   return organization.id
 }

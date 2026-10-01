@@ -7,6 +7,8 @@ sectionOrder: 3
 order: 5
 ---
 
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+
 ## Why not Claude Code on the web?
 
 The web version fits an isolated task on one repository. It does not give you a machine: no database next to the code, no headless browser, no service running overnight, nothing that persists once the session ends. Pupitre gives you the machine, and your subscription works there as it is.
@@ -35,7 +37,11 @@ The desktop app runs on macOS, Windows 11 and Ubuntu desktop. The server is alwa
 
 ## Do I need an account?
 
-Yes. The app asks you to sign in at its first launch, and it enrols a server only under a subscription: the free launch while it runs, then the trial or a paid one. The account holds your organisation, its servers and its members. See [install the app](/docs/start/install/) and [billing](/docs/account/billing/).
+Yes. The app asks you to sign in at its first launch, and it enrols a server for an organisation: free up to {FREE_SERVERS} servers, with a licence beyond. The account holds your organisation, its servers and its members. See [install the app](/docs/start/install/) and [licence](/docs/account/licence/).
+
+## Does it cost anything?
+
+Not for the first {FREE_SERVERS} servers of an organisation: no card, no trial, no subscription. Beyond them, a licence is granted on request. You pay your host for the server and your model provider for your agents, as before. See [licence](/docs/account/licence/).
 
 ## What happens if I lose my laptop?
 
@@ -55,7 +61,7 @@ Nobody without an access key. A published address asks for one. The app adds you
 
 ## Can I read the agent's source?
 
-No. Pupitre is a closed commercial product. What the agent does is documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine. The [security page](/security/) lists what the agent can and cannot do, with the command that checks each claim.
+Yes. The code of the app, the agent and the platform is public, under the Apache 2.0 licence with the Commons Clause: you may read it, change it, build the agent yourself and run your own platform, but not sell Pupitre or a service built mainly on it. See the [licence](/legal/licence/). What the agent does is also documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine. The [security page](/security/) lists what the agent can and cannot do, with the command that checks each claim.
 
 ## What happens if Pupitre shuts down?
 

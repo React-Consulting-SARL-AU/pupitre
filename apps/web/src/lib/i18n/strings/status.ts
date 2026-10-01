@@ -7,13 +7,10 @@ export const status = {
     "status.revoked": "Revoked",
     "status.stale": "No news",
 
-    "entitlement.none": "No organisation",
-    "entitlement.valid": "Licence active",
-    "entitlement.grace": "Licence in grace period",
-    "entitlement.suspended": "Licence suspended",
-    "entitlement.trialPending": "Free access not started",
-    "entitlement.waitingTrial": "Waiting for the owner to start",
-    "entitlement.launch": "Free launch · until {date}",
+    "license.none": "No organisation",
+    "license.valid": "Licence valid",
+    "license.grace": "Licence in grace period",
+    "license.suspended": "Licence required",
 
     "alert.server_unreachable": "Unreachable for 30 minutes",
     "alert.server_unreachable.fix":
@@ -24,9 +21,9 @@ export const status = {
     "alert.agent_outdated": "Agent two versions behind",
     "alert.agent_outdated.fix":
       "The agent updates itself on its next contact; start the update from the app if nothing moves.",
-    "alert.entitlement_grace": "Licence in grace period",
-    "alert.entitlement_grace.fix":
-      "Update the payment method from the billing page.",
+    "alert.license_grace": "Licence in grace period",
+    "alert.license_grace.fix":
+      "Open the Licence page: remove a server, or ask support@pupitre.studio for a licence.",
     "alert.backup_failed": "Last backup failed",
     "alert.backup_failed.fix":
       "Read the error under Backups, fix the bucket or its key from the Pupitre app, then back up again.",
@@ -63,13 +60,10 @@ export const status = {
     "status.revoked": "Révoqué",
     "status.stale": "Sans nouvelles",
 
-    "entitlement.none": "Aucune organisation",
-    "entitlement.valid": "Droit d'usage actif",
-    "entitlement.grace": "Droit d'usage en tolérance",
-    "entitlement.suspended": "Droit d'usage suspendu",
-    "entitlement.trialPending": "Accès gratuit non démarré",
-    "entitlement.waitingTrial": "En attente du propriétaire",
-    "entitlement.launch": "Lancement gratuit · jusqu'au {date}",
+    "license.none": "Aucune organisation",
+    "license.valid": "Licence valide",
+    "license.grace": "Licence en tolérance",
+    "license.suspended": "Licence requise",
 
     "alert.server_unreachable": "Injoignable depuis 30 minutes",
     "alert.server_unreachable.fix":
@@ -80,9 +74,9 @@ export const status = {
     "alert.agent_outdated": "Agent périmé de deux versions",
     "alert.agent_outdated.fix":
       "L'agent se met à jour à son prochain contact ; relancez la mise à jour depuis l'app si rien ne bouge.",
-    "alert.entitlement_grace": "Droit d'usage en tolérance",
-    "alert.entitlement_grace.fix":
-      "Mettez le moyen de paiement à jour depuis la facturation.",
+    "alert.license_grace": "Licence en tolérance",
+    "alert.license_grace.fix":
+      "Ouvrez la page Licence : retirez un serveur, ou demandez une licence à support@pupitre.studio.",
     "alert.backup_failed": "Dernière sauvegarde en échec",
     "alert.backup_failed.fix":
       "Lisez l'erreur sous Sauvegardes, corrigez le bucket ou sa clé depuis l'app Pupitre, puis relancez une sauvegarde.",

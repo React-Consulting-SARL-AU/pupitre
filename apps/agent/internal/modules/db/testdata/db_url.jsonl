@@ -1,11 +1,11 @@
 # db.url donne l'adresse à ouvrir à travers ssh -L, avec le compte distant et sans mot de passe.
 @package mysql-server 8.0.36-0ubuntu0.24.04.1
 @package postgresql-17 17.2-1.pgdg24.04+1
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"db.url","params":{"engine":"mysql","name":"shop"}}
 > {"id":3,"cmd":"db.url","params":{"engine":"postgres"}}
 > {"id":4,"cmd":"db.url","params":{"engine":"mongodb","name":"shop"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","db.dump","db.import","db.shell","db.url","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","db.dump","db.import","db.shell","db.url","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"url":"mysql://dev@127.0.0.1:3306/shop"}}
 < {"id":3,"ok":true,"result":{"url":"postgresql://dev@127.0.0.1:5432/postgres"}}
 < {"id":4,"ok":false,"error":{"code":"service_not_found","message":"MongoDB is not installed on this server","fix":"Install db.mongodb from the app's catalogue."}}

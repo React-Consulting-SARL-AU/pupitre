@@ -6,7 +6,7 @@ interface Props {
   name: string
   module?: ModuleId
   mark?: string
-  size?: "sm" | "lg"
+  size?: "xs" | "sm" | "lg"
 }
 
 const { name, module, mark, size = "sm" } = Astro.props
@@ -20,7 +20,8 @@ function brand() {
 }
 
 const logo = brand()
-const box = size === "lg" ? "size-8" : "size-6"
+const BOXES = { xs: "size-4", sm: "size-6", lg: "size-8" } as const
+const box = BOXES[size]
 ---
 
 {

@@ -2,9 +2,13 @@ import type { BillingInterval } from "@pupitre/db/cloudflare/client"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { type AuditAction, recordEvent } from "../audit/audit"
 import { stripeEventLeaseMsFromEnv } from "./config"
-import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
+import { applyOrganizationLicense, mirrorSubscription } from "./mirror"
 import type { RemoteSubscription } from "./provider"
-import { getBillingProvider, getWebhookSecret } from "./runtime"
+import {
+  assertBillingOn,
+  getBillingProvider,
+  getWebhookSecret,
+} from "./runtime"
 import { type SignatureRefusal, verifyStripeSignature } from "./signature"
 import { type StripeSubscriptionPayload, toRemoteSubscription } from "./stripe"
 
@@ -207,7 +211,7 @@ async function onCheckoutCompleted(
 
   await auditSubscription(action, organizationId, remote)
 
-  await applyOrganizationEntitlement(organizationId, now)
+  await applyOrganizationLicense(organizationId, now)
 
   return true
 }
@@ -240,7 +244,7 @@ async function followSubscription(
     remote
   )
 
-  await applyOrganizationEntitlement(organizationId, now)
+  await applyOrganizationLicense(organizationId, now)
 }
 
 async function onSubscriptionEvent(
@@ -375,6 +379,8 @@ export async function handleStripeWebhook({
   signature,
   now = new Date(),
 }: StripeWebhookInput): Promise<StripeWebhookResult> {
+  assertBillingOn()
+
   const verdict = await verifyStripeSignature({
     payload,
     header: signature,

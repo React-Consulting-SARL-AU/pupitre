@@ -1,10 +1,7 @@
 export const billing = {
   en: {
-    "billing.interval.month": "Monthly",
-    "billing.interval.year": "Yearly",
     "billing.status.active": "Active",
     "billing.status.trialing": "Trial",
-    "billing.status.launch": "Free launch",
     "billing.status.past_due": "Payment overdue",
     "billing.status.incomplete": "Payment incomplete",
     "billing.status.paused": "Paused",
@@ -13,11 +10,8 @@ export const billing = {
     "billing.status.incomplete_expired": "Expired",
   },
   fr: {
-    "billing.interval.month": "Mensuel",
-    "billing.interval.year": "Annuel",
     "billing.status.active": "Actif",
     "billing.status.trialing": "Essai",
-    "billing.status.launch": "Lancement gratuit",
     "billing.status.past_due": "Paiement en retard",
     "billing.status.incomplete": "Paiement incomplet",
     "billing.status.paused": "En pause",

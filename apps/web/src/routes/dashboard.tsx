@@ -15,7 +15,7 @@ import { isUnauthenticated } from "@/lib/api/errors"
 import { meQueryOptions } from "@/lib/api/queries"
 import { readSessionOrSignIn } from "@/lib/auth/session-gate"
 import { consoleSection } from "@/lib/domain/chrome"
-import { START_ROUTE, startRedirectFor } from "@/lib/domain/entitlement-gate"
+import { LICENSE_ROUTE, sendsToLicense } from "@/lib/domain/license-gate"
 
 export const Route = createFileRoute("/dashboard")({
   // The console reads the session in the browser, so the gate does too.
@@ -27,15 +27,8 @@ export const Route = createFileRoute("/dashboard")({
       return
     }
 
-    const checkout = (location.search as Record<string, unknown>).checkout
-    const search = startRedirectFor({
-      entitlement: me.entitlement,
-      pathname: location.pathname,
-      checkout: typeof checkout === "string" ? checkout : undefined,
-    })
-
-    if (search) {
-      throw redirect({ to: START_ROUTE, search })
+    if (sendsToLicense({ license: me.license, pathname: location.pathname })) {
+      throw redirect({ to: LICENSE_ROUTE })
     }
   },
   component: DashboardLayout,
@@ -80,7 +73,7 @@ function DashboardLayout() {
         organizations: me.data.organizations,
         activeOrganization: me.data.active_organization,
         role: me.data.role as OrgRole | null,
-        entitlement: me.data.entitlement,
+        license: me.data.license,
         platformRole: me.data.platform_role as OrgRole | null,
         platformCanAct: me.data.platform_can_act,
       }}

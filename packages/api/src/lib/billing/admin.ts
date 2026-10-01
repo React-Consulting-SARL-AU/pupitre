@@ -11,15 +11,10 @@ import {
   cancelEndedSubscriptions,
   cancelEndedSubscriptionsBatch,
 } from "./expiry"
-import {
-  graceOrganizationServers,
-  restoreOrganizationServers,
-  suspendExpiredGrace,
-} from "./grace"
-import { isLaunchMode } from "./launch"
-import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
+import { restoreOrganizationServers, suspendExpiredGrace } from "./grace"
+import { applyOrganizationLicense, mirrorSubscription } from "./mirror"
 import type { RemoteSubscription } from "./provider"
-import { getBillingProvider } from "./runtime"
+import { assertBillingOn, getBillingProvider } from "./runtime"
 import { assertSeatsCoverUsage } from "./seats"
 import { liveSubscriptionOf } from "./subscription"
 
@@ -47,7 +42,7 @@ export class SubscriptionLiveError extends Error {
 
 export class PlatformOrganizationError extends Error {
   constructor() {
-    super("the platform organization is entitled by what it is")
+    super("the platform organization is licensed by what it is")
     this.name = "PlatformOrganizationError"
   }
 }
@@ -66,20 +61,6 @@ export class SubscriptionAlreadyCanceledError extends Error {
   }
 }
 
-export class SubscriptionNotStripeError extends Error {
-  constructor(subscriptionId: string) {
-    super(`subscription ${subscriptionId} is a product Stripe never sees`)
-    this.name = "SubscriptionNotStripeError"
-  }
-}
-
-export class SubscriptionNotTrialingError extends Error {
-  constructor(subscriptionId: string) {
-    super(`subscription ${subscriptionId} is not trialing`)
-    this.name = "SubscriptionNotTrialingError"
-  }
-}
-
 export class SubscriptionNotResumableError extends Error {
   constructor(subscriptionId: string) {
     super(`subscription ${subscriptionId} was not cancelled at period end`)
@@ -87,29 +68,8 @@ export class SubscriptionNotResumableError extends Error {
   }
 }
 
-export class TrialEndNotFutureError extends Error {
-  constructor() {
-    super("a trial ends later than now")
-    this.name = "TrialEndNotFutureError"
-  }
-}
-
-export class BillingLaunchModeError extends Error {
-  constructor() {
-    super("the platform does not call Stripe during the launch")
-    this.name = "BillingLaunchModeError"
-  }
-}
-
 function isLive(subscription: Subscription): boolean {
   return LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
-}
-
-// The launch runs without a Stripe key at all.
-function assertStripeReachable(): void {
-  if (isLaunchMode()) {
-    throw new BillingLaunchModeError()
-  }
 }
 
 export function grantedSubscriptionId(): string {
@@ -233,6 +193,8 @@ async function stopSubscription(
     })
   }
 
+  assertBillingOn()
+
   const remote = await getBillingProvider().cancelSubscription(
     subscription.stripeSubscriptionId
   )
@@ -281,7 +243,7 @@ export async function cancelSubscriptionByAdmin(
     },
   })
 
-  await applyOrganizationEntitlement(subscription.organizationId, now)
+  await applyOrganizationLicense(subscription.organizationId, now)
   await suspendExpiredGrace(now)
 
   return canceled
@@ -293,64 +255,11 @@ async function mirroredAfter(
   now: Date
 ): Promise<Subscription> {
   await mirrorSubscription(subscription.organizationId, remote)
-  await applyOrganizationEntitlement(subscription.organizationId, now)
+  await applyOrganizationLicense(subscription.organizationId, now)
 
   return await getPrisma().subscription.findUniqueOrThrow({
     where: { id: subscription.id },
   })
-}
-
-/** Stripe holds the trial, so it moves first and the mirror takes its answer. */
-export async function extendSubscriptionTrial(
-  actor: PlatformBillingActor,
-  subscriptionId: string,
-  endsAt: Date,
-  now: Date = new Date()
-): Promise<Subscription | null> {
-  const subscription = await getPrisma().subscription.findUnique({
-    where: { id: subscriptionId },
-  })
-
-  if (!subscription) {
-    return null
-  }
-
-  assertStripeReachable()
-
-  if (isPlatformProduct(subscription.product)) {
-    throw new SubscriptionNotStripeError(subscription.id)
-  }
-
-  if (subscription.status !== "trialing") {
-    throw new SubscriptionNotTrialingError(subscription.id)
-  }
-
-  if (endsAt.getTime() <= now.getTime()) {
-    throw new TrialEndNotFutureError()
-  }
-
-  const remote = await getBillingProvider().extendTrial(
-    subscription.stripeSubscriptionId,
-    endsAt
-  )
-
-  const extended = await mirroredAfter(subscription, remote, now)
-
-  await recordEvent({
-    action: "subscription.updated",
-    actorUserId: actor.userId,
-    organizationId: subscription.organizationId,
-    targetType: "subscription",
-    targetId: subscription.stripeSubscriptionId,
-    payload: {
-      status: extended.status,
-      trial_ends_at: extended.currentPeriodEnd?.toISOString() ?? null,
-      previous_trial_ends_at:
-        subscription.currentPeriodEnd?.toISOString() ?? null,
-    },
-  })
-
-  return extended
 }
 
 /** Servers are left alone: a pending cancellation never stopped them. */
@@ -367,7 +276,7 @@ export async function resumeSubscriptionByAdmin(
     return null
   }
 
-  assertStripeReachable()
+  assertBillingOn()
 
   if (
     isPlatformProduct(subscription.product) ||
@@ -397,21 +306,6 @@ export async function resumeSubscriptionByAdmin(
   })
 
   return resumed
-}
-
-async function followEntitlementAfterLoss(
-  organizationId: string,
-  now: Date
-): Promise<void> {
-  const live = await liveSubscriptionOf(organizationId)
-
-  if (live) {
-    await applyOrganizationEntitlement(organizationId, now)
-  } else {
-    await graceOrganizationServers(organizationId, now)
-  }
-
-  await suspendExpiredGrace(now)
 }
 
 export async function deleteSubscriptionByAdmin(
@@ -451,7 +345,8 @@ export async function deleteSubscriptionByAdmin(
   })
 
   if (live?.id === subscription.id) {
-    await followEntitlementAfterLoss(subscription.organizationId, now)
+    await applyOrganizationLicense(subscription.organizationId, now)
+    await suspendExpiredGrace(now)
   }
 
   return true

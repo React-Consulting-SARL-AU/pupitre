@@ -40,7 +40,7 @@ Tirées de `apps/agent/CLAUDE.md` et `docs/security.md`. Une PR qui viole l'une 
 - **Aucun `os/exec` avec une chaîne construite.** Toujours un `argv` : `user.Run(ctx, "dev", "redis-cli", "ping")`. Jamais `sh -c` avec une valeur venue du protocole, d'un manifeste ou d'un fichier.
 - **Aucun secret journalisé.** Ni dans `/var/log/pupitre.log`, ni dans un événement `step`, ni dans le rapport, ni dans une erreur. Le journal remplace par `[secret]` toute valeur secrète connue du contexte ; on n'écrit quand même jamais un secret dans un message.
 - **Aucune connexion entrante, aucun appel réseau hors HTTPS sortant** vers la plateforme ou un dépôt de paquets.
-- **Rien sans droit d'usage valide** : le moteur refuse `install` avec `entitlement_required` ; un module ne contourne pas ce contrôle.
+- **Rien sans licence valide** : le moteur refuse `install` avec `license_required` ; un module ne contourne pas ce contrôle.
 - **Le contrat vient de `packages/shared`** par `internal/contract/schema.json` : on ne redéclare pas un type du protocole ou du manifeste à la main.
 
 ## Anatomie d'un module

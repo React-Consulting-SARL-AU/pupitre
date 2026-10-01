@@ -5,7 +5,7 @@ import {
   RuntimeToolSchema,
 } from "../catalog"
 import { PortSchema } from "./ports"
-import { EntitlementSchema } from "./session"
+import { LicenseSchema } from "./session"
 
 const SUDO_STATES = ["password", "nopasswd_all"] as const
 
@@ -300,7 +300,7 @@ export const SnapshotResultSchema = z.object({
   services: z.array(ServiceSchema),
   projects: z.array(ProjectSchema),
   sessions: z.array(SessionSchema),
-  entitlement: EntitlementSchema,
+  license: LicenseSchema,
 })
 
 export type SnapshotResult = z.infer<typeof SnapshotResultSchema>

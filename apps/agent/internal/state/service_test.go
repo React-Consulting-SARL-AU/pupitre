@@ -30,7 +30,7 @@ func serviceEngine(t *testing.T, fake *modtest.FakeSys) *modules.Engine {
 		Registry:    registry,
 		Sys:         fake,
 		Now:         modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(dir, "report.json"),
 		LogPath:     filepath.Join(dir, "pupitre.log"),
 		InstallPath: "/etc/pupitre/install.json",

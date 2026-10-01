@@ -14,7 +14,7 @@ import (
 
 const sudo = "sudo"
 
-// The token and entitlement cache are 0600 root: read from dev the machine looks unenrolled, so verbs go through sudo.
+// The token and license cache are 0600 root: read from dev the machine looks unenrolled, so verbs go through sudo.
 type Elevation struct {
 	Sys      sys.Sys
 	State    []string
@@ -40,7 +40,7 @@ func (e Elevation) Caller(local func() Caller, version string) (Caller, error) {
 
 	path, err := e.LookPath(sudo)
 	if err != nil {
-		return nil, protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("devcli.elevate.required")).
+		return nil, protocol.NewError(contract.ErrorLicenseRequired, i18n.T("devcli.elevate.required")).
 			WithFix(i18n.T("devcli.elevate.root.fix"))
 	}
 

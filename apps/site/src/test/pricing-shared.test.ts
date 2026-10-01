@@ -1,74 +1,37 @@
 import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
-import type { Plan } from "@pupitre/shared/plans"
 import { describe, expect, it, vi } from "vitest"
 import Fr from "../pages/fr/pricing.astro"
+import Home from "../pages/index.astro"
 import En from "../pages/pricing.astro"
-import { AFTER_LAUNCH, buildAt, buildNow } from "./launch"
 import { render } from "./render"
 
-const MOCKED_PLANS = vi.hoisted<Plan[]>(() => [
-  {
-    id: "solo",
-    name: "Solo",
-    nameFr: "Solo",
-    monthlyPriceUsd: 23,
-    billedPer: "server",
-    startingAt: false,
-    maxServers: 3,
-    availability: "available",
-  },
-  {
-    id: "team",
-    name: "Team",
-    nameFr: "Équipe",
-    monthlyPriceUsd: 23,
-    billedPer: "server",
-    startingAt: false,
-    maxServers: null,
-    availability: "available",
-  },
-  {
-    id: "hosted",
-    name: "Hosted",
-    nameFr: "Hébergé",
-    monthlyPriceUsd: 41,
-    billedPer: "month",
-    startingAt: true,
-    maxServers: null,
-    availability: "later",
-  },
-])
+const MOCKED_FREE_SERVERS = vi.hoisted(() => 7)
 
 vi.mock("@pupitre/shared/plans", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@pupitre/shared/plans")>()
 
-  return {
-    ...actual,
-    PLANS: MOCKED_PLANS,
-    TRIAL_DAYS: 21,
-    getPlan: (id: Plan["id"]) =>
-      MOCKED_PLANS.find((plan) => plan.id === id) as Plan,
-  }
+  return { ...actual, FREE_SERVERS: MOCKED_FREE_SERVERS }
 })
 
-const SOURCE_RE = /\.(ts|astro)$/
+const SOURCE_RE = /\.(ts|astro|mdx)$/
 const TEST_RE = /\.test\.ts$/
+const WRITTEN_COUNT_RE =
+  /\b(\d+|three|trois)\s+(servers?|serveurs?|machines?)\b/i
+const DEFAULT_COUNT_RE = /\b3 serv/
 
-/** Path data is geometry: its numbers are coordinates, never a price. */
-const GEOMETRY = new Set(["Icon.astro"])
+/** Release notes are history: they keep the numbers of their day. */
+const HISTORY = new Set(["changelog"])
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name)
 
     if (entry.isDirectory()) {
-      sources(full, out)
-    } else if (
-      SOURCE_RE.test(entry.name) &&
-      !TEST_RE.test(entry.name) &&
-      !GEOMETRY.has(entry.name)
-    ) {
+      if (!HISTORY.has(entry.name)) {
+        sources(full, out)
+      }
+    } else if (SOURCE_RE.test(entry.name) && !TEST_RE.test(entry.name)) {
       out.push(full)
     }
   }
@@ -76,56 +39,27 @@ function sources(dir: string, out: string[] = []): string[] {
   return out
 }
 
-describe("pricing page follows @pupitre/shared/plans", () => {
-  it("shows the mocked prices, caps and trial without any edit", async () => {
-    buildAt(AFTER_LAUNCH)
-
-    for (const [page, path] of [
+describe("the free servers follow @pupitre/shared/plans", () => {
+  it("shows the mocked number of free servers without any edit", async () => {
+    for (const [page, pathname] of [
       [En, "/pricing/"],
       [Fr, "/fr/pricing/"],
+      [Home, "/"],
     ] as const) {
-      const html = await render(page, { path })
+      const html = await render(page, { path: pathname })
 
-      expect(html).toContain("$23")
-      expect(html).toContain("$230")
-      expect(html).toContain("$41")
-      expect(html).toContain("21")
-      expect(html).toContain("3 serv")
-      expect(html).not.toContain("$10")
-      expect(html).not.toContain("$100")
-      expect(html).not.toContain("$29")
-      expect(html).toContain('"price":"23"')
-      expect(html).toContain('"price":"230"')
-      expect(html).not.toContain('"price":"10"')
+      expect(html, pathname).toContain(`${MOCKED_FREE_SERVERS} serv`)
+      expect(html, pathname).not.toMatch(DEFAULT_COUNT_RE)
     }
-
-    buildNow()
   })
 
-  it("has no shared price literal anywhere in the site sources", async () => {
-    const actual = await vi.importActual<
-      typeof import("@pupitre/shared/plans")
-    >("@pupitre/shared/plans")
-    const amounts = new Set(
-      actual.PLANS.flatMap((plan) => [
-        plan.monthlyPriceUsd,
-        actual.yearlyPriceUsd(plan),
-      ])
-    )
-    amounts.add(actual.TRIAL_DAYS)
+  it("never writes a number of servers by hand in the site sources", () => {
     const root = path.resolve(import.meta.dirname, "..")
 
     for (const file of sources(root)) {
       const text = readFileSync(file, "utf8")
 
-      for (const amount of amounts) {
-        const literal = new RegExp(`(?<![\\w.\\-#])${amount}(?![\\w.%])`)
-
-        expect(
-          text,
-          `${path.relative(root, file)} prints ${amount}`
-        ).not.toMatch(literal)
-      }
+      expect(text, path.relative(root, file)).not.toMatch(WRITTEN_COUNT_RE)
     }
   })
 })

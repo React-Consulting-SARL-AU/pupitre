@@ -1,6 +1,6 @@
 # Le canal de contrôle d'un serveur en retard : hello, puis snapshot autant de fois qu'on le lui demande.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":2,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":3,"license":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
 @repeat
 > {"id":2,"cmd":"snapshot"}
-< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":900,"load":[0.1,0.2,0.1],"ram_total_mb":8192,"ram_used_mb":2048,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.3.0"},"services":[],"projects":[],"sessions":[],"entitlement":"restricted"}}
+< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":900,"load":[0.1,0.2,0.1],"ram_total_mb":8192,"ram_used_mb":2048,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.3.0"},"services":[],"projects":[],"sessions":[],"license":"restricted"}}

@@ -85,8 +85,8 @@ describe("formatRelative", () => {
 
 describe("formatProduct", () => {
   it("names the products the console knows", () => {
-    expect(formatProduct("granted", fr)).toBe("Offert")
-    expect(formatProduct("launch", en)).toBe("Launch")
+    expect(formatProduct("granted", fr)).toBe("Accordée")
+    expect(formatProduct("granted", en)).toBe("Granted")
   })
 
   it("calls a product only Stripe knows Stripe, and none nothing", () => {

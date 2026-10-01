@@ -34,10 +34,13 @@ describe("generationOf", () => {
   it("range une version dans la dernière génération qu'elle atteint", () => {
     expect(generationOf("app", "0.1.0")?.protocol).toBe(1)
     expect(generationOf("app", "0.1.9")?.protocol).toBe(1)
-    expect(generationOf("app", "9.9.9")?.protocol).toBe(2)
+    expect(generationOf("app", "1.9.9")?.protocol).toBe(2)
+    expect(generationOf("app", "9.9.9")?.protocol).toBe(3)
     expect(generationOf("agent", "0.4.2")?.protocol).toBe(2)
+    expect(generationOf("agent", "2.0.0")?.protocol).toBe(3)
     expect(generationOf("app", "0.9.1")?.app).toBe("0.2.0")
     expect(generationOf("app", "1.0.0")?.app).toBe("1.0.0")
+    expect(generationOf("app", "2.3.0")?.app).toBe("2.0.0")
   })
 
   it("ne range ni une version d'avant la feuille, ni un build de développement", () => {
@@ -57,6 +60,7 @@ describe("les planchers", () => {
     expect(agentFloorFor("0.9.1")).toBe("0.2.0")
     expect(agentFloorFor("1.0.0")).toBe("1.0.0")
     expect(agentFloorFor("1.3.0")).toBe("1.0.0")
+    expect(agentFloorFor("2.0.0")).toBe("2.0.0")
   })
 
   it("ne nomment rien pour une version que la feuille ignore", () => {
@@ -77,6 +81,12 @@ describe("compatibility", () => {
     expect(compatibility("0.9.1", "1.0.0")).toBe("app_too_old")
     expect(compatibility("1.0.0", "0.9.1")).toBe("agent_too_old")
     expect(compatibility("1.0.0-rc.1", "1.0.0")).toBe("ok")
+  })
+
+  it("sépare la 2.0, qui parle de licence, des 1.x", () => {
+    expect(compatibility("2.0.0", "2.1.0")).toBe("ok")
+    expect(compatibility("1.4.0", "2.0.0")).toBe("app_too_old")
+    expect(compatibility("2.0.0", "1.2.1")).toBe("agent_too_old")
   })
 
   it("range une pré-version dans la lignée qu'elle annonce", () => {

@@ -3,7 +3,6 @@ import {
   type LegalEntity,
   PUPITRE_ORIGINS,
 } from "@pupitre/shared/legal"
-import { getPlan, PLANS, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import {
   faqPage,
@@ -13,8 +12,6 @@ import {
   softwareApplication,
 } from "./structured-data"
 
-const LAUNCH_END = new Date("2026-12-31T23:59:59Z")
-
 const INCORPORATED: LegalEntity = {
   ...LEGAL_ENTITY,
   status: "incorporated",
@@ -22,13 +19,30 @@ const INCORPORATED: LegalEntity = {
   form: "LLC",
 }
 
+const INDIVIDUAL: LegalEntity = {
+  ...LEGAL_ENTITY,
+  status: "individual",
+  legalName: null,
+  form: null,
+}
+
 describe("organization", () => {
-  it("claims no company while the publisher is a person", () => {
+  it("names the publishing company of the legal record", () => {
     const data = organization({ name: "Pupitre", locale: "en" })
 
-    expect(LEGAL_ENTITY.status).toBe("individual")
+    expect(LEGAL_ENTITY.status).toBe("incorporated")
+    expect(data.legalName).toBe(LEGAL_ENTITY.legalName)
+    expect(jsonLd(data)).not.toContain(LEGAL_ENTITY.owner)
+  })
+
+  it("claims no company while the publisher is a person", () => {
+    const data = organization({
+      name: "Pupitre",
+      locale: "en",
+      entity: INDIVIDUAL,
+    })
+
     expect(data).not.toHaveProperty("legalName")
-    expect(jsonLd(data)).not.toContain("LLC")
     expect(jsonLd(data)).not.toContain(LEGAL_ENTITY.owner)
   })
 
@@ -77,7 +91,7 @@ describe("jsonLd", () => {
 })
 
 describe("softwareApplication", () => {
-  it("describes Pupitre as a desktop developer application with the Solo price", () => {
+  it("describes Pupitre as a free desktop developer application", () => {
     const data = softwareApplication({
       locale: "en",
       name: "Pupitre",
@@ -94,7 +108,7 @@ describe("softwareApplication", () => {
     expect(data.operatingSystem).toBe("macOS, Windows, Linux")
     expect(data.offers).toEqual({
       "@type": "Offer",
-      price: String(getPlan("solo").monthlyPriceUsd),
+      price: "0",
       priceCurrency: "USD",
       url: "https://pupitre.studio/pricing/",
     })
@@ -141,98 +155,41 @@ describe("faqPage", () => {
 })
 
 describe("product", () => {
-  it("lists one Offer per available plan and billing interval, priced from shared", () => {
+  it("offers Pupitre for free, as one Offer that opens the console", () => {
     const data = product({
       locale: "en",
       name: "Pupitre",
-      description: "One price per server.",
-      intervals: { month: "monthly", year: "yearly" },
+      description: "Free up to a few servers.",
+      offer: "Free, per organisation",
     })
-    const available = PLANS.filter((plan) => plan.availability === "available")
 
     expect(data["@context"]).toBe("https://schema.org")
     expect(data["@type"]).toBe("Product")
     expect(data.name).toBe("Pupitre")
-    expect(data.description).toBe("One price per server.")
+    expect(data.description).toBe("Free up to a few servers.")
     expect(data.url).toBe("https://pupitre.studio/pricing/")
     expect(data.brand).toEqual({ "@type": "Brand", name: "Pupitre" })
-    expect(data.offers).toHaveLength(available.length * 2)
-    expect(data.offers[0]).toEqual({
-      "@type": "Offer",
-      name: "Solo, monthly",
-      price: String(getPlan("solo").monthlyPriceUsd),
-      priceCurrency: "USD",
-      url: "https://app.pupitre.studio/",
-      availability: "https://schema.org/InStock",
-    })
-    expect(data.offers[1]).toEqual({
-      "@type": "Offer",
-      name: "Solo, yearly",
-      price: String(yearlyPriceUsd(getPlan("solo"))),
-      priceCurrency: "USD",
-      url: "https://app.pupitre.studio/",
-      availability: "https://schema.org/InStock",
-    })
-    expect(data.offers.map((offer) => offer.name)).not.toContain(
-      expect.stringContaining("Hosted")
-    )
-  })
-
-  it("names the plans in French under /fr", () => {
-    const data = product({
-      locale: "fr",
-      name: "Pupitre",
-      description: "Un prix par serveur.",
-      intervals: { month: "mensuel", year: "annuel" },
-    })
-
-    expect(data.url).toBe("https://pupitre.studio/fr/pricing/")
-    expect(data.offers.map((offer) => offer.name)).toEqual([
-      "Solo, mensuel",
-      "Solo, annuel",
-      "Équipe, mensuel",
-      "Équipe, annuel",
-    ])
-  })
-
-  it("offers the launch for free until its last day, and no price nobody can pay yet", () => {
-    const data = product({
-      locale: "en",
-      name: "Pupitre",
-      description: "Free during the launch.",
-      intervals: { month: "monthly", year: "yearly" },
-      launch: { endsAt: LAUNCH_END, name: "Launch, one machine" },
-    })
-
     expect(data.offers).toEqual([
       {
         "@type": "Offer",
-        name: "Launch, one machine",
+        name: "Free, per organisation",
         price: "0",
         priceCurrency: "USD",
-        priceValidUntil: "2026-12-31",
         url: "https://app.pupitre.studio/",
         availability: "https://schema.org/InStock",
       },
     ])
   })
-})
 
-describe("softwareApplication during the launch", () => {
-  it("prices the app at zero until the launch ends", () => {
-    const data = softwareApplication({
+  it("localises the url under /fr", () => {
+    const data = product({
       locale: "fr",
       name: "Pupitre",
-      description: "Une machine.",
-      launch: { endsAt: LAUNCH_END, name: "Lancement" },
+      description: "Gratuit.",
+      offer: "Gratuit, par organisation",
     })
 
-    expect(data.offers).toEqual({
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-      priceValidUntil: "2026-12-31",
-      url: "https://pupitre.studio/fr/pricing/",
-    })
+    expect(data.url).toBe("https://pupitre.studio/fr/pricing/")
+    expect(data.offers[0].name).toBe("Gratuit, par organisation")
   })
 })

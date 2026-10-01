@@ -9,13 +9,13 @@ import { AlertAgentOutdatedEmail } from "./templates/alert-agent-outdated"
 import { AlertBackupFailedEmail } from "./templates/alert-backup-failed"
 import { AlertBackupStaleEmail } from "./templates/alert-backup-stale"
 import { AlertDiskHighEmail } from "./templates/alert-disk-high"
-import { AlertEntitlementGraceEmail } from "./templates/alert-entitlement-grace"
+import { AlertLicenseGraceEmail } from "./templates/alert-license-grace"
 import { AlertServerUnreachableEmail } from "./templates/alert-server-unreachable"
 import { DeviceAddedEmail } from "./templates/device-added"
 import { EmailChangeEmail } from "./templates/email-change"
 import { EmailVerificationEmail } from "./templates/email-verification"
-import { EntitlementGraceEmail } from "./templates/entitlement-grace"
 import { InvitationEmail } from "./templates/invitation"
+import { LicenseGraceEmail } from "./templates/license-grace"
 import { MagicLinkEmail } from "./templates/magic-link"
 import { OrganizationClosedEmail } from "./templates/organization-closed"
 import { OrganizationRestoredEmail } from "./templates/organization-restored"
@@ -235,25 +235,25 @@ export function renderDeviceAddedEmail(
   )
 }
 
-export interface EntitlementGraceInput {
+export interface LicenseGraceInput {
   locale: Locale
   organizationName: string
   deadline: Date
   serverCount: number
 }
 
-export function renderEntitlementGraceEmail(
-  input: EntitlementGraceInput
+export function renderLicenseGraceEmail(
+  input: LicenseGraceInput
 ): Promise<RenderedEmail> {
   return compose(
     input.locale,
-    "entitlement_grace.subject",
+    "license_grace.subject",
     {
       organization: input.organizationName,
       deadline: formatDate(input.locale, input.deadline),
       count: input.serverCount,
     },
-    <EntitlementGraceEmail {...input} url={consolePath("/dashboard/billing")} />
+    <LicenseGraceEmail {...input} url={consolePath("/dashboard/billing")} />
   )
 }
 
@@ -482,24 +482,24 @@ export function renderAlertBackupStaleEmail({
   )
 }
 
-export interface AlertEntitlementGraceInput {
+export interface AlertLicenseGraceInput {
   locale: Locale
   serverName: string
   organizationName: string
   deadline: Date
 }
 
-export function renderAlertEntitlementGraceEmail({
+export function renderAlertLicenseGraceEmail({
   locale,
   serverName,
   organizationName,
   deadline,
-}: AlertEntitlementGraceInput): Promise<RenderedEmail> {
+}: AlertLicenseGraceInput): Promise<RenderedEmail> {
   return compose(
     locale,
-    "alert_entitlement_grace.subject",
+    "alert_license_grace.subject",
     { server: serverName },
-    <AlertEntitlementGraceEmail
+    <AlertLicenseGraceEmail
       deadline={formatDate(locale, deadline)}
       locale={locale}
       organizationName={organizationName}

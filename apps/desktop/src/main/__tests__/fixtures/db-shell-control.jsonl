@@ -1,6 +1,6 @@
 # Le shell d'une base : le renderer nomme le module, l'agent rend la ligne, le main la tient.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","db.shell"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","db.shell"]}}
 > {"id":2,"cmd":"db.shell","params":{"engine":"postgres"}}
 < {"id":2,"ok":true,"result":{"command":"sudo -u postgres psql app"}}
 > {"id":3,"cmd":"db.shell","params":{"engine":"postgres","name":"shop"}}

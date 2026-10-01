@@ -4,8 +4,6 @@ import type { OrgRole } from "@pupitre/shared/permissions"
 import { isLiveSubscriptionStatus } from "@pupitre/shared/plans"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
-import { readAffiliateCode } from "@/lib/domain/affiliate"
-import type { BillingIntervalName, CheckoutReturn } from "@/lib/domain/billing"
 
 // Heartbeats land every five minutes; fifteen seconds keeps the page live without hammering the database.
 export const SERVERS_POLL_INTERVAL_MS = 15_000
@@ -251,83 +249,12 @@ export function subscriptionQueryOptions(organizationId: string) {
   })
 }
 
-export const SUBSCRIPTION_POLL_INTERVAL_MS = 1000
-
-export const SUBSCRIPTION_POLL_TIMEOUT_MS = 60_000
-
-export interface SubscriptionPoll {
-  intervalMs?: number
-  timeoutMs?: number
-}
-
 export type Subscription = NonNullable<
   Awaited<ReturnType<typeof readSubscription>>
 >
 
 export function isLiveSubscription(subscription: Subscription): boolean {
   return isLiveSubscriptionStatus(subscription.status)
-}
-
-// Only the webhook creates the mirror, and the first one read may be the old cancelled row.
-export async function pollSubscription(
-  organizationId: string,
-  {
-    intervalMs = SUBSCRIPTION_POLL_INTERVAL_MS,
-    timeoutMs = SUBSCRIPTION_POLL_TIMEOUT_MS,
-  }: SubscriptionPoll = {}
-): Promise<Subscription> {
-  const deadline = Date.now() + timeoutMs
-  const before = (await readSubscription(organizationId))
-    ?.stripe_subscription_id
-
-  for (;;) {
-    const subscription = await readSubscription(organizationId)
-
-    if (
-      subscription &&
-      (isLiveSubscription(subscription) ||
-        subscription.stripe_subscription_id !== before)
-    ) {
-      return subscription
-    }
-
-    if (Date.now() >= deadline) {
-      throw new Error("the webhook has not landed yet")
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, intervalMs))
-  }
-}
-
-export interface CheckoutInput {
-  quantity: number
-  interval: BillingIntervalName
-  return_to?: CheckoutReturn
-}
-
-export function startCheckout(
-  organizationId: string,
-  input: CheckoutInput
-): Promise<string> {
-  const affiliateCode = readAffiliateCode()
-
-  return api()
-    .api.v1.orgs({ id: organizationId })
-    .checkout.post({
-      ...input,
-      ...(affiliateCode ? { affiliate_code: affiliateCode } : {}),
-    })
-    .then((response) => unwrap(response).url)
-}
-
-export function updateSeats(
-  organizationId: string,
-  quantity: number
-): Promise<Subscription | null> {
-  return api()
-    .api.v1.orgs({ id: organizationId })
-    .seats.post({ quantity })
-    .then((response) => unwrap(response).data)
 }
 
 export function openBillingPortal(organizationId: string): Promise<string> {

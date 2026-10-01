@@ -31,7 +31,7 @@ describe("API_ERROR_CODES", () => {
       "key_not_ed25519",
       "device_exists",
       "invalid_server_token",
-      "entitlement_required",
+      "license_required",
       "stripe_signature_invalid",
     ]) {
       expect(API_ERROR_CODES as readonly string[]).toContain(code)

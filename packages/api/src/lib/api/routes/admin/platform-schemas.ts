@@ -60,14 +60,6 @@ const adminWorklistsSchema = t.Object({
       current_period_end: t.Nullable(dateTime),
     })
   ),
-  trials_ending: worklist(
-    t.Object({
-      id: t.String(),
-      organization: worklistOrganization,
-      status: t.String(),
-      current_period_end: t.Nullable(dateTime),
-    })
-  ),
   servers_unreachable: worklist(
     t.Object({
       id: t.String(),
@@ -141,12 +133,10 @@ export const adminOverviewSchema = t.Object(
     }),
     subscriptions: t.Object({
       total: t.Integer(),
-      trialing: t.Integer(),
       active: t.Integer(),
       past_due: t.Integer(),
       canceled: t.Integer(),
       other: t.Integer(),
-      launch: t.Integer(),
     }),
     affiliate_links: t.Integer(),
     referrals: t.Integer(),
@@ -354,8 +344,6 @@ export const adminSubscriptionsQuery = t.Object({
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
 })
-
-export const adminTrialBody = t.Object({ ends_at: dateTime })
 
 const grantedSeats = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
 

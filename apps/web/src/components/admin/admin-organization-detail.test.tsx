@@ -114,7 +114,9 @@ describe("AdminOrganizationDetail", () => {
       subscription: { quantity: 3, status: "active" },
     })
 
-    await createServer({ organizationId: organization.id, name: "vps-one" })
+    for (const name of ["vps-one", "vps-two", "vps-three", "vps-four"]) {
+      await createServer({ organizationId: organization.id, name })
+    }
 
     const { container, unmount } = await render(page(organization.id))
 
@@ -152,7 +154,7 @@ describe("AdminOrganizationDetail", () => {
     await waitUntil(
       () => container.textContent?.includes(members[1].user.email) === true
     )
-    await click(trigger(container, "Subscriptions"))
+    await click(trigger(container, "Licences"))
     await waitUntil(() => container.textContent?.includes("3 seats") === true)
   })
 
@@ -444,10 +446,9 @@ describe("AdminOrganizationDetail", () => {
 
     await waitUntil(
       () =>
-        container.textContent?.includes("No subscription, past or present.") ===
-        true
+        container.textContent?.includes("No licence, past or present.") === true
     )
-    await click(trigger(container, "Grant a subscription"))
+    await click(trigger(container, "Grant a licence"))
     await waitUntil(
       () => document.querySelector(`#grant-${organization.id}-seats`) !== null
     )
@@ -467,7 +468,7 @@ describe("AdminOrganizationDetail", () => {
     await waitUntil(() => container.textContent?.includes("3 seats") === true)
 
     expect(container.textContent).toContain(
-      "A subscription is live: stop it before granting another."
+      "A licence is running: stop it before granting another."
     )
   })
 })

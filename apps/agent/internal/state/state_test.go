@@ -43,7 +43,7 @@ func newReader(t *testing.T, fake *modtest.FakeSys, catalog *modules.Registry, s
 		Sys:          fake,
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     catalog,
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		Follow:       state.FollowOptions{Interval: time.Millisecond, Limit: 50 * time.Millisecond, Sleep: sleep},
 	})
@@ -81,7 +81,7 @@ func processOf(t *testing.T, project contract.Project, id string) contract.Proje
 	return contract.ProjectProcess{}
 }
 
-func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
+func TestSnapshotReadsTheMachineTheProjectsAndTheLicense(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Files["/home/dev/projects/web/.git/HEAD"] = []byte("ref: refs/heads/feat/local-planning\n")
 
@@ -107,8 +107,8 @@ func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
 	if snapshot.Projects[0].Branch != "feat/local-planning" {
 		t.Fatalf("the whole branch path must survive: %q", snapshot.Projects[0].Branch)
 	}
-	if snapshot.Entitlement != contract.EntitlementDev {
-		t.Fatalf("got %s", snapshot.Entitlement)
+	if snapshot.License != contract.LicenseDev {
+		t.Fatalf("got %s", snapshot.License)
 	}
 }
 
@@ -702,7 +702,7 @@ func TestAServiceIsUnconfiguredWhenTheEngineLeftItForLater(t *testing.T) {
 		Sys:          fake,
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     catalog,
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		Deferred:     func() []string { return []string{"tool.demo"} },
 	})
@@ -832,7 +832,7 @@ func lockedReader(t *testing.T, fake *modtest.FakeSys) (*state.Reader, func()) {
 		Sys:          fake,
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     modules.NewRegistry(),
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		Follow:       state.FollowOptions{Sleep: func(time.Duration) {}},
 		InstallLock:  path,
@@ -888,7 +888,7 @@ func TestTheInstallEndsWithTheChannelThatAskedForIt(t *testing.T) {
 		Sys:          waitingSys{fake},
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     modules.NewRegistry(),
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		Follow:       state.FollowOptions{Sleep: func(time.Duration) {}},
 		InstallLock:  path,

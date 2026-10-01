@@ -1,36 +1,57 @@
 ---
 title: "Licence"
-description: "What you may do with the Pupitre desktop app and the agent, what stays ours, and the right the free launch gives you for good."
+description: "The licence of the source code — Apache 2.0 with the Commons Clause — what it lets you do and what it forbids, and the right to use the hosted platform, free up to a number of servers."
 locale: en
-updated: 2026-09-24
+updated: 2026-10-01
 order: 2
 ---
 
-This licence is part of the [terms of service](/legal/terms/). It covers the desktop app, the agent installed on your machine, and the updates of both.
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+import { SOURCE_LICENSE_URL } from "../../../lib/urls"
 
-## Grant
+This page is part of the [terms of service](/legal/terms/). It covers two different things: the licence of the source code of Pupitre — the desktop app, the agent, the console, the platform and the service catalogue — and the right to use the platform we host at `app.pupitre.studio`.
 
-While your organisation holds a right of use for a machine, you get a personal, non-exclusive, non-transferable and revocable right to install and use the desktop app on the computers you work from, and the agent on that machine, for your professional or personal use. The right is granted, never assigned: nothing here sells you the software.
+## The source code is source-available
 
-## Machines and seats
+The code of Pupitre is public. It is licensed by React Consulting SARL AU under the Apache License, Version 2.0, with the Commons Clause License Condition v1.0. That combination is source-available: it is not an open-source licence in the sense of the Open Source Initiative, and Pupitre is not "open source".
 
-What is counted is machines: an enrolled machine takes a seat, a removed machine frees it. An organisation shares its seats between its members. During the free launch, every organisation has one seat, at no charge.
+The text that binds is the one in the <a href={SOURCE_LICENSE_URL}>LICENSE file of the repository</a>, with its `NOTICE` file. What follows summarises it; where the summary and the text differ, the text prevails.
 
-## The launch seat is yours for good
+## What the licence lets you do
 
-An organisation that enrolled a machine during the free launch keeps one seat free of charge for as long as the service exists. That seat survives the opening of billing, a change of the responsible party, and the replacement of the machine by another. It is tied to the organisation, not to a person: a member who leaves does not take it away, and the organisation's owner cannot sell or transfer it separately from the organisation.
+Under the conditions of the Apache License, you may use, copy, modify and distribute the code, in source or compiled form, for yourself or for your company, and run it, including a platform of your own. Distributing it, modified or not, you give the recipients a copy of the licence, keep the copyright, patent and attribution notices and the `NOTICE` file, and mark the files you changed.
 
-## Restrictions
+Using Pupitre for your own work is not selling it: you may run it to develop, host and deliver your own projects, including the work you are paid for by your clients.
 
-You do not redistribute the app or the agent, do not rent them out, and do not build them into a service resold to third parties. You do not try to decompile them, to bypass the entitlement check, to forge the platform's answers, or to run the agent on a machine that has no seat. None of this takes away what the applicable law lets you do in spite of such a clause, such as decompiling to make a program interoperate with Pupitre, within the limits that law sets.
+## What the licence forbids
 
-## Ownership
+The Commons Clause withholds one right: selling the software. You may not provide to third parties, for a fee or other consideration, a product or service whose value derives entirely or substantially from the functionality of Pupitre, including fees for hosting or for consulting and support services related to it. For instance:
 
-The app, the agent, the service catalogue, the console and the protocol between them belong personally to Jordan Monier, their sole rights holder. They are meant to be transferred to a company once the project has proven itself; that transfer changes the name on this page and nothing in your rights. The projects you create, the code you write, the services you install and the data on your machines are yours, without exception, and nothing here gives us any right over them.
+- a host that charges its customers for installing Pupitre on their servers, as an option or a one-click image;
+- a paid "managed Pupitre", or a paid hosted platform built on its code;
+- a build of the app or the agent sold, rented or bundled into a paid offer, under the Pupitre name or another.
+
+Any licence notice or attribution the Apache License requires must carry the Commons Clause notice with it.
+
+## The name and the logo
+
+The licence grants no right to the Pupitre name or its logo, as section 6 of the Apache License says. You may say that a product uses or derives from Pupitre; you may not name a product, a service, a domain or an account after it, nor suggest that we endorse a version we did not publish. The [legal notice](/legal/legal-notice/) says the rest.
+
+## The hosted platform
+
+The platform at `app.pupitre.studio` is free for every organisation up to {FREE_SERVERS} enrolled machines. Beyond them, an organisation needs a licence, granted by the platform on request, at no charge today, as the [free servers and licences](/legal/billing/) describe. What is counted is machines: an enrolled machine takes a seat, a removed machine frees it, and an organisation shares its seats between its members.
+
+On the hosted platform, you do not try to enrol more machines than your organisation's seats, to forge the platform's answers, or to make the agent behave as if it held a licence it does not hold. That is not a limit on what you may do with the code on a platform of your own: it is a rule of our service.
+
+## Contributions and ownership
+
+React Consulting SARL AU holds the rights to the code it publishes. A contribution you submit to the repository is licensed under the same terms, as section 5 of the Apache License states, and stays yours.
+
+The projects you create, the code you write, the services you install and the data on your machines are yours, without exception, and nothing here gives us any right over them.
 
 ## Who signs the app
 
-The macOS and Windows builds of the desktop app are signed with certificates held by React Consulting SARL AU, a company established in Morocco and owned by Jordan Monier, so that the operating systems accept the app. That company signs the builds and does nothing else: it is not the publisher, it is not a party to this contract, and it receives no data from you. The agent is signed with an Ed25519 key that belongs to the project and that the app carries to verify every binary it installs.
+The macOS and Windows builds of the desktop app we publish are signed with certificates held by React Consulting SARL AU, so that the operating systems accept the app. The agent we publish is signed with an Ed25519 key that belongs to the project and that the app carries to verify every binary it installs. A build you make yourself carries neither signature, and the agent we publish installs no update that does not carry ours.
 
 ## Third-party software
 
@@ -40,8 +61,12 @@ The app and the agent are themselves built on open-source components, whose lice
 
 ## Restricted mode
 
-Without a valid right of use for seven days, or when the platform answers that the machine is suspended, the agent enters restricted mode: it refuses commands from the app and answers only that it is restricted. It stops no service, erases no data and touches no file. When the platform has answered a suspension, the agent also empties the tagged block it manages in `authorized_keys`, as the [terms](/legal/terms/) describe; when it is simply without an answer, it changes nothing. A restored right of use puts it back to work as it was.
+Without a valid right of use for seven days, or when the platform answers that the machine is suspended, the agent enters restricted mode: it refuses commands from the app and answers only that a licence is required. It stops no service, erases no data and touches no file. When the platform has answered a suspension, the agent also empties the tagged block it manages in `authorized_keys`, as the [terms](/legal/terms/) describe; when it is simply without an answer, it changes nothing. A restored right of use puts it back to work as it was.
+
+## No warranty
+
+The code is provided as is, without warranty of any kind, and its contributors are not liable for damages arising from its use, as sections 7 and 8 of the Apache License state. The [terms of service](/legal/terms/) say what we answer for on the hosted platform.
 
 ## Termination
 
-The right to use ends with the right of use of the machine, or immediately on a serious breach of these terms or of the [acceptable use policy](/legal/acceptable-use/). After termination your machine stays an ordinary machine: what runs keeps running, and the command to uninstall the agent is documented.
+The right to use the hosted platform ends with the right of use of the machine, or immediately on a serious breach of these terms or of the [acceptable use policy](/legal/acceptable-use/). After termination your machine stays an ordinary machine: what runs keeps running, and the command to uninstall the agent is documented. The licence of the code ends only as the Apache License and the Commons Clause provide: selling the software is outside the rights granted, and the patent licence ends for whoever brings a patent claim over the code.

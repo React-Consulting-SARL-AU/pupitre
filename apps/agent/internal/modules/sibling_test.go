@@ -13,7 +13,7 @@ import (
 func TestACommandReadsItsSiblingsOnWhatInstallJSONRemembers(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files["/etc/pupitre/install.json"] = []byte(`{"modules":["tool.demo","db.demo"],"config":{"db.demo":{"port":5433}},"secrets":{"db.demo":{"password":"` + secret + `"}}}`)
-	engine := newEngine(t, fake, demoRegistry(modtest.Passing{ID: "tool.demo"}, modtest.Passing{ID: "db.demo"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, fake, demoRegistry(modtest.Passing{ID: "tool.demo"}, modtest.Passing{ID: "db.demo"}), licensed(contract.LicenseDev))
 
 	err := engine.Command("tool.demo", nil, func(ctx *modules.Context) error {
 		sibling, known := ctx.Sibling("db.demo")

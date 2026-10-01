@@ -21,7 +21,8 @@
 # ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
 # Garde une clé en commentaire tant que son champ n'existe pas.
 
-# --- Facturation. La clé et les deux prix suffisent pour un paiement de test.
+# --- Facturation, dormante en BILLING_MODE=off. La clé et les deux prix
+# suffisent pour un paiement de test en BILLING_MODE=stripe.
 STRIPE_SECRET_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_SECRET_KEY"
 STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
 STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"

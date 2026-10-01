@@ -46,22 +46,6 @@ export async function createConsoleUser(input: TestUserInput = {}) {
   }
 }
 
-// As `billing/launch.ts` writes it; without an end, the seat kept for good.
-export async function grantLaunch(organizationId: string, endsAt: Date | null) {
-  const { prisma } = await bootApiTestServer()
-
-  return await prisma.subscription.create({
-    data: {
-      organizationId,
-      stripeSubscriptionId: `launch_${organizationId}`,
-      product: "launch",
-      quantity: 1,
-      status: endsAt ? "trialing" : "active",
-      currentPeriodEnd: endsAt,
-    },
-  })
-}
-
 export interface SessionApiClientOptions {
   cut?: (url: string, init?: RequestInit) => boolean
 }

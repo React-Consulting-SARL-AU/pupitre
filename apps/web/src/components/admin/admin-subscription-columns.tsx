@@ -74,10 +74,7 @@ export function adminSubscriptionColumns(
       width: "w-36",
       cell: (subscription) => (
         <>
-          <AdminSubscriptionStatus
-            product={subscription.product}
-            status={subscription.status}
-          />
+          <AdminSubscriptionStatus status={subscription.status} />
           {subscription.cancel_at_period_end ? (
             <p className="text-[12px] text-ink-3">
               {t("admin.subscriptions.cancelAtPeriodEnd")}

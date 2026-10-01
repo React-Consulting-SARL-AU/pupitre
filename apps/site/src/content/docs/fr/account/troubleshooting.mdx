@@ -1,32 +1,32 @@
 ---
 title: Dépannage
-description: Un serveur qui réclame un abonnement, le mode restreint, fail2ban qui bannit votre propre adresse, le mot de passe sudo de dev, une étape d’installation en échec, et où l’app écrit ses erreurs.
+description: Un serveur qui réclame une licence, le mode restreint, fail2ban qui bannit votre propre adresse, le mot de passe sudo de dev, une étape d’installation en échec, et où l’app écrit ses erreurs.
 locale: fr
 section: account
 sectionOrder: 3
 order: 6
 ---
 
-## « Abonnement requis »
+## « Licence requise »
 
-L’agent répond `abonnement requis : ce serveur est en mode restreint` à chaque commande qu’il refuse, dans l’app comme après `dev` dans un terminal. L’app dit la même chose avec ses mots : **Choisissez une offre pour ouvrir Pupitre** ou **Abonnement suspendu** au lancement, **Aucun abonnement** sous **Réglages › Compte**, ou un bandeau au-dessus des écrans du serveur. La cause est l’une de celles-ci.
+L’agent répond `licence requise : ce serveur est en mode restreint` à chaque commande qu’il refuse, dans l’app comme après `dev` dans un terminal. L’app dit la même chose avec ses mots : **Licence requise** au lancement ou sous **Réglages › Compte**, ou un bandeau au-dessus des écrans du serveur. La cause est l’une de celles-ci.
 
-- **L’organisation n’a pas d’offre.** L’app nomme l’organisation qu’elle a regardée. **Choisir une offre** ouvre la facturation de la console ; une fois le lancement, l’essai ou un abonnement ouvert, **Actualiser** dans l’app.
-- **Une autre organisation est active.** Votre offre est sur une autre organisation que celle pour laquelle travaille cet ordinateur. Depuis l’écran de lancement, **Ouvrir les réglages**, puis **Serveurs › Vos organisations**, et **Rendre active** sur la bonne.
-- **L’abonnement est suspendu.** **Gérer l’abonnement** ouvre la console ; régularisez-le là, puis **Actualiser**.
+- **L’organisation tient plus de serveurs que ses serveurs gratuits, sans licence.** Une licence a expiré, ou n’a jamais été accordée. Demandez-en une à `support@pupitre.studio`, ou supprimez des serveurs dans la console pour revenir aux serveurs gratuits ; puis **Actualiser** dans l’app. Voir la [licence](/fr/docs/account/licence/).
+- **Une autre organisation est active.** Vos serveurs sont sur une autre organisation que celle pour laquelle travaille cet ordinateur. Depuis l’écran de lancement, **Ouvrir les réglages**, puis **Serveurs › Vos organisations**, et **Rendre active** sur la bonne.
+- **L’organisation est suspendue par la plateforme.** La console dit pourquoi ; écrivez à `support@pupitre.studio`.
 - **La console n’a pas répondu depuis plus de sept jours.** L’app le dit. Reconnectez cet ordinateur, et la réponse suivante lève le refus.
 
-Sur le serveur lui-même, les commandes `dev` lisent le rattachement et le droit d’usage dans deux fichiers que seul root ouvre, et se relancent sous `sudo` pour y arriver. Depuis un compte dont le `sudo` demande un mot de passe, la commande le dit : tapez `sudo dev <commande>`.
+Sur le serveur lui-même, les commandes `dev` lisent le rattachement et la licence dans deux fichiers que seul root ouvre, et se relancent sous `sudo` pour y arriver. Depuis un compte dont le `sudo` demande un mot de passe, la commande le dit : tapez `sudo dev <commande>`.
 
 ## Le mode restreint
 
-Un serveur passe en mode restreint quand la plateforme répond que son abonnement est suspendu, quand le serveur est supprimé de la console, ou quand l’agent n’a pas joint la plateforme depuis sept jours.
+Un serveur passe en mode restreint quand la plateforme répond que la licence de son organisation est suspendue, quand le serveur est supprimé de la console, ou quand l’agent n’a pas joint la plateforme depuis sept jours.
 
 Ce qui marche encore : lire l’état du serveur, le diagnostic, mettre l’agent à jour et migrer sa configuration, l’enrôlement, et une synchronisation avec la plateforme. Tout le reste est refusé — installations, changements de configuration, actions sur les projets, secrets. Rien de ce qui tourne n’est arrêté : services et projets continuent, et SSH en `dev` marche comme avant.
 
-Il se lève seul. L’agent lit la plateforme toutes les trente secondes : dès que l’abonnement est de nouveau valide, la lecture suivante rend le serveur. Quand votre compte détient une offre et que le serveur reste restreint malgré tout — il a perdu son token, par exemple —, le bandeau de l’app propose **Rattacher à nouveau ce serveur** : un token d’enrôlement neuf arrive à l’agent, et rien d’autre n’est touché sur la machine.
+Il se lève seul. L’agent lit la plateforme toutes les trente secondes : dès que la licence est de nouveau valide, la lecture suivante rend le serveur. Quand la licence de l’organisation est valide et que le serveur reste restreint malgré tout — il a perdu son token, par exemple —, le bandeau de l’app propose **Rattacher à nouveau ce serveur** : un token d’enrôlement neuf arrive à l’agent, et rien d’autre n’est touché sur la machine.
 
-Un paiement refusé ne restreint rien tout de suite : sept jours de tolérance, puis la suspension. Le côté argent est sur la [facturation](/fr/docs/account/billing/).
+Une licence qui expire ne restreint rien tout de suite : sept jours de tolérance, puis la suspension. Voir la [licence](/fr/docs/account/licence/).
 
 ## fail2ban a banni votre propre adresse
 

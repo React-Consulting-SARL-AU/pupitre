@@ -629,11 +629,11 @@ type Session struct {
 }
 
 type Snapshot struct {
-	Machine     Machine         `json:"machine"`
-	Services    []ServiceStatus `json:"services"`
-	Projects    []Project       `json:"projects"`
-	Sessions    []Session       `json:"sessions"`
-	Entitlement Entitlement     `json:"entitlement"`
+	Machine  Machine         `json:"machine"`
+	Services []ServiceStatus `json:"services"`
+	Projects []Project       `json:"projects"`
+	Sessions []Session       `json:"sessions"`
+	License  License         `json:"license"`
 }
 
 type Status struct {

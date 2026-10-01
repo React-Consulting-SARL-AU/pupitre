@@ -8,7 +8,7 @@ export const PROTOCOL_ERROR_CODES = [
   "bad_request",
   "invalid_config",
   "unknown_command",
-  "entitlement_required",
+  "license_required",
   "project_not_found",
   "module_not_found",
   "no_report",

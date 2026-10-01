@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/state"
@@ -30,7 +30,7 @@ type Options struct {
 	Sys          sys.Sys
 	Now          func() time.Time
 	Platform     platform.Client
-	Entitlement  *entitlement.Resolver
+	License      *license.Resolver
 	Reader       *state.Reader
 	AgentVersion string
 	Arch         string
@@ -69,7 +69,7 @@ type Daemon struct {
 }
 
 type Sync struct {
-	Entitlement   contract.Entitlement
+	License       contract.License
 	Keys          []keys.Key
 	KeysChanged   bool
 	Pending       []string
@@ -114,8 +114,8 @@ func New(options Options) *Daemon {
 	if options.HeartbeatInterval == 0 {
 		options.HeartbeatInterval = DefaultHeartbeatInterval
 	}
-	if options.Entitlement == nil {
-		options.Entitlement = entitlement.New(entitlement.Options{Sys: options.Sys, Now: options.Now, TokenPath: options.TokenPath})
+	if options.License == nil {
+		options.License = license.New(license.Options{Sys: options.Sys, Now: options.Now, TokenPath: options.TokenPath})
 	}
 
 	return &Daemon{
@@ -162,7 +162,7 @@ func (d *Daemon) read(ctx context.Context, platformURL string) (Sync, bool, erro
 		return Sync{}, false, err
 	}
 
-	if err := d.options.Entitlement.Remember(answer); err != nil {
+	if err := d.options.License.Remember(answer); err != nil {
 		return Sync{}, false, err
 	}
 
@@ -174,7 +174,7 @@ func (d *Daemon) read(ctx context.Context, platformURL string) (Sync, bool, erro
 	}
 
 	return Sync{
-		Entitlement:   d.options.Entitlement.Current(),
+		License:       d.options.License.Current(),
 		Keys:          keysNow.kept,
 		KeysChanged:   keysNow.changed,
 		Pending:       keysNow.pending,
@@ -226,15 +226,15 @@ func (d *Daemon) stillHolds(token string) bool {
 }
 
 func (d *Daemon) revoke() {
-	d.journal.Logf("the platform no longer knows this server's token: revoked, entitlement suspended, keys kept")
+	d.journal.Logf("the platform no longer knows this server's token: revoked, license suspended, keys kept")
 
-	if err := d.options.Entitlement.Suspend(); err != nil {
-		d.journal.Logf("entitlement not suspended: %s", err)
+	if err := d.options.License.Suspend(); err != nil {
+		d.journal.Logf("license not suspended: %s", err)
 	}
 }
 
-func (d *Daemon) Entitlement() contract.Entitlement {
-	return d.options.Entitlement.Current()
+func (d *Daemon) License() contract.License {
+	return d.options.License.Current()
 }
 
 func (d *Daemon) Beat(ctx context.Context) error {
@@ -384,7 +384,7 @@ func (d *Daemon) Keys() []keys.Key {
 }
 
 func (d *Daemon) SyncedAt() time.Time {
-	return d.options.Entitlement.SyncedAt()
+	return d.options.License.SyncedAt()
 }
 
 func (d *Daemon) client(platformURL string) (platform.Client, error) {

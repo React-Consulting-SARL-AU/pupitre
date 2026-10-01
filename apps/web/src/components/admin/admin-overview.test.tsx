@@ -54,10 +54,10 @@ describe("AdminOverview", () => {
     )
 
     expect(container.textContent).toContain("Users")
-    expect(container.textContent).toContain("Unpaid subscriptions")
-    expect(container.textContent).toContain("Trials ending")
+    expect(container.textContent).toContain("Unpaid licences")
+    expect(container.textContent).not.toContain("Trials ending")
     expect(container.textContent).toContain("Unreachable servers")
-    expect(container.textContent).toContain("Seats over the subscription")
+    expect(container.textContent).toContain("Servers over the licence")
     expect(container.textContent).toContain("Scheduled deletions")
     expect(container.textContent).toContain("Nothing to handle")
     expect(container.textContent).not.toContain("See everything")
@@ -123,7 +123,9 @@ describe("AdminOverview", () => {
     const { prisma } = await bootApiTestServer()
     const { server } = await createServer({ organizationId, name: "vps-muet" })
 
-    await createServer({ organizationId, name: "vps-deux" })
+    for (const name of ["vps-deux", "vps-trois", "vps-quatre", "vps-cinq"]) {
+      await createServer({ organizationId, name })
+    }
     await prisma.alert.create({
       data: { serverId: server.id, kind: "server_unreachable" },
     })

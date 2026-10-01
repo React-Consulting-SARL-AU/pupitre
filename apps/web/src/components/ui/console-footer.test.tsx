@@ -19,7 +19,7 @@ const SIGNED_IN = {
   organizations: [],
   active_organization: null,
   role: null,
-  entitlement: "valid",
+  license: "valid",
   platformRole: null,
 }
 

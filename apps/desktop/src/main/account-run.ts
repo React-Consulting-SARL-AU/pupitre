@@ -2,6 +2,8 @@ import type {
   KeyApprovalSubmission,
   PendingKeyApproval,
 } from "@pupitre/shared/keys";
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal";
+import { FREE_SERVERS } from "@pupitre/shared/plans";
 import type {
   AccountDevice,
   AccountError,
@@ -114,24 +116,26 @@ export function usageRightOf(
     now,
   }: { build: BuildKind; consoleUrl: string; now: number }
 ): UsageRight {
-  const entitlement = record.identity?.entitlement ?? "none";
+  const license = record.identity?.license ?? "none";
 
-  if (build === "development" && entitlement !== "suspended") {
+  if (build === "development" && license !== "suspended") {
     return {
-      entitlement,
+      license,
       source: "development",
       status: "granted",
       validUntil: null,
     };
   }
 
-  if (entitlement === "suspended") {
-    return record.identity?.subscription
-      ? { consoleUrl, status: "suspended" }
-      : { consoleUrl, status: "unsubscribed" };
+  if (license === "suspended") {
+    const servers = record.identity?.servers;
+
+    return servers && servers.used > servers.limit
+      ? { consoleUrl, servers, status: "unlicensed" }
+      : { consoleUrl, status: "suspended" };
   }
 
-  if (!record.checkedAt || entitlement === "none") {
+  if (!record.checkedAt || license === "none") {
     return { consoleUrl, status: "absent" };
   }
 
@@ -142,7 +146,7 @@ export function usageRightOf(
   }
 
   return {
-    entitlement,
+    license,
     source: age > FRESH_MS ? "cache" : "platform",
     status: "granted",
     validUntil: new Date(
@@ -182,21 +186,25 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
         message: "refusal.account.suspended",
         phrase: {
           id: "refusal.account.suspended",
-          values: { console: right.consoleUrl },
+          values: { support: LEGAL_CONTACTS.support },
         },
       },
     };
   }
 
-  if (right.status === "unsubscribed") {
+  if (right.status === "unlicensed") {
     return {
       ok: false,
       error: {
-        code: "entitlement_required",
-        message: "refusal.account.unsubscribed",
+        code: "license_required",
+        message: "refusal.account.unlicensed",
         phrase: {
-          id: "refusal.account.unsubscribed",
-          values: { console: right.consoleUrl },
+          id: "refusal.account.unlicensed",
+          values: {
+            free: FREE_SERVERS,
+            support: LEGAL_CONTACTS.support,
+            used: right.servers.used,
+          },
         },
       },
     };
@@ -206,7 +214,7 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
     return {
       ok: false,
       error: {
-        code: "entitlement_required",
+        code: "license_required",
         message: "refusal.account.stale",
         phrase: {
           id: "refusal.account.stale",
@@ -219,7 +227,7 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
   return {
     ok: false,
     error: {
-      code: "entitlement_required",
+      code: "license_required",
       message: "refusal.account.required",
       phrase: {
         id: "refusal.account.required",
@@ -446,7 +454,7 @@ export function createAccount(deps: AccountDeps): Account {
     return state();
   }
 
-  // No usage-right guard: an invited member sees granted servers before their organization subscribes.
+  // No usage-right guard: an invited member sees granted servers before their organization holds a licence.
   async function fleet(): Promise<AccountResponse<FleetServer[]>> {
     const token = deps.vault.token();
 

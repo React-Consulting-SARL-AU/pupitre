@@ -5,12 +5,12 @@
 @answer gh ssh-key list :: staging\tssh-ed25519 AAAA\t2026-09-04
 @file /home/dev/.ssh/id_ed25519 PRIVATE KEY
 @file /home/dev/.ssh/id_ed25519.pub ssh-ed25519 AAAA staging
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"install","params":{"secrets_stdin":true,"modules":["tool.github","tool.1password"],"config":{}}}
 $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_token":"s3cret-de-test"}}
 > {"id":3,"cmd":"install","params":{"secrets_stdin":true,"modules":["tool.github","tool.1password"],"config":{}}}
 $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_token":"s3cret-de-test"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

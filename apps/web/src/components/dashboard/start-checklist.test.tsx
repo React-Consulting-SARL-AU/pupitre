@@ -21,16 +21,14 @@ let organization: DashboardOrganization
 let userId: string
 
 interface Mount {
-  entitlement?: string
   role?: OrgRole
   compact?: boolean
 }
 
-function list({ entitlement = "suspended", role = "owner", compact }: Mount) {
+function list({ role = "owner", compact }: Mount) {
   return withDashboard(<StartChecklist compact={compact} />, {
     organization,
     role,
-    entitlement,
   })
 }
 
@@ -86,48 +84,46 @@ describe("StartChecklist", () => {
     }
   })
 
-  it("part d'un pas fait sur quatre, et demande l'essai", async () => {
+  it("part d'un pas fait sur trois, et demande l'app", async () => {
     const { container, unmount } = await render(list({}))
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () => container.textContent?.includes("No card is asked for") ?? false
-    )
-
-    expect(doneSteps(container)).toBe(1)
-    expect(currentStep(container)).toContain("Start for free")
-    expect(container.textContent).toContain("Rent a server and add it")
-  })
-
-  it("passe à l'app dès que l'essai est ouvert", async () => {
-    const { container, unmount } = await render(list({ entitlement: "valid" }))
 
     mounted.push(unmount)
 
     await waitUntil(() => currentStep(container).length > 0)
 
-    expect(doneSteps(container)).toBe(2)
+    expect(doneSteps(container)).toBe(1)
     expect(currentStep(container)).toContain(
       "Install the app and link it to your account"
     )
+    expect(container.textContent).toContain("Rent a server and add it")
 
     const links = [...container.querySelectorAll("a")].map((link) =>
       link.getAttribute("href")
     )
 
     expect(links).toContain("/dashboard/download")
-    expect(container.textContent).not.toContain("No card is asked for")
+  })
+
+  it("donne le même chemin à un membre qu'au propriétaire", async () => {
+    const { container, unmount } = await render(list({ role: "member" }))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => currentStep(container).length > 0)
+
+    expect(currentStep(container)).toContain(
+      "Install the app and link it to your account"
+    )
   })
 
   it("passe au serveur dès qu'un appareil est lié, et dit où louer", async () => {
     await linkDevice()
 
-    const { container, unmount } = await render(list({ entitlement: "valid" }))
+    const { container, unmount } = await render(list({}))
 
     mounted.push(unmount)
 
-    await waitUntil(() => doneSteps(container) === 3)
+    await waitUntil(() => doneSteps(container) === 2)
 
     expect(currentStep(container)).toContain("Rent a server and add it")
     expect(container.textContent).toContain("4 GB of memory at least")
@@ -144,7 +140,7 @@ describe("StartChecklist", () => {
     await linkDevice()
     await seedServer("enrolling")
 
-    const { container, unmount } = await render(list({ entitlement: "valid" }))
+    const { container, unmount } = await render(list({}))
 
     mounted.push(unmount)
 
@@ -153,15 +149,13 @@ describe("StartChecklist", () => {
     )
 
     expect(container.textContent).toContain("Enrolment under way")
-    expect(doneSteps(container)).toBe(3)
+    expect(doneSteps(container)).toBe(2)
   })
 
   it("ne garde que ce qui reste quand la place manque", async () => {
     await linkDevice()
 
-    const { container, unmount } = await render(
-      list({ entitlement: "valid", compact: true })
-    )
+    const { container, unmount } = await render(list({ compact: true }))
 
     mounted.push(unmount)
 
@@ -172,19 +166,5 @@ describe("StartChecklist", () => {
     expect(container.querySelectorAll("ol > li")).toHaveLength(1)
     expect(container.textContent).not.toContain("Create your account")
     expect(container.textContent).not.toContain("Install the app")
-  })
-
-  it("dit à un membre que l'essai ne lui appartient pas", async () => {
-    const { container, unmount } = await render(list({ role: "member" }))
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () =>
-        container.textContent?.includes("The owner starts the trial") === true
-    )
-
-    expect(container.textContent).toContain("ada@test.local")
-    expect(container.querySelectorAll("button")).toHaveLength(0)
   })
 })

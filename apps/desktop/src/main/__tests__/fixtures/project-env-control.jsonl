@@ -1,6 +1,6 @@
 # Le fichier d'environnement d'un projet : lu tel quel, puis réécrit sur demande.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.list","project.env"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.list","project.env"]}}
 > {"id":2,"cmd":"project.list"}
 < {"id":2,"ok":true,"result":{"projects":[{"name":"flyleaf-api","dir":"flyleaf/api","path":"/home/dev/projects/flyleaf/api","processes":[{"id":"flyleaf-api","dir":".","path":"/home/dev/projects/flyleaf/api","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev","state":"online"}],"state":"online"}]}}
 > {"id":3,"cmd":"project.env","params":{"name":"flyleaf-api"}}

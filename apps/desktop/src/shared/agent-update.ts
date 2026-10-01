@@ -1,8 +1,9 @@
+import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import type {
   AgentMigrateResult,
   ConfigRevision,
 } from "@pupitre/shared/agent-protocol/migrate";
-import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
+import type { License } from "@pupitre/shared/agent-protocol/session";
 import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import {
   agentFloorFor,
@@ -50,8 +51,8 @@ export function owesMigration(config: ConfigRevision | null): boolean {
 }
 
 /** `restricted` lost the platform seven days ago and `dev` never had it: neither can sign an update. */
-export function platformAnswers(entitlement: Entitlement | null): boolean {
-  return entitlement === "valid" || entitlement === "grace";
+export function platformAnswers(license: License | null): boolean {
+  return license === "valid" || license === "grace";
 }
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
@@ -114,4 +115,24 @@ export function verdictOf(
 
 export function floorOf(appVersion: string): string | null {
   return agentFloorFor(appVersion);
+}
+
+/** The shell probe compares no version: an agent of an older generation refuses `hello`, so only its binary can be replaced. */
+export function judgedForApp(
+  probe: ProbeResult,
+  appVersion: string
+): ProbeResult {
+  const { verdict } = probe;
+
+  if (
+    verdict.kind !== "managed" ||
+    verdictOf(appVersion, probe.agent_version) !== "agent_too_old"
+  ) {
+    return probe;
+  }
+
+  return {
+    ...probe,
+    verdict: { ...verdict, level: "warning", up_to_date: false },
+  };
 }

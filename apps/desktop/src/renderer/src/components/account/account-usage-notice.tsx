@@ -1,3 +1,5 @@
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal";
+import { FREE_SERVERS } from "@pupitre/shared/plans";
 import { Button } from "@renderer/components/ui/button";
 import { Panel } from "@renderer/components/ui/panel";
 import type {
@@ -9,9 +11,9 @@ import type { Translate } from "@renderer/i18n/i18n";
 import { currentLocale } from "@renderer/i18n/translate";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
+import { useContactSupport } from "@renderer/lib/use-contact-support";
 import type { UsageRight } from "@shared/account";
-import { ExternalLink } from "lucide-react";
-import { billingUrlOf } from "./account-subscription-card";
+import { ExternalLink, Mail } from "lucide-react";
 
 interface Look {
   shape: StatusShape;
@@ -54,10 +56,10 @@ function lookOf(usage: UsageRight, t: Translate): Look {
     };
   }
 
-  if (usage.status === "unsubscribed") {
+  if (usage.status === "unlicensed") {
     return {
       shape: "empty",
-      title: t("account.usage.look.unsubscribed"),
+      title: t("account.usage.look.unlicensed"),
       tone: "warn",
     };
   }
@@ -88,33 +90,20 @@ function detailOf(
     return t("account.usage.suspended");
   }
 
-  if (usage.status === "unsubscribed") {
-    return t("account.usage.unsubscribed");
+  if (usage.status === "unlicensed") {
+    return t("account.usage.unlicensed", {
+      free: FREE_SERVERS,
+      support: LEGAL_CONTACTS.support,
+      used: usage.servers.used,
+    });
   }
 
   return t("account.usage.none");
 }
 
-function consoleOf(usage: UsageRight): string | null {
-  if (usage.status === "granted") {
-    return null;
-  }
-
-  return usage.status === "suspended" || usage.status === "unsubscribed"
-    ? billingUrlOf(usage.consoleUrl)
-    : usage.consoleUrl;
-}
-
-function actionOf(usage: UsageRight, t: Translate): string {
-  if (usage.status === "suspended") {
-    return t("account.usage.manageSubscription");
-  }
-
-  if (usage.status === "unsubscribed") {
-    return t("account.usage.choosePlan");
-  }
-
-  return t("account.usage.openConsole");
+/** Only the platform lifts a suspension or grants a licence: both are asked of support, not of the console. */
+function asksSupport(usage: UsageRight): boolean {
+  return usage.status === "suspended" || usage.status === "unlicensed";
 }
 
 export function AccountUsageNotice({
@@ -128,8 +117,10 @@ export function AccountUsageNotice({
 }) {
   const t = useTranslations();
 
+  const contactSupport = useContactSupport();
   const look = lookOf(usage, t);
-  const console = consoleOf(usage);
+  const console =
+    usage.status === "granted" || asksSupport(usage) ? null : usage.consoleUrl;
 
   return (
     <Panel className="flex items-start gap-3" data-usage={usage.status}>
@@ -157,6 +148,18 @@ export function AccountUsageNotice({
         ) : null}
       </div>
 
+      {asksSupport(usage) ? (
+        <Button
+          className="shrink-0 self-center"
+          icon={Mail}
+          onClick={contactSupport}
+          size="sm"
+          variant="inverse"
+        >
+          {t("account.usage.contactSupport")}
+        </Button>
+      ) : null}
+
       {console && onOpenConsole ? (
         <Button
           className="shrink-0 self-center"
@@ -165,7 +168,7 @@ export function AccountUsageNotice({
           size="sm"
           variant="inverse"
         >
-          {actionOf(usage, t)}
+          {t("account.usage.openConsole")}
         </Button>
       ) : null}
     </Panel>

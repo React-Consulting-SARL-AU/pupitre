@@ -263,7 +263,7 @@ describe("AdminUserDetail", () => {
     expect(trigger(container, "Cancel the account deletion")).not.toBeNull()
   })
 
-  it("links each organisation to the subscription that counts for it", async () => {
+  it("links each organisation to the licence that counts for it", async () => {
     const { prisma } = await bootApiTestServer()
     const { members, organization } = await createOrganizationWithMembers({
       name: "Atelier",
@@ -282,7 +282,7 @@ describe("AdminUserDetail", () => {
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
 
     const link = container.querySelector<HTMLAnchorElement>(
-      'a[title="Open the subscription"]'
+      'a[title="Open the licence"]'
     )
 
     expect(link?.getAttribute("href")).toBe(

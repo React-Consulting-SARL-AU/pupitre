@@ -1,10 +1,5 @@
 import { getCollection } from "astro:content"
-import {
-  ANNUAL_FREE_MONTHS,
-  formatUsd,
-  getPlan,
-  TRIAL_DAYS,
-} from "@pupitre/shared/plans"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { CATALOG_ENTRIES } from "../content/site/catalog"
 import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import { downloadContent } from "../content/site/download"
@@ -63,12 +58,8 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
     }),
     page(at("/pricing/"), {
       eyebrow: pricing.hero.label,
-      title: pricing.hero.headline,
-      description: fill(pricing.meta.description, {
-        price: formatUsd(getPlan("solo").monthlyPriceUsd),
-        months: ANNUAL_FREE_MONTHS,
-        days: TRIAL_DAYS,
-      }),
+      title: fill(pricing.hero.headline, { count: FREE_SERVERS }),
+      description: fill(pricing.meta.description, { count: FREE_SERVERS }),
     }),
     page(at("/download/"), {
       eyebrow: download.hero.label,

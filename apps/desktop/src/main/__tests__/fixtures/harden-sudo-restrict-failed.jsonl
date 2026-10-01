@@ -1,6 +1,6 @@
 # Le mot de passe est posé, la règle sudo refusée : le mot de passe tiré est désormais celui de dev.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","harden","harden.sudo"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","harden","harden.sudo"]}}
 > {"id":2,"cmd":"harden.sudo","params":{"user":"dev","secrets_stdin":true}}
 $ *
 < {"id":2,"event":"step","module":"core.hardening","step":"check-sshd-passwords","status":"ok","ms":40}

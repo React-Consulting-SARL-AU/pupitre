@@ -2,7 +2,7 @@ import type {
   KeyApprovalSubmission,
   PendingKeyApproval,
 } from "@pupitre/shared/keys";
-import type { MeSubscription } from "@pupitre/shared/plans";
+import type { MeServers } from "@pupitre/shared/plans";
 import type { ServerEnrollment } from "@pupitre/shared/platform-api/account";
 import type {
   AccountDevice,
@@ -22,21 +22,17 @@ export const FAKE_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI0000 jordan@mac";
 
 export const IDENTITY: AccountIdentity = {
   email: "ada@pupitre.studio",
-  entitlement: "valid",
+  license: "valid",
+  licenseGrant: null,
   name: "Ada",
   organization: { id: "org-1", name: "Ada", slug: "ada" },
   organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
   role: "owner",
-  subscription: null,
+  servers: { limit: 3, used: 1 },
 };
 
-/** What tells a suspension from a plan never chosen. */
-export const CANCELED_SUBSCRIPTION: MeSubscription = {
-  current_period_end: "2026-08-31T00:00:00.000Z",
-  servers: { limit: 1, used: 1 },
-  status: "canceled",
-  trial_ends_at: null,
-};
+/** What tells a licence required from a suspension. */
+export const OVER_FREE_SERVERS: MeServers = { limit: 3, used: 4 };
 
 export const DEVICE: AccountDevice = {
   fingerprint: "SHA256:fake",

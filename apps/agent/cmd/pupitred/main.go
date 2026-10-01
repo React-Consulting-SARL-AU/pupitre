@@ -14,8 +14,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/migrate"
 	"pupitre.studio/agent/internal/modules"
 	_ "pupitre.studio/agent/internal/modules/ai"
@@ -182,7 +182,7 @@ func newServer(engine *modules.Engine, limited bool) *protocol.Server {
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: version,
 		Config:       migrator.State,
-		Entitlement:  newResolver(engine).State,
+		License:      newResolver(engine).State,
 		ServerID:     backups.ServerID,
 		Limited:      limited,
 	})
@@ -268,7 +268,7 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 func daemonOptions(engine *modules.Engine) daemon.Options {
 	return daemon.Options{
 		Sys:          engine.Sys,
-		Entitlement:  newResolver(engine),
+		License:      newResolver(engine),
 		AgentVersion: version,
 		TokenPath:    tokenPath(),
 		ServerIDPath: serverIDPath(),
@@ -282,10 +282,10 @@ func daemonOptions(engine *modules.Engine) daemon.Options {
 	}
 }
 
-func newResolver(engine *modules.Engine) *entitlement.Resolver {
-	return entitlement.New(entitlement.Options{
+func newResolver(engine *modules.Engine) *license.Resolver {
+	return license.New(license.Options{
 		Sys:       engine.Sys,
-		CachePath: entitlementPath(),
+		CachePath: licensePath(),
 		TokenPath: tokenPath(),
 	})
 }
@@ -294,8 +294,8 @@ func tokenPath() string {
 	return pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath)
 }
 
-func entitlementPath() string {
-	return pathFromEnv("PUPITRE_ENTITLEMENT_PATH", entitlement.DefaultCachePath)
+func licensePath() string {
+	return pathFromEnv("PUPITRE_LICENSE_PATH", license.DefaultCachePath)
 }
 
 func upgradeOptions(engine *modules.Engine, migrator *migrate.Runner) selfupdate.Options {
@@ -327,7 +327,7 @@ func newEngine() *modules.Engine {
 		LockPath:     pathFromEnv("PUPITRE_LOCK_PATH", modules.DefaultLockPath),
 	}
 	engine.ProjectsLockPath = projectsLockPath()
-	engine.Entitlement = newResolver(engine).Current
+	engine.License = newResolver(engine).Current
 
 	return engine
 }
@@ -347,6 +347,7 @@ func migrateOptions(engine *modules.Engine) migrate.Options {
 			Lock:    engine.LockPath,
 			Keys:    keysPath(),
 			Signers: signersPath(),
+			License: licensePath(),
 		},
 		Sys: engine.Sys,
 	}

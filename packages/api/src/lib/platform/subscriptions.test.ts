@@ -8,12 +8,12 @@ function actionsOf(product: string, status: string, cancelAtPeriodEnd = false) {
 describe("allowedSubscriptionActions", () => {
   it("stops anything that is not already cancelled", () => {
     expect(actionsOf("prod_server", "active")).toContain("cancel")
-    expect(actionsOf("prod_server", "trialing")).toContain("cancel")
+    expect(actionsOf("prod_server", "past_due")).toContain("cancel")
     expect(actionsOf("prod_server", "canceled")).not.toContain("cancel")
   })
 
   it("deletes a platform row whatever its status", () => {
-    expect(actionsOf("launch", "trialing")).toContain("delete")
+    expect(actionsOf("granted", "canceled")).toContain("delete")
     expect(actionsOf("granted", "active")).toContain("delete")
   })
 
@@ -25,15 +25,7 @@ describe("allowedSubscriptionActions", () => {
 
   it("resizes the granted product alone", () => {
     expect(actionsOf("granted", "active")).toContain("resize")
-    expect(actionsOf("launch", "trialing")).not.toContain("resize")
     expect(actionsOf("prod_server", "active")).not.toContain("resize")
-  })
-
-  it("pushes the end of a Stripe trial alone", () => {
-    expect(actionsOf("prod_server", "trialing")).toContain("extend_trial")
-    expect(actionsOf("prod_server", "active")).not.toContain("extend_trial")
-    expect(actionsOf("launch", "trialing")).not.toContain("extend_trial")
-    expect(actionsOf("granted", "trialing")).not.toContain("extend_trial")
   })
 
   it("takes back a Stripe cancellation that still runs to the end of the period", () => {

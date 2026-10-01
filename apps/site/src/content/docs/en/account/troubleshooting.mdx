@@ -1,32 +1,32 @@
 ---
 title: Troubleshooting
-description: A server that asks for a subscription, restricted mode, fail2ban banning your own address, the sudo password of dev, an install step that failed, and where the app writes its errors.
+description: A server that asks for a licence, restricted mode, fail2ban banning your own address, the sudo password of dev, an install step that failed, and where the app writes its errors.
 locale: en
 section: account
 sectionOrder: 3
 order: 6
 ---
 
-## “A usage right is required”
+## “A licence is required”
 
-The agent answers `a usage right is required: this server is in restricted mode` to every command it refuses, in the app and after `dev` in a terminal. The app says the same thing in its own words: **Choose a plan to open Pupitre** or **Subscription suspended** at launch, **No subscription** under **Settings › Account**, or a notice above the server's screens. The cause is one of these.
+The agent answers `a licence is required: this server is in restricted mode` to every command it refuses, in the app and after `dev` in a terminal. The app says the same thing in its own words: **Licence required** at launch or under **Settings › Account**, or a notice above the server's screens. The cause is one of these.
 
-- **The organisation holds no plan.** The app names the organisation it looked at. **Choose a plan** opens the console's billing; once the launch access, the trial or a subscription is open, **Refresh** in the app.
-- **Another organisation is active.** Your plan is on an organisation other than the one this computer works for. From the launch screen, **Open the settings**, then **Servers › Your organizations**, and **Make active** on the right one.
-- **The subscription is suspended.** **Manage the subscription** opens the console; settle it there, then **Refresh**.
+- **The organisation holds more servers than its free ones, and no licence.** A licence expired, or was never granted. Ask for one at `support@pupitre.studio`, or delete servers in the console down to the free ones; then **Refresh** in the app. See [licence](/docs/account/licence/).
+- **Another organisation is active.** Your servers are on an organisation other than the one this computer works for. From the launch screen, **Open the settings**, then **Servers › Your organizations**, and **Make active** on the right one.
+- **The organisation is suspended by the platform.** The console says why; write to `support@pupitre.studio`.
 - **The console has not answered for more than seven days.** The app says so. Reconnect this computer, and the next answer clears it.
 
-On the server itself, the `dev` commands read the enrolment and the usage right from two files only root opens, and rerun themselves through `sudo` to get there. From an account whose `sudo` asks for a password, the command says so: type `sudo dev <command>`.
+On the server itself, the `dev` commands read the enrolment and the licence from two files only root opens, and rerun themselves through `sudo` to get there. From an account whose `sudo` asks for a password, the command says so: type `sudo dev <command>`.
 
 ## Restricted mode
 
-A server goes into restricted mode when the platform answers that its subscription is suspended, when the server is deleted from the console, or when the agent has not reached the platform for seven days.
+A server goes into restricted mode when the platform answers that its organisation's licence is suspended, when the server is deleted from the console, or when the agent has not reached the platform for seven days.
 
 What still works: reading the server's state, the diagnosis, updating the agent and migrating its configuration, enrolment, and a sync with the platform. Everything else is refused — installs, configuration changes, project actions, secrets. Nothing that already runs is stopped: services and projects keep going, and SSH as `dev` works as before.
 
-It lifts on its own. The agent reads the platform every thirty seconds: once the subscription is valid again, the next read gives the server back. When your account holds a plan and the server stays restricted anyway — it lost its token, for instance — the notice in the app offers **Re-enrol this server**: a fresh enrolment token reaches the agent, and nothing else on the machine is touched.
+It lifts on its own. The agent reads the platform every thirty seconds: once the licence is valid again, the next read gives the server back. When the organisation's licence is valid and the server stays restricted anyway — it lost its token, for instance — the notice in the app offers **Re-enrol this server**: a fresh enrolment token reaches the agent, and nothing else on the machine is touched.
 
-A failed payment does not restrict anything at first: seven days of grace, then suspension. The money side is on [billing](/docs/account/billing/).
+A licence that expires does not restrict anything at first: seven days of grace, then suspension. See [licence](/docs/account/licence/).
 
 ## fail2ban banned your own address
 

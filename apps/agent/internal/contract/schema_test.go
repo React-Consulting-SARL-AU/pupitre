@@ -27,7 +27,7 @@ func TestSchemaDeclaresTheContract(t *testing.T) {
 		t.Fatalf("unexpected $schema %q", doc.Schema)
 	}
 
-	if doc.Protocol != 2 {
+	if doc.Protocol != 3 {
 		t.Fatalf("unexpected protocol %d", doc.Protocol)
 	}
 
@@ -75,7 +75,7 @@ func TestErrorCodesAreStable(t *testing.T) {
 
 	for _, code := range []string{
 		"hello_required", "protocol_mismatch", "bad_request", "unknown_command",
-		"entitlement_required", "project_not_found", "no_report", "bad_signature",
+		"license_required", "project_not_found", "no_report", "bad_signature",
 	} {
 		if !present[code] {
 			t.Errorf("missing error code %q", code)

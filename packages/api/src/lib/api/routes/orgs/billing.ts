@@ -4,11 +4,10 @@ import {
   BillingAlreadySubscribedError,
   BillingCustomerMissingError,
   BillingGrantedError,
-  BillingLaunchError,
   startCheckout,
   startPortal,
 } from "../../../billing/checkout"
-import { LaunchSubscriptionEndedError } from "../../../billing/launch"
+import { BillingOffError } from "../../../billing/runtime"
 import {
   NoPayingSubscriptionError,
   resizeSeats,
@@ -33,6 +32,14 @@ function organizationNotFound(locale: Locale): ApiErrorPayload {
   return apiError("not_found", translate(locale, "organization_not_found"))
 }
 
+function billingOff(locale: Locale): ApiErrorPayload {
+  return apiError(
+    "conflict",
+    translate(locale, "billing_off"),
+    translate(locale, "billing_off_fix")
+  )
+}
+
 export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
   .use(requireRole("owner"))
   .post(
@@ -52,6 +59,12 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
           body
         )
       } catch (error) {
+        if (error instanceof BillingOffError) {
+          set.status = 409
+
+          return billingOff(locale)
+        }
+
         if (error instanceof BillingAlreadySubscribedError) {
           set.status = 409
 
@@ -64,16 +77,6 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
           )
         }
 
-        if (error instanceof LaunchSubscriptionEndedError) {
-          set.status = 409
-
-          return apiError(
-            "conflict",
-            translate(locale, "launch_subscription_ended"),
-            translate(locale, "launch_subscription_ended_fix")
-          )
-        }
-
         throw error
       }
     },
@@ -82,7 +85,7 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
       body: checkoutBody,
       detail: {
         summary:
-          "Ouvrir un Stripe Checkout pour des sièges de serveur, ou l'abonnement du lancement",
+          "Ouvrir un Stripe Checkout pour des sièges au-delà des serveurs gratuits",
       },
       response: {
         200: billingUrlSchema,
@@ -108,14 +111,10 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
       try {
         return await startPortal(organizationId)
       } catch (error) {
-        if (error instanceof BillingLaunchError) {
+        if (error instanceof BillingOffError) {
           set.status = 409
 
-          return apiError(
-            "conflict",
-            translate(locale, "billing_launch"),
-            translate(locale, "billing_launch_fix")
-          )
+          return billingOff(locale)
         }
 
         if (error instanceof BillingGrantedError) {
@@ -196,6 +195,12 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
 
         return { data: serializeData(subscription) }
       } catch (error) {
+        if (error instanceof BillingOffError) {
+          set.status = 409
+
+          return billingOff(locale)
+        }
+
         if (error instanceof NoPayingSubscriptionError) {
           set.status = 409
 

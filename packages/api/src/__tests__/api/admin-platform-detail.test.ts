@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import { useFakeBilling } from "../../testing/billing"
@@ -85,7 +85,7 @@ interface ServerDetailBody {
     status: string
     suspended_reason: string | null
     channel: string
-    entitlement_valid_until: string | null
+    license_valid_until: string | null
     assigned_user: { id: string; email: string } | null
     device: { id: string; name: string; user: { id: string } } | null
     events: AdminEvent[]
@@ -116,7 +116,7 @@ interface AffiliateDetailBody {
     organizations: {
       id: string
       slug: string
-      subscription_status: string | null
+      servers: number
       referred_at: string
     }[]
   }
@@ -356,7 +356,7 @@ describe("les organisations de la plateforme", () => {
     })
 
     const link = await harness.prisma.affiliateLink.create({
-      data: { code: "blog", name: "Blog", freeMonths: 1 },
+      data: { code: "blog", name: "Blog" },
     })
 
     await harness.prisma.referral.create({
@@ -403,10 +403,10 @@ describe("les organisations de la plateforme", () => {
     await harness.prisma.subscription.create({
       data: {
         organizationId: organization.id,
-        stripeSubscriptionId: `launch_${organization.id}`,
-        product: LAUNCH_PRODUCT,
+        stripeSubscriptionId: `granted_${organization.id}`,
+        product: GRANTED_PRODUCT,
         quantity: 1,
-        status: "trialing",
+        status: "active",
       },
     })
 
@@ -601,7 +601,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     expect(response.status).toBe(200)
     expect(response.json.data.status).toBe("active")
     expect(response.json.data.suspended_reason).toBeNull()
-    expect(response.json.data.entitlement_valid_until).not.toBeNull()
+    expect(response.json.data.license_valid_until).not.toBeNull()
     expect(
       await harness.prisma.event.count({
         where: { action: "server.restored", targetId: server.id },
@@ -609,11 +609,16 @@ describe("le détail d'un serveur et sa remise en service", () => {
     ).toBe(1)
   })
 
-  it("laisse un serveur suspendu quand l'organisation n'a plus d'abonnement", async () => {
+  it("laisse un serveur suspendu quand l'organisation dépasse ses serveurs gratuits sans licence", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
     const { server } = await createServer({ organizationId: organization.id })
+
+    for (let index = 0; index < FREE_SERVERS; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
     const admin = await platformAdmin()
 
     await apiRequest(`/admin/servers/${server.id}/suspend`, {
@@ -654,7 +659,7 @@ describe("le détail d'un serveur et sa remise en service", () => {
     expect(response.status).toBe(409)
     expect(response.json.error.code).toBe("conflict")
     expect(response.json.error.message).toContain("équipe Pupitre")
-    expect(response.json.error.fix).toContain("abonnement")
+    expect(response.json.error.fix).toContain("licence")
   })
 })
 
@@ -767,16 +772,13 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
       roles: ["owner"],
     })
     const link = await harness.prisma.affiliateLink.create({
-      data: { code: "blog", name: "Blog", freeMonths: 1 },
+      data: { code: "blog", name: "Blog" },
     })
 
     await harness.prisma.referral.create({
       data: { organizationId: organization.id, linkId: link.id },
     })
-    await subscribeOrganization({
-      organizationId: organization.id,
-      status: "active",
-    })
+    await createServer({ organizationId: organization.id })
 
     const admin = await platformAdmin()
     const response = await apiRequest<AffiliateDetailBody>(
@@ -790,7 +792,7 @@ describe("les abonnements, le journal, les liens et l'équipe", () => {
     expect(response.json.data.organizations).toHaveLength(1)
     expect(response.json.data.organizations[0]).toMatchObject({
       id: organization.id,
-      subscription_status: "active",
+      servers: 1,
     })
 
     const unknown = await apiRequest<ErrorBody>(

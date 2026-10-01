@@ -1,6 +1,6 @@
 @upgrade tool-demo 2.0
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":9000}},"secrets_stdin":true}}
 $ {"tool.demo":{"password":"s3cret-de-test"}}
 < {"id":2,"event":"step","module":"core.system","step":"install-package","status":"start","ms":0}

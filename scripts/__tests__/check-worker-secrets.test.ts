@@ -7,6 +7,7 @@ import {
   parseWranglerConfig,
   readWranglerConfig,
   reportSecrets,
+  STRIPE_SECRETS,
   stripJsonc,
   type TWranglerConfig,
   WorkerSecretsError,
@@ -104,14 +105,25 @@ describe("the required secrets of an environment", () => {
     )
   })
 
-  test("the shipped production carries its domain secrets", () => {
+  test("the shipped production carries its domain secrets, Stripe aside while billing is off", () => {
     const required = environmentSecrets(
       readWranglerConfig(WEB_CONFIG),
       "production"
     ).required
 
-    expect(required).toContain("STRIPE_WEBHOOK_SECRET")
     expect(required).toContain("R2_BUCKET_NAME")
+    expect(required).not.toContain("STRIPE_WEBHOOK_SECRET")
+  })
+
+  test("an environment that bills with Stripe requires its secrets", () => {
+    const config = fixture()
+    const production = config.env?.production ?? {}
+    production.vars = { BILLING_MODE: "stripe" }
+
+    expect(environmentSecrets(config, "production").required).toEqual([
+      "DATABASE_URL",
+      ...STRIPE_SECRETS,
+    ])
   })
 })
 
@@ -182,7 +194,7 @@ describe("command line", () => {
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("R2_ACCOUNT_ID")
-    expect(result.stderr).toContain("STRIPE_WEBHOOK_SECRET")
+    expect(result.stderr).toContain("GITHUB_CLIENT_ID")
     expect(result.stderr).not.toContain("- DATABASE_URL")
   })
 

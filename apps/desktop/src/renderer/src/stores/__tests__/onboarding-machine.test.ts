@@ -285,7 +285,7 @@ describe("un serveur qui quitte la liste", () => {
   });
 });
 
-describe("un droit d'usage que la console ne confirme plus", () => {
+describe("une licence que la console ne confirme plus", () => {
   it("gèle l'étape où elle est, sans la faire échouer", () => {
     const held = walk(OPENED, { type: "usageLost" });
 

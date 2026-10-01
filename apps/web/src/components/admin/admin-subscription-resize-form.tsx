@@ -14,11 +14,12 @@ import {
 import { queryKeys } from "@/lib/api/queries"
 import { dateInputValue } from "@/lib/domain/admin"
 import {
+  MAX_SEATS,
+  MIN_SEATS,
   type ResizeSubscriptionInput,
   type ResizeSubscriptionValues,
   resizeSubscriptionSchema,
 } from "@/lib/schemas/admin"
-import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
 
 export interface AdminSubscriptionResizeFormProps {
   subscriptionId: string

@@ -1,37 +1,42 @@
-import type { BillingInterval, PlanId } from "@pupitre/shared/plans"
 import type { Locale } from "../../lib/i18n"
 import type { FeatureItem } from "./home"
 import { pricingEn } from "./pricing.en"
 import { pricingFr } from "./pricing.fr"
 
-export interface PlanCopy {
-  audience: string
-  includes: string[]
-  cta?: string
-}
-
 export interface PricingContent {
-  meta: { title: string; description: string; launchDescription: string }
-  hero: { label: string; headline: string; lead: string; unit: string }
-  launch: { notice: string; cta: string; offer: string }
-  billing: Record<BillingInterval, string> & {
-    legend: string
-    yearNote: string
+  meta: { title: string; description: string }
+  offer: string
+  hero: {
+    label: string
+    headline: string
+    lead: string
+    figure: string
+    unit: string
   }
-  plans: {
+  free: {
     label: string
     title: string
-    perServerMonth: string
-    perServerYear: string
-    perMonth: string
-    from: string
-    later: string
-    serversUpTo: string
-    serversUnlimited: string
-    trial: string
-    sameRate: string
+    lead: string
+    included: FeatureItem
+    asked: FeatureItem
+    signUp: string
     download: string
-    items: Record<PlanId, PlanCopy>
+  }
+  beyond: {
+    label: string
+    title: string
+    lead: string
+    note: string
+    contact: string
+  }
+  source: {
+    label: string
+    title: string
+    lead: string
+    allowed: FeatureItem
+    forbidden: FeatureItem
+    licence: string
+    repository: string
   }
   stop: {
     label: string

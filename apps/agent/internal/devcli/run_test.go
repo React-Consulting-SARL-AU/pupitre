@@ -10,7 +10,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db"
 	"pupitre.studio/agent/internal/modules/db/postgres"
@@ -46,14 +46,14 @@ func fixture(t *testing.T) (*modtest.FakeSys, func(...string) run) {
 		Registry:     catalog,
 		Sys:          fake,
 		Now:          modtest.NewClock(time.Millisecond).Now,
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		ReportPath:   filepath.Join(dir, "report.json"),
 		LogPath:      filepath.Join(dir, "pupitre.log"),
 		InstallPath:  filepath.Join(dir, "install.json"),
 	}
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementDev)})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", License: license.Fixed(contract.LicenseDev)})
 
 	db.RegisterCommands(server, engine)
 	state.RegisterCommands(server, state.FromEngine(engine, state.Options{
@@ -164,13 +164,13 @@ func TestDevRefusesWhatItCannotDo(t *testing.T) {
 }
 
 func TestDevRefusesEverythingInRestrictedMode(t *testing.T) {
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementRestricted)})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", License: license.Fixed(contract.LicenseRestricted)})
 	state.RegisterCommands(server, state.New(state.Options{Sys: modtest.NewFakeSys()}))
 
 	var stdout, stderr bytes.Buffer
 	code := devcli.Run(devcli.Options{Server: server}, []string{"up", "web"}, &stdout, &stderr)
 
-	if code != 1 || !strings.Contains(stderr.String(), "entitlement_required") {
+	if code != 1 || !strings.Contains(stderr.String(), "license_required") {
 		t.Fatalf("code = %d, stderr = %q", code, stderr.String())
 	}
 }

@@ -83,7 +83,7 @@ export const serverFields = {
   assigned_user_id: t.Nullable(t.String()),
   pending_assignment_email: t.Nullable(t.String()),
   last_heartbeat_at: t.Nullable(dateTime),
-  entitlement_valid_until: t.Nullable(dateTime),
+  license_valid_until: t.Nullable(dateTime),
   decommission_at: t.Nullable(dateTime),
   usage: t.Nullable(serverUsageSchema),
   backup: t.Nullable(backupBeatSchema),

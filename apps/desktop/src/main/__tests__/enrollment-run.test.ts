@@ -120,7 +120,7 @@ function deps({
         ? {
             ok: true,
             result: {
-              entitlement: "valid",
+              license: "valid",
               source: "platform",
               status: "granted",
               validUntil: null,
@@ -129,7 +129,7 @@ function deps({
         : {
             ok: false,
             error: {
-              code: "entitlement_required",
+              code: "license_required",
               message: "refusal.account.required",
               phrase: {
                 id: "refusal.account.required",
@@ -183,7 +183,7 @@ describe("la préparation de l'agent", () => {
     expect(answer).toMatchObject({
       ok: false,
       error: {
-        code: "entitlement_required",
+        code: "license_required",
         phrase: {
           id: "refusal.account.required",
           values: { console: "https://app.pupitre.test/dashboard" },

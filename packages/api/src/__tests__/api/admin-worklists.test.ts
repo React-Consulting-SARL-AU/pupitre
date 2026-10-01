@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { TRIAL_WORKLIST_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
+import { WORKLIST_ITEMS } from "@pupitre/shared/platform"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -27,11 +28,6 @@ interface OverviewBody {
         id: string
         organization: { id: string; name: string; slug: string }
         status: string
-      }>
-      trials_ending: Worklist<{
-        id: string
-        organization: { id: string; name: string }
-        current_period_end: string | null
       }>
       servers_unreachable: Worklist<{
         id: string
@@ -152,33 +148,6 @@ describe("les listes de travail de GET /admin/overview", () => {
     expect(worklists.past_due.items[0].status).toBe("past_due")
   })
 
-  it("ne lève que les essais qui finissent dans la fenêtre", async () => {
-    const soon = await createOrganizationWithMembers({
-      name: "Bientôt",
-      roles: ["owner"],
-    })
-    const later = await createOrganizationWithMembers({
-      name: "Plus tard",
-      roles: ["owner"],
-    })
-
-    await subscribeOrganization({
-      organizationId: soon.organization.id,
-      status: "trialing",
-      currentPeriodEnd: inDays(TRIAL_WORKLIST_DAYS - 1),
-    })
-    await subscribeOrganization({
-      organizationId: later.organization.id,
-      status: "trialing",
-      currentPeriodEnd: inDays(TRIAL_WORKLIST_DAYS + 5),
-    })
-
-    const worklists = await readWorklists()
-
-    expect(worklists.trials_ending.count).toBe(1)
-    expect(worklists.trials_ending.items[0].organization.name).toBe("Bientôt")
-  })
-
   it("lève les serveurs injoignables sur les alertes ouvertes, jamais sur celles qui sont closes", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
@@ -236,8 +205,10 @@ describe("les listes de travail de GET /admin/overview", () => {
       status: "active",
       quantity: 5,
     })
-    await createServer({ organizationId: drifted.organization.id })
-    await createServer({ organizationId: drifted.organization.id })
+    for (let index = 0; index < FREE_SERVERS + 2; index += 1) {
+      await createServer({ organizationId: drifted.organization.id })
+    }
+
     await createServer({ organizationId: fitting.organization.id })
 
     const worklists = await readWorklists()
@@ -248,6 +219,44 @@ describe("les listes de travail de GET /admin/overview", () => {
       used: 2,
     })
     expect(worklists.seats_drifted.items[0].organization.name).toBe("Débordée")
+  })
+
+  it("lève aussi une licence accordée dépassée, comme la liste filtrée qu'elle ouvre", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Accordée",
+      roles: ["owner"],
+    })
+
+    await harness.prisma.subscription.create({
+      data: {
+        organizationId: organization.id,
+        stripeSubscriptionId: `granted_${organization.id}`,
+        product: GRANTED_PRODUCT,
+        quantity: 1,
+        status: "active",
+      },
+    })
+    for (let index = 0; index < FREE_SERVERS + 2; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
+    const admin = await platformAdmin()
+    const overview = await apiRequest<OverviewBody>("/admin/overview", {
+      session: admin,
+    })
+    const listed = await apiRequest<{ data: unknown[] }>(
+      "/admin/subscriptions?drifted=true",
+      { session: admin }
+    )
+    const drifted = overview.json.data.worklists.seats_drifted
+
+    expect(drifted.count).toBe(1)
+    expect(drifted.items[0]).toMatchObject({
+      organization: { name: "Accordée" },
+      paid: 1,
+      used: 2,
+    })
+    expect(listed.json.data).toHaveLength(1)
   })
 
   it("lève les comptes et les organisations dont la purge est programmée, la plus proche d'abord", async () => {

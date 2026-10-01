@@ -58,7 +58,6 @@ export function AdminOrganizationSubscriptions({
               </span>
               <AdminSubscriptionStatus
                 className="sm:w-36"
-                product={subscription.product}
                 status={subscription.status}
               />
               <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">

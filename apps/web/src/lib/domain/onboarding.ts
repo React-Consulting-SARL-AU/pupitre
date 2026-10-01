@@ -1,8 +1,7 @@
-import { isEntitled } from "@pupitre/shared/platform-api"
-import { entitlementLook, type StatusLook } from "@/lib/domain/server-status"
+import { licenseLook, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
-export const ONBOARDING_STEPS = ["account", "trial", "app", "server"] as const
+export const ONBOARDING_STEPS = ["account", "app", "server"] as const
 
 export type OnboardingStepId = (typeof ONBOARDING_STEPS)[number]
 
@@ -21,7 +20,6 @@ export interface OnboardingServer {
 }
 
 export interface OnboardingInput {
-  entitlement: string
   devices: number | null
   servers: OnboardingServer[] | null
 }
@@ -41,9 +39,15 @@ const COPY: Record<OnboardingStepId, StepCopy> = {
     title: "onboarding.account.title",
     lead: "onboarding.account.lead",
   },
-  trial: { title: "onboarding.trial.title", lead: "onboarding.trial.lead" },
   app: { title: "onboarding.app.title", lead: "onboarding.app.lead" },
   server: { title: "onboarding.server.title", lead: "onboarding.server.lead" },
+}
+
+export type LandingRoute = "/dashboard/start" | "/dashboard/servers"
+
+// An organisation with no server yet has nothing to list: it starts on the steps.
+export function landingRoute(servers: { used: number } | null): LandingRoute {
+  return servers?.used === 0 ? "/dashboard/start" : "/dashboard/servers"
 }
 
 // Enrolling was never online; revoked no longer counts.
@@ -58,14 +62,9 @@ export function onboardingComplete(
 // `null` until the answer lands: the step is then neither done nor current.
 type Known = boolean | null
 
-function doneFlags({
-  entitlement,
-  devices,
-  servers,
-}: OnboardingInput): Known[] {
+function doneFlags({ devices, servers }: OnboardingInput): Known[] {
   return [
     true,
-    isEntitled(entitlement),
     devices === null ? null : devices > 0,
     servers === null ? null : onboardingComplete(servers),
   ]
@@ -110,78 +109,37 @@ export function onboardingProgress(
   }
 }
 
-export type EntitlementNoticeTarget = "/dashboard/start" | "/dashboard/billing"
-
-export interface EntitlementNotice {
+export interface LicenseNotice {
   label: DictionaryKey
-  to: EntitlementNoticeTarget | null
+  to: "/dashboard/billing" | null
   look: StatusLook
 }
 
-export interface LaunchNotice {
-  endsAt: string | null
-}
-
-export interface EntitlementNoticeInput {
-  entitlement: string
-  // `unknown` while nothing has been read, `none` for an organisation Stripe ignores.
-  subscription: string
+export interface LicenseNoticeInput {
+  license: string
   canManageBilling: boolean
-  launch?: LaunchNotice | null
 }
 
-function beforeTheTrial(label: DictionaryKey): EntitlementNotice {
-  return {
-    label,
-    to: "/dashboard/start",
-    look: { shape: "hollow", tone: "muted", label },
-  }
-}
-
-function duringTheLaunch(
-  { endsAt }: LaunchNotice,
-  canManageBilling: boolean
-): EntitlementNotice {
-  const label: DictionaryKey = endsAt
-    ? "entitlement.launch"
-    : "billing.launchTitle"
-
-  return {
-    label,
-    to: canManageBilling ? "/dashboard/billing" : null,
-    look: { shape: "filled", tone: "ok", label },
-  }
-}
-
-export function entitlementNotice({
-  entitlement,
-  subscription,
+// A valid licence, free tier included, needs no word in the sidebar.
+export function licenseNotice({
+  license,
   canManageBilling,
-  launch = null,
-}: EntitlementNoticeInput): EntitlementNotice | null {
-  if (entitlement === "valid") {
-    return launch ? duringTheLaunch(launch, canManageBilling) : null
+}: LicenseNoticeInput): LicenseNotice | null {
+  if (license === "valid") {
+    return null
   }
 
-  if (entitlement === "suspended" && subscription === "none") {
-    return beforeTheTrial("entitlement.trialPending")
-  }
-
-  if (entitlement === "suspended" && subscription === "unknown") {
-    return beforeTheTrial("entitlement.waitingTrial")
-  }
-
-  const look = entitlementLook(entitlement)
+  const look = licenseLook(license)
 
   if (!look) {
     return null
   }
 
-  const billable = entitlement === "suspended" || entitlement === "grace"
+  const actionable = license === "suspended" || license === "grace"
 
   return {
     label: look.label,
-    to: billable && canManageBilling ? "/dashboard/billing" : null,
+    to: actionable && canManageBilling ? "/dashboard/billing" : null,
     look,
   }
 }

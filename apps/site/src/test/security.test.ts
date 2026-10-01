@@ -33,12 +33,7 @@ describe("security", () => {
 
     expect(ids("fr")).toEqual(ids("en"))
     expect(ids("en")).toEqual(
-      expect.arrayContaining([
-        "closed-source",
-        "shutdown",
-        "removal",
-        "builder",
-      ])
+      expect.arrayContaining(["source", "shutdown", "removal", "builder"])
     )
   })
 

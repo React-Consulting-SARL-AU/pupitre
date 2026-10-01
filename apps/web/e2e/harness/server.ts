@@ -1,13 +1,6 @@
 import { ingestInboundEmail } from "@pupitre/api/mail/ingest"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
-import {
-  postStripeWebhook,
-  remoteSubscription,
-  stripeEvent,
-  stripeSubscriptionObject,
-  useFakeBilling,
-  useLaunchBilling,
-} from "@pupitre/api/testing/billing"
+import { useBillingOff } from "@pupitre/api/testing/billing"
 import { createServer } from "@pupitre/api/testing/factories"
 import { seedPlatformMailboxes, useFakeMail } from "@pupitre/api/testing/mail"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
@@ -21,13 +14,11 @@ const API_PREFIXES = ["/api/v1", "/api/auth"]
 const MAGIC_LINK_RE = /https?:\/\/\S+/
 const BODYLESS_METHODS = new Set(["GET", "HEAD"])
 
-const TRIAL_DAYS_MS = 14 * 86_400_000
-
 const SUPPORT_ADDRESS = LEGAL_CONTACTS.support
 
-// Checkout is faked and Stripe's webhook played back, as in production.
+// Billing is off, as in production: a call reaching the fake provider is a bug.
 // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
-const billing = useFakeBilling()
+const billing = useBillingOff()
 
 // The bucket and the sending binding only exist inside the Worker.
 // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
@@ -47,18 +38,14 @@ interface SeedAlertBody {
   kind: "server_unreachable" | "disk_high" | "agent_outdated"
 }
 
-interface TrialBody {
+interface LicenseBody {
   email: string
+  seats: number
 }
 
 interface PlatformMemberBody {
   email: string
   role?: "owner" | "admin" | "member"
-}
-
-interface BillingModeBody {
-  mode: "stripe" | "launch"
-  ends_at?: string
 }
 
 interface InboundEmailBody {
@@ -149,35 +136,21 @@ async function seedMember(body: SeedMemberBody): Promise<Response> {
   return json({ id: member.id })
 }
 
-async function openTrial(body: TrialBody): Promise<Response> {
+// Written straight, as the platform's grant writes it: the grant flow is the admin suite's subject.
+async function grantLicense(body: LicenseBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
   const organizationId = await organizationOf(body.email)
-
-  billing.put(
-    remoteSubscription({
-      id: `sub_e2e_${organizationId}`,
-      customerId: `cus_e2e_${organizationId}`,
+  const license = await prisma.subscription.create({
+    data: {
       organizationId,
-      status: "trialing",
-      quantity: 1,
-      currentPeriodEnd: new Date(Date.now() + TRIAL_DAYS_MS),
-    })
-  )
+      stripeSubscriptionId: `granted_e2e_${organizationId}`,
+      product: "granted",
+      quantity: body.seats,
+      status: "active",
+    },
+  })
 
-  const received = await postStripeWebhook<{ handled: boolean }>(
-    stripeEvent(
-      "customer.subscription.created",
-      stripeSubscriptionObject({
-        id: `sub_e2e_${organizationId}`,
-        customerId: `cus_e2e_${organizationId}`,
-        organizationId,
-        status: "trialing",
-        quantity: 1,
-        currentPeriodEnd: new Date(Date.now() + TRIAL_DAYS_MS),
-      })
-    )
-  )
-
-  return json({ handled: received.json.handled })
+  return json({ id: license.id })
 }
 
 async function promotePlatformMember(
@@ -195,7 +168,7 @@ async function promotePlatformMember(
   return json({ id: user.id })
 }
 
-// Written straight: the checkout it rides on is another suite's subject.
+// Written straight: the sign-up it rides on is another suite's subject.
 async function seedReferral(body: ReferralBody): Promise<Response> {
   const { prisma } = await bootApiTestServer()
   const link = await prisma.affiliateLink.findUnique({
@@ -234,18 +207,6 @@ async function receiveEmail(body: InboundEmailBody): Promise<Response> {
   return json({ id: threadId, address: SUPPORT_ADDRESS })
 }
 
-function chooseBillingMode(body: BillingModeBody): Response {
-  if (body.mode === "launch") {
-    // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
-    useLaunchBilling(body.ends_at ? { endsAt: new Date(body.ends_at) } : {})
-  } else {
-    // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
-    useFakeBilling()
-  }
-
-  return json({ mode: body.mode })
-}
-
 async function handleHarness(
   request: Request,
   path: string
@@ -258,27 +219,18 @@ async function handleHarness(
     await resetDb()
     await seedPlatformMailboxes()
     billing.reset()
-    chooseBillingMode({ mode: "stripe" })
 
     return json({ ok: true })
   }
 
-  if (path === "/trial") {
-    return await openTrial((await request.json()) as TrialBody)
+  if (path === "/license") {
+    return await grantLicense((await request.json()) as LicenseBody)
   }
 
   if (path === "/platform-member") {
     return await promotePlatformMember(
       (await request.json()) as PlatformMemberBody
     )
-  }
-
-  if (path === "/billing-mode") {
-    return chooseBillingMode((await request.json()) as BillingModeBody)
-  }
-
-  if (path === "/checkouts") {
-    return json({ checkouts: billing.checkouts })
   }
 
   if (path === "/magic-link") {

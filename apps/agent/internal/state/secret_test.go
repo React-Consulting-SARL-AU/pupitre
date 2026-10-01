@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
@@ -43,7 +43,7 @@ func revealFixture(t *testing.T) (*modtest.FakeSys, *state.Reader, string) {
 		Sys:          fake,
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     catalog,
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 	}).WithJournal(logPath)
 
@@ -53,10 +53,10 @@ func revealFixture(t *testing.T) (*modtest.FakeSys, *state.Reader, string) {
 func serveRequests(t *testing.T, reader *state.Reader, requests ...string) []map[string]any {
 	t.Helper()
 
-	granted := entitlement.State{Entitlement: contract.EntitlementDev, Enrolled: true}
+	granted := license.State{License: contract.LicenseDev, Enrolled: true}
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: "0.0.0-test",
-		Entitlement:  func() entitlement.State { return granted },
+		License:      func() license.State { return granted },
 		Now:          func() time.Time { return modtest.Epoch },
 	})
 	state.RegisterCommands(server, reader)
@@ -82,7 +82,7 @@ func serveRequests(t *testing.T, reader *state.Reader, requests ...string) []map
 	return lines
 }
 
-const helloRequest = `{"id":1,"cmd":"hello","params":{"app_version":"0.0.0-test","protocol":2}}`
+const helloRequest = `{"id":1,"cmd":"hello","params":{"app_version":"0.0.0-test","protocol":3}}`
 
 func TestServiceSecretRevealsTheRealValueOnASecretEvent(t *testing.T) {
 	_, reader, logPath := revealFixture(t)

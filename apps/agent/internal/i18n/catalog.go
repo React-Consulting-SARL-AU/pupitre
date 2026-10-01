@@ -21,13 +21,13 @@ var catalog = map[string]Message{
 		FR: "commande inconnue : %s",
 		EN: "unknown command: %s",
 	},
-	"protocol.entitlement.required": {
-		FR: "abonnement requis : ce serveur est en mode restreint",
-		EN: "a usage right is required: this server is in restricted mode",
+	"protocol.license.required": {
+		FR: "licence requise : ce serveur est en mode restreint",
+		EN: "a licence is required: this server is in restricted mode",
 	},
-	"protocol.entitlement.required.fix": {
-		FR: "Ouvrez %s pour renouveler l'abonnement de ce serveur.",
-		EN: "Open %s to renew this server's usage right.",
+	"protocol.license.required.fix": {
+		FR: "Ouvrez %s : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
+		EN: "Open %s: Pupitre is free for up to 3 servers per organization, a licence is required beyond that.",
 	},
 	"protocol.internal": {
 		FR: "erreur interne : %s",

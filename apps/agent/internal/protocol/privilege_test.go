@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 )
 
 func limitedServer(ran *[]string) *Server {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow, Limited: true})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev), Now: fixedNow, Limited: true})
 
 	for _, cmd := range []string{"install", "snapshot", "agent.upgrade", "keys.trust"} {
 		server.Register(cmd, func(_ *Context, _ json.RawMessage) (any, error) {

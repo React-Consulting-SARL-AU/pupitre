@@ -83,8 +83,8 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"daemon.token.refused.fix": {
-		FR: "Ouvrez %s pour rétablir l'abonnement de ce serveur.",
-		EN: "Open %s to restore this server's usage right.",
+		FR: "Ouvrez %s pour rétablir la licence de ce serveur.",
+		EN: "Open %s to restore this server's licence.",
 	},
 	"daemon.keys.failed": {
 		FR: "clés non synchronisées : %s",
@@ -207,8 +207,8 @@ var commandCatalog = map[string]Message{
 		EN: "db %s: pick url, shell, dump or import",
 	},
 	"devcli.elevate.required": {
-		FR: "cette commande lit le rattachement et le droit d'usage du serveur, deux fichiers que seul root ouvre",
-		EN: "this command reads the server's enrolment and entitlement, two files only root opens",
+		FR: "cette commande lit le rattachement et la licence du serveur, deux fichiers que seul root ouvre",
+		EN: "this command reads the server's enrolment and licence, two files only root opens",
 	},
 	"devcli.elevate.password.fix": {
 		FR: "sudo n'a pas lancé pupitred serve sans mot de passe : relancez la sécurisation depuis l'app, qui pose la règle, ou tapez la commande en root.",

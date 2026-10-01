@@ -1,4 +1,3 @@
-import { TRIAL_REQUIRES_CARD } from "@pupitre/shared/plans"
 import type { StripeConfig } from "./config"
 import {
   BILLING_INTERVALS,
@@ -111,32 +110,6 @@ export function toRemoteSubscription(
   }
 }
 
-interface TrialTerms {
-  paymentMethodCollection: "always" | "if_required"
-  subscriptionData: FormTree
-}
-
-// Without a required card, Stripe itself cancels at trial end and the webhook suspends it.
-function trialTerms(trialDays: number | null): TrialTerms {
-  if (trialDays === null) {
-    return { paymentMethodCollection: "always", subscriptionData: {} }
-  }
-
-  return {
-    paymentMethodCollection: TRIAL_REQUIRES_CARD ? "always" : "if_required",
-    subscriptionData: {
-      trial_period_days: trialDays,
-      trial_settings: {
-        end_behavior: {
-          missing_payment_method: TRIAL_REQUIRES_CARD
-            ? "create_invoice"
-            : "cancel",
-        },
-      },
-    },
-  }
-}
-
 export function createStripeBilling(config: StripeConfig): BillingProvider {
   async function call<T>(
     path: string,
@@ -183,7 +156,6 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
       input: CheckoutSessionInput
     ): Promise<BillingSession> {
       const price = config.prices[input.interval]
-      const trial = trialTerms(input.trialDays)
 
       const session = await call<{ id?: string; url?: string }>(
         "/checkout/sessions",
@@ -200,9 +172,8 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
             allow_promotion_codes: true,
             line_items: { 0: { price, quantity: input.quantity } },
             metadata: { organization_id: input.organizationId },
-            payment_method_collection: trial.paymentMethodCollection,
+            payment_method_collection: "always",
             subscription_data: {
-              ...trial.subscriptionData,
               metadata: { organization_id: input.organizationId },
             },
           },
@@ -261,24 +232,6 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
           body: {
             proration_behavior: "create_prorations",
             items: { 0: { id: itemId, quantity } },
-          },
-        }
-      )
-
-      return toRemoteSubscription(updated)
-    },
-
-    async extendTrial(
-      subscriptionId: string,
-      endsAt: Date
-    ): Promise<RemoteSubscription> {
-      const updated = await call<StripeSubscriptionPayload>(
-        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
-        {
-          method: "POST",
-          body: {
-            trial_end: Math.floor(endsAt.getTime() / 1000),
-            proration_behavior: "none",
           },
         }
       )

@@ -68,8 +68,6 @@ function createTestFetch(auth: Auth): TestFetch {
 // Dropped at boot: a workstation's `.env.local` would make tests assert on the machine they run on.
 const AMBIENT_VARIABLES = [
   "BILLING_MODE",
-  "LAUNCH_ENDS_AT",
-  "LAUNCH_ADMIN_SEATS",
   "PUPITRE_DOWNLOADS_URL",
   "PUPITRE_PUBLISH_TOKEN",
   "PUPITRE_PUBLISH_TOKEN_PREVIOUS",

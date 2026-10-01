@@ -1,7 +1,8 @@
 ---
 import { homeContent } from "../content/site/home"
 import { localeFromPath, localizePath } from "../lib/i18n"
-import { SIGNUP_URL } from "../lib/urls"
+import { SIGNUP_URL, SOURCE_REPOSITORY_URL } from "../lib/urls"
+import BrandLogo from "./BrandLogo.astro"
 import CtaPair from "./CtaPair.astro"
 import LogoDrift from "./LogoDrift.astro"
 import StackWall from "./StackWall.astro"
@@ -18,7 +19,10 @@ const headlineAfter = hero.headline.slice(cooledAt + hero.cooled.length)
     <LogoDrift place="hero" />
 
     <div class="shell enter-group relative">
-      <p class="pill">{hero.eyebrow}</p>
+      <a href={SOURCE_REPOSITORY_URL} class="pill hover:text-ink">
+        <BrandLogo name="GitHub" module="tool.github" size="xs" />
+        {hero.eyebrow}
+      </a>
       <h1 class="display-1 mx-auto mt-8 max-w-4xl">
         {headlineBefore}<span class="frost">{hero.cooled}</span>{headlineAfter}
       </h1>

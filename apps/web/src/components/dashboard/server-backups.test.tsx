@@ -89,7 +89,7 @@ describe("ServerBackups", () => {
           }}
           serverId={server.id}
         />,
-        { organization, entitlement: "valid" }
+        { organization, license: "valid" }
       )
     )
 
@@ -123,7 +123,7 @@ describe("ServerBackups", () => {
           }}
           serverId={server.id}
         />,
-        { organization, entitlement: "valid" }
+        { organization, license: "valid" }
       )
     )
 
@@ -144,7 +144,7 @@ describe("ServerBackups", () => {
     const view = await render(
       withDashboard(<ServerBackups beat={null} serverId={server.id} />, {
         organization,
-        entitlement: "valid",
+        license: "valid",
       })
     )
 

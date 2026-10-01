@@ -1,6 +1,6 @@
 # Un seul canal, cent snapshots : l'agent refuse un id qui ne croît pas.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
 @repeat
 > {"id":2,"cmd":"snapshot"}
-< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[],"sessions":[],"entitlement":"dev"}}
+< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[],"sessions":[],"license":"dev"}}

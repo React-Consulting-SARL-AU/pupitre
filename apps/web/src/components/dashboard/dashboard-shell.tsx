@@ -9,7 +9,7 @@ import {
   DashboardContext,
   type DashboardContextValue,
 } from "@/lib/domain/dashboard-context"
-import { isAdminRoute } from "@/lib/domain/entitlement-gate"
+import { isAdminRoute } from "@/lib/domain/license-gate"
 import { cn } from "@/lib/utils/cn"
 
 export interface DashboardShellProps {

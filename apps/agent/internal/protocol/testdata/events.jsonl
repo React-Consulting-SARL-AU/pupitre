@@ -1,7 +1,7 @@
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"project.logs","params":{"name":"flyleaf-api","process":"api","lines":2}}
 > {"id":3,"cmd":"ping"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"event":"log","id":2,"line":"vite v7 ready in 412 ms"}
 < {"event":"log","id":2,"line":"listening on :5173"}
 < {"id":2,"ok":true,"result":{"lines":2}}

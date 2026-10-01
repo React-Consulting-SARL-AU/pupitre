@@ -4,6 +4,7 @@ import type {
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
+import { judgedForApp } from "@shared/agent-update";
 import type { AgentDelivery } from "../agent-binary";
 import { type AgentClient, createAgentClient } from "../agent-client";
 import {
@@ -480,7 +481,7 @@ describe("l'enrôlement", () => {
 
     expect(answer).toMatchObject({
       ok: false,
-      error: { code: "entitlement_required" },
+      error: { code: "license_required" },
     });
     expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=enroll"]);
 
@@ -657,6 +658,61 @@ describe("l'envoi de l'agent avant la première installation", () => {
     expect(fake?.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=ping",
+      "id=1 cmd=hello",
+      "id=2 cmd=agent.migrate",
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+    ]);
+
+    client.closeAll();
+  });
+
+  it("remplace par le binaire embarqué un agent 1.x qui refuse le hello du protocole 3, puis migre sur le neuf", async () => {
+    const client = agent([
+      "protocol-mismatch.jsonl",
+      "agent-migrate-ok.jsonl",
+      "install-no-secrets.jsonl",
+    ]);
+    let delivered = 0;
+
+    const refused = await client.request(SERVER, "snapshot");
+
+    expect(refused).toMatchObject({
+      ok: false,
+      error: { code: "protocol_mismatch" },
+    });
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        deliver: () => {
+          delivered += 1;
+
+          return Promise.resolve({
+            ok: true,
+            result: {
+              arch: "amd64",
+              bytes: 12,
+              path: "/usr/local/bin/pupitred",
+              sha256: "0".repeat(64),
+            },
+          });
+        },
+        probe: () =>
+          Promise.resolve({
+            ok: true,
+            result: judgedForApp(machine({ agent_version: "1.2.1" }), "2.0.0"),
+          }),
+      })
+    );
+
+    expect(answer.ok).toBe(true);
+    expect(delivered).toBe(1);
+    expect(fake?.trace()).toEqual([
+      "id=1 cmd=hello",
       "id=1 cmd=hello",
       "id=2 cmd=agent.migrate",
       "id=1 cmd=hello",
@@ -942,7 +998,7 @@ describe("un enrôlement repris", () => {
           request: () =>
             Promise.resolve({
               error: {
-                code: "entitlement_required",
+                code: "license_required",
                 message: "ce jeton a déjà servi",
               },
               ok: false,
@@ -957,7 +1013,7 @@ describe("un enrôlement repris", () => {
     );
 
     expect(answer).toMatchObject({
-      error: { code: "entitlement_required" },
+      error: { code: "license_required" },
       ok: false,
     });
   });
@@ -992,7 +1048,7 @@ describe("un enrôlement repris", () => {
                 ? { error: { code, message: "coupé" }, ok: false }
                 : {
                     ok: true,
-                    result: { enrolled: true, entitlement: "valid" },
+                    result: { enrolled: true, license: "valid" },
                   }) as never
             );
           },
@@ -1008,7 +1064,7 @@ describe("un enrôlement repris", () => {
 
     expect(answer).toEqual({
       ok: true,
-      result: { enrolled: true, entitlement: "valid" },
+      result: { enrolled: true, license: "valid" },
     });
     expect(codes).toEqual([]);
   });
@@ -1074,7 +1130,7 @@ describe("un enrôlement repris", () => {
             calls += 1;
 
             return Promise.resolve({
-              error: { code: "entitlement_required", message: "refusé" },
+              error: { code: "license_required", message: "refusé" },
               ok: false,
             } as never);
           },
@@ -1088,7 +1144,7 @@ describe("un enrôlement repris", () => {
       instant
     );
 
-    expect(answer).toMatchObject({ error: { code: "entitlement_required" } });
+    expect(answer).toMatchObject({ error: { code: "license_required" } });
     expect(calls).toBe(1);
   });
 

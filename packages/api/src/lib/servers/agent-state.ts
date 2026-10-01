@@ -1,10 +1,7 @@
 import type { BackupBeat } from "@pupitre/shared/backup"
 import type { AgentStateKey, KeysBeat } from "@pupitre/shared/keys"
 import { getPrisma } from "../api/prisma"
-import {
-  type EntitlementState,
-  entitlementForServer,
-} from "../billing/entitlement"
+import { type LicenseState, licenseForServer } from "../billing/license"
 import { resolveTargetVersion } from "../releases/releases"
 import { settleAssignment } from "./assign"
 import { heldDevicesForServer } from "./authorized-keys"
@@ -21,13 +18,12 @@ import {
 import type { ServerRow } from "./server-row"
 import { assertSshAddress } from "./ssh-address"
 
-export type AgentEntitlement = EntitlementState
-
 /** A valid window slides with every poll; the row only follows it once an hour. */
-export const ENTITLEMENT_REFRESH_MS = 3_600_000
+export const LICENSE_REFRESH_MS = 3_600_000
 
 export interface AgentState {
-  entitlement: AgentEntitlement
+  license: LicenseState
+  entitlement: LicenseState
   valid_until: Date
   authorized_keys: string[]
   keys: AgentStateKey[]
@@ -57,18 +53,18 @@ export interface HeartbeatInput {
 function horizonMoved(stored: Date | null, computed: Date): boolean {
   return (
     stored === null ||
-    Math.abs(computed.getTime() - stored.getTime()) > ENTITLEMENT_REFRESH_MS
+    Math.abs(computed.getTime() - stored.getTime()) > LICENSE_REFRESH_MS
   )
 }
 
 export async function readAgentState(input: ServerRow): Promise<AgentState> {
   const prisma = getPrisma()
   const server = await settleAssignment(input)
-  const entitlement = await entitlementForServer(server)
+  const license = await licenseForServer(server)
   const targetVersion = await resolveTargetVersion(server)
   const moved =
     targetVersion !== server.targetVersion ||
-    horizonMoved(server.entitlementValidUntil, entitlement.valid_until)
+    horizonMoved(server.licenseValidUntil, license.valid_until)
 
   const [held] = await Promise.all([
     heldDevicesForServer(prisma, server.id),
@@ -76,7 +72,7 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
       ? prisma.server.update({
           where: { id: server.id },
           data: {
-            entitlementValidUntil: entitlement.valid_until,
+            licenseValidUntil: license.valid_until,
             targetVersion,
           },
         })
@@ -86,8 +82,9 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
   const keys = await keysForServer(prisma, server.id, held)
 
   return {
-    entitlement: entitlement.state,
-    valid_until: entitlement.valid_until,
+    license: license.state,
+    entitlement: license.state,
+    valid_until: license.valid_until,
     authorized_keys: held.map((device) => device.publicKey),
     keys,
     target_version: targetVersion,

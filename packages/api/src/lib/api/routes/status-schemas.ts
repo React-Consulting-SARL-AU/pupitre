@@ -21,10 +21,7 @@ export const statusFreshnessSchema = t.UnionEnum([...STATUS_FRESHNESS])
 export const socialProviderSchema = t.UnionEnum([...SOCIAL_PROVIDER_IDS])
 
 export const billingStatusSchema = t.Object(
-  {
-    mode: t.UnionEnum([...BILLING_MODES]),
-    launch_ends_at: t.Nullable(dateTime),
-  },
+  { mode: t.UnionEnum([...BILLING_MODES]) },
   { $id: "BillingStatus" }
 )
 

@@ -1,47 +1,72 @@
 ---
 title: "Licence"
-description: "Ce que vous pouvez faire de l’app desktop Pupitre et de l’agent, ce qui reste à nous, et le droit que le lancement gratuit vous donne pour de bon."
+description: "La licence du code source — Apache 2.0 avec la Commons Clause —, ce qu’elle permet et ce qu’elle interdit, et le droit d’utiliser la plateforme hébergée, gratuite jusqu’à un nombre de serveurs."
 locale: fr
-updated: 2026-09-24
+updated: 2026-10-01
 order: 2
 ---
 
-Cette licence fait partie des [conditions d’utilisation](/fr/legal/terms/). Elle couvre l’app desktop, l’agent installé sur votre machine, et les mises à jour des deux.
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+import { SOURCE_LICENSE_URL } from "../../../lib/urls"
 
-## Concession
+Cette page fait partie des [conditions d’utilisation](/fr/legal/terms/). Elle couvre deux choses distinctes : la licence du code source de Pupitre — l’app desktop, l’agent, la console, la plateforme et le catalogue de services — et le droit d’utiliser la plateforme que nous hébergeons sur `app.pupitre.studio`.
 
-Tant que votre organisation détient un droit d’usage pour une machine, vous recevez un droit personnel, non exclusif, non transférable et révocable d’installer et d’utiliser l’app desktop sur les ordinateurs depuis lesquels vous travaillez, et l’agent sur cette machine, pour votre usage professionnel ou personnel. Le droit est concédé, jamais cédé : rien ici ne vous vend le logiciel.
+## Un code source ouvert à la lecture
 
-## Machines et sièges
+Le code de Pupitre est public. React Consulting SARL AU le concède sous la licence Apache, version 2.0, assortie de la Commons Clause License Condition v1.0. Cette combinaison rend le code source disponible : ce n’est pas une licence libre au sens de l’Open Source Initiative, et Pupitre n’est pas un logiciel « open source ».
 
-Ce qui est compté, ce sont les machines : une machine rattachée prend un siège, une machine retirée le libère. Une organisation partage ses sièges entre ses membres. Pendant le lancement gratuit, chaque organisation a un siège, sans frais.
+Le texte qui engage est celui du <a href={SOURCE_LICENSE_URL}>fichier LICENSE du dépôt</a>, avec son fichier `NOTICE`, en anglais. Ce qui suit le résume ; là où le résumé et le texte diffèrent, le texte prévaut.
 
-## Le siège du lancement est à vous pour de bon
+## Ce que la licence vous permet
 
-Une organisation qui a rattaché une machine pendant le lancement gratuit garde un siège sans frais aussi longtemps que le service existe. Ce siège survit à l’ouverture de la facturation, à un changement d’entité responsable et au remplacement de la machine par une autre. Il est attaché à l’organisation, pas à une personne : un membre qui part ne l’emporte pas, et le propriétaire de l’organisation ne peut ni le vendre ni le transférer séparément de l’organisation.
+Dans les conditions de la licence Apache, vous pouvez utiliser, copier, modifier et distribuer le code, sous forme de source ou compilée, pour vous ou pour votre entreprise, et le faire tourner, y compris une plateforme à vous. En le distribuant, modifié ou non, vous remettez aux destinataires une copie de la licence, vous gardez les mentions de droit d’auteur, de brevet et d’attribution ainsi que le fichier `NOTICE`, et vous signalez les fichiers que vous avez modifiés.
 
-## Restrictions
+Utiliser Pupitre pour votre propre travail, ce n’est pas le vendre : vous pouvez vous en servir pour développer, héberger et livrer vos propres projets, y compris le travail que vos clients vous paient.
 
-Vous ne redistribuez ni l’app ni l’agent, ne les louez pas, et ne les intégrez pas à un service revendu à des tiers. Vous n’essayez pas de les décompiler, de contourner la vérification du droit d’usage, de contrefaire les réponses de la plateforme, ni d’exécuter l’agent sur une machine qui n’a pas de siège. Rien de cela ne vous retire ce que la loi applicable vous permet malgré une telle clause, comme décompiler pour faire interopérer un programme avec Pupitre, dans les limites qu’elle fixe.
+## Ce que la licence interdit
 
-## Propriété
+La Commons Clause retire un droit : celui de vendre le logiciel. Vous ne pouvez pas fournir à des tiers, contre rémunération ou toute autre contrepartie, un produit ou un service dont la valeur découle, entièrement ou pour l’essentiel, des fonctionnalités de Pupitre, y compris des frais d’hébergement, de conseil ou de support liés à Pupitre. Par exemple :
 
-L’app, l’agent, le catalogue de services, la console et le protocole qui les relie appartiennent personnellement à Jordan Monier, seul titulaire des droits. Ils ont vocation à être apportés à une société une fois que le projet aura fait ses preuves ; cet apport change le nom sur cette page et rien dans vos droits. Les projets que vous créez, le code que vous écrivez, les services que vous installez et les données sur vos machines sont à vous, sans exception, et rien ici ne nous donne le moindre droit dessus.
+- un hébergeur qui fait payer à ses clients l’installation de Pupitre sur leurs serveurs, en option ou en image prête à l’emploi ;
+- un « Pupitre géré » payant, ou une plateforme hébergée payante bâtie sur son code ;
+- une version de l’app ou de l’agent vendue, louée ou incluse dans une offre payante, sous le nom Pupitre ou un autre.
+
+Toute mention de licence ou d’attribution qu’exige la licence Apache doit porter avec elle la mention de la Commons Clause.
+
+## Le nom et le logo
+
+La licence ne donne aucun droit sur le nom Pupitre ni sur son logo, comme le dit la section 6 de la licence Apache. Vous pouvez dire qu’un produit utilise Pupitre ou en dérive ; vous ne pouvez pas donner son nom à un produit, un service, un domaine ou un compte, ni laisser croire que nous recommandons une version que nous n’avons pas publiée. Les [mentions légales](/fr/legal/legal-notice/) disent le reste.
+
+## La plateforme hébergée
+
+La plateforme de `app.pupitre.studio` est gratuite pour toute organisation jusqu’à {FREE_SERVERS} machines rattachées. Au-delà, une organisation a besoin d’une licence, que la plateforme accorde sur demande, sans frais aujourd’hui, comme le décrivent les [serveurs gratuits et licences](/fr/legal/billing/). Ce qui se compte, ce sont les machines : une machine rattachée prend une place, une machine retirée la libère, et une organisation partage ses places entre ses membres.
+
+Sur la plateforme hébergée, vous ne cherchez pas à rattacher plus de machines que les places de votre organisation, à contrefaire les réponses de la plateforme, ni à faire se conduire l’agent comme s’il détenait une licence qu’il n’a pas. Ce n’est pas une limite à ce que vous pouvez faire du code sur une plateforme à vous : c’est une règle de notre service.
+
+## Contributions et propriété
+
+React Consulting SARL AU détient les droits sur le code qu’elle publie. Une contribution que vous proposez au dépôt est concédée sous les mêmes conditions, comme le prévoit la section 5 de la licence Apache, et reste la vôtre.
+
+Les projets que vous créez, le code que vous écrivez, les services que vous installez et les données de vos machines sont à vous, sans exception, et rien ici ne nous donne de droit sur eux.
 
 ## Qui signe l’app
 
-Les versions macOS et Windows de l’app desktop sont signées avec des certificats détenus par React Consulting SARL AU, société établie au Maroc et détenue par Jordan Monier, pour que les systèmes d’exploitation acceptent l’app. Cette société signe les versions et ne fait rien d’autre : elle n’est pas l’éditeur, elle n’est pas partie à ce contrat, et elle ne reçoit aucune donnée de vous. L’agent est signé avec une clé Ed25519 qui appartient au projet et que l’app embarque pour vérifier chaque binaire qu’elle installe.
+Les versions macOS et Windows de l’app desktop que nous publions sont signées avec des certificats détenus par React Consulting SARL AU, pour que les systèmes d’exploitation acceptent l’app. L’agent que nous publions est signé avec une clé Ed25519 qui appartient au projet et que l’app emporte pour vérifier chaque binaire qu’elle installe. Une version que vous compilez vous-même ne porte aucune de ces signatures, et l’agent que nous publions n’installe aucune mise à jour qui ne porte pas la nôtre.
 
 ## Logiciels tiers
 
 L’agent installe sur votre machine des logiciels qui ne sont pas les nôtres. Chacun garde sa propre licence, que vous acceptez en l’installant. Chaque service du catalogue porte le nom du logiciel qu’il installe ; sa licence est celle sous laquelle son éditeur le publie.
 
-L’app et l’agent sont eux-mêmes construits sur des composants libres, dont les licences restent les leurs et priment sur celle-ci pour ces composants. Les [mentions des logiciels tiers](/fr/legal/third-party/) les nomment.
+L’app et l’agent reposent eux-mêmes sur des composants open source, dont les licences restent les leurs et prévalent sur celle-ci pour ces composants. Les [mentions des logiciels tiers](/fr/legal/third-party/) les nomment.
 
-## Mode restreint
+## Le mode restreint
 
-Sans droit d’usage valide pendant sept jours, ou quand la plateforme répond que la machine est suspendue, l’agent passe en mode restreint : il refuse les commandes de l’app et répond seulement qu’il est restreint. Il n’arrête aucun service, n’efface aucune donnée et ne touche aucun fichier. Quand la plateforme a répondu une suspension, l’agent vide aussi le bloc balisé qu’il gère dans `authorized_keys`, comme les [conditions](/fr/legal/terms/) le décrivent ; quand il est simplement sans réponse, il ne change rien. Un droit d’usage rétabli le remet au travail comme avant.
+Sans droit d’usage valide pendant sept jours, ou quand la plateforme répond que la machine est suspendue, l’agent passe en mode restreint : il refuse les commandes de l’app et répond seulement qu’une licence est requise. Il n’arrête aucun service, n’efface aucune donnée et ne touche aucun fichier. Quand la plateforme a répondu une suspension, l’agent vide aussi le bloc balisé qu’il gère dans `authorized_keys`, comme le décrivent les [conditions](/fr/legal/terms/) ; quand il est simplement sans réponse, il ne change rien. Un droit d’usage rétabli le remet au travail comme avant.
+
+## Aucune garantie
+
+Le code est fourni en l’état, sans garantie d’aucune sorte, et ses contributeurs ne répondent pas des dommages nés de son utilisation, comme le prévoient les sections 7 et 8 de la licence Apache. Les [conditions d’utilisation](/fr/legal/terms/) disent ce dont nous répondons sur la plateforme hébergée.
 
 ## Fin
 
-Le droit d’utiliser s’éteint avec le droit d’usage de la machine, ou immédiatement en cas de manquement grave à ces conditions ou à la [politique d’usage acceptable](/fr/legal/acceptable-use/). Après la fin, votre machine reste une machine ordinaire : ce qui tourne continue de tourner, et la commande pour désinstaller l’agent est documentée.
+Le droit d’utiliser la plateforme hébergée prend fin avec le droit d’usage de la machine, ou immédiatement en cas de manquement grave à ces conditions ou à la [politique d’usage acceptable](/fr/legal/acceptable-use/). Après la fin, votre machine reste une machine ordinaire : ce qui tourne continue de tourner, et la commande pour désinstaller l’agent est documentée. La licence du code ne prend fin que dans les cas que prévoient la licence Apache et la Commons Clause : vendre le logiciel sort des droits concédés, et la licence de brevet prend fin pour qui engage une action en contrefaçon de brevet sur le code.

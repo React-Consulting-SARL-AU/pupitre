@@ -13,8 +13,6 @@ export interface CheckoutSessionInput {
   customerEmail: string | null
   quantity: number
   interval: BillingIntervalName
-  /** Null past the first checkout: no trial, and a card before anything opens. */
-  trialDays: number | null
   successUrl: string
   cancelUrl: string
 }
@@ -50,7 +48,6 @@ export interface BillingProvider {
     subscriptionId: string,
     quantity: number
   ): Promise<RemoteSubscription>
-  extendTrial(subscriptionId: string, endsAt: Date): Promise<RemoteSubscription>
   resumeSubscription(subscriptionId: string): Promise<RemoteSubscription>
   /** Cancels immediately, not at the end of the period. */
   cancelSubscription(subscriptionId: string): Promise<RemoteSubscription>

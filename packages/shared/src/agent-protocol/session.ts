@@ -5,11 +5,11 @@ import { ConfigRevisionSchema } from "./migrate"
 
 export const EmptyParamsSchema = z.strictObject({})
 
-const ENTITLEMENTS = ["valid", "grace", "restricted", "dev"] as const
+const LICENSES = ["valid", "grace", "restricted", "dev"] as const
 
-export const EntitlementSchema = z.enum(ENTITLEMENTS)
+export const LicenseSchema = z.enum(LICENSES)
 
-export type Entitlement = z.infer<typeof EntitlementSchema>
+export type License = z.infer<typeof LicenseSchema>
 
 export const HelloParamsSchema = z.strictObject({
   app_version: z.string().min(1),
@@ -22,7 +22,7 @@ export const HelloResultSchema = z.object({
   agent_version: z.string().min(1),
   protocol: ProtocolVersionSchema,
   server_id: z.string().optional(),
-  entitlement: EntitlementSchema,
+  license: LicenseSchema,
   capabilities: z.array(z.string()),
   // Absent from an agent older than the ledger, whose configuration is current by definition.
   config: ConfigRevisionSchema.optional(),

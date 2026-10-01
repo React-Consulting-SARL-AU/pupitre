@@ -309,7 +309,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
   });
 });
 
-describe("un droit d'usage que la console ne confirme plus", () => {
+describe("une licence que la console ne confirme plus", () => {
   const refused = {
     build: "production" as const,
     checkedAt: null,
@@ -317,9 +317,9 @@ describe("un droit d'usage que la console ne confirme plus", () => {
     device: null,
     identity: null,
     refusal: {
-      code: "entitlement_required",
+      code: "license_required",
       fix: "Ouvre la console.",
-      message: "Le droit d'usage a expiré.",
+      message: "La licence a expiré.",
     },
     sealed: true,
     usage: {

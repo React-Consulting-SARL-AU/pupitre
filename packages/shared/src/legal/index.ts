@@ -20,22 +20,21 @@ export const LegalEntitySchema = z.object({
 
 export type LegalEntity = z.infer<typeof LegalEntitySchema>
 
-// A person until a company exists to take the project over; the terms say the responsible party may change.
+// The licensor of the source and the publisher of the platform, which it hosts at its own expense.
 export const LEGAL_ENTITY: LegalEntity = {
-  status: "individual",
+  status: "incorporated",
   tradingName: "Pupitre",
   owner: "Jordan Monier",
   jurisdiction: "Morocco",
   publicationDirector: "Jordan Monier",
-  legalName: null,
-  form: null,
+  legalName: "React Consulting SARL AU",
+  form: "SARL AU",
   registrationNumber: null,
   taxId: null,
   vatNumber: null,
   registeredAddress: null,
 }
 
-// It signs the desktop builds and does nothing else: it is not the publisher.
 export const CODE_SIGNING_ENTITY = {
   name: "React Consulting SARL AU",
   jurisdiction: "Morocco",
@@ -181,18 +180,18 @@ export const LegalDocumentSchema = z.object({
 type LegalDocument = z.infer<typeof LegalDocumentSchema>
 
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
-  { slug: "terms", order: 1, updated: "2026-09-25" },
-  { slug: "licence", order: 2, updated: "2026-09-24" },
+  { slug: "terms", order: 1, updated: "2026-10-01" },
+  { slug: "licence", order: 2, updated: "2026-10-01" },
   { slug: "acceptable-use", order: 3, updated: "2026-09-24" },
-  { slug: "privacy", order: 4, updated: "2026-09-25" },
-  { slug: "data-processing", order: 5, updated: "2026-09-25" },
-  { slug: "billing", order: 6, updated: "2026-09-24" },
-  { slug: "cookies", order: 7, updated: "2026-09-25" },
-  { slug: "sub-processors", order: 8, updated: "2026-09-25" },
+  { slug: "privacy", order: 4, updated: "2026-10-01" },
+  { slug: "data-processing", order: 5, updated: "2026-10-01" },
+  { slug: "billing", order: 6, updated: "2026-10-01" },
+  { slug: "cookies", order: 7, updated: "2026-10-01" },
+  { slug: "sub-processors", order: 8, updated: "2026-10-01" },
   { slug: "security", order: 9, updated: "2026-09-24" },
-  { slug: "third-party", order: 10, updated: "2026-09-25" },
-  { slug: "legal-notice", order: 11, updated: "2026-09-24" },
-  { slug: "changes", order: 12, updated: "2026-09-25" },
+  { slug: "third-party", order: 10, updated: "2026-10-01" },
+  { slug: "legal-notice", order: 11, updated: "2026-10-01" },
+  { slug: "changes", order: 12, updated: "2026-10-01" },
 ]
 
 export const SubProcessorSchema = z.object({
@@ -203,7 +202,7 @@ export const SubProcessorSchema = z.object({
 
 type SubProcessor = z.infer<typeof SubProcessorSchema>
 
-// Stripe is listed now so nobody discovers it the day billing opens.
+// Stripe is listed now so nobody discovers it the day licences are sold.
 export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     name: "Cloudflare, Inc.",
@@ -230,8 +229,8 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     name: "Stripe, Inc.",
     purpose: {
-      fr: "Encaissement en marchand officiel — paiement, facturation, taxes — à partir du jour où la facturation ouvre ; aucune donnée ne lui est transmise pendant le lancement gratuit",
-      en: "Merchant of record — payment, invoicing, taxes — from the day billing opens; nothing is sent to it during the free launch",
+      fr: "Encaissement en marchand officiel des licences au-delà des serveurs gratuits, le jour où elles seront vendues ; aucune donnée ne lui est transmise aujourd’hui",
+      en: "Merchant of record for licences beyond the free servers, the day they are sold; nothing is sent to it today",
     },
     region: { fr: "États-Unis et Irlande", en: "United States and Ireland" },
   },

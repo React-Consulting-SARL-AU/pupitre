@@ -9,7 +9,7 @@ export const EMAIL_TEMPLATE_IDS = [
   "server_enrolled",
   "server_assigned",
   "device_added",
-  "entitlement_grace",
+  "license_grace",
   "server_suspended",
   "server_suspended_admin",
   "seats_drift",
@@ -17,7 +17,7 @@ export const EMAIL_TEMPLATE_IDS = [
   "alert_server_unreachable",
   "alert_disk_high",
   "alert_agent_outdated",
-  "alert_entitlement_grace",
+  "alert_license_grace",
   "alert_backup_failed",
   "alert_backup_stale",
 ] as const

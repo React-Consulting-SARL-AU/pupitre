@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { GRANTED_PRODUCT, LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { expireGrantedSubscriptions } from "../../lib/billing/admin"
 import type { FakeBilling } from "../../lib/billing/fake"
-import { launchSubscriptionId } from "../../lib/billing/launch"
+import { GRACE_PERIOD_MS } from "../../lib/billing/license"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   remoteSubscription,
+  useBillingOff,
   useFakeBilling,
-  useLaunchBilling,
 } from "../../testing/billing"
 import {
   createOrganizationWithMembers,
@@ -57,8 +57,9 @@ interface SubscriptionsBody {
 }
 
 interface MeBody {
-  entitlement: string
-  subscription: { status: string; servers: { limit: number } } | null
+  license: string
+  servers: { used: number; limit: number } | null
+  license_grant: { status: string; seats: number } | null
 }
 
 const DAY_MS = 86_400_000
@@ -82,6 +83,27 @@ async function atelier() {
   })
 
   return { organization, owner: members[0] }
+}
+
+async function fillFreeServers(organizationId: string) {
+  for (let index = 0; index < FREE_SERVERS; index += 1) {
+    await createServer({ organizationId })
+  }
+}
+
+// The free servers never depend on a licence: one more puts them all at stake.
+async function serversBeyondFree(organizationId: string) {
+  const [first] = await Promise.all(
+    Array.from({ length: FREE_SERVERS + 1 }, () =>
+      createServer({ organizationId })
+    )
+  )
+
+  if (!first) {
+    throw new Error("no server created")
+  }
+
+  return first
 }
 
 function grant(
@@ -163,11 +185,9 @@ describe("POST /admin/organizations/:id/subscriptions", () => {
 
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
-    expect(me.json.entitlement).toBe("valid")
-    expect(me.json.subscription).toMatchObject({
-      status: "active",
-      servers: { limit: 3 },
-    })
+    expect(me.json.license).toBe("valid")
+    expect(me.json.license_grant).toMatchObject({ status: "active", seats: 3 })
+    expect(me.json.servers).toMatchObject({ limit: FREE_SERVERS + 3 })
   })
 
   it("accorde sans date de fin ni note", async () => {
@@ -346,8 +366,9 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 3 })
 
-    await createServer({ organizationId: organization.id })
-    await createServer({ organizationId: organization.id })
+    for (let index = 0; index < FREE_SERVERS + 2; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
 
     const response = await apiRequest<ErrorBody>(
       `/admin/subscriptions/${granted.json.data.id}`,
@@ -399,9 +420,9 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     useFakeBilling()
   })
 
-  it("arrête un abonnement accordé sur-le-champ et suspend ses serveurs", async () => {
+  it("arrête un abonnement accordé sur-le-champ et met en tolérance les serveurs au-delà des gratuits", async () => {
     const { organization, owner } = await atelier()
-    const { server } = await createServer({ organizationId: organization.id })
+    const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 2 })
     const before = Date.now()
@@ -417,11 +438,14 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
     ).toBeGreaterThanOrEqual(before)
     expect(response.json.data.live).toBe(true)
 
-    expect(
-      await harness.prisma.server.findUniqueOrThrow({
-        where: { id: server.id },
-      })
-    ).toMatchObject({ status: "suspended", suspendedReason: "billing" })
+    const graced = await harness.prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(graced.status).toBe("grace")
+    expect(graced.licenseValidUntil?.getTime()).toBeGreaterThan(
+      before + GRACE_PERIOD_MS - 60_000
+    )
 
     const event = await harness.prisma.event.findFirstOrThrow({
       where: {
@@ -435,25 +459,17 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
 
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
-    expect(me.json.entitlement).toBe("suspended")
+    expect(me.json.license).toBe("grace")
+    expect(me.json.license_grant).toBeNull()
   })
 
-  it("arrête un abonnement du lancement de la même façon", async () => {
+  it("arrête un abonnement accordé sans toucher aux serveurs gratuits", async () => {
     const { organization } = await atelier()
     const { server } = await createServer({ organizationId: organization.id })
-    const launch = await harness.prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: launchSubscriptionId(organization.id),
-        product: LAUNCH_PRODUCT,
-        quantity: 1,
-        status: "trialing",
-        currentPeriodEnd: new Date(Date.now() + 30 * DAY_MS),
-      },
-    })
     const admin = await platformAdmin()
+    const granted = await grant(organization.id, admin, { seats: 2 })
     const response = await apiRequest<SubscriptionBody>(
-      `/admin/subscriptions/${launch.id}/cancel`,
+      `/admin/subscriptions/${granted.json.data.id}/cancel`,
       { body: { reason: "abus" }, session: admin }
     )
 
@@ -463,12 +479,12 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
       await harness.prisma.server.findUniqueOrThrow({
         where: { id: server.id },
       })
-    ).toMatchObject({ status: "suspended" })
+    ).toMatchObject({ status: "active" })
   })
 
-  it("résilie chez Stripe, reflète la réponse et laisse courir la période payée", async () => {
+  it("résilie chez Stripe, reflète la réponse et ouvre la tolérance au-delà des serveurs gratuits", async () => {
     const { organization } = await atelier()
-    const { server } = await createServer({ organizationId: organization.id })
+    const { server } = await serversBeyondFree(organization.id)
     const periodEnd = new Date(Date.now() + 12 * DAY_MS)
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
@@ -504,7 +520,7 @@ describe("POST /admin/subscriptions/:id/cancel", () => {
       await harness.prisma.server.findUniqueOrThrow({
         where: { id: server.id },
       })
-    ).toMatchObject({ status: "grace", entitlementValidUntil: periodEnd })
+    ).toMatchObject({ status: "grace" })
     expect(
       await harness.prisma.event.count({
         where: {
@@ -551,9 +567,9 @@ describe("DELETE /admin/subscriptions/:id", () => {
     billing = useFakeBilling()
   })
 
-  it("efface un abonnement accordé encore en cours, et les serveurs suivent", async () => {
+  it("efface un abonnement accordé encore en cours, et les serveurs au-delà des gratuits suivent", async () => {
     const { organization, owner } = await atelier()
-    const { server } = await createServer({ organizationId: organization.id })
+    const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 2 })
     const response = await apiRequest(
@@ -571,7 +587,7 @@ describe("DELETE /admin/subscriptions/:id", () => {
       await harness.prisma.server.findUniqueOrThrow({
         where: { id: server.id },
       })
-    ).toMatchObject({ status: "suspended", suspendedReason: "billing" })
+    ).toMatchObject({ status: "grace" })
 
     const event = await harness.prisma.event.findFirstOrThrow({
       where: { action: "subscription.deleted" },
@@ -583,8 +599,8 @@ describe("DELETE /admin/subscriptions/:id", () => {
 
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
-    expect(me.json.entitlement).toBe("suspended")
-    expect(me.json.subscription).toBeNull()
+    expect(me.json.license).toBe("grace")
+    expect(me.json.license_grant).toBeNull()
   })
 
   it("efface une ligne Stripe résiliée sans toucher aux serveurs que l'abonnement vivant couvre", async () => {
@@ -653,9 +669,9 @@ describe("l'échéance d'un abonnement accordé", () => {
     useFakeBilling()
   })
 
-  it("ferme ce qui est arrivé à échéance et met les serveurs en tolérance à cette date", async () => {
+  it("ferme ce qui est arrivé à échéance et ouvre la tolérance des serveurs au-delà des gratuits", async () => {
     const { organization } = await atelier()
-    const { server } = await createServer({ organizationId: organization.id })
+    const { server } = await serversBeyondFree(organization.id)
     const admin = await platformAdmin()
     const ended = new Date(Date.now() - DAY_MS)
     const granted = await grant(organization.id, admin, {
@@ -702,7 +718,10 @@ describe("l'échéance d'un abonnement accordé", () => {
       await harness.prisma.server.findUniqueOrThrow({
         where: { id: server.id },
       })
-    ).toMatchObject({ status: "grace", entitlementValidUntil: ended })
+    ).toMatchObject({
+      status: "grace",
+      licenseValidUntil: new Date(now.getTime() + GRACE_PERIOD_MS),
+    })
     expect(await expireGrantedSubscriptions(now)).toEqual([])
   })
 
@@ -846,6 +865,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     const { other } = await twoOrganizations()
     const admin = await platformAdmin()
 
+    await fillFreeServers(organization.id)
     await createServer({ organizationId: organization.id })
     await createServer({ organizationId: organization.id, status: "grace" })
     await createServer({ organizationId: organization.id, status: "revoked" })
@@ -935,6 +955,7 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     const { other } = await twoOrganizations()
     const admin = await platformAdmin()
 
+    await fillFreeServers(organization.id)
     await createServer({ organizationId: organization.id })
     await createServer({ organizationId: organization.id, status: "grace" })
 
@@ -1011,6 +1032,7 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
       quantity: 1,
     })
 
+    await fillFreeServers(organization.id)
     await createServer({ organizationId: organization.id })
     await createServer({ organizationId: organization.id, status: "grace" })
     await createServer({ organizationId: organization.id, status: "revoked" })
@@ -1063,6 +1085,7 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
     const admin = await platformAdmin()
     const granted = await grant(organization.id, admin, { seats: 3 })
 
+    await fillFreeServers(organization.id)
     await createServer({ organizationId: organization.id })
 
     const response = await apiRequest<SubscriptionDetailBody>(
@@ -1077,138 +1100,81 @@ describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
   })
 })
 
-describe("POST /admin/subscriptions/:id/trial", () => {
+describe("les gestes de l'équipe quand la facturation est coupée", () => {
   beforeAll(async () => {
     harness = await bootApiTestServer()
   })
 
   beforeEach(async () => {
     await resetDb()
-    billing = useFakeBilling()
+    billing = useBillingOff()
   })
 
   afterAll(() => {
     useFakeBilling()
   })
 
-  async function trialing() {
+  it("n'a plus de route pour prolonger un essai", async () => {
     const { organization } = await atelier()
-    const endsAt = new Date(Date.now() + 5 * DAY_MS)
     const stripe = await subscribeOrganization({
       organizationId: organization.id,
-      status: "trialing",
-      quantity: 2,
-      currentPeriodEnd: endsAt,
     })
-
-    billing.put(
-      remoteSubscription({
-        id: stripe.stripeSubscriptionId,
-        organizationId: organization.id,
-        status: "trialing",
-        quantity: 2,
-        currentPeriodEnd: endsAt,
-      })
-    )
-
-    return { organization, stripe, endsAt }
-  }
-
-  it("repousse la fin chez Stripe, reflète la réponse et garde les deux dates au journal", async () => {
-    const { stripe, endsAt } = await trialing()
     const admin = await platformAdmin()
-    const later = new Date(Date.now() + 20 * DAY_MS)
-    const response = await apiRequest<SubscriptionBody>(
-      `/admin/subscriptions/${stripe.id}/trial`,
-      { body: { ends_at: later.toISOString() }, session: admin }
-    )
-
-    expect(response.status).toBe(200)
-    expect(response.json.data).toMatchObject({
-      status: "trialing",
-      current_period_end: later.toISOString(),
-    })
-    expect(billing.trials).toEqual([
-      { subscriptionId: stripe.stripeSubscriptionId, endsAt: later },
-    ])
-
-    const event = await harness.prisma.event.findFirstOrThrow({
-      where: {
-        action: "subscription.updated",
-        targetId: stripe.stripeSubscriptionId,
-      },
-    })
-
-    expect(event.actorUserId).toBe(admin.session.userId)
-    expect(event.payload).toMatchObject({
-      trial_ends_at: later.toISOString(),
-      previous_trial_ends_at: endsAt.toISOString(),
-    })
-  })
-
-  it("refuse un produit de la plateforme, un abonnement hors essai et une date passée", async () => {
-    const { organization } = await atelier()
-    const admin = await platformAdmin()
-    const granted = await grant(organization.id, admin, { seats: 1 })
-    const { organization: other } = await atelier()
-    const active = await subscribeOrganization({
-      organizationId: other.id,
-      status: "active",
-    })
-    const { stripe } = await trialing()
-    const later = new Date(Date.now() + 20 * DAY_MS).toISOString()
-    const platform = await apiRequest<ErrorBody>(
-      `/admin/subscriptions/${granted.json.data.id}/trial`,
-      { body: { ends_at: later }, session: admin }
-    )
-    const notTrialing = await apiRequest<ErrorBody>(
-      `/admin/subscriptions/${active.id}/trial`,
-      { body: { ends_at: later }, session: admin }
-    )
-    const past = await apiRequest<ErrorBody>(
+    const response = await apiRequest<ErrorBody>(
       `/admin/subscriptions/${stripe.id}/trial`,
       {
-        body: { ends_at: new Date(Date.now() - DAY_MS).toISOString() },
+        body: { ends_at: new Date(Date.now() + DAY_MS).toISOString() },
         session: admin,
       }
     )
 
-    expect(platform.status).toBe(409)
-    expect(platform.json.error.code).toBe("conflict")
-    expect(platform.json.error.fix).toBeString()
-    expect(notTrialing.status).toBe(409)
-    expect(notTrialing.json.error.code).toBe("conflict")
-    expect(past.status).toBe(422)
-    expect(past.json.error.code).toBe("validation")
-    expect(billing.trials).toHaveLength(0)
+    expect(response.status).toBe(404)
   })
 
-  it("refuse pendant le lancement, un abonnement absent, un membre et un anonyme", async () => {
-    const { stripe } = await trialing()
+  it("accorde, redimensionne et arrête une licence accordée sans Stripe", async () => {
+    const { organization } = await atelier()
     const admin = await platformAdmin()
-    const later = new Date(Date.now() + 20 * DAY_MS).toISOString()
-    const missing = await apiRequest<ErrorBody>(
-      "/admin/subscriptions/nope/trial",
-      { body: { ends_at: later }, session: admin }
+    const granted = await grant(organization.id, admin, { seats: 2 })
+    const resized = await apiRequest<SubscriptionBody>(
+      `/admin/subscriptions/${granted.json.data.id}`,
+      { method: "PATCH", body: { seats: 4 }, session: admin }
     )
-    const anonymous = await apiRequest<ErrorBody>(
-      `/admin/subscriptions/${stripe.id}/trial`,
-      { body: { ends_at: later } }
-    )
-
-    expect(missing.status).toBe(404)
-    expect(anonymous.status).toBe(401)
-
-    useLaunchBilling()
-
-    const launch = await apiRequest<ErrorBody>(
-      `/admin/subscriptions/${stripe.id}/trial`,
-      { body: { ends_at: later }, session: admin }
+    const canceled = await apiRequest<SubscriptionBody>(
+      `/admin/subscriptions/${granted.json.data.id}/cancel`,
+      { body: { reason: "fin" }, session: admin }
     )
 
-    expect(launch.status).toBe(409)
-    expect(launch.json.error.code).toBe("conflict")
-    expect(launch.json.error.message).toContain("Stripe")
+    expect(granted.status).toBe(201)
+    expect(resized.json.data.quantity).toBe(4)
+    expect(canceled.json.data.status).toBe("canceled")
+    expect(billing.cancellations).toHaveLength(0)
+  })
+
+  it("refuse d'arrêter ou de reprendre une ligne Stripe, sans appeler Stripe", async () => {
+    const { organization } = await atelier()
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: new Date(Date.now() + DAY_MS),
+    })
+    const admin = await platformAdmin()
+    const canceled = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/cancel`,
+      { body: { reason: "fin" }, session: admin }
+    )
+    const resumed = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/resume`,
+      { method: "POST", session: admin }
+    )
+
+    for (const refused of [canceled, resumed]) {
+      expect(refused.status).toBe(409)
+      expect(refused.json.error.code).toBe("conflict")
+      expect(refused.json.error.message).toContain("Stripe")
+    }
+
+    expect(billing.cancellations).toHaveLength(0)
+    expect(billing.resumptions).toHaveLength(0)
   })
 })
 

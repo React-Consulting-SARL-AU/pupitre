@@ -25,7 +25,7 @@ export interface DashboardContextValue {
   organizations: (DashboardOrganization & { role: string })[]
   activeOrganization: DashboardActiveOrganization | null
   role: OrgRole | null
-  entitlement: string
+  license: string
   platformRole: OrgRole | null
   platformCanAct: boolean
 }

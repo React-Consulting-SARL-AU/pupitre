@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -24,11 +24,6 @@ interface OverviewWorklists {
     id: string
     organization: { id: string; name: string }
     status: string
-  }>
-  trials_ending: Worklist<{
-    id: string
-    organization: { id: string; name: string }
-    current_period_end: string | null
   }>
   servers_unreachable: Worklist<{
     id: string
@@ -119,15 +114,15 @@ async function populatedPlatform() {
   await harness.prisma.subscription.create({
     data: {
       organizationId: bureau.organization.id,
-      stripeSubscriptionId: `launch_${bureau.organization.id}`,
-      product: LAUNCH_PRODUCT,
+      stripeSubscriptionId: `granted_${bureau.organization.id}`,
+      product: GRANTED_PRODUCT,
       quantity: 1,
-      status: "trialing",
+      status: "active",
     },
   })
 
   const link = await harness.prisma.affiliateLink.create({
-    data: { code: "blog", name: "Blog", freeMonths: 1 },
+    data: { code: "blog", name: "Blog" },
   })
 
   await harness.prisma.referral.create({
@@ -183,12 +178,10 @@ describe("GET /admin/overview", () => {
       },
       subscriptions: {
         total: 3,
-        trialing: 1,
-        active: 1,
+        active: 2,
         past_due: 0,
         canceled: 1,
         other: 0,
-        launch: 1,
       },
       affiliate_links: 1,
       referrals: 1,
@@ -264,8 +257,8 @@ describe("GET /admin/users", () => {
       name: "Bureau",
       slug: bureau.organization.slug,
       role: "owner",
-      subscription_status: "trialing",
-      subscription_id: await liveOf(bureau.organization.id, "trialing"),
+      subscription_status: "active",
+      subscription_id: await liveOf(bureau.organization.id, "active"),
       servers: 0,
     })
     expect(support?.role).toBe("platform_admin")

@@ -64,7 +64,7 @@ export function registerFleet(settle: (serverId: string) => void): void {
       }
 
       if (grantWithdrawn(server.grant)) {
-        return refuse("entitlement_required", "refusal.fleet.withdrawn");
+        return refuse("license_required", "refusal.fleet.withdrawn");
       }
 
       if (grantPending(server.grant)) {

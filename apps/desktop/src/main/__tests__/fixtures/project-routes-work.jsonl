@@ -1,5 +1,5 @@
 # Le canal de travail : l'ajout d'un projet à plusieurs ports.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.add","project.list","project.remove","project.update"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.add","project.list","project.remove","project.update"]}}
 > {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","repo":"https://github.com/ada/shop.git","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"subdomain":"shop"},{"label":"api","port":3101,"subdomain":"api-shop"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev","dir":"."}]}}
 < {"id":2,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","repo":"https://github.com/ada/shop.git","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.flyleaf.dev"},{"label":"api","port":3101,"hostname":"api-shop.flyleaf.dev"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev","install":"bun install","state":"stopped","url":"https://shop.flyleaf.dev"}],"state":"stopped","url":"https://shop.flyleaf.dev"}}

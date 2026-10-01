@@ -4,7 +4,7 @@
 
 ## Stack imposée
 
-Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, garble en release. Cibles `linux/amd64` et `linux/arm64`. `gofmt`, `go vet`, `staticcheck`, `govulncheck`. Pas de framework, pas d'ORM, pas de shell-out là où un appel système suffit.
+Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, release comprise : le code source est public, le binaire n'est pas obscurci. Cibles `linux/amd64` et `linux/arm64`. `gofmt`, `go vet`, `staticcheck`, `govulncheck`. Pas de framework, pas d'ORM, pas de shell-out là où un appel système suffit.
 
 **Banned** : tout script déposé sur le disque du client, `os/exec` avec une chaîne construite depuis une entrée du protocole, journalisation d'un secret.
 
@@ -20,7 +20,7 @@ Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statiq
 - **Aucune connexion entrante.** Le seul canal de commande est `pupitred serve` sur la session SSH du client. Vers la plateforme : HTTPS sortant, jeton de serveur, rien d'autre.
 - **Deux sessions, et sudo en décide** (décision 0015). `pupitred serve` est la ligne que sudo lance pour `dev` sans mot de passe : la session limitée, qui refuse par `privilege_required` tout ce que `LimitedCommands` du contrat ne nomme pas. `pupitred serve --privileged` répond à tout, et sudo ne le lance que sur le mot de passe. La règle sudoers ne nomme que des lignes exactes (`internal/sudo`) : une sous-commande qui se lance sans mot de passe n'assouplit rien d'après ses arguments, et ce qu'elle lit vient de l'entrée standard.
 - **Root ne suit pas un lien de `dev`.** Sous `/home/dev`, on lit et on écrit par les primitives `*In` et `os.Root` de `internal/sys`, jamais par un chemin résolu à la main.
-- **Le droit d'usage gouverne.** Sans jeton valide ni tolérance, les modules et les commandes de pilotage refusent avec `entitlement_required`. Le build `-tags dev` embarque un droit d'usage de développement.
+- **La licence gouverne.** Pupitre est gratuit jusqu'à trois serveurs par organisation, une licence est requise au-delà ; c'est la plateforme qui en juge, l'agent ne lit que l'état qu'elle lui rend (`license` de `/agent/state`, mis en cache dans `/var/lib/pupitre/license.json`). Sans jeton valide ni tolérance, les modules et les commandes de pilotage refusent avec `license_required`. Le build `-tags dev` embarque une licence de développement.
 - **Le contrat vient de `packages/shared`** via `internal/contract/schema.json`, régénéré par `bun run contracts:export`. On ne redéclare pas un type du protocole à la main.
 
 ## Architecture
@@ -31,10 +31,10 @@ internal/backup/         sauvegardes et restauration : parties en flux, manifest
 internal/contract/       schema.json exporté de packages/shared, codes d'erreur, règles des champs, feuille de compatibilité
 internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement, keys.list
 internal/devcli/         grammaire et rendu de pupitred dev ; en dev, les verbes vont à sudo -n pupitred serve (remote.go), et à serve --privileged, mot de passe demandé sur le terminal, pour un verbe privilégié ; la même grammaire que completions rend
-internal/entitlement/    droit d'usage, cache, mode restreint ; build_dev.go porte le droit d'usage du tag dev
 internal/golden/         enregistre ce qu'une transcription de test a produit, au lieu d'échouer dessus
 internal/i18n/           toutes les phrases de l'agent, en français et en anglais, un catalogue par domaine
 internal/keys/           bloc balisé d'authorized_keys, écriture atomique ; signataires (/etc/pupitre/signers.json) et approbations SSHSIG de la décision 0014 ; keys reset, le secours depuis la console de l'hébergeur
+internal/license/        licence, cache, mode restreint ; build_dev.go porte la licence du tag dev
 internal/migrate/        le registre des migrations de configuration : révision, sauvegardes, rejeu, restauration ; migrations.go est la liste
 internal/modules/        interface Module, moteur, validation, préflight, journal, verrou ; un dossier par catégorie : core/, runtime/, db/, ai/, editor/, exposure/, tool/ ; modtest/ pour les tests
 internal/platform/       client HTTPS de la plateforme, jeton de serveur
@@ -71,11 +71,11 @@ Sans la variable, ils se sautent au lieu d'échouer. Le banc parle à `pupitred 
 
 ```bash
 bun run build            # go build multi-arch
-bun run build:dev        # même chose avec -tags dev : droit d'usage intégré, ni jeton ni plateforme
+bun run build:dev        # même chose avec -tags dev : licence intégrée, ni jeton ni plateforme
 bun run test             # go test, puis go test -tags dev
 bun run lint             # gofmt, go vet et staticcheck avec et sans -tags dev, govulncheck
 bun run lint:fix         # gofmt -w
 bun run check:types      # go build ./..., avec et sans -tags dev
 bun run tools:install    # staticcheck et govulncheck, épinglés ; le bin de Go doit être dans le PATH
-bun run release          # garble + signature, appelé par scripts/release sur le runner de release.yml
+bun run release          # build de release + signature, appelé par scripts/release sur le runner de release.yml
 ```

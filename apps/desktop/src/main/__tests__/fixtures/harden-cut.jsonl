@@ -1,6 +1,6 @@
 # Le durcissement redémarre sshd : le canal meurt en cours de route, l'agent finit seul et n'en écrit aucun rapport.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","install","harden"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","install","harden"]}}
 @die
 > {"id":2,"cmd":"harden","params":{"user":"dev"}}
 < {"id":2,"event":"step","module":"core.hardening","step":"compte dev","status":"start","ms":0}

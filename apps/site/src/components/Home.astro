@@ -1,10 +1,8 @@
 ---
-import { TRIAL_DAYS } from "@pupitre/shared/plans"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { homeContent } from "../content/site/home"
-import { pricingContent } from "../content/site/pricing"
 import Base from "../layouts/Base.astro"
 import { fill, localeFromPath, translator } from "../lib/i18n"
-import { isLaunchOpen, LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import {
   faqPage,
   jsonLd,
@@ -16,35 +14,35 @@ import Claim from "./Claim.astro"
 import ClosingCta from "./ClosingCta.astro"
 import Faq from "./Faq.astro"
 import Feature from "./Feature.astro"
+import FreeNote from "./FreeNote.astro"
 import Hero from "./Hero.astro"
 import NameNote from "./NameNote.astro"
-import PricingNote from "./PricingNote.astro"
 import Section from "./Section.astro"
 import Steps from "./Steps.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const content = homeContent(locale)
+const servers = { count: FREE_SERVERS }
 
-const launching = isLaunchOpen()
+const steps = content.steps.items.map((item) => ({
+  title: item.title,
+  detail: fill(item.detail, servers),
+}))
+const faq = content.faq.items.map((item) => ({
+  question: item.question,
+  answer: fill(item.answer, servers),
+}))
+
 const application = jsonLd(
   softwareApplication({
     locale,
     name: t("site.name"),
     description: content.meta.description,
-    launch: launching
-      ? { endsAt: LAUNCH_ENDS_AT, name: pricingContent(locale).launch.offer }
-      : undefined,
   })
 )
 const company = jsonLd(organization({ name: t("site.name"), locale }))
-const questions = jsonLd(faqPage(content.faq.items))
-const numbers = { days: TRIAL_DAYS, date: launchEndDate(locale) }
-const steps = content.steps.items.map((item) => {
-  const shown = launching && item.duringLaunch ? item.duringLaunch : item
-
-  return { title: shown.title, detail: fill(shown.detail, numbers) }
-})
+const questions = jsonLd(faqPage(faq))
 ---
 
 <Base title={content.meta.title} description={content.meta.description}>
@@ -132,9 +130,9 @@ const steps = content.steps.items.map((item) => {
     id="pricing"
     align="center"
     label={content.pricing.label}
-    title={content.pricing.title}
+    title={fill(content.pricing.title, servers)}
   >
-    <PricingNote />
+    <FreeNote />
   </Section>
 
   <Section
@@ -144,7 +142,7 @@ const steps = content.steps.items.map((item) => {
     title={content.faq.title}
     tone="surface"
   >
-    <Faq items={content.faq.items} />
+    <Faq items={faq} />
   </Section>
 
   <NameNote />

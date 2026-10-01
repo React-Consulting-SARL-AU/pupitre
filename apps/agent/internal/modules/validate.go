@@ -98,8 +98,8 @@ func invalidConfig(problems []contract.FieldProblem) error {
 }
 
 func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error) {
-	if !e.entitled() {
-		return contract.InstallCheck{}, protocol.EntitlementRequired()
+	if !e.licensed() {
+		return contract.InstallCheck{}, protocol.LicenseRequired()
 	}
 
 	modules, err := e.Registry.Resolve(request.Modules)

@@ -60,9 +60,9 @@ test.describe("services", () => {
       answer("catalog:list", () => ({
         ok: false,
         error: {
-          code: "entitlement_required",
-          fix: "Ouvrez la console.",
-          message: "abonnement requis : ce serveur est en mode restreint",
+          code: "license_required",
+          fix: "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
+          message: "licence requise : ce serveur est en mode restreint",
         },
       }));
     });

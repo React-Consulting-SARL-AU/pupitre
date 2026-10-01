@@ -4,13 +4,13 @@ export const securityFr: SecurityContent = {
   meta: {
     title: "Sécurité — Pupitre",
     description:
-      "Ce que Pupitre peut et ne peut pas faire sur votre serveur, ce que la plateforme en sait, et la commande qui vérifie chaque affirmation. Pourquoi le code est fermé, ce qui se passe si Pupitre s’arrête, et comment le retirer.",
+      "Ce que Pupitre peut et ne peut pas faire sur votre serveur, ce que la plateforme en sait, et la commande qui vérifie chaque affirmation. Où lire le code, ce qui se passe si Pupitre s’arrête, et comment le retirer.",
   },
   hero: {
     label: "Sécurité",
     headline:
       "Vous installez notre agent en root. Voici ce qu’il peut faire, et ce qu’il ne peut pas.",
-    lead: "Pupitre pose un binaire compilé sur un serveur à vous, avec les droits root, et le code est fermé. Cela demande de la confiance : chaque affirmation ci-dessous vient avec la commande qui la vérifie sur votre propre machine.",
+    lead: "Pupitre pose un binaire compilé sur un serveur à vous, avec les droits root. Cela demande de la confiance : le code source est donc public, et chaque affirmation ci-dessous vient avec la commande qui la vérifie sur votre propre machine.",
     cta: "Lire la documentation sécurité",
   },
   guarantees: {
@@ -91,13 +91,13 @@ export const securityFr: SecurityContent = {
     title: "Les questions à poser avant d’installer",
     items: [
       {
-        id: "closed-source",
-        question: "Pourquoi le code est-il fermé ?",
+        id: "source",
+        question: "Puis-je lire le code ?",
         paragraphs: [
-          "Pupitre est un produit payant, et c’est sa vente qui finance les mises à jour. Nous avons choisi un produit fermé plutôt qu’un cœur ouvert avec des fonctions payantes par-dessus.",
+          "Oui. Le code de l’app, de l’agent et de la plateforme est public, sous licence Apache 2.0 avec la Commons Clause : vous pouvez le lire, le modifier, compiler l’agent vous-même et faire tourner votre propre plateforme. La seule chose que la licence interdit, c’est de vendre Pupitre, ou un service bâti pour l’essentiel sur lui.",
           "Vous n’avez pas besoin de lire la source pour savoir ce que l’agent a fait à votre machine. Tout ce qu’il installe est un logiciel standard, configuré dans des fichiers ordinaires que vous pouvez ouvrir, comme /etc/ssh/sshd_config.d/10-pupitre.conf ou le Caddyfile. La documentation dit ce que chaque module installe, modifie et retire.",
         ],
-        link: { href: "/docs/services/", label: "Ce que fait chaque module" },
+        link: { href: "/legal/licence/", label: "Ce que la licence permet" },
       },
       {
         id: "shutdown",

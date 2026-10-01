@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import {
   CODE_SIGNING_ENTITY,
+  copyrightHolder,
   LEGAL_CONTACTS,
   LEGAL_DOCUMENT_SLUGS,
   LEGAL_DOCUMENTS,
@@ -12,6 +13,9 @@ import { checkLegalPages } from "../../scripts/legal"
 import { LOCALES } from "../lib/i18n"
 
 const ROOT = "src/content/legal"
+
+const FORGOTTEN_OFFERS_RE =
+  /free launch|lancement gratuit|launch seat|for good|pour de bon|the trial|l’essai|merchant of record/i
 
 function page(locale: string, slug: string): string {
   return path.join(ROOT, locale, `${slug}.mdx`)
@@ -58,13 +62,40 @@ describe("les pages légales", () => {
     }
   })
 
-  it("nomment l'éditeur, personne physique, et la société qui signe l'app", () => {
+  it("nomment la société qui édite, concède le code et signe l'app", () => {
+    const publisher = copyrightHolder()
+
+    expect(publisher).toBe(LEGAL_ENTITY.legalName)
     for (const locale of LOCALES) {
       for (const slug of ["terms", "licence", "privacy", "data-processing"]) {
-        expect(read(locale, slug), slug).toContain(LEGAL_ENTITY.owner)
+        expect(read(locale, slug), slug).toContain(publisher)
       }
 
       expect(read(locale, "licence")).toContain(CODE_SIGNING_ENTITY.name)
+    }
+  })
+
+  it("donnent la licence du code et renvoient à son texte dans le dépôt", () => {
+    for (const locale of LOCALES) {
+      const licence = read(locale, "licence")
+
+      expect(licence, locale).toContain("Apache")
+      expect(licence, locale).toContain("Commons Clause")
+      expect(licence, locale).toContain("href={SOURCE_LICENSE_URL}")
+    }
+  })
+
+  it("ne promettent plus de lancement, d'essai ni de place gardée pour de bon", () => {
+    for (const locale of LOCALES) {
+      for (const document of LEGAL_DOCUMENTS) {
+        if (document.slug === "changes") {
+          continue
+        }
+
+        expect(read(locale, document.slug), document.slug).not.toMatch(
+          FORGOTTEN_OFFERS_RE
+        )
+      }
     }
   })
 
@@ -72,7 +103,7 @@ describe("les pages légales", () => {
     for (const locale of LOCALES) {
       const notice = read(locale, "legal-notice")
 
-      expect(notice).toContain(LEGAL_ENTITY.owner)
+      expect(notice).toContain(copyrightHolder())
       expect(notice).toContain(LEGAL_ENTITY.publicationDirector)
       expect(notice).toContain(CODE_SIGNING_ENTITY.name)
 

@@ -40,7 +40,7 @@ const CONTEXT = {
     reason: null,
   },
   role: "member" as const,
-  entitlement: "valid",
+  license: "valid",
   platformRole: null,
   platformCanAct: false,
 }

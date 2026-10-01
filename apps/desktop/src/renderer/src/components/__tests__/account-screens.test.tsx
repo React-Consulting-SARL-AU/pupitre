@@ -9,11 +9,8 @@ import { mount } from "../../__tests__/dom";
 import type { SignInState } from "../../stores/account";
 import { AccountGateScreen } from "../account/account-gate-screen";
 import { AccountIdentityCard } from "../account/account-identity-card";
+import { AccountLicenseCard } from "../account/account-license-card";
 import { AccountSignInCard } from "../account/account-sign-in-card";
-import {
-  AccountSubscriptionCard,
-  billingUrlOf,
-} from "../account/account-subscription-card";
 import { AccountUsageNotice } from "../account/account-usage-notice";
 import { OnboardingEnrollmentNote } from "../onboarding/onboarding-enrollment-note";
 
@@ -34,15 +31,18 @@ function text(html: string): string {
 
 const ADA: AccountIdentity = {
   email: "ada@pupitre.studio",
-  entitlement: "valid",
+  license: "valid",
+  licenseGrant: null,
   name: "Ada Lovelace",
   organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
   organizations: [
     { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
   ],
   role: "owner",
-  subscription: null,
+  servers: { limit: 3, used: 1 },
 };
+
+const OVER_FREE = { limit: 3, used: 4 };
 
 const SIGNED_IN: AccountState = {
   build: "production",
@@ -58,7 +58,7 @@ const SIGNED_IN: AccountState = {
   refusal: null,
   sealed: true,
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: "2026-09-11T10:00:00.000Z",
@@ -71,23 +71,23 @@ function usage(html: UsageRight, checkedAt: string | null = null): string {
   );
 }
 
-describe("le droit d'usage", () => {
+describe("la licence", () => {
   it("distingue chaque état par une forme", () => {
     const shapes = [
       usage({
-        entitlement: "valid",
+        license: "valid",
         source: "platform",
         status: "granted",
         validUntil: null,
       }),
       usage({
-        entitlement: "valid",
+        license: "valid",
         source: "cache",
         status: "granted",
         validUntil: null,
       }),
       usage({
-        entitlement: "none",
+        license: "none",
         source: "development",
         status: "granted",
         validUntil: null,
@@ -99,7 +99,11 @@ describe("le droit d'usage", () => {
         status: "stale",
       }),
       usage({ consoleUrl: CONSOLE_URL, status: "suspended" }),
-      usage({ consoleUrl: CONSOLE_URL, status: "unsubscribed" }),
+      usage({
+        consoleUrl: CONSOLE_URL,
+        servers: OVER_FREE,
+        status: "unlicensed",
+      }),
     ].map((html) => html.match(/data-shape="([a-z]+)"/)?.[1]);
 
     expect(shapes).toEqual([
@@ -113,13 +117,17 @@ describe("le droit d'usage", () => {
     ]);
   });
 
-  it("envoie choisir une offre à l'organisation qui n'en a pas, et gérer la sienne à celle qui est suspendue", () => {
-    const unsubscribed = text(
+  it("envoie au support l'organisation au-delà de ses serveurs gratuits comme celle que la plateforme suspend", () => {
+    const unlicensed = text(
       renderToStaticMarkup(
         <AccountUsageNotice
           checkedAt={null}
           onOpenConsole={NOOP}
-          usage={{ consoleUrl: CONSOLE_URL, status: "unsubscribed" }}
+          usage={{
+            consoleUrl: CONSOLE_URL,
+            servers: OVER_FREE,
+            status: "unlicensed",
+          }}
         />
       )
     );
@@ -133,17 +141,21 @@ describe("le droit d'usage", () => {
       )
     );
 
-    expect(unsubscribed).toContain("Aucun abonnement");
-    expect(unsubscribed).toContain("Choisir une offre");
-    expect(unsubscribed).not.toContain("suspendu");
-    expect(suspended).toContain("Abonnement suspendu");
-    expect(suspended).toContain("Gérer l'abonnement");
+    expect(unlicensed).toContain("Licence requise");
+    expect(unlicensed).toContain("4 serveurs pour 3 gratuits");
+    expect(unlicensed).toContain("support@pupitre.studio");
+    expect(unlicensed).toContain("Écrire au support");
+    expect(unlicensed).not.toContain("suspendu");
+    expect(unlicensed).not.toContain("Ouvrir la console");
+    expect(suspended).toContain("Organisation suspendue");
+    expect(suspended).toContain("Écrire au support");
+    expect(`${unlicensed} ${suspended}`).not.toMatch(/abonnement|offre/i);
   });
 
   it("nomme les sept jours de tolérance quand le cache tient encore", () => {
     const html = usage(
       {
-        entitlement: "valid",
+        license: "valid",
         source: "cache",
         status: "granted",
         validUntil: "2026-09-11T10:00:00.000Z",
@@ -283,7 +295,7 @@ describe("l'écran de compte", () => {
     device: null,
     identity: null,
     refusal: {
-      code: "entitlement_required",
+      code: "license_required",
       fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`,
       message: "Installer un serveur demande un compte Pupitre.",
     },
@@ -318,7 +330,7 @@ describe("l'écran de compte", () => {
       build: "development",
       refusal: null,
       usage: {
-        entitlement: "none",
+        license: "none",
         source: "development",
         status: "granted",
         validUntil: null,
@@ -338,10 +350,10 @@ describe("l'écran de compte", () => {
       ...SIGNED_OUT,
       checkedAt: "2026-08-01T10:00:00.000Z",
       refusal: {
-        code: "entitlement_required",
+        code: "license_required",
         fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
         message:
-          "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+          "La console n'a pas répondu depuis plus de sept jours : la licence a expiré.",
       },
       usage: {
         consoleUrl: CONSOLE_URL,
@@ -353,64 +365,64 @@ describe("l'écran de compte", () => {
     expect(text(html)).toContain("Vérification expirée");
     expect(text(html)).toContain("Dernière vérification");
     expect(text(html)).toContain("Ouvrir la console");
-    expect(text(html)).not.toContain("le droit d'usage a expiré");
+    expect(text(html)).not.toContain("la licence a expiré");
   });
 
-  const UNSUBSCRIBED: AccountState = {
+  const UNLICENSED: AccountState = {
     ...SIGNED_IN,
-    identity: { ...ADA, entitlement: "suspended" },
+    identity: { ...ADA, license: "suspended", servers: OVER_FREE },
     refusal: {
-      code: "entitlement_required",
-      fix: `Choisissez une offre dans la console : ${CONSOLE_URL}`,
-      message: "Cette organisation n'a pas d'abonnement.",
+      code: "license_required",
+      fix: "Pupitre est gratuit jusqu'à 3 serveurs par organisation : retirez un serveur, ou écrivez à support@pupitre.studio pour une licence.",
+      message:
+        "Licence requise : cette organisation a 4 serveurs, dont 3 gratuits.",
     },
-    usage: { consoleUrl: CONSOLE_URL, status: "unsubscribed" },
+    usage: {
+      consoleUrl: CONSOLE_URL,
+      servers: OVER_FREE,
+      status: "unlicensed",
+    },
   };
 
-  it("dit à qui est connecté sans offre laquelle choisir, une seule fois, sans lui redemander de se connecter", () => {
-    const html = text(gate(UNSUBSCRIBED));
+  it("dit à qui dépasse les serveurs gratuits qu'une licence est requise, une seule fois, sans lui redemander de se connecter", () => {
+    const html = text(gate(UNLICENSED));
 
-    expect(html).toContain("Choisissez une offre pour ouvrir Pupitre");
-    expect(html).toContain("Atelier Ada n'a pas d'abonnement");
-    expect(html).toContain("Choisir une offre");
+    expect(html).toContain("Licence requise");
+    expect(html).toContain(
+      "Atelier Ada a 4 serveurs : Pupitre est gratuit jusqu'à 3 serveurs"
+    );
+    expect(html).toContain("support@pupitre.studio");
+    expect(html).toContain("Écrire au support");
     expect(html).toContain("Actualiser");
     expect(html).toContain("ada@pupitre.studio");
     expect(html).not.toContain("Se connecter");
     expect(html).not.toContain("suspendu");
-    expect(html.match(/pas d'abonnement/g)).toHaveLength(1);
+    expect(html.match(/Licence requise/g)).toHaveLength(1);
+    expect(html).not.toMatch(/abonnement|offre|essai/i);
   });
 
   it("nomme la suspension une seule fois, avec le geste qui la règle", () => {
     const html = text(
       gate({
-        ...UNSUBSCRIBED,
-        identity: {
-          ...ADA,
-          entitlement: "suspended",
-          subscription: {
-            current_period_end: "2026-08-31T00:00:00.000Z",
-            servers: { limit: 1, used: 1 },
-            status: "canceled",
-            trial_ends_at: null,
-          },
-        },
+        ...UNLICENSED,
+        identity: { ...ADA, license: "suspended" },
         refusal: {
           code: "server_suspended",
-          fix: `Régularisez l'abonnement dans la console : ${CONSOLE_URL}`,
-          message: "L'abonnement de cette organisation est suspendu.",
+          fix: "Écrivez à support@pupitre.studio pour faire rétablir l'organisation.",
+          message: "La plateforme a suspendu cette organisation.",
         },
         usage: { consoleUrl: CONSOLE_URL, status: "suspended" },
       })
     );
 
-    expect(html).toContain("Abonnement suspendu");
-    expect(html).toContain("Gérer l'abonnement");
+    expect(html).toContain("Organisation suspendue");
+    expect(html).toContain("Écrire au support");
     expect(html).not.toContain("Se connecter");
     expect(html.match(/suspendu/g)).toHaveLength(2);
   });
 
-  it("ne propose pas à un build de développement de continuer sans compte quand c'est l'offre qui manque", () => {
-    const html = text(gate({ ...UNSUBSCRIBED, build: "development" }));
+  it("ne propose pas à un build de développement de continuer sans compte quand c'est la licence qui manque", () => {
+    const html = text(gate({ ...UNLICENSED, build: "development" }));
 
     expect(html).not.toContain("Continuer sans compte");
   });
@@ -484,82 +496,58 @@ describe("l'enrôlement", () => {
   });
 });
 
-describe("l'abonnement sous le compte", () => {
-  const NOW = new Date("2026-09-11T10:00:00.000Z");
-
+describe("la licence sous le compte", () => {
   function card(
-    subscription: Parameters<typeof AccountSubscriptionCard>[0]["subscription"]
+    servers: Parameters<typeof AccountLicenseCard>[0]["servers"],
+    grant: Parameters<typeof AccountLicenseCard>[0]["grant"] = null
   ): string {
     return renderToStaticMarkup(
-      <AccountSubscriptionCard
-        consoleUrl={CONSOLE_URL}
-        now={NOW}
-        onOpenConsole={NOOP}
-        subscription={subscription}
+      <AccountLicenseCard
+        grant={grant}
+        onContactSupport={NOOP}
+        servers={servers}
       />
     );
   }
 
-  it("compte les jours d'un essai, et les sièges occupés", () => {
-    const html = card({
-      current_period_end: "2026-09-16T09:00:00.000Z",
-      servers: { limit: 2, used: 1 },
-      status: "trialing",
-      trial_ends_at: "2026-09-16T09:00:00.000Z",
-    });
+  it("compte les serveurs utilisés et dit la règle des serveurs gratuits", () => {
+    const html = text(card({ limit: 3, used: 1 }));
 
-    expect(text(html)).toContain("Essai en cours");
-    expect(text(html)).toContain("5 jours restants");
-    expect(text(html)).toContain("1 sur 2 serveurs utilisés");
-    expect(text(html)).toContain("Gérer l'abonnement");
-    expect(html).toContain('data-trial-tone="ok"');
-    expect(html).toContain('data-shape="breathing"');
+    expect(html).toContain("1 sur 3 serveurs utilisés");
+    expect(html).toContain(
+      "Gratuit jusqu'à 3 serveurs par organisation ; une licence est requise au-delà. Écrivez à support@pupitre.studio."
+    );
+    expect(html).not.toContain("Écrire au support");
+    expect(html).not.toMatch(/abonnement|essai|offre/i);
   });
 
-  it("passe en avertissement sous trois jours, avec le remède", () => {
-    const html = card({
-      current_period_end: "2026-09-13T09:00:00.000Z",
-      servers: { limit: 2, used: 2 },
-      status: "trialing",
-      trial_ends_at: "2026-09-13T09:00:00.000Z",
-    });
-
-    expect(text(html)).toContain("2 jours restants");
-    expect(text(html)).toContain("Choisissez une offre dans la console");
-    expect(html).toContain('data-trial-tone="warn"');
-    expect(html).toContain("text-warn");
+  it("propose d'écrire au support une fois les serveurs gratuits pris", () => {
+    expect(text(card({ limit: 3, used: 3 }))).toContain("Écrire au support");
   });
 
-  it("dit la date de renouvellement d'un abonnement payé, sans compter de jours", () => {
-    const html = card({
-      current_period_end: "2026-10-01T00:00:00.000Z",
-      servers: { limit: 3, used: 1 },
-      status: "active",
-      trial_ends_at: null,
-    });
+  it("dit ce qu'une licence ajoute et jusqu'à quand", () => {
+    const html = card(
+      { limit: 8, used: 6 },
+      {
+        current_period_end: "2027-10-01T00:00:00.000Z",
+        seats: 5,
+        status: "active",
+      }
+    );
 
-    expect(text(html)).toContain("Abonnement actif");
-    expect(text(html)).toContain("Renouvellement le");
-    expect(text(html)).not.toContain("restant");
-    expect(html).not.toContain("data-trial-tone");
+    expect(text(html)).toContain("Licence active");
+    expect(text(html)).toContain("5 serveurs ajoutés aux gratuits");
+    expect(text(html)).toContain("Licence valable jusqu'au");
     expect(html).toContain('data-shape="filled"');
   });
 
   it("garde le mot de Stripe pour un statut qu'elle ne nomme pas", () => {
-    const html = card({
-      current_period_end: null,
-      servers: { limit: 1, used: 0 },
-      status: "incomplete_expired",
-      trial_ends_at: null,
-    });
+    const html = card(
+      { limit: 3, used: 1 },
+      { current_period_end: null, seats: 0, status: "incomplete_expired" }
+    );
 
     expect(text(html)).toContain("incomplete_expired");
-    expect(text(html)).not.toContain("Renouvellement");
-  });
-
-  it("envoie à la facturation de la console, sous l'adresse du compte", () => {
-    expect(billingUrlOf("https://app.pupitre.test/dashboard")).toBe(
-      "https://app.pupitre.test/dashboard/billing"
-    );
+    expect(text(html)).not.toContain("valable jusqu'au");
   });
 });
