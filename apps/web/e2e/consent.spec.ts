@@ -52,16 +52,16 @@ test.describe("data consent", () => {
     await stayLocal(page)
   })
 
-  test("the sign-in page says where the account goes before the email is typed", async ({
+  test("the sign-in page says where the account is hosted", async ({
     page,
   }) => {
     await openHydrated(page, "/auth/sign-in")
 
     const notice = page.getByTestId("sign-in-data-notice")
 
-    await expect(notice).toContainText("Cloudflare, aux États-Unis")
+    await expect(notice).toContainText("Cloudflare aux États-Unis")
     await expect(
-      notice.getByRole("link", { name: "Politique de confidentialité" })
+      notice.getByRole("link", { name: "Confidentialité" })
     ).toHaveAttribute("href", "https://pupitre.studio/fr/legal/privacy/")
   })
 

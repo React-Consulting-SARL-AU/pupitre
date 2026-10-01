@@ -79,21 +79,6 @@ export function SignInForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <p
-        className="text-[12px] text-ink-2 leading-[1.5]"
-        data-testid="sign-in-data-notice"
-      >
-        {t("auth.signIn.dataNotice")}{" "}
-        <a
-          className="underline underline-offset-2 hover:text-ink"
-          href={legalUrl("privacy", locale)}
-          rel="noopener"
-          target="_blank"
-        >
-          {t("auth.signIn.dataNoticeLink")}
-        </a>
-      </p>
-
       <form
         className="flex flex-col gap-2"
         noValidate
@@ -169,6 +154,21 @@ export function SignInForm({
       ) : null}
 
       {passkey.error ? <Callout title={passkey.error} tone="danger" /> : null}
+
+      <p
+        className="mt-2 text-center text-[11px] text-ink-3 leading-[1.5]"
+        data-testid="sign-in-data-notice"
+      >
+        {t("auth.signIn.dataNotice")}{" "}
+        <a
+          className="underline underline-offset-2 hover:text-ink-2"
+          href={legalUrl("privacy", locale)}
+          rel="noopener"
+          target="_blank"
+        >
+          {t("auth.signIn.dataNoticeLink")}
+        </a>
+      </p>
     </div>
   )
 }

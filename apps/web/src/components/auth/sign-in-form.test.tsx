@@ -66,22 +66,16 @@ describe("SignInForm", () => {
     expect(divider(container)).not.toBeNull()
   })
 
-  it("says where the account is stored before the email is typed", async () => {
+  it("says in one quiet line where the account is hosted, linking the privacy policy", async () => {
     const { container } = await mountWith([])
     const notice = container.querySelector(
       "[data-testid='sign-in-data-notice']"
     )
-    const order = [
-      ...container.querySelectorAll(
-        "[data-testid='sign-in-data-notice'], input#email"
-      ),
-    ].map((element) => element.tagName)
 
-    expect(notice?.textContent).toContain("Cloudflare, in the United States")
+    expect(notice?.textContent).toContain("Cloudflare in the United States")
     expect(notice?.querySelector("a")?.getAttribute("href")).toBe(
       "https://pupitre.studio/legal/privacy/"
     )
-    expect(order).toEqual(["P", "INPUT"])
   })
 
   it("keeps the magic link and the passkey when a provider is mounted", async () => {

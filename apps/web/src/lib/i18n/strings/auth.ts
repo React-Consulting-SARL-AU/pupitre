@@ -19,8 +19,8 @@ export const auth = {
     "auth.signIn.google": "Continue with Google",
     "auth.signIn.github": "Continue with GitHub",
     "auth.signIn.dataNotice":
-      "Your account is stored by Cloudflare, in the United States, outside Morocco and the European Union. You will be asked to agree before using Pupitre.",
-    "auth.signIn.dataNoticeLink": "Privacy policy",
+      "Pupitre is hosted by Cloudflare in the United States.",
+    "auth.signIn.dataNoticeLink": "Privacy",
 
     "auth.consent.title": "Where your data is kept",
     "auth.consent.description":
@@ -125,8 +125,8 @@ export const auth = {
     "auth.signIn.google": "Continuer avec Google",
     "auth.signIn.github": "Continuer avec GitHub",
     "auth.signIn.dataNotice":
-      "Votre compte est stocké chez Cloudflare, aux États-Unis, hors du Maroc et de l’Union européenne. Votre accord vous sera demandé avant d’utiliser Pupitre.",
-    "auth.signIn.dataNoticeLink": "Politique de confidentialité",
+      "Pupitre est hébergé par Cloudflare aux États-Unis.",
+    "auth.signIn.dataNoticeLink": "Confidentialité",
 
     "auth.consent.title": "Où sont gardées vos données",
     "auth.consent.description":
