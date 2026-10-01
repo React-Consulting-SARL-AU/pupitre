@@ -91,7 +91,7 @@ bun run test
 bun run build
 ```
 
-`ci.yml` runs in two ways: on a **pull request** to `staging` or `main`, and **called by `release.yml`** (`workflow_call`) on the tagged commit, before any build. A push to `staging` triggers nothing — minutes are paid for, the pre-push hook has already passed lint, typecheck and affected tests, and the release verifies the commit going to `main` anyway. The workflows run on **Blacksmith** runners (GitHub app installed on the organization, `blacksmith-*` labels), not on GitHub's, whose billing blocked a release; minutes are paid for there too: `ci.yml` fits in a single job, everything on Ubuntu, and only a release — a `v*` tag — occupies a macOS or Windows runner.
+`ci.yml` runs in two ways: on a **pull request** to `staging` or `main`, and **called by `release.yml`** (`workflow_call`) on the tagged commit, before any build. A push to `staging` triggers nothing — the pre-push hook has already passed lint, typecheck and affected tests, and the release verifies the commit going to `main` anyway. The workflows run on **GitHub's standard hosted runners** (`ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15`, `windows-2025`), free and unlimited since the repository is public; a larger runner would be billed, so none is used. `ci.yml` fits in a single job on Ubuntu, and only a release — a `v*` tag — occupies a macOS or Windows runner.
 
 | Job | When | What it does |
 | --- | --- | --- |
@@ -236,7 +236,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, one endpoint and on
 | Update feeds | `dl.pupitre.studio/app/<channel>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
 | macOS certificate | Apple Developer | `Developer ID Application: <Moroccan company> (<Team ID>)` |
 | Notarization key | App Store Connect | API key, *Developer* role, file `AuthKey_<KeyID>.p8` |
-| Workflow runners | Blacksmith | GitHub app installed on the organization; Ubuntu 24.04 x64 and arm64, macOS 15 on Apple Silicon, Windows Server 2025 |
+| Workflow runners | GitHub Actions | standard hosted runners, free for a public repository: Ubuntu 24.04 x64 and arm64, macOS 15 on Apple Silicon, Windows Server 2025 |
 | Windows signing | Azure Trusted Signing | account `ppt-signing`, certificate profile `ppt-app` — see [`tasks/windows-signing.md`](./tasks/windows-signing.md) |
 
 Each artifact goes up with a `.sig` file beside it: the Ed25519 signature of the release key, the same as the agent's, over `pupitre-app\n<version>\n<system>\n<architecture>\n<sha256>\n`. It is also recorded in the `AppRelease` table, with the file's sum and size. On macOS and Windows, it is the system's signature that protects the installation; on Linux, this one is the only one, and it is verified by hand.
@@ -308,7 +308,7 @@ A rollback is done by promoting the previous version: `electron-updater` does no
 
 ### What is built where
 
-A native module is not compiled for another system: `node-pty` imposes one runner per OS, and that is the reason for the matrix `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404` in `release.yml` — and the reason the release is not done from a Mac. From a Mac, `bun --cwd=apps/desktop run build:linux` stops on `node-gyp does not support cross-compiling native modules` — it is not a configuration error.
+A native module is not compiled for another system: `node-pty` imposes one runner per OS, and that is the reason for the matrix `macos-15`, `windows-2025`, `ubuntu-24.04` in `release.yml` — and the reason the release is not done from a Mac. From a Mac, `bun --cwd=apps/desktop run build:linux` stops on `node-gyp does not support cross-compiling native modules` — it is not a configuration error.
 
 | System | What comes out | What signs it |
 | --- | --- | --- |

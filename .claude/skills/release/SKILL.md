@@ -14,7 +14,7 @@ The owner's Mac writes the version and the notes and places the tag, through `sc
 | File | Role | Exists? |
 | --- | --- | --- |
 | `scripts/release.sh` | the Mac's part: `next`, `resolve`, `notes` — stops there so the notes are read — then `check` and `ship` when run again | yes |
-| `.github/workflows/release.yml` | the runners' part, on the tag: `ci.yml` first, then `agent build`, `agent publish`, then `desktop` on the Blacksmith runners `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404`, then `app publish`, `verify`, `github-release` and `merge` | yes |
+| `.github/workflows/release.yml` | the runners' part, on the tag: `ci.yml` first, then `agent build`, `agent publish`, then `desktop` on GitHub's hosted runners `macos-15`, `windows-2025`, `ubuntu-24.04`, then `app publish`, `verify`, `github-release` and `merge` | yes |
 | `.github/workflows/promote.yml` | by hand, `gh workflow run promote.yml -f version=X.Y.Z`: puts a published version back into a channel — the rollback | yes |
 | `scripts/release/release.env.tpl` | the 1Password references and the public values — no secret in it; `release secrets` turns it into the repository's secrets, the workflow reads the plain values there | yes |
 | `scripts/release/` | **the pipeline itself**: `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `github-release`, `merge`, `promote`, `secrets` — each step is a `bun scripts/release/index.ts <step>` command, idempotent, driven by the environment, with `--dry-run`; R2 over S3 as the only bus, with a key limited to the two buckets | yes |

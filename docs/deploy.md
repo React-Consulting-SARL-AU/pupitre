@@ -28,7 +28,7 @@ The branches: `staging` is the working branch, `main` is production and changes 
 | **Cloudflare** | the domain, the Worker, the site, the two file buckets | free to start | immediate |
 | **Stripe** | the product and its two prices | commission per sale | a few days of verification |
 | **GitHub** | the repository and its workflows | free | immediate |
-| **Blacksmith** | the runners that verify, build and publish each version — GitHub app installed on the organization | per minute, macOS and Windows more expensive | immediate |
+| **GitHub Actions** | the hosted runners that verify, build and publish each version | free and unlimited for a public repository on the standard runners | immediate |
 | Apple Developer | signing the macOS app | $99/year | a few days |
 | Azure Trusted Signing | signing the Windows app | pay-per-use | a few days of verification |
 

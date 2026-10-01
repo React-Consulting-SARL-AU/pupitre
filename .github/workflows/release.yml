@@ -43,7 +43,7 @@ jobs:
   agent:
     name: Agent
     needs: ci
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       release: ${{ steps.resolve.outputs.release }}
@@ -104,7 +104,7 @@ jobs:
   agent-arm64:
     name: Agent on arm64
     needs: agent
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -158,11 +158,11 @@ jobs:
       matrix:
         include:
           - system: macOS
-            runner: blacksmith-6vcpu-macos-15
+            runner: macos-15
           - system: Windows
-            runner: blacksmith-4vcpu-windows-2025
+            runner: windows-2025
           - system: Linux
-            runner: blacksmith-4vcpu-ubuntu-2404
+            runner: ubuntu-24.04
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
       PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
@@ -182,7 +182,7 @@ jobs:
           path: .cache
           key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
 
-      # node-pty needs them and the Blacksmith image does not always carry them; the node-pty build is the judge.
+      # node-pty needs them and a runner image does not always carry them; the node-pty build is the judge.
       - name: Install the Spectre-mitigated MSVC libraries
         if: runner.os == 'Windows'
         shell: powershell
@@ -243,7 +243,7 @@ jobs:
   publish:
     name: Publish the app
     needs: [agent, desktop]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -279,7 +279,7 @@ jobs:
   github-release:
     name: GitHub release
     needs: [agent, publish]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -306,7 +306,7 @@ jobs:
   merge:
     name: Merge into main
     needs: [ci, agent, publish]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       checks: read
