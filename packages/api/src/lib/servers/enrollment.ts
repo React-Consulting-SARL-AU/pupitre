@@ -6,17 +6,16 @@ import {
 } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import {
-  type Entitlement,
-  type EntitlementRefusal,
-  entitlementForOrganization,
-  entitlementRefusalFor,
-  entitlementWindow,
   graceDeadline,
-} from "../billing/entitlement"
+  type License,
+  type LicenseRefusal,
+  licenseForOrganization,
+  licenseRefusalFor,
+  licenseWindow,
+} from "../billing/license"
 import {
   countSeatedServers,
   SEATED_STATUSES,
-  type SeatQuotaSource,
   seatQuotaFor,
 } from "../billing/seats"
 import { fingerprintOfPublicKey } from "../devices/public-keys"
@@ -44,25 +43,23 @@ export const DEFAULT_SSH_PORT = 22
 
 export const DEFAULT_SSH_USER = "dev"
 
-export class EntitlementMissingError extends Error {
-  readonly refusal: EntitlementRefusal
+export class LicenseMissingError extends Error {
+  readonly refusal: LicenseRefusal
 
-  constructor(refusal: EntitlementRefusal) {
-    super(`the organization has no usable subscription: ${refusal}`)
-    this.name = "EntitlementMissingError"
+  constructor(refusal: LicenseRefusal) {
+    super(`the organization has no usable licence: ${refusal}`)
+    this.name = "LicenseMissingError"
     this.refusal = refusal
   }
 }
 
 export class SeatQuotaReachedError extends Error {
   readonly quota: number
-  readonly source: SeatQuotaSource
 
-  constructor(quota: number, source: SeatQuotaSource) {
+  constructor(quota: number) {
     super(`the organization already uses its ${quota} seats`)
     this.name = "SeatQuotaReachedError"
     this.quota = quota
-    this.source = source
   }
 }
 
@@ -170,13 +167,13 @@ async function createServer(
   target: EnrollTarget,
   grant: EnrollmentGrant
 ) {
-  const [{ quota, source }, seated] = await Promise.all([
+  const [quota, seated] = await Promise.all([
     seatQuotaFor(prisma, actor.organizationId),
     countSeatedServers(prisma),
   ])
 
   if (seated >= quota) {
-    throw new SeatQuotaReachedError(quota, source)
+    throw new SeatQuotaReachedError(quota)
   }
 
   return await prisma.server.create({
@@ -296,10 +293,10 @@ export async function enrollServer(
     throw new EnrollmentDeviceUnknownError()
   }
 
-  const refusal = await entitlementRefusalFor(actor.organizationId)
+  const refusal = await licenseRefusalFor(actor.organizationId)
 
   if (refusal) {
-    throw new EntitlementMissingError(refusal)
+    throw new LicenseMissingError(refusal)
   }
 
   const target: EnrollTarget = {
@@ -346,31 +343,31 @@ export async function enrollServer(
   }
 }
 
-// Never a fresh `active`: only a valid subscription hands out a full window.
-function standingAfterExchange(server: ServerRow, held: Entitlement) {
+// Never a fresh `active`: only a valid licence hands out a full window.
+function standingAfterExchange(server: ServerRow, held: License) {
   if (held.state === "valid") {
     return {
       status: "active" as const,
       suspendedReason: null,
-      entitlementValidUntil: entitlementWindow(),
+      licenseValidUntil: licenseWindow(),
     }
   }
 
   if (server.status === "suspended" || server.status === "grace") {
     return {
       status: server.status,
-      entitlementValidUntil: server.entitlementValidUntil,
+      licenseValidUntil: server.licenseValidUntil,
     }
   }
 
   if (held.state === "grace") {
-    return { status: "grace" as const, entitlementValidUntil: graceDeadline() }
+    return { status: "grace" as const, licenseValidUntil: graceDeadline() }
   }
 
   return {
     status: "suspended" as const,
     suspendedReason: "billing" as const,
-    entitlementValidUntil: held.valid_until,
+    licenseValidUntil: held.valid_until,
   }
 }
 
@@ -406,7 +403,7 @@ export async function exchangeEnrollmentToken(
   }
 
   const serverToken = generateServerToken()
-  const held = await entitlementForOrganization(server.organizationId)
+  const held = await licenseForOrganization(server.organizationId)
 
   const burnt = await prisma.server.updateMany({
     where: { id: server.id, enrollmentExpiresAt: grantedUntil },

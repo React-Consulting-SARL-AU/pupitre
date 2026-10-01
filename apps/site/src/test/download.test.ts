@@ -1,4 +1,3 @@
-import { formatUsd } from "@pupitre/shared/plans"
 import { describe, expect, it, vi } from "vitest"
 import Download from "../components/Download.astro"
 import { downloadContent } from "../content/site/download"
@@ -17,6 +16,7 @@ const paths = { en: "/download/", fr: "/fr/download/" } as const
 
 /** A title that counts anything drifts the day a step is added or split. */
 const MEGABYTES_RE = /\d+ MB/
+const PRICE_RE = /\$\d/
 const COUNT_RE =
   /\d|\b(one|two|three|four|five|six|seven|un|deux|trois|quatre|cinq|six|sept)\b/i
 
@@ -117,7 +117,7 @@ describe("download", () => {
   it("never quotes a price, because the site does not sell here", async () => {
     const html = await render(Download, { path: paths.en })
 
-    expect(html).not.toContain(formatUsd(19))
+    expect(html).not.toMatch(PRICE_RE)
   })
 
   it("says the account comes first, above the three systems", async () => {

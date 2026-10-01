@@ -3,7 +3,7 @@ import type {
   Remedy,
 } from "@pupitre/shared/agent-protocol/errors";
 
-/** Failures of the channel rather than of the agent, which has its own `entitlement_required`. */
+/** Failures of the channel rather than of the agent, which has its own `license_required`. */
 export type AgentErrorCode =
   | ProtocolErrorCode
   | "timeout"

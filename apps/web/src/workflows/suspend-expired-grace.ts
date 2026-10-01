@@ -7,21 +7,8 @@ import {
   suspendExpiredGraceBatch,
   suspensionNotices,
 } from "@pupitre/api/billing/grace"
-import {
-  alignLaunchBatch,
-  cancelEndedLaunchBatch,
-  keepLaunchSeatsBatch,
-  LAUNCH_BATCH_SIZE,
-  type LaunchReconciliation,
-} from "@pupitre/api/billing/launch"
 import { purgeStaleMailUploads } from "@pupitre/api/mail/uploads"
-import { drainInSteps, sliceInSteps, walkInSteps } from "./steps"
-
-export const ALIGN_LAUNCH_STEP = "align-launch"
-
-export const KEEP_LAUNCH_SEATS_STEP = "keep-launch-seats"
-
-export const CANCEL_ENDED_LAUNCH_STEP = "cancel-ended-launch"
+import { drainInSteps, sliceInSteps } from "./steps"
 
 export const EXPIRE_GRANTED_STEP = "expire-granted"
 
@@ -32,40 +19,14 @@ export const ANNOUNCE_SUSPENSION_STEP = "announce-suspension"
 export const PURGE_MAIL_UPLOADS_STEP = "purge-mail-uploads"
 
 export interface SuspendExpiredGraceReport {
-  launch: LaunchReconciliation
   granted: string[]
   suspended: string[]
   purgedUploads: string[]
 }
 
-// Seats are kept before cancelling: the cancellation takes any launch row still running.
-async function reconcileLaunchInSteps(
-  step: WorkflowStep
-): Promise<LaunchReconciliation> {
-  const aligned = await drainInSteps(
-    step,
-    ALIGN_LAUNCH_STEP,
-    LAUNCH_BATCH_SIZE,
-    () => alignLaunchBatch()
-  )
-  const seats = await walkInSteps(step, KEEP_LAUNCH_SEATS_STEP, (after) =>
-    keepLaunchSeatsBatch(after)
-  )
-  const canceled = await drainInSteps(
-    step,
-    CANCEL_ENDED_LAUNCH_STEP,
-    EXPIRY_BATCH_SIZE,
-    () => cancelEndedLaunchBatch()
-  )
-
-  return { aligned, kept: seats.flatMap((batch) => batch.kept), canceled }
-}
-
-// Launch and grants close first, so a server they just graced is suspended in the same pass.
 export async function runSuspendExpiredGrace(
   step: WorkflowStep
 ): Promise<SuspendExpiredGraceReport> {
-  const launch = await reconcileLaunchInSteps(step)
   const granted = await drainInSteps(
     step,
     EXPIRE_GRANTED_STEP,
@@ -92,7 +53,6 @@ export async function runSuspendExpiredGrace(
   )
 
   return {
-    launch,
     granted,
     suspended: suspended.map((server) => server.id),
     purgedUploads,

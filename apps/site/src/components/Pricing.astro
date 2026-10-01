@@ -1,53 +1,31 @@
 ---
 import { MODULE_IDS } from "@pupitre/shared/catalog"
-import {
-  ANNUAL_FREE_MONTHS,
-  formatUsd,
-  getPlan,
-  PLANS,
-  TRIAL_DAYS,
-} from "@pupitre/shared/plans"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { pricingContent } from "../content/site/pricing"
 import Base from "../layouts/Base.astro"
 import { fill, localeFromPath, localizePath, translator } from "../lib/i18n"
-import { isLaunchOpen, LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import { jsonLd, product } from "../lib/structured-data"
-import { SIGNUP_URL } from "../lib/urls"
-import BillingToggle from "./BillingToggle.astro"
+import { SIGNUP_URL, SOURCE_REPOSITORY_URL } from "../lib/urls"
 import CatalogSummary from "./CatalogSummary.astro"
 import DownloadButton from "./DownloadButton.astro"
 import Feature from "./Feature.astro"
-import PlanCard from "./PlanCard.astro"
 import Section from "./Section.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const content = pricingContent(locale)
-const solo = getPlan("solo")
-const launching = isLaunchOpen()
-const numbers = {
-  price: formatUsd(solo.monthlyPriceUsd),
-  months: ANNUAL_FREE_MONTHS,
-  days: TRIAL_DAYS,
-  date: launchEndDate(locale),
-}
-const description = launching
-  ? fill(content.meta.launchDescription, numbers)
-  : fill(content.meta.description, numbers)
+const servers = { count: FREE_SERVERS }
+
+const description = fill(content.meta.description, servers)
 const offers = jsonLd(
   product({
     locale,
     name: t("site.name"),
     description,
-    intervals: { month: content.billing.month, year: content.billing.year },
-    launch: launching
-      ? { endsAt: LAUNCH_ENDS_AT, name: content.launch.offer }
-      : undefined,
+    offer: fill(content.offer, servers),
   })
 )
-const start = launching
-  ? content.launch.cta
-  : fill(content.plans.trial, numbers)
 ---
 
 <Base title={content.meta.title} description={description}>
@@ -58,56 +36,99 @@ const start = launching
   <section class="border-line border-b">
     <div class="shell py-20 text-center md:py-28">
       <p class="pill">{content.hero.label}</p>
-      <h1 class="heading-1 mx-auto mt-7 max-w-3xl">{content.hero.headline}</h1>
+      <h1 class="heading-1 mx-auto mt-7 max-w-3xl">
+        {fill(content.hero.headline, servers)}
+      </h1>
       <p class="lead mx-auto mt-7 max-w-2xl text-ink-2">
-        {fill(content.hero.lead, numbers)}
+        {fill(content.hero.lead, servers)}
       </p>
-      {
-        launching && (
-          <p
-            data-launch
-            class="card mx-auto mt-10 max-w-2xl px-6 py-5 text-left text-ink md:px-8"
-          >
-            {fill(content.launch.notice, numbers)}
-          </p>
-        )
-      }
       <p class="card-soft mx-auto mt-12 inline-block px-12 py-9">
-        <span class="figure figure-xl block"
-          >{formatUsd(solo.monthlyPriceUsd)}</span
+        <span class="figure figure-xl block">{content.hero.figure}</span>
+        <span class="label mt-4 block text-ink-3"
+          >{fill(content.hero.unit, servers)}</span
         >
-        <span class="label mt-4 block text-ink-3">{content.hero.unit}</span>
       </p>
     </div>
   </section>
 
   <Section
     align="center"
-    id="plans"
-    label={content.plans.label}
-    title={content.plans.title}
+    id="free"
+    label={content.free.label}
+    title={fill(content.free.title, servers)}
+    lead={content.free.lead}
   >
-    <div class="group/plans">
-      <BillingToggle />
-      <div class="mt-10 grid items-stretch gap-6 md:grid-cols-3">
-        {PLANS.map((plan) => <PlanCard plan={plan} />)}
-      </div>
-      <div
-        class="mt-12 grid gap-x-10 gap-y-6 border-line border-t pt-8 md:grid-cols-[1fr_auto] md:items-center"
-      >
-        <p class="max-w-2xl text-ink-3">{content.plans.sameRate}</p>
+    <div class="grid gap-6 md:grid-cols-2">
+      <Feature
+        title={content.free.included.title}
+        lines={content.free.included.lines}
+      />
+      <Feature title={content.free.asked.title} lines={content.free.asked.lines} />
+    </div>
+    <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+      <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
+        {content.free.signUp}
+      </a>
+      <DownloadButton
+        href={localizePath("/download/", locale)}
+        label={content.free.download}
+        tone="secondary"
+      />
+    </div>
+  </Section>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
-            {start}
-          </a>
-          <DownloadButton
-            href={localizePath("/download/", locale)}
-            label={content.plans.download}
-            tone="secondary"
-          />
-        </div>
-      </div>
+  <Section
+    align="center"
+    id="beyond"
+    tone="surface"
+    label={fill(content.beyond.label, servers)}
+    title={content.beyond.title}
+    lead={fill(content.beyond.lead, servers)}
+  >
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="text-ink-2">{content.beyond.note}</p>
+      <a
+        data-emphasis="secondary"
+        href={`mailto:${LEGAL_CONTACTS.support}`}
+        class="btn btn-secondary mt-8"
+      >
+        {content.beyond.contact}
+      </a>
+      <p class="data mt-4 text-ink-3">{LEGAL_CONTACTS.support}</p>
+    </div>
+  </Section>
+
+  <Section
+    align="center"
+    id="source"
+    label={content.source.label}
+    title={content.source.title}
+    lead={content.source.lead}
+  >
+    <div class="grid gap-6 md:grid-cols-2">
+      <Feature
+        title={content.source.allowed.title}
+        lines={content.source.allowed.lines}
+      />
+      <Feature
+        title={content.source.forbidden.title}
+        lines={content.source.forbidden.lines}
+      />
+    </div>
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+      <a
+        href={localizePath("/legal/licence/", locale)}
+        class="link-underline inline-block py-2"
+      >
+        {content.source.licence}
+      </a>
+      <a
+        href={SOURCE_REPOSITORY_URL}
+        rel="noreferrer"
+        class="link-underline inline-block py-2"
+      >
+        {content.source.repository}
+      </a>
     </div>
   </Section>
 

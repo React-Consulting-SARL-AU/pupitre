@@ -57,7 +57,7 @@ func TestKeysResetLeavesTheOneKeyItIsGiven(t *testing.T) {
 	}
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":2,"cmd":"keys.list","params":{}}`,
 	)
 

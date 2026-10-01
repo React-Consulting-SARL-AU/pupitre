@@ -53,7 +53,7 @@ interface ErrorBody {
 }
 
 interface StateBody {
-  entitlement: string
+  license: string
   authorized_keys: string[]
 }
 
@@ -228,7 +228,7 @@ describe("POST /admin/servers/:id/suspend", () => {
       bearer: active.token,
     })
 
-    expect(before.json.entitlement).toBe("valid")
+    expect(before.json.license).toBe("valid")
     expect(before.json.authorized_keys).toHaveLength(1)
 
     const response = await apiRequest<{ data: AdminServer }>(
@@ -250,7 +250,7 @@ describe("POST /admin/servers/:id/suspend", () => {
       bearer: active.token,
     })
 
-    expect(state.json.entitlement).toBe("suspended")
+    expect(state.json.license).toBe("suspended")
     expect(state.json.authorized_keys).toEqual([])
     expect(
       await authorizedKeysForServer(server.prisma, active.server.id)

@@ -1160,10 +1160,6 @@ export class AgentClient {
     return this.session(serverId)?.capabilities ?? [];
   }
 
-  entitlement(serverId: string): HelloResult["entitlement"] | null {
-    return this.session(serverId)?.entitlement ?? null;
-  }
-
   /** Closing is how the app moves to another binary, account or machine: values read before are stale. */
   epoch(serverId: string): number {
     return this.epochs.get(serverId) ?? 0;
@@ -1250,7 +1246,7 @@ export interface SshTarget {
 
 export const SERVE_COMMAND = "pupitred serve";
 
-/** serve must run as root to read the 0600 token and entitlement cache; `dev` gets it through passwordless sudo. */
+/** serve must run as root to read the 0600 token and licence cache; `dev` gets it through passwordless sudo. */
 export function serveAs(user: string): string {
   return user === "root" ? SERVE_COMMAND : `sudo -n ${SERVE_COMMAND}`;
 }

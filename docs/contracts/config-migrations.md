@@ -8,7 +8,7 @@ Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app
 
 | Côté | Fichiers | Registre | Sauvegardes |
 | --- | --- | --- | --- |
-| Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, et tout autre fichier de `/etc/pupitre` qu'une migration nomme | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
+| Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, tout autre fichier de `/etc/pupitre` qu'une migration nomme, et le cache de licence `/var/lib/pupitre/license.json` (`PUPITRE_LICENSE_PATH`) avec son prédécesseur `entitlement.json` | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
 | App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json`, `access/<serveur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
 
 Ce que le registre **ne** possède pas :
@@ -32,9 +32,9 @@ La version de l'agent est **écrite à côté** de chaque entrée du registre, p
 
 ```jsonc
 { "id": 1, "ok": true, "result": {
-  "agent_version": "0.4.0",
-  "protocol": 1,
-  "entitlement": "valid",
+  "agent_version": "2.0.0",
+  "protocol": 3,
+  "license": "valid",
   "capabilities": ["…"],
   "config": { "revision": 3, "expected": 4, "state": "pending" }
 } }
@@ -62,7 +62,7 @@ Un agent antérieur au registre ne rend pas le champ, et l'app tient sa configur
 
 **`agent.migrate` répond toujours, même quand une migration a refusé.** Ce qui a refusé, ce qui a été gardé et ce qui reste dû sont exactement ce dont le lecteur a besoin ; une enveloppe d'erreur n'en porterait rien. Le refus, lui, appartient à toutes les autres commandes.
 
-La commande est ouverte en [mode restreint](./agent-protocol.md#mode-restreint) : `agent.upgrade` l'est aussi, et un serveur dont le droit d'usage est en attente est exactement celui qu'on va vouloir remettre à jour.
+La commande est ouverte en [mode restreint](./agent-protocol.md#mode-restreint) : `agent.upgrade` l'est aussi, et un serveur dont la licence est en attente est exactement celui qu'on va vouloir remettre à jour.
 
 ## Ce qu'un serveur en retard laisse ouvert
 
@@ -164,3 +164,4 @@ Une machine neuve se voit **estampillée à la révision courante sans que rien 
 | 5 | `projects-runtimes` | Chaque ligne de `projects.local.json` porte `runtimes`, la version épinglée par outil ; les lignes d'avant n'en nomment aucune et reçoivent `{}`. Une ligne qui répond déjà est laissée telle quelle. |
 | 6 | `key-signers` | Les clés approuvées par un appareil ([décision 0014](../decisions/0014-cles-approuvees-par-un-appareil.md)) : l'agent ne pose plus une clé que si elle est déjà signataire ou qu'une approbation signée l'admet. Chaque clé du bloc géré de `/home/dev/.ssh/authorized_keys` qui peut signer — ed25519 ou ecdsa sur une courbe NIST, sans option — devient signataire dans `/etc/pupitre/signers.json`, `via: "migration"`, pour que la mise à jour n'enferme personne dehors. Une clé RSA ou tenue par des options n'est pas reprise. Un `signers.json` déjà là, un fichier absent, illisible ou lié hors de `.ssh`, un bloc vide : rien n'est écrit. |
 | 7 | `projects-protected` | Le portier d'accès ([décision 0017](../decisions/0017-portier-d-acces.md)) : chaque ligne de `projects.local.json` qui ne dit rien de `protected` reçoit `true`, pour qu'un projet publié avant la mise à jour ne réponde plus sans clé. Une ligne qui répond déjà, `false` compris, est laissée telle quelle ; un processus ne reçoit rien et suit son projet. |
+| 8 | `license-cache` | Le renommage `entitlement` → `license` ([décision 0018](../decisions/0018-source-disponible-et-gratuit.md)), depuis 2.0.0 : le cache `/var/lib/pupitre/entitlement.json` devient `/var/lib/pupitre/license.json`, recopié tel quel plutôt qu'attendu de la plateforme, pour qu'un serveur hors ligne garde ses sept jours de tolérance. Un `license.json` déjà là n'est pas écrasé ; l'ancien fichier part dans tous les cas. Sans ancien fichier, rien n'est fait. Cibles `TargetEntitlement` et `TargetLicense`. |

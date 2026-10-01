@@ -12,16 +12,10 @@ export interface QuantityChange {
   quantity: number
 }
 
-export interface TrialChange {
-  subscriptionId: string
-  endsAt: Date
-}
-
 export interface FakeBilling extends BillingProvider {
   readonly checkouts: CheckoutSessionInput[]
   readonly portals: PortalSessionInput[]
   readonly quantities: QuantityChange[]
-  readonly trials: TrialChange[]
   readonly resumptions: string[]
   readonly cancellations: string[]
   put(subscription: RemoteSubscription): void
@@ -32,7 +26,6 @@ export function createFakeBilling(): FakeBilling {
   const checkouts: CheckoutSessionInput[] = []
   const portals: PortalSessionInput[] = []
   const quantities: QuantityChange[] = []
-  const trials: TrialChange[] = []
   const resumptions: string[] = []
   const cancellations: string[] = []
   const subscriptions = new Map<string, RemoteSubscription>()
@@ -55,7 +48,6 @@ export function createFakeBilling(): FakeBilling {
     checkouts,
     portals,
     quantities,
-    trials,
     resumptions,
     cancellations,
 
@@ -67,7 +59,6 @@ export function createFakeBilling(): FakeBilling {
       checkouts.length = 0
       portals.length = 0
       quantities.length = 0
-      trials.length = 0
       resumptions.length = 0
       cancellations.length = 0
       subscriptions.clear()
@@ -114,21 +105,6 @@ export function createFakeBilling(): FakeBilling {
       quantities.push({ subscriptionId, quantity })
 
       return Promise.resolve(updated)
-    },
-
-    extendTrial(
-      subscriptionId: string,
-      endsAt: Date
-    ): Promise<RemoteSubscription> {
-      const extended = {
-        ...subscriptionOf(subscriptionId),
-        current_period_end: endsAt,
-      }
-
-      subscriptions.set(subscriptionId, extended)
-      trials.push({ subscriptionId, endsAt })
-
-      return Promise.resolve(extended)
     },
 
     resumeSubscription(subscriptionId: string): Promise<RemoteSubscription> {

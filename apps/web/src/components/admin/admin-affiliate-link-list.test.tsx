@@ -51,8 +51,6 @@ async function seedLink(
     data: {
       name,
       code,
-      freeMonths: 1,
-      seats: 1,
       partnerName: extra.partnerName ?? null,
       disabledAt: extra.disabled ? new Date() : null,
     },
@@ -163,7 +161,6 @@ describe("AdminAffiliateLinkList", () => {
 
     await fill(field("affiliate-name"), "Ada")
     await fill(field("affiliate-code"), "ada-2026")
-    await fill(field("affiliate-free-months"), "3")
     await fill(field("affiliate-partner-name"), "Ada Lovelace")
     await fill(field("affiliate-partner-email"), "ada@partner.test")
     await fill(field("affiliate-notes"), "Met at the fair")

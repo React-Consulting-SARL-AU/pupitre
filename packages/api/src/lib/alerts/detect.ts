@@ -58,7 +58,7 @@ export function isAgentOutdated(state: AlertState): boolean {
   return isWatched(state) && versionsBehind(state) >= OUTDATED_AFTER_VERSIONS
 }
 
-export function isEntitlementGrace(state: AlertState): boolean {
+export function isLicenseGrace(state: AlertState): boolean {
   return state.status === "grace"
 }
 
@@ -112,7 +112,7 @@ export function detectAlerts(state: AlertState, now: Date): AlertKind[] {
     ["server_unreachable", isUnreachable(state, now)],
     ["disk_high", isDiskHigh(state)],
     ["agent_outdated", isAgentOutdated(state)],
-    ["entitlement_grace", isEntitlementGrace(state)],
+    ["license_grace", isLicenseGrace(state)],
     ["backup_failed", isBackupFailed(state)],
     ["backup_stale", isBackupStale(state, now)],
   ]

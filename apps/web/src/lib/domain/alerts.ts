@@ -28,11 +28,11 @@ const LOOKS: Record<AlertKind, AlertLook> = {
     label: "alert.agent_outdated",
     fix: "alert.agent_outdated.fix",
   },
-  entitlement_grace: {
+  license_grace: {
     shape: "hollow",
     tone: "warn",
-    label: "alert.entitlement_grace",
-    fix: "alert.entitlement_grace.fix",
+    label: "alert.license_grace",
+    fix: "alert.license_grace.fix",
   },
   backup_failed: {
     shape: "barred",

@@ -4,77 +4,76 @@ export const pricingFr: PricingContent = {
   meta: {
     title: "Tarifs — Pupitre",
     description:
-      "{price} HT par serveur et par mois, en Solo comme en Équipe. {months} mois offerts à l’année, {days} jours d’essai sur une machine, sans carte. Quand vous arrêtez, votre serveur continue de tourner.",
-    launchDescription:
-      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Ensuite {price} HT par serveur et par mois, en Solo comme en Équipe. Quand vous arrêtez, votre serveur continue de tourner.",
+      "Pupitre est gratuit pour toute organisation jusqu’à {count} serveurs : ni carte, ni essai, ni abonnement. Au-delà, une licence est accordée sur demande. Le code source est public, et quand vous arrêtez, votre serveur continue de tourner.",
   },
+  offer: "Gratuit jusqu’à {count} serveurs par organisation",
   hero: {
     label: "Tarifs",
-    headline: "Un prix par serveur. Le serveur reste à vous.",
-    lead: "Solo et Équipe coûtent le même prix par serveur : {price} HT par mois. À l’année, {months} mois sont offerts. L’essai dure {days} jours, couvre une machine et ne demande pas de carte. Quand vous arrêtez de payer, votre serveur continue de fonctionner sans Pupitre.",
-    unit: "par serveur et par mois",
+    headline: "Gratuit. Jusqu’à {count} serveurs par organisation.",
+    lead: "L’app, l’agent et tout le catalogue ne coûtent rien pour vos {count} premiers serveurs. Ni carte, ni essai qui s’épuise, ni abonnement. Vous payez le serveur à votre hébergeur, et rien à nous.",
+    figure: "Gratuit",
+    unit: "jusqu’à {count} serveurs par organisation",
   },
-  launch: {
-    notice:
-      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Une machine enrôlée pendant le lancement reste gratuite pour de bon. Les prix ci-dessous s’appliqueront à l’ouverture de la facturation.",
-    cta: "Commencer gratuitement",
-    offer: "Lancement gratuit, une machine par organisation",
-  },
-  billing: {
-    legend: "Facturation",
-    month: "Mensuel",
-    year: "Annuel",
-    yearNote: "{months} mois offerts",
-  },
-  plans: {
-    label: "Offres",
-    title: "Solo, Équipe, et plus tard Hébergé",
-    perServerMonth: "par serveur et par mois, HT",
-    perServerYear: "par serveur et par an, HT",
-    perMonth: "par mois, HT",
-    from: "À partir de",
-    later: "Plus tard",
-    serversUpTo: "Jusqu’à {count} serveurs apportés",
-    serversUnlimited: "Autant de serveurs que vous en apportez",
-    trial: "Démarrer l’essai de {days} jours",
-    sameRate: "Le prix par serveur est le même en Solo et en Équipe.",
-    download: "Télécharger l’app",
-    items: {
-      solo: {
-        audience: "Une personne",
-        includes: [
-          "L’app desktop, et l’agent sur chaque serveur",
-          "Tout le catalogue : runtimes, bases, agents, éditeurs, exposition",
-          "Les mises à jour et les alertes",
-          "Vos propres abonnements Claude, ChatGPT, Cursor, Google ou Copilot",
-        ],
-        cta: "Démarrer l’essai",
-      },
-      team: {
-        audience: "Une organisation",
-        includes: [
-          "Tout Solo",
-          "Des membres et des rôles, un serveur attribué à une personne",
-          "Un journal d’audit de qui a fait quoi",
-          "La révocation en un clic quand quelqu’un part",
-          "Une facture unique pour toute l’équipe",
-        ],
-        cta: "Démarrer l’essai",
-      },
-      hosted: {
-        audience: "Qui ne veut pas louer",
-        includes: [
-          "Un serveur fourni par Pupitre ; vous ne louez rien",
-          "Tout Solo",
-          "Pas encore ouvert : il vient après Solo et Équipe",
-        ],
-      },
+  free: {
+    label: "Ce qui est gratuit",
+    title: "Tout, sur {count} serveurs",
+    lead: "Il n’y a ni édition payante ni fonction mise de côté : les serveurs gratuits reçoivent tout ce que Pupitre sait faire.",
+    included: {
+      title: "Ce que vous avez",
+      lines: [
+        "L’app desktop, et l’agent sur chaque serveur",
+        "Tout le catalogue : runtimes, bases, agents, éditeurs, exposition",
+        "Les mises à jour et les alertes",
+        "Des membres et des rôles, et un journal d’audit de qui a fait quoi",
+        "Vos propres abonnements Claude, ChatGPT, Cursor, Google ou Copilot",
+      ],
     },
+    asked: {
+      title: "Ce que nous vous demandons",
+      lines: [
+        "Un compte, avec une adresse mail",
+        "Aucune carte, ni à l’inscription ni plus tard",
+        "Aucune limite de durée : les serveurs gratuits le restent",
+      ],
+    },
+    signUp: "Créer un compte",
+    download: "Télécharger l’app",
+  },
+  beyond: {
+    label: "Au-delà de {count} serveurs",
+    title: "Une licence, sur demande",
+    lead: "Une organisation qui a besoin de plus de {count} serveurs demande une licence. Elle ajoute aux serveurs gratuits ceux qu’il lui faut, et la plateforme l’accorde.",
+    note: "Les licences sont accordées sur demande aujourd’hui, et aucun paiement n’est demandé. Écrivez-nous avec le nom de votre organisation et le nombre de serveurs qu’il vous faut.",
+    contact: "Demander une licence",
+  },
+  source: {
+    label: "Code source",
+    title: "Le code source est public",
+    lead: "Pupitre est publié sous licence Apache 2.0 avec la Commons Clause. C’est un code source ouvert à la lecture, pas un logiciel libre au sens de l’open source : vous pouvez le lire, le modifier et le faire tourner, pas le vendre.",
+    allowed: {
+      title: "Ce que vous pouvez faire",
+      lines: [
+        "Lire le code de l’app, de l’agent et de la plateforme",
+        "Le modifier, pour vous ou pour votre entreprise",
+        "Le faire tourner, y compris une plateforme à vous",
+        "Le redistribuer, modifié ou non, avec la licence et la Commons Clause",
+      ],
+    },
+    forbidden: {
+      title: "Ce que vous ne pouvez pas faire",
+      lines: [
+        "Vendre Pupitre, ou un service qui tire l’essentiel de sa valeur de Pupitre",
+        "Faire payer vos clients pour installer Pupitre sur leurs serveurs",
+        "Employer le nom ou le logo Pupitre pour un produit à vous",
+      ],
+    },
+    licence: "Lire la licence",
+    repository: "Voir le code source",
   },
   stop: {
     label: "À l’arrêt",
-    title: "Arrêtez de payer, gardez le serveur",
-    lead: "Quand l’abonnement s’arrête, votre serveur continue de fonctionner comme un serveur Ubuntu ordinaire. Les projets, les bases et les services restent où ils sont. Vous perdez Pupitre, rien d’autre.",
+    title: "Partez, gardez le serveur",
+    lead: "Quand vous retirez Pupitre, votre serveur continue de fonctionner comme un serveur Ubuntu ordinaire. Les projets, les bases et les services restent où ils sont. Vous perdez Pupitre, rien d’autre.",
     keep: {
       title: "Ce qui reste",
       lines: [
@@ -93,11 +92,11 @@ export const pricingFr: PricingContent = {
         "Le support",
       ],
     },
-    note: "Pupitre laisse un binaire et quelques fichiers de configuration, que vous pouvez supprimer. Réabonnez-vous et l’app reprend là où elle s’est arrêtée.",
+    note: "Pupitre laisse un binaire et quelques fichiers de configuration, que vous pouvez supprimer. Enrôlez de nouveau le serveur et l’app reprend là où elle s’est arrêtée.",
   },
   diy: {
     label: "Faire soi-même",
-    title: "Ce que vous payez, ce que vous payez encore",
+    title: "Ce que Pupitre remplace, ce que vous payez encore",
     lead: "Tout ce que Pupitre installe est standard : Ubuntu, systemd, tmux, ufw, fail2ban. Vous pouvez le faire à la main. Pupitre remplace les heures, pas la machine.",
     replaces: {
       title: "Ce que Pupitre remplace",
@@ -110,7 +109,7 @@ export const pricingFr: PricingContent = {
       ],
     },
     keeps: {
-      title: "Ce qu’il ne remplace pas",
+      title: "Ce que vous payez encore",
       lines: [
         "Le VPS : vous le louez où vous voulez et payez l’hébergeur directement",
         "Vos abonnements Claude, ChatGPT, Cursor, Google ou Copilot : les agents tournent sur vos comptes",
@@ -119,8 +118,8 @@ export const pricingFr: PricingContent = {
   },
   catalog: {
     label: "Catalogue",
-    title: "Compris dans chaque offre",
-    lead: "Tout le catalogue vient avec chaque serveur, quelle que soit l’offre. {count} modules, tous disponibles, par catégorie.",
+    title: "Compris sur chaque serveur",
+    lead: "Tout le catalogue vient avec chaque serveur, gratuit ou sous licence. {count} modules, tous disponibles, par catégorie.",
     available: "{count} disponibles",
     link: "Voir tout le catalogue",
   },

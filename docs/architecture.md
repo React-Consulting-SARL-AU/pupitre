@@ -1,6 +1,6 @@
 # Architecture
 
-Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilote un serveur, l'agent compilé sur ce serveur, la plateforme qui vend et autorise, le site qui présente. Le serveur du client est la source de vérité de tout ce qui le concerne ; la plateforme ne connaît de lui que son existence.
+Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilote un serveur, l'agent compilé sur ce serveur, la plateforme qui autorise — gratuitement jusqu'à `FREE_SERVERS` serveurs par organisation, par une licence au-delà —, le site qui présente. Le code de tout le monorepo est public, sous Apache 2.0 assortie de la Commons Clause ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)) ; aucune des règles ci-dessous ne repose sur son secret. Le serveur du client est la source de vérité de tout ce qui le concerne ; la plateforme ne connaît de lui que son existence.
 
 ## Runtimes
 
@@ -13,7 +13,7 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 | `packages/api` | Elysia + Eden | Contrat `/api/v1`, client typé, harnais de test API/DB |
 | `packages/auth` | Better Auth | `createAuth` et ses plugins, clients web et desktop |
 | `packages/db` | Prisma 7 + Cloudflare D1 | Schéma, migrations SQL, clients Bun et Cloudflare |
-| `packages/shared` | TypeScript + Zod | Contrats : protocole agent, catalogue, plans, permissions, erreurs |
+| `packages/shared` | TypeScript + Zod | Contrats : protocole agent, catalogue, licence et serveurs gratuits, permissions, erreurs |
 | `packages/design` | CSS + Tailwind 4 | Tokens monochrome partagés |
 
 ```
@@ -21,7 +21,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
        │                                            │
        │ https, bearer                              │ https sortant, jeton de serveur
        ▼                                            ▼
-                 apps/web : console + /api/v1 + /api/auth ── D1, Stripe, R2
+                 apps/web : console + /api/v1 + /api/auth ── D1, R2 (Stripe en sommeil)
 ```
 
 ## Les règles qui ne bougent pas
@@ -30,7 +30,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent. Et donc aucun accès sans un laptop du client : l'agent ne pose une clé transmise que si un appareil qu'il tient déjà pour sûr l'a approuvée ([décision 0014](./decisions/0014-cles-approuvees-par-un-appareil.md)).
 3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
-5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
+5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : la licence est mise en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
 6. **Le contrat avant l'implémentation.** Ce qui traverse une frontière est typé dans `packages/shared` et documenté dans `docs/contracts/` avant d'exister des deux côtés.
 7. **Une mise à jour ne réinstalle rien.** Un binaire ne lit jamais une configuration qu'il n'a pas migrée : chaque changement de forme d'un fichier de `/etc/pupitre` ou d'un fichier de l'app est une migration numérotée, rejouée dans l'ordre, sauvegardée avant et remise en l'état si elle refuse. L'app enchaîne mise à jour du binaire, migration, puis modules ; l'agent migre aussi tout seul au démarrage. Voir [migrations de configuration](./contracts/config-migrations.md).
 
@@ -40,7 +40,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 
 La configuration SSH de l'app vit dans son dossier de données (`ssh/config`, `keys/<serveur>` en 0600). Le `~/.ssh/config` de l'utilisateur n'est jamais réécrit ; sur sa demande, l'app y pose une seule ligne `Include` vers son propre fichier, et la retire de même, pour que `ssh`, les éditeurs et les agents de code joignent ses serveurs par leur nom ([décision 0012](./decisions/0012-ssh-config-include.md)). Un hôte existant peut être désigné à la place.
 
-Le compte est requis. L'app demande une connexion au premier lancement, puis lit le droit d'usage de l'organisation active : sans abonnement en cours, fût-il en essai, elle n'enrôle aucun serveur. Seul un build de développement porte un droit d'usage à lui, miroir du tag `dev` de l'agent, et il ne sort jamais du dépôt.
+Le compte est requis. L'app demande une connexion au premier lancement, puis lit la licence de l'organisation active : gratuite jusqu'à `FREE_SERVERS` serveurs, une licence au-delà ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)) ; une licence suspendue, et l'app n'enrôle aucun serveur. Seul un build de développement porte une licence à lui, miroir du tag `dev` de l'agent, et il ne sort jamais du dépôt.
 
 ## Agent
 
@@ -48,7 +48,7 @@ Le compte est requis. L'app demande une connexion au premier lancement, puis lit
 
 Il porte aussi le registre de migrations de sa propre configuration : `pupitred migrate` sur la machine, `agent.migrate` sur le protocole.
 
-Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
+Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour la licence, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 
 ## Plateforme
 
@@ -78,4 +78,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` ne change que par la pull request `staging` → `main`, fusionnée par un merge commit : celle que le dernier job d'une release ouvre et fusionne une fois l'app et l'agent publiés, ou une ouverte à la main quand ni l'app ni l'agent ne changent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` ne change que par la pull request `staging` → `main`, fusionnée par un merge commit : celle que le dernier job d'une release ouvre et fusionne une fois l'app et l'agent publiés, ou une ouverte à la main quand ni l'app ni l'agent ne changent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, `go build -trimpath` sans obscurcissement — le code est public —, signature, publication sur le bucket R2 privé via l'API de la plateforme.

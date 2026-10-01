@@ -20,7 +20,7 @@ export const fleet = {
     "fleet.row.pending": "Being prepared",
     "fleet.row.withdrawn": "Withdrawn",
     "fleet.row.withdrawnDetail":
-      "The console has suspended this server. It comes back on its own once the subscription does.",
+      "The console has suspended this server. It comes back on its own once the licence does.",
     "fleet.status.active": "active",
     "fleet.status.enrolling": "enrolling",
     "fleet.status.grace": "grace period",
@@ -58,7 +58,7 @@ export const fleet = {
     "fleet.row.pending": "En préparation",
     "fleet.row.withdrawn": "Retiré",
     "fleet.row.withdrawnDetail":
-      "La console a suspendu ce serveur. Il revient de lui-même dès que l'abonnement revient.",
+      "La console a suspendu ce serveur. Il revient de lui-même dès que la licence revient.",
     "fleet.status.active": "actif",
     "fleet.status.enrolling": "rattachement en cours",
     "fleet.status.grace": "en tolérance",

@@ -240,7 +240,7 @@ describe("le mode restreint de l'agent", () => {
   function restricted(over: Partial<Props> = {}): string {
     return renderToStaticMarkup(
       <ServerRestrictedNotice
-        entitlement="restricted"
+        license="restricted"
         onOpenConsole={NOOP}
         onRepair={NOOP}
         repair={IDLE}
@@ -255,13 +255,13 @@ describe("le mode restreint de l'agent", () => {
 
     expect(html).toContain("se laisse lire");
     expect(html).toContain("Rien de ce qui tournait dessus ne s&#x27;est");
-    expect(html).toContain("dans la console");
+    expect(html).toContain("une licence est requise au-delà");
     expect(html).toContain("Ouvrir la console");
   });
 
-  it("ne dit rien d'un serveur dont le droit d'usage tient", () => {
-    for (const entitlement of ["valid", "grace", "dev"] as const) {
-      expect(restricted({ entitlement })).toBe("");
+  it("ne dit rien d'un serveur dont la licence tient", () => {
+    for (const license of ["valid", "grace", "dev"] as const) {
+      expect(restricted({ license })).toBe("");
     }
   });
 
@@ -281,8 +281,8 @@ describe("le mode restreint de l'agent", () => {
     expect(html).toContain("disabled");
   });
 
-  // Without an entitlement the platform would refuse the token, so a repair would fix nothing.
-  it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
+  // Without a licence the platform would refuse the token, so a repair would fix nothing.
+  it("n'offre pas la réparation quand le compte n'a pas de licence", () => {
     const html = restricted({ repairable: false });
 
     expect(html).not.toContain("Rattacher à nouveau ce serveur");
@@ -294,17 +294,17 @@ describe("le mode restreint de l'agent", () => {
     const html = restricted({
       repair: {
         error: {
-          code: "entitlement_required",
-          fix: "Régularise l'abonnement dans la console.",
-          message: "Cette organisation n'a pas d'abonnement en cours.",
+          code: "license_required",
+          fix: "Régularise la licence dans la console.",
+          message: "Cette organisation n'a pas de licence en cours.",
         },
         serverId: "srv-1",
         status: "failed",
       },
     });
 
-    expect(html).toContain("Cette organisation n&#x27;a pas d&#x27;abonnement");
-    expect(html).toContain("Régularise l&#x27;abonnement dans la console.");
+    expect(html).toContain("Cette organisation n&#x27;a pas de licence");
+    expect(html).toContain("Régularise la licence dans la console.");
   });
 });
 
@@ -324,7 +324,7 @@ describe("qui peut réparer un serveur restreint", () => {
       refusal: null,
       sealed: true,
       usage: {
-        entitlement: "valid",
+        license: "valid",
         source: "platform",
         status: "granted",
         validUntil: null,
@@ -333,11 +333,11 @@ describe("qui peut réparer un serveur restreint", () => {
     };
   }
 
-  it("laisse réparer un compte dont le droit d'usage tient", () => {
+  it("laisse réparer un compte dont la licence tient", () => {
     expect(repairable(account())).toBe(true);
   });
 
-  it("ne laisse pas réparer un compte sans droit d'usage", () => {
+  it("ne laisse pas réparer un compte sans licence", () => {
     const refused = [
       { consoleUrl: "https://app.pupitre.test/dashboard", status: "absent" },
       { consoleUrl: "https://app.pupitre.test/dashboard", status: "suspended" },
@@ -360,7 +360,7 @@ describe("qui peut réparer un serveur restreint", () => {
           build: "development",
           device: null,
           usage: {
-            entitlement: "none",
+            license: "none",
             source: "development",
             status: "granted",
             validUntil: null,

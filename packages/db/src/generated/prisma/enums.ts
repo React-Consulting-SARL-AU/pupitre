@@ -57,7 +57,7 @@ export const AlertKind = {
   server_unreachable: 'server_unreachable',
   disk_high: 'disk_high',
   agent_outdated: 'agent_outdated',
-  entitlement_grace: 'entitlement_grace',
+  license_grace: 'license_grace',
   backup_failed: 'backup_failed',
   backup_stale: 'backup_stale'
 } as const

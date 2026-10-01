@@ -1,0 +1,46 @@
+---
+title: Licence
+description: The free servers, the licence beyond them, what counts as a server, and what happens when the right to use Pupitre stops.
+locale: en
+section: account
+sectionOrder: 3
+order: 3
+---
+
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+
+Pupitre is free for every organisation up to {FREE_SERVERS} servers. The app and the agent come with it, on every device you use, with the whole catalogue. No card is asked for, there is no trial and no subscription. See the [pricing](/pricing/).
+
+An account is required: the app enrols a server for an organisation, and the platform counts the organisation's servers.
+
+## The free servers
+
+Every organisation enrols up to {FREE_SERVERS} servers with nothing to open and nothing to pay. They stay free with no time limit. Your servers are counted per organisation, not per person: the members of an organisation share its free servers, and a person in two organisations has the free servers of each.
+
+## Beyond {FREE_SERVERS} servers
+
+An organisation that needs more servers needs a licence. A licence adds seats to the free servers: with a licence of five seats, the organisation enrols {FREE_SERVERS} plus five servers.
+
+Licences are granted on request today: write to `support@pupitre.studio` from the address of an owner of the organisation, with its name and the number of servers you need. No payment is taken. Once it is granted, the console shows how many servers the organisation may enrol, and how many it uses.
+
+Without a licence, enrolling one more server is refused with the reason, and nothing already enrolled changes.
+
+## What counts as a server
+
+A machine enrolled with the platform, under your organisation. Deleting a server in the console frees its seat at once; the agent then takes the platform's keys out of the server and goes into restricted mode. See [uninstall](/docs/account/uninstall/).
+
+## When the right to use Pupitre stops
+
+The server keeps working as an ordinary server. Projects, databases, services and tunnels stay in place, and you connect over SSH as before.
+
+- **A licence that expires** while the organisation holds more servers than its free ones opens seven days of grace: everything keeps working, and the console says until when. After that, the servers are suspended until the licence is renewed or servers are deleted down to {FREE_SERVERS}.
+- **A suspended organisation** suspends its servers at their next check-in with the platform.
+- **A server that cannot reach the platform** keeps its last answer for seven days, then suspends itself.
+
+A suspended server puts the agent in restricted mode: the app still reads its state and can update the agent, but installs and changes wait, and the app says **Licence required**. Nothing that already runs is stopped. See [troubleshooting](/docs/account/troubleshooting/).
+
+Once the licence is valid again, the app picks up where it left off, at the server's next check-in.
+
+## The source code
+
+The code of the app, the agent and the platform is public under the Apache 2.0 licence with the Commons Clause. You may read it, change it and run it, including a platform of your own, which then counts its own servers. You may not sell Pupitre, or a service built mainly on it. The [licence](/legal/licence/) says the rest.

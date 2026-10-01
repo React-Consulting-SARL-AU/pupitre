@@ -21,7 +21,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux` | oui |
 | `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, ce qui entre dans l'archive (`out/**` et `package.json`, plus les `dependencies` que le main charge à l'exécution — tout le reste est une `devDependency` regroupée par Vite), `asarUnpack`, fusibles, signature, flux générique | oui |
 | `apps/desktop/scripts/release-artefacts.ts` | ce qu'un fichier d'artefact est, sa clé dans le seau, le message que la clé de release signe, la réécriture des flux — partagé par la chaîne et par l'app qui vérifie | oui |
-| `apps/agent/package.json` | `release` (garble, `-X main.version`, signature) | oui |
+| `apps/agent/package.json` | `release` (`go build -trimpath`, `-X main.version`, clé publique injectée, signature) — plus de garble : le code source est public | oui |
 | `apps/agent/tools/release` | `keygen`, `public-key`, `sign` — la cryptographie de l'agent, rien d'autre | oui |
 | `packages/shared/src/compat` | la feuille de compatibilité app ↔ agent | oui |
 | `packages/api/src/lib/releases/publish-token.ts` | le jeton que la chaîne présente, et sa rotation à deux valeurs | oui |
@@ -29,7 +29,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | `scripts/release-notes.ts` | `--check` qu'une version est couverte partout, sinon écrit le corps de l'entrée anglaise | oui |
 | `scripts/assert-branch-writable.ts` | le refus de commiter et de pousser sur `main` | oui |
 | `docs/monorepo.md` | les branches, et les dashboards externes : Apple Developer, Azure Trusted Signing, R2, Cloudflare | oui |
-| `docs/deploy.md` | la mise en ligne de bout en bout, et les seize secrets du Worker | oui |
+| `docs/deploy.md` | la mise en ligne de bout en bout, et les onze secrets du Worker (plus les quatre `STRIPE_*` en `BILLING_MODE=stripe`) | oui |
 | `docs/contracts/platform-api.md` | `/admin/releases`, `/admin/app-releases`, `/releases/app`, table `Release` et `AppRelease` | oui |
 | `git log <dernier tag>..staging` | ce qui entre dans la version | oui |
 
@@ -38,13 +38,13 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | Brique | État |
 | --- | --- |
 | La signature Windows | le compte Azure Trusted Signing n'existe pas encore : tant que ses quatre variables `AZURE_SIGNING_*` et ses trois secrets `AZURE_*` manquent, une release `stable` refuserait de construire Windows ; en attendant, le job `desktop` de `release.yml` pose `PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1"` et Windows sort non signé (SmartScreen avertit au premier lancement), macOS reste tenu. Voir `docs/tasks/windows-signing.md` |
-| La protection de branche de `main` | refusée par GitHub Free sur un dépôt privé d'organisation (GitHub Team la lève). Les barrières sont les hooks locaux, le job `ci` de `release.yml` dont dépend tout build, et `merge` qui refuse de fusionner sans CI verte sur le commit de tête ; une pull request fusionnée à la main n'est tenue par rien |
+| La protection de branche de `main` | refusée par GitHub Free tant que le dépôt d'organisation est privé ; un dépôt public y a droit, et elle reste à poser le jour où il le devient. Les barrières sont les hooks locaux, le job `ci` de `release.yml` dont dépend tout build, et `merge` qui refuse de fusionner sans CI verte sur le commit de tête ; une pull request fusionnée à la main n'est tenue par rien |
 
 ## Versionnage
 
 - Un tag `vX.Y.Z`, semver. `Z` pour un correctif, `Y` pour une fonctionnalité, `X` quand le protocole app ↔ agent retire ou renomme un champ.
 - La version est celle d'`apps/desktop/package.json`, que `next` écrit ; `check` refuse de continuer si le changelog ne la couvre pas dans les deux langues, et l'agent la reçoit au build par `-X main.version`.
-- L'entier `protocol` du contrat est indépendant de la version : il change seulement quand un champ est retiré ou renommé. Ce jour-là — ou le jour où une version ne peut plus piloter l'autre sans que le protocole change, comme la 1.0 et sa session privilégiée —, une ligne s'ajoute à `packages/shared/src/compat` — le protocole, la première version d'app et la première version d'agent de la génération — et `bun run contracts:export` la porte jusqu'à l'agent. La ligne de la 1.0 est `{ protocol: 2, app: "1.0.0", agent: "1.0.0" }` : elle suppose que la version taguée est bien `1.0.0`.
+- L'entier `protocol` du contrat est indépendant de la version : il change seulement quand un champ est retiré ou renommé. Ce jour-là — ou le jour où une version ne peut plus piloter l'autre sans que le protocole change, comme la 1.0 et sa session privilégiée —, une ligne s'ajoute à `packages/shared/src/compat` — le protocole, la première version d'app et la première version d'agent de la génération — et `bun run contracts:export` la porte jusqu'à l'agent. La ligne de la 1.0 est `{ protocol: 2, app: "1.0.0", agent: "1.0.0" }` ; celle de la 2.0, `{ protocol: 3, app: "2.0.0", agent: "2.0.0" }`, porte le renommage `entitlement` → `license` : la release qui la sort se tague `--major`, en `2.0.0`, sinon la feuille désigne une version qui n'existe pas.
 - **Une version qui change la forme d'un fichier posé sur une machine emporte sa migration.** Un champ d'`install.json` renommé, une clé de `/etc/pupitre/env` déplacée, un champ de `servers.json` qui bouge : l'entrée est dans le registre correspondant avant que le tag soit posé, sinon la mise à jour laisse un agent qui lit de travers ce qu'il trouve. Voir le skill `config-migrations` et [`docs/contracts/config-migrations.md`](../../../docs/contracts/config-migrations.md). La révision de configuration a son propre compteur : elle ne suit ni la version ni l'entier `protocol`.
 - Le tag est annoté, posé par `ship` en dernier sur le Mac, jamais réécrit. Son annotation ne sert qu'à l'historique : **les notes de version sont l'entrée de changelog**, lue par `app publish`, enregistrée dans `AppRelease`, reprise en corps de la pull request et affichée partout ailleurs. Une release compte comme sortie quand son tag est sur `origin` — `next` ne lit que ceux-là ; une release arrêtée avant, y compris après le commit et le tag de `ship` quand le push a été refusé, se reprend telle quelle en relançant `scripts/release.sh` : `next` garde la version taguée sur `HEAD`, `ship` ne fait que les deux push. Chaque étape est idempotente.
 
@@ -78,7 +78,7 @@ Le second passage se lance sans drapeau : `next` garde la version que le premier
 | Étape | Fait |
 | --- | --- |
 | `ci` | `ci.yml` appelé sur le commit tagué : gitleaks sur `origin/main..HEAD`, migrations, lint, typecheck, tests, build hors desktop. Rouge, rien d'autre ne part : ni signature, ni seau, ni déclaration |
-| `agent build` | garble, signature, épreuve du binaire — clé publique embarquée, moins de dix chaînes lisibles, `version` et `hello` sur la machine de chaque architecture — l'amd64 sur le runner qui construit, l'arm64 sur un runner arm64 (`agent smoke`), jamais sous émulation ; ou reprise depuis le seau si la version y est déjà, parce que garble ne reproduit pas un binaire et que la plateforme tient les empreintes de la première déclaration |
+| `agent build` | build, signature, épreuve du binaire — clé publique embarquée, `version` et `hello` sur la machine de chaque architecture — l'amd64 sur le runner qui construit, l'arm64 sur un runner arm64 (`agent smoke`), jamais sous émulation ; ou reprise depuis le seau si la version y est déjà, parce que la plateforme tient les empreintes de la première déclaration |
 | `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` à la plateforme |
 | `desktop` | un job par système : macOS signé et notarisé en arm64 et x64, Windows signé par Azure Trusted Signing, Linux — en `stable`, une valeur de signature qui manque arrête le job, electron-builder reçoit `forceCodeSigning` ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
 | `app publish` | chaque installateur et chaque `.zip` de mise à jour macOS signé avec la clé de release — l'app installée ne met rien en place sans ce `.sig`, sur les trois systèmes —, fichiers et `.sig` sur le seau **public**, flux `latest*.yml` réécrits en URL absolues sous `app/<version>/` et `app/<canal>/`, `POST /admin/app-releases` par fichier — en envoyant sa **clé** dans le seau, jamais une adresse — et les lignes gardées en `app/<version>/publications.json` |
@@ -111,7 +111,7 @@ Les deux moitiés vont ensemble : une app qui embarque une clé publique et un a
 
 - macOS : le `.dmg` s'ouvre sur un Mac vierge sans avertissement Gatekeeper ; `spctl --assess --type open --context context:primary-signature Pupitre.dmg` accepte.
 - Windows : SmartScreen ne bloque pas l'installateur signé, et `resources/app-update.yml` de l'app installée porte `publisherName`.
-- Agent : `strings pupitred-linux-amd64 | grep -c pupitre` proche de zéro ; `GET /api/v1/releases/agent/X.Y.Z` répond 401 sans jeton, une redirection signée avec.
+- Agent : `GET /api/v1/releases/agent/X.Y.Z` répond 401 sans jeton, une redirection signée avec.
 - App : `GET /api/v1/releases/app/latest` répond sans session et nomme les cinq artefacts ; `curl -I https://dl.pupitre.studio/app/X.Y.Z/<fichier>` répond 200.
 - Sur un VPS réinstallé : l'app installe l'agent de la version, `hello` renvoie `agent_version: "X.Y.Z"`.
 - `main` porte le merge commit `release: vX.Y.Z`, et `pupitre.studio` liste la version.

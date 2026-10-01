@@ -142,7 +142,7 @@ func newBench(t *testing.T, bucket *s3test.Fake) *bench {
 		Registry:    catalog,
 		Sys:         b.fake,
 		Now:         modtest.NewClock(time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(root, "report.json"),
 		LogPath:     b.logPath,
 		InstallPath: installPath,

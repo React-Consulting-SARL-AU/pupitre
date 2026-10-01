@@ -5,14 +5,14 @@ import { shellScreen } from "../shell-screen";
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const GRANTED: UsageRight = {
-  entitlement: "valid",
+  license: "valid",
   source: "platform",
   status: "granted",
   validUntil: null,
 };
 
 const CACHED: UsageRight = {
-  entitlement: "valid",
+  license: "valid",
   source: "cache",
   status: "granted",
   validUntil: "2026-09-11T10:00:00.000Z",
@@ -39,7 +39,7 @@ const READY = {
 };
 
 const DEVELOPMENT: UsageRight = {
-  entitlement: "none",
+  license: "none",
   source: "development",
   status: "granted",
   validUntil: null,
@@ -84,7 +84,7 @@ describe("shellScreen", () => {
   });
 });
 
-describe("le droit d'usage décide avant tout le reste", () => {
+describe("la licence décide avant tout le reste", () => {
   const refused: [string, UsageRight][] = [
     ["absent", ABSENT],
     ["expiré", STALE],
@@ -92,17 +92,17 @@ describe("le droit d'usage décide avant tout le reste", () => {
   ];
 
   for (const [name, usage] of refused) {
-    it(`ouvre le compte devant l'onboarding quand le droit d'usage est ${name}`, () => {
+    it(`ouvre le compte devant l'onboarding quand la licence est ${name}`, () => {
       expect(shellScreen({ ...READY, onboarding: "inspection", usage })).toBe(
         "account"
       );
     });
 
-    it(`ouvre le compte devant un serveur qui répond quand le droit d'usage est ${name}`, () => {
+    it(`ouvre le compte devant un serveur qui répond quand la licence est ${name}`, () => {
       expect(shellScreen({ ...READY, usage })).toBe("account");
     });
 
-    it(`laisse les réglages joignables quand le droit d'usage est ${name}`, () => {
+    it(`laisse les réglages joignables quand la licence est ${name}`, () => {
       expect(shellScreen({ ...READY, usage, view: "settings" })).toBe(
         "settings"
       );
@@ -137,7 +137,7 @@ describe("la connexion vient avant tout le reste", () => {
     expect(shellScreen({ ...READY, signedIn: false })).toBe("account");
   });
 
-  it("ouvre le compte d'un build de développement qui s'accorde le droit d'usage", () => {
+  it("ouvre le compte d'un build de développement qui s'accorde la licence", () => {
     expect(shellScreen({ ...READY, signedIn: false, usage: DEVELOPMENT })).toBe(
       "account"
     );
@@ -166,7 +166,7 @@ describe("la connexion vient avant tout le reste", () => {
     ).toBe("server");
   });
 
-  it("refuse quand même un droit d'usage suspendu, connecté ou non", () => {
+  it("refuse quand même une licence suspendue, connecté ou non", () => {
     expect(shellScreen({ ...READY, usage: SUSPENDED })).toBe("account");
     expect(
       shellScreen({

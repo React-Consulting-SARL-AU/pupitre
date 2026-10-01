@@ -10,6 +10,7 @@ import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
 import { authEmails } from "./emails/renderer"
 import { createEmailSender } from "./emails/send"
+import { recordSignUpReferral } from "./lib/affiliates/affiliates"
 import { apiError, createErrorRef } from "./lib/api/errors"
 import { isForeignCookieWrite } from "./lib/api/origin"
 import { configureAuth } from "./lib/api/plugins/auth"
@@ -39,6 +40,7 @@ configureOrganizationHooks({
       await publishInboxEvent({ type: "access.revoked", user_id: userId })
     }
   },
+  onSignedUp: recordSignUpReferral,
 })
 configureAccountHooks({ onAccountDeleting: deleteAccountFromConsole })
 

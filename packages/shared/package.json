@@ -2,6 +2,7 @@
   "name": "@pupitre/shared",
   "version": "0.0.0",
   "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
   "type": "module",
   "exports": {
     "./agent-protocol": "./src/agent-protocol/index.ts",

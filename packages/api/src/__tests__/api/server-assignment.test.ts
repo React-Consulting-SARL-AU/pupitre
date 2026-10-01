@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { authorizedKeysForServer } from "../../lib/servers/authorized-keys"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -60,7 +61,7 @@ describe("POST /servers/:id/assign", () => {
     expect(response.status).toBe(401)
   })
 
-  it("refuses an admin whose organization has no subscription", async () => {
+  it("refuses an admin whose organization holds more than its free servers without a licence", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
       subscription: null,
@@ -68,13 +69,17 @@ describe("POST /servers/:id/assign", () => {
     const [, admin, member] = members
     const { server } = await createServer({ organizationId: organization.id })
 
+    for (let index = 0; index < FREE_SERVERS; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
     const response = await assign(admin, server.id, {
       user_id: member.user.id,
     })
 
     expect(response.status).toBe(403)
-    expect(response.json.error.code).toBe("entitlement_required")
-    expect(response.json.error.fix).toContain("/dashboard/billing")
+    expect(response.json.error.code).toBe("license_required")
+    expect(response.json.error.fix).toContain("support@pupitre.studio")
   })
 
   it("refuses a member and lets an admin assign", async () => {

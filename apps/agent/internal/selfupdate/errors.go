@@ -73,7 +73,7 @@ func stateFailed(cause error) *protocol.Error {
 }
 
 func tokenRefused(failure *platform.Error) *protocol.Error {
-	return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(failure))).
+	return protocol.NewError(contract.ErrorLicenseRequired, i18n.T("selfupdate.token.refused", platform.Describe(failure))).
 		WithFix(i18n.T("selfupdate.token.refused.fix", failure.Console()))
 }
 

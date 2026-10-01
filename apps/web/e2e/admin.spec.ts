@@ -1,8 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
 import {
-  chooseBillingMode,
+  grantLicense,
   harnessUrl,
-  openTrial,
   promotePlatformMember,
   receiveEmail,
   seedAlert,
@@ -19,7 +18,6 @@ const ADMIN_EMAIL = "support@e2e.local"
 const ADMIN_ORGANIZATION = "support"
 const GRANT_NOTE = "Partenaire du lancement"
 const READER_EMAIL = "reader@e2e.local"
-const LAUNCH_EMAIL = "launch@e2e.local"
 
 const RUNNING_SERVER = "vps-admin-online"
 const REVOKED_SERVER = "vps-admin-revoked"
@@ -28,14 +26,18 @@ const READER_SERVER = "vps-admin-reader"
 const FLEET_EMAIL = "fleet@e2e.local"
 const FLEET_ORGANIZATION = "fleet"
 const FLEET_SERVER = "vps-fleet-online"
-const TRIAL_EMAIL = "trial@e2e.local"
-const TRIAL_ORGANIZATION = "trial"
+const LICENSED_EMAIL = "atelier@e2e.local"
+const LICENSED_ORGANIZATION = "atelier"
 const GRANT_END_DAY = "2027-06-30"
-const PAST_DAY = "2020-01-01"
 
 const SOCLE_EMAIL = "socle@e2e.local"
 const SOCLE_SERVER = "vps-socle-online"
-const SOCLE_SECOND_SERVER = "vps-socle-second"
+const SOCLE_EXTRA_SERVERS = [
+  "vps-socle-second",
+  "vps-socle-third",
+  "vps-socle-fourth",
+  "vps-socle-fifth",
+]
 const SOCLE_REVOKED_SERVER = "vps-socle-revoked"
 
 const THREAD_SENDER = "ada@e2e.local"
@@ -51,10 +53,6 @@ const LINK_NOTES = "Stand partagé au salon"
 const SPARE_LINK_NAME = "Podcast du soir"
 const SPARE_LINK_CODE = "podcast-e2e"
 
-const LAUNCH_ENDS_AT = "2026-12-31T12:00:00.000Z"
-const LAUNCH_DATE = "31 décembre 2026"
-
-const SERVERS_URL_RE = /\/dashboard\/servers$/
 const START_URL_RE = /\/dashboard\/start$/
 const START_LINK_RE = /^Démarrer/
 const ADMIN_URL_RE = /\/dashboard\/admin$/
@@ -75,10 +73,9 @@ const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
 const ADMIN_LINK_SETTINGS_URL_RE = /\/affiliate-links\/[^/?]+\?tab=settings$/
 const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
 const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
-const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
 
 const ONLINE_SERVERS_RE = /en ligne/
-const TRIALING_SUBSCRIPTIONS_RE = /essai/
+const CANCELED_LICENSES_RE = /résilié/
 
 const ROLE_REQUIRED =
   "Le rôle owner ou admin de l'organisation Pupitre est requis."
@@ -138,7 +135,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("les adresses de la plateforme ramènent à la console", async () => {
-      await openTrial(request, OWNER_EMAIL)
+      await grantLicense(request, OWNER_EMAIL, 1)
 
       for (const closed of [
         "/dashboard/admin",
@@ -147,7 +144,7 @@ test.describe("plateforme", () => {
         "/dashboard/admin/affiliate-links",
       ]) {
         await page.goto(closed)
-        await expect(page, closed).toHaveURL(SERVERS_URL_RE)
+        await expect(page, closed).toHaveURL(START_URL_RE)
       }
     })
 
@@ -180,13 +177,13 @@ test.describe("plateforme", () => {
       await openPlatformOrganization(page)
     })
 
-    await test.step("l'organisation Pupitre n'a ni démarrage ni facturation", async () => {
+    await test.step("l'organisation Pupitre n'a ni démarrage ni licence", async () => {
       await expect(menu.getByRole("link", { name: START_LINK_RE })).toHaveCount(
         0
       )
-      await expect(menu.getByRole("link", { name: "Facturation" })).toHaveCount(
-        0
-      )
+      await expect(
+        menu.getByRole("link", { name: "Licence", exact: true })
+      ).toHaveCount(0)
 
       await page.goto("/dashboard/start")
       await expect(page).toHaveURL(ADMIN_URL_RE)
@@ -204,7 +201,7 @@ test.describe("plateforme", () => {
         "Utilisateurs",
         "Organisations",
         "Tous les serveurs",
-        "Abonnements",
+        "Licences",
         "Liens d'affiliation",
         "Journal de la plateforme",
         "Versions",
@@ -238,8 +235,8 @@ test.describe("plateforme", () => {
       ).toBeVisible()
       await expect(main.getByText("Serveurs", { exact: true })).toBeVisible()
       await expect(main.getByText(ONLINE_SERVERS_RE)).toBeVisible()
-      await expect(main.getByText("Abonnements", { exact: true })).toBeVisible()
-      await expect(main.getByText(TRIALING_SUBSCRIPTIONS_RE)).toBeVisible()
+      await expect(main.getByText("Licences", { exact: true })).toBeVisible()
+      await expect(main.getByText(CANCELED_LICENSES_RE)).toBeVisible()
       await expect(
         main.getByText("Liens d'affiliation", { exact: true })
       ).toBeVisible()
@@ -313,7 +310,7 @@ test.describe("plateforme", () => {
       await main
         .getByRole("row")
         .filter({ hasText: RUNNING_SERVER })
-        .getByRole("button", { name: `Gestes sur ${RUNNING_SERVER}` })
+        .getByRole("button", { name: `Actions sur ${RUNNING_SERVER}` })
         .click()
       await page.getByRole("menuitem", { name: "Suspendre" }).click()
 
@@ -348,8 +345,6 @@ test.describe("plateforme", () => {
 
       await create.getByLabel("Nom", { exact: true }).fill(LINK_NAME)
       await create.getByLabel("Code (facultatif)").fill(LINK_CODE)
-      await create.getByLabel("Mois offerts").fill("2")
-      await create.getByLabel("Sièges").fill("3")
       await create.getByLabel("Nom du partenaire").fill(LINK_PARTNER)
       await create.getByLabel("E-mail du partenaire").fill(LINK_PARTNER_EMAIL)
       await create.getByRole("button", { name: "Créer le lien" }).click()
@@ -394,7 +389,8 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
       await expect(main.getByText(LINK_URL)).toBeVisible()
       await expect(main.getByText(LINK_PARTNER_EMAIL)).toBeVisible()
-      await expect(main.getByText("Venues")).toBeVisible()
+      await expect(main.getByText("Serveurs installés")).toBeVisible()
+      await expect(main.getByText("Mois offerts")).toHaveCount(0)
 
       await openTab(page, "Réglages")
 
@@ -404,7 +400,6 @@ test.describe("plateforme", () => {
 
       await expect(apply).toBeDisabled()
 
-      await main.getByLabel("Mois offerts").fill("4")
       await main.getByLabel("Notes").fill(LINK_NOTES)
       await apply.click()
 
@@ -492,24 +487,24 @@ test.describe("plateforme", () => {
       ).toHaveCount(0)
     })
 
-    await test.step("un abonnement s'offre à une organisation sans abonnement, puis s'arrête depuis sa page", async () => {
+    await test.step("une licence s'accorde à une organisation qui n'en a pas, puis s'arrête depuis sa page", async () => {
       await menu.getByRole("link", { name: "Organisations" }).click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
 
-      // The owner's organisation runs a trial, so the grant stays shut there.
+      // The owner's organisation already holds a licence, so the grant stays shut there.
       await main
         .getByRole("link", { name: OWNER_ORGANIZATION, exact: true })
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
-      await openTab(main, "Abonnements")
+      await openTab(main, "Licences")
       await expect(
-        page.getByRole("button", { name: "Offrir un abonnement" })
+        page.getByRole("button", { name: "Accorder une licence" })
       ).toBeDisabled()
       await expect(
         main.getByText(
-          "Un abonnement est en cours : arrêtez-le avant d'en offrir un autre."
+          "Une licence est en cours : arrêtez-la avant d'en accorder une autre."
         )
       ).toBeVisible()
 
@@ -519,30 +514,30 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
-      await openTab(main, "Abonnements")
+      await openTab(main, "Licences")
       await expect(
-        main.getByText("Aucun abonnement, passé ou présent.")
+        main.getByText("Aucune licence, passée ou présente.")
       ).toBeVisible()
 
-      await page.getByRole("button", { name: "Offrir un abonnement" }).click()
+      await page.getByRole("button", { name: "Accorder une licence" }).click()
 
       const grant = page.getByRole("dialog")
 
       await grant.getByLabel("Sièges").fill("2")
       await grant.getByLabel("Note (facultative)").fill(GRANT_NOTE)
-      await grant.getByRole("button", { name: "Offrir", exact: true }).click()
+      await grant.getByRole("button", { name: "Accorder", exact: true }).click()
 
       await expect(
-        toasts.getByText(`${ADMIN_ORGANIZATION} a son abonnement.`)
+        toasts.getByText(`${ADMIN_ORGANIZATION} a sa licence.`)
       ).toBeVisible()
 
       // The journal names the grant too: the seats tell the row from the journal line.
       const row = main.getByRole("listitem").filter({ hasText: "2 sièges" })
 
-      await expect(row).toContainText("Offert")
+      await expect(row).toContainText("Accordée")
       await expect(row).toContainText("Actif")
       await expect(
-        page.getByRole("button", { name: "Offrir un abonnement" })
+        page.getByRole("button", { name: "Accorder une licence" })
       ).toBeDisabled()
 
       await row.getByRole("link").click()
@@ -567,7 +562,7 @@ test.describe("plateforme", () => {
       await stop.getByRole("button", { name: "Arrêter maintenant" }).click()
 
       await expect(
-        toasts.getByText(`L'abonnement de ${ADMIN_ORGANIZATION} est arrêté.`)
+        toasts.getByText(`La licence de ${ADMIN_ORGANIZATION} est arrêtée.`)
       ).toBeVisible()
       await expect(
         page.getByRole("button", { name: "Arrêter maintenant" })
@@ -670,7 +665,7 @@ test.describe("plateforme", () => {
 
       await expect(row).toBeVisible()
       await expect(
-        row.getByRole("button", { name: `Gestes sur ${READER_SERVER}` })
+        row.getByRole("button", { name: `Actions sur ${READER_SERVER}` })
       ).toHaveCount(0)
     })
 
@@ -683,7 +678,7 @@ test.describe("plateforme", () => {
 
       await expect(row).toContainText(LINK_URL)
       await expect(
-        row.getByRole("button", { name: `Gestes sur ${LINK_NAME}` })
+        row.getByRole("button", { name: `Actions sur ${LINK_NAME}` })
       ).toHaveCount(0)
       await expect(
         page.getByRole("button", { name: "Créer un lien" })
@@ -718,51 +713,11 @@ test.describe("plateforme", () => {
 
     await test.step("l'API refuse la création d'un lien", async () => {
       const refused = await page.request.post("/api/v1/admin/affiliate-links", {
-        data: { name: "Refusé", free_months: 1, seats: 1 },
+        data: { name: "Refusé" },
       })
 
       expect(refused.status()).toBe(FORBIDDEN)
     })
-  })
-
-  test("le lancement remplace l'essai sur la page de démarrage", async ({
-    page,
-    request,
-  }) => {
-    await stayLocal(page)
-    await chooseBillingMode(request, "launch", LAUNCH_ENDS_AT)
-    await signIn(page, request, LAUNCH_EMAIL)
-
-    const main = page.getByRole("main")
-
-    await test.step("l'offre dit le lancement, sa fin et la machine, sans rythme à choisir", async () => {
-      await expect(
-        main.getByRole("heading", { name: "Lancement gratuit" })
-      ).toBeVisible()
-      await expect(
-        main.getByText(`Gratuit jusqu'au ${LAUNCH_DATE}`)
-      ).toBeVisible()
-      await expect(main.getByText("1 machine")).toBeVisible()
-      await expect(main.getByText("Période")).toHaveCount(0)
-      await expect(main.getByRole("button", { name: "Annuel" })).toHaveCount(0)
-
-      await page.screenshot({
-        path: `${SHOTS}/launch-offer.png`,
-        fullPage: true,
-      })
-    })
-
-    await test.step("commencer accorde l'abonnement et fait le pas suivant", async () => {
-      await main.getByRole("button", { name: "Commencer" }).click()
-
-      await expect(page).toHaveURL(START_RETURN_URL_RE)
-      await expect(page.getByText("L'essai est ouvert.")).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Démarrer · 2/4" })
-      ).toBeVisible()
-    })
-
-    await chooseBillingMode(request, "stripe")
   })
 
   test("les listes vivent dans l'adresse, la recherche ouvre une fiche, et l'effacement demande le nom", async ({
@@ -772,18 +727,16 @@ test.describe("plateforme", () => {
     await stayLocal(page)
     await signIn(page, request, SOCLE_EMAIL)
     await promotePlatformMember(request, SOCLE_EMAIL)
-    await openTrial(request, SOCLE_EMAIL)
+    await grantLicense(request, SOCLE_EMAIL, 1)
     await seedServer(request, {
       email: SOCLE_EMAIL,
       name: SOCLE_SERVER,
       status: "active",
     })
-    // Two seated servers against the trial's single seat: what the drift list raises.
-    await seedServer(request, {
-      email: SOCLE_EMAIL,
-      name: SOCLE_SECOND_SERVER,
-      status: "active",
-    })
+    // Two seated servers beyond the free three against the licence's single seat: what the drift list raises.
+    for (const name of SOCLE_EXTRA_SERVERS) {
+      await seedServer(request, { email: SOCLE_EMAIL, name, status: "active" })
+    }
     await seedServer(request, {
       email: SOCLE_EMAIL,
       name: SOCLE_REVOKED_SERVER,
@@ -821,7 +774,9 @@ test.describe("plateforme", () => {
       await menu.getByRole("link", { name: "Vue d'ensemble" }).click()
 
       await expect(page).toHaveURL(ADMIN_URL_RE)
-      await expect(main.getByText("Sièges dépassés")).toBeVisible()
+      await expect(
+        main.getByText("Serveurs au-delà de la licence")
+      ).toBeVisible()
 
       await main.getByRole("link", { name: "Tout voir" }).first().click()
 
@@ -871,7 +826,7 @@ test.describe("plateforme", () => {
     })
   })
 
-  test("le canal, les alertes, l'échéance d'un octroi, le filtre par organisation et un refus affiché", async ({
+  test("le canal, les alertes, l'échéance d'un octroi, le filtre par organisation et la recherche", async ({
     page,
     request,
   }) => {
@@ -888,9 +843,9 @@ test.describe("plateforme", () => {
       server: FLEET_SERVER,
       kind: "disk_high",
     })
-    await signIn(page, request, TRIAL_EMAIL)
-    await openTrial(request, TRIAL_EMAIL)
-    await signIn(page, request, FLEET_EMAIL)
+    await signIn(page, request, LICENSED_EMAIL)
+    await grantLicense(request, LICENSED_EMAIL, 1)
+    await signIn(page, request, FLEET_EMAIL, "servers")
     await openPlatformOrganization(page)
 
     const menu = page.getByRole("navigation", { name: "Menu principal" })
@@ -935,7 +890,7 @@ test.describe("plateforme", () => {
 
     let fleetOrganizationId = ""
 
-    await test.step("l'échéance d'un abonnement offert se prolonge", async () => {
+    await test.step("l'échéance d'une licence accordée se prolonge", async () => {
       await menu.getByRole("link", { name: "Organisations" }).click()
       await main
         .getByRole("link", { name: FLEET_ORGANIZATION, exact: true })
@@ -945,16 +900,16 @@ test.describe("plateforme", () => {
 
       fleetOrganizationId = page.url().split("/").pop() ?? ""
 
-      await openTab(main, "Abonnements")
-      await page.getByRole("button", { name: "Offrir un abonnement" }).click()
+      await openTab(main, "Licences")
+      await page.getByRole("button", { name: "Accorder une licence" }).click()
 
       const grant = page.getByRole("dialog")
 
       await grant.getByLabel("Sièges").fill("2")
-      await grant.getByRole("button", { name: "Offrir", exact: true }).click()
+      await grant.getByRole("button", { name: "Accorder", exact: true }).click()
 
       await expect(
-        toasts.getByText(`${FLEET_ORGANIZATION} a son abonnement.`)
+        toasts.getByText(`${FLEET_ORGANIZATION} a sa licence.`)
       ).toBeVisible()
 
       await main
@@ -971,12 +926,12 @@ test.describe("plateforme", () => {
 
       await expect(
         toasts.getByText(
-          `L'abonnement de ${FLEET_ORGANIZATION} est redimensionné.`
+          `La licence de ${FLEET_ORGANIZATION} est redimensionnée.`
         )
       ).toBeVisible()
     })
 
-    await test.step("le filtre d'organisation ne garde que ses abonnements, et se retire", async () => {
+    await test.step("le filtre d'organisation ne garde que ses licences, et se retire", async () => {
       await page.goto(
         `/dashboard/admin/subscriptions?organization_id=${fleetOrganizationId}`
       )
@@ -986,7 +941,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
       await expect(main.getByText("1–1 sur 1")).toBeVisible()
       await expect(
-        main.getByRole("row").filter({ hasText: TRIAL_ORGANIZATION })
+        main.getByRole("row").filter({ hasText: LICENSED_ORGANIZATION })
       ).toHaveCount(0)
 
       await main
@@ -995,31 +950,23 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTIONS_URL_RE)
       await expect(
-        main.getByRole("row").filter({ hasText: TRIAL_ORGANIZATION })
+        main.getByRole("row").filter({ hasText: LICENSED_ORGANIZATION })
       ).toHaveCount(1)
     })
 
-    await test.step("un essai repoussé dans le passé est refusé sous le geste", async () => {
-      await page.getByLabel("Recherche").fill(TRIAL_ORGANIZATION)
+    await test.step("la recherche ouvre la licence d'une autre organisation", async () => {
+      await page.getByLabel("Recherche").fill(LICENSED_ORGANIZATION)
 
       await expect(main.getByText("1–1 sur 1")).toBeVisible()
 
       await main
         .getByRole("row")
-        .filter({ hasText: TRIAL_ORGANIZATION })
+        .filter({ hasText: LICENSED_ORGANIZATION })
         .getByRole("link")
         .first()
         .click()
 
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
-
-      await openTab(page, "Gestes")
-      await page.getByLabel("Fin de l'essai").fill(PAST_DAY)
-      await page.getByRole("button", { name: "Prolonger l'essai" }).click()
-
-      await expect(
-        main.getByText("La fin d'essai demandée est déjà passée.")
-      ).toBeVisible()
     })
   })
 
@@ -1089,7 +1036,11 @@ test.describe("plateforme", () => {
       ).toBeVisible()
 
       await openTab(main, "Aperçu")
-      await expect(main.getByRole("img", { name: "Suspendu" })).toBeVisible()
+      await expect(
+        main
+          .getByRole("tabpanel", { name: "Aperçu" })
+          .getByText("Suspendu", { exact: true })
+      ).toBeVisible()
       await expect(main.getByText("Signalement 118")).toBeVisible()
 
       await openTab(main, "Danger")
@@ -1169,7 +1120,9 @@ test.describe("plateforme", () => {
 
       await openTab(main, "Aperçu")
       await expect(
-        main.getByRole("img", { name: "Suppression programmée" })
+        main
+          .getByRole("tabpanel", { name: "Aperçu" })
+          .getByText("Suppression programmée", { exact: true })
       ).toBeVisible()
 
       await openTab(main, "Danger")

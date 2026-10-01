@@ -44,7 +44,7 @@ function client(
 
 const ENROLLED: AgentResponse<unknown> = {
   ok: true,
-  result: { enrolled: true, entitlement: "valid" },
+  result: { enrolled: true, license: "valid" },
 };
 
 describe("la clé de l'appareil posée après l'enrôlement", () => {

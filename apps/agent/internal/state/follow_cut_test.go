@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
@@ -27,7 +27,7 @@ func TestAFollowEndsWhenTheChannelIsCut(t *testing.T) {
 		Sys:          fake,
 		Now:          time.Now,
 		Registry:     modules.NewRegistry(),
-		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		License:      func() contract.License { return contract.LicenseDev },
 		AgentVersion: "0.0.0-test",
 		Follow:       state.FollowOptions{Interval: time.Millisecond, Limit: time.Hour},
 	})
@@ -35,7 +35,7 @@ func TestAFollowEndsWhenTheChannelIsCut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementDev)})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", License: license.Fixed(contract.LicenseDev)})
 	state.RegisterCommands(server, reader)
 
 	in, stdin := io.Pipe()
@@ -43,7 +43,7 @@ func TestAFollowEndsWhenTheChannelIsCut(t *testing.T) {
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(in, &out) }()
 
-	io.WriteString(stdin, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`+"\n")
+	io.WriteString(stdin, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`+"\n")
 	io.WriteString(stdin, `{"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","lines":5,"follow":true}}`+"\n")
 	time.Sleep(20 * time.Millisecond)
 	stdin.Close()

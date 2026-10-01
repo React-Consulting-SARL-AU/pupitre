@@ -25,7 +25,7 @@ describe("le catalogue des gabarits", () => {
       "alert_server_unreachable",
       "alert_disk_high",
       "alert_agent_outdated",
-      "alert_entitlement_grace",
+      "alert_license_grace",
       "alert_backup_failed",
       "alert_backup_stale",
     ])
@@ -94,7 +94,7 @@ describe("les données passent dans le rendu", () => {
   })
 
   it("la tolérance porte sa date limite et le lien de facturation", async () => {
-    const email = await previewOf("entitlement_grace").render("fr")
+    const email = await previewOf("license_grace").render("fr")
 
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.html).toContain("2026")

@@ -7,7 +7,7 @@ import {
   resetDb,
   TEST_BASE_URL,
 } from "@pupitre/api/testing";
-import { subscribeOrganization } from "@pupitre/api/testing/factories";
+import { createServer } from "@pupitre/api/testing/factories";
 import {
   createTestSession,
   createTestUser,
@@ -15,6 +15,7 @@ import {
 } from "@pupitre/auth/testing";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { publicKeyFingerprint } from "@pupitre/shared/keys";
+import { FREE_SERVERS } from "@pupitre/shared/plans";
 import type { SignInProgress } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
@@ -49,15 +50,19 @@ async function rewindPolls(): Promise<void> {
   });
 }
 
-/** No server enrols without a running subscription, so the organization gets one by default. */
-async function signedInConsole({ subscribed = true } = {}): Promise<Console> {
+/** No licence: every test enrols fewer servers than the free ones, unless it asks for them taken. */
+async function signedInConsole({
+  freeServersTaken = false,
+} = {}): Promise<Console> {
   const { prisma, fetch } = await bootApiTestServer();
   const { user, organization } = await createTestUser(prisma, {
     email: "ada@test.local",
   });
 
-  if (subscribed) {
-    await subscribeOrganization({ organizationId: organization.id });
+  if (freeServersTaken) {
+    for (let taken = 0; taken < FREE_SERVERS; taken += 1) {
+      await createServer({ organizationId: organization.id });
+    }
   }
 
   const { token } = await createTestSession(prisma, { userId: user.id });
@@ -186,7 +191,7 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(signedIn).toMatchObject({
       ok: true,
       result: {
-        identity: { email: "ada@test.local", entitlement: "valid" },
+        identity: { email: "ada@test.local", license: "valid" },
         usage: { source: "platform", status: "granted" },
       },
     });
@@ -290,8 +295,8 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(Date.now() - started).toBeLessThan(MINUTE_MS);
   });
 
-  it("refuse l'enrôlement d'une organisation sans abonnement, avec le code et le remède de l'API", async () => {
-    const browser = await signedInConsole({ subscribed: false });
+  it("refuse l'enrôlement au-delà des serveurs gratuits sans licence, avec le code et le remède de l'API", async () => {
+    const browser = await signedInConsole({ freeServersTaken: true });
     const { account, report } = await desktop(browser);
 
     await account.signIn(report);
@@ -321,15 +326,18 @@ describe("le compte contre l'API de la plateforme", () => {
       error: { code: string; message: string; fix: string };
     };
 
-    expect(direct.status).toBe(403);
-    expect(refusal.error.code).toBe("entitlement_required");
+    expect(direct.ok).toBe(false);
+    expect(refusal.error.code).toBe("seat_quota_reached");
     expect(enrolled.error).toEqual(refusal.error);
-    expect(asAgentError(enrolled.error)).toEqual(refusal.error);
+    expect(asAgentError(enrolled.error)).toEqual({
+      ...refusal.error,
+      code: "internal",
+    });
 
     const listed = await apiFetch("/servers", { headers: browser.headers });
     const body = (await listed.json()) as { data: unknown[] };
 
-    expect(body.data).toEqual([]);
+    expect(body.data).toHaveLength(FREE_SERVERS);
   });
 
   it("pousse la clé de l'appareil dans l'état que l'agent lit", async () => {
@@ -366,10 +374,10 @@ describe("le compte contre l'API de la plateforme", () => {
     });
     const body = (await state.json()) as {
       authorized_keys: string[];
-      entitlement: string;
+      license: string;
     };
 
-    expect(body.entitlement).toBe("valid");
+    expect(body.license).toBe("valid");
     expect(body.authorized_keys.join("\n")).toContain(
       DEVICE_PUBLIC_KEY.split(" ")[1]
     );

@@ -14,7 +14,6 @@ export type ServiceHealth = "ok" | "down"
 
 export interface BillingStatus {
   mode: BillingMode
-  launch_ends_at: Date | null
 }
 
 export interface PublishedRelease {
@@ -38,13 +37,11 @@ export interface ServiceStatus {
 // A misconfigured `BILLING_MODE` degrades this line, never the whole public status.
 function billingStatus(): BillingStatus {
   try {
-    const { mode, launchEndsAt } = getBillingMode()
-
-    return { mode, launch_ends_at: launchEndsAt }
+    return { mode: getBillingMode() }
   } catch (error) {
     console.error("[api] status: the billing mode is unreadable", error)
 
-    return { mode: "stripe", launch_ends_at: null }
+    return { mode: "off" }
   }
 }
 

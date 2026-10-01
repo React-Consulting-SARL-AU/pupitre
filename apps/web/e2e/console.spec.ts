@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test"
 import { DESKTOP_CLIENT_ID } from "@pupitre/auth/client/desktop"
-import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import {
   harnessUrl,
   magicLinkFor,
@@ -18,17 +17,13 @@ const SERVER_URL_RE = /\/dashboard\/servers\/[^/]+$/
 const SERVERS_TITLE_RE = /Serveurs · Pupitre/
 const REVOKED_RE = /^Révoqué$/
 const START_URL_RE = /\/dashboard\/start$/
-const CHECKOUT_URL_RE = /^https:\/\/checkout\.stripe\.test\//
-const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
-const BILLING_URL_RE = /\/dashboard\/billing$/
-const SETTINGS_URL_RE = /\/dashboard\/settings$/
 const DOWNLOAD_URL_RE = /\/dashboard\/download$/
 const SIGN_IN_WITH_CALLBACK_RE = /\/auth\/sign-in\?callbackURL=.*auth.*device/
 const DEVICE_URL_RE = /\/auth\/device\?user_code=/
 const CHECKLIST_STEP_RE =
   /Installer l'app et la lier à votre compte|Louer un serveur et l'ajouter/
 const APP_STEP = "Installer l'app et la lier à votre compte"
-const START_LINK_RE = /^Démarrer · \d\/4$/
+const START_LINK_RE = /^Démarrer · \d\/3$/
 const SERVER_STEP = "Louer un serveur et l'ajouter"
 
 interface DeviceCodes {
@@ -50,18 +45,12 @@ function openSshEd25519Key(): string {
   return `ssh-ed25519 ${btoa(String.fromCharCode(...blob))}`
 }
 
-interface RecordedCheckout {
-  organizationId: string
-  quantity: number
-  interval: string
-}
-
 test.describe("console", () => {
   test.beforeAll(async ({ request }) => {
     await request.post(harnessUrl("/reset"))
   })
 
-  test("inscription, essai, téléchargement, liaison, serveurs", async ({
+  test("inscription, licence gratuite, téléchargement, liaison, serveurs", async ({
     browser,
     page,
     request,
@@ -99,79 +88,20 @@ test.describe("console", () => {
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: "Quatre pas, et votre serveur travaille pour vous.",
+          name: "Trois pas, et votre serveur travaille pour vous.",
         })
       ).toBeVisible()
-      await expect(
-        page.getByRole("heading", { name: `${TRIAL_DAYS} jours, sans carte` })
-      ).toBeVisible()
+      await expect(page.getByText("essai")).toHaveCount(0)
     })
 
-    await test.step("la barre latérale compte les pas, et ne liste rien qui redirige", async () => {
+    await test.step("la barre latérale compte les pas, et tout s'ouvre sans licence", async () => {
       await expect(
-        page.getByRole("link", { name: "Démarrer · 1/4" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Serveurs", exact: true })
-      ).toHaveCount(0)
-    })
-
-    await test.step("sans essai, seuls la facturation et le profil s'ouvrent", async () => {
-      for (const closed of [
-        "/dashboard/servers",
-        "/dashboard/members",
-        "/dashboard/devices",
-      ]) {
-        await page.goto(closed)
-        await expect(page, closed).toHaveURL(START_URL_RE)
-      }
-
-      await page.goto("/dashboard/billing")
-      await expect(page).toHaveURL(BILLING_URL_RE)
-
-      await page.goto("/dashboard/settings")
-      await expect(page).toHaveURL(SETTINGS_URL_RE)
-    })
-
-    await test.step("l'essai part sur le rythme choisi, un siège", async () => {
-      await page.goto("/dashboard/start")
-      await page.getByRole("button", { name: "Annuel" }).click()
-      await page.getByRole("button", { name: "Démarrer l'essai" }).click()
-
-      await expect
-        .poll(async () => {
-          const recorded = await request.get(harnessUrl("/checkouts"))
-          const { checkouts } = (await recorded.json()) as {
-            checkouts: RecordedCheckout[]
-          }
-
-          return checkouts
-        })
-        .toEqual([expect.objectContaining({ quantity: 1, interval: "year" })])
-
-      // Waiting for the provider's page keeps the next step from racing it; the harness answers it empty.
-      await page.waitForURL(CHECKOUT_URL_RE)
-    })
-
-    await test.step("au retour du paiement, la console attend le webhook", async () => {
-      await page.goto("/dashboard/billing?checkout=done")
-
-      await expect(page).toHaveURL(START_RETURN_URL_RE)
-      await expect(page.getByText("Attente de la confirmation")).toBeVisible()
-
-      const opened = await request.post(harnessUrl("/trial"), {
-        data: { email: EMAIL },
-      })
-
-      expect(((await opened.json()) as { handled: boolean }).handled).toBe(true)
-
-      await expect(page.getByText("L'essai est ouvert.")).toBeVisible()
-      await expect(
-        page.getByRole("link", { name: "Démarrer · 2/4" })
+        page.getByRole("link", { name: "Démarrer · 1/3" })
       ).toBeVisible()
       await expect(
         page.getByRole("link", { name: "Serveurs", exact: true })
       ).toBeVisible()
+      await expect(page.getByText("Licence requise")).toHaveCount(0)
     })
 
     await test.step("le téléchargement s'ouvre sans recharger la console", async () => {
@@ -183,12 +113,16 @@ test.describe("console", () => {
       await expect(page).toHaveURL(DOWNLOAD_URL_RE)
     })
 
-    await test.step("l'essai vaut droit d'usage, et la console s'ouvre", async () => {
+    await test.step("la gratuité vaut droit d'usage, et la console s'ouvre", async () => {
       const me = await page.request.get("/api/v1/me")
-      const identity = (await me.json()) as { entitlement: string }
+      const identity = (await me.json()) as {
+        license: string
+        servers: { used: number; limit: number }
+      }
 
       expect(me.ok()).toBe(true)
-      expect(identity.entitlement).toBe("valid")
+      expect(identity.license).toBe("valid")
+      expect(identity.servers).toEqual({ used: 0, limit: 3 })
 
       await page.goto("/dashboard/servers")
 
@@ -207,22 +141,19 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("la facturation nomme l'essai et sa fin sans carte", async () => {
+    await test.step("la licence compte les serveurs contre les trois gratuits, sans rien vendre", async () => {
       await page.goto("/dashboard/billing")
 
-      await expect(page.getByText("Essai en cours")).toBeVisible()
       await expect(
-        page.getByText("sans carte enregistrée, l'abonnement est résilié")
+        page.getByRole("heading", { level: 1, name: "Licence" })
       ).toBeVisible()
-    })
-
-    await test.step("l'essai tient une machine, et ne vend pas de siège", async () => {
-      await expect(page.getByText("Une machine pendant l'essai")).toBeVisible()
+      await expect(page.getByText("0 / 3")).toBeVisible()
       await expect(
-        page.getByLabel("Changer le nombre de serveurs")
+        page.getByText("Gratuit jusqu'à 3 serveurs par organisation")
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Gérer l'abonnement" })
       ).toHaveCount(0)
-      await expect(page.getByText("1 serveur", { exact: true })).toBeVisible()
-      await expect(page.getByText("0 / 1")).toBeVisible()
     })
 
     await test.step("le téléchargement s'ouvre dans la console et dit l'ordre", async () => {
@@ -336,7 +267,7 @@ test.describe("console", () => {
       await page.goto("/dashboard/servers")
 
       await expect(
-        page.getByRole("link", { name: "Démarrer · 3/4" })
+        page.getByRole("link", { name: "Démarrer · 2/3" })
       ).toBeVisible()
       await expect(
         page
@@ -386,9 +317,7 @@ test.describe("console", () => {
         .click()
 
       await expect(page).toHaveURL(SERVER_URL_RE)
-      await expect(
-        page.getByRole("main").locator("span").filter({ hasText: REVOKED_RE })
-      ).toBeVisible()
+      await expect(page.getByRole("main").getByText(REVOKED_RE)).toBeVisible()
       await expect(
         page.getByTestId("toasts").getByText(`« ${SERVER_NAME} » est révoqué`)
       ).toBeVisible()

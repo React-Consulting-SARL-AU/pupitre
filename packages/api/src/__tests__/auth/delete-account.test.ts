@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -170,14 +170,14 @@ describe("deleting one's own account from the console", () => {
     expect(kept.organizationId).toBe(shared.organization.id)
   })
 
-  it("lets an organization the account is alone in go with its launch subscription", async () => {
+  it("lets an organization the account is alone in go with its granted licence", async () => {
     const { user, organization, headers } = await soloAccount()
 
     await harness.prisma.subscription.create({
       data: {
         organizationId: organization.id,
-        stripeSubscriptionId: `launch_${organization.id}`,
-        product: LAUNCH_PRODUCT,
+        stripeSubscriptionId: `granted_${organization.id}`,
+        product: GRANTED_PRODUCT,
         quantity: 1,
         status: "active",
       },
@@ -232,7 +232,7 @@ describe("deleting one's own account from the console", () => {
 
     expect(response.status).toBe(409)
     expect(response.json.code).toBe("SOLE_OWNER")
-    expect(response.json.fix).toContain("cancel its subscription")
+    expect(response.json.fix).toContain("cancel its licence")
   })
 
   it("refuses the sole owner of a shared organization that holds a subscription", async () => {

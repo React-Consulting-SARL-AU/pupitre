@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { ApprovedKeySchema, KeyFingerprintSchema } from "../keys"
-import { EntitlementSchema } from "./session"
+import { LicenseSchema } from "./session"
 
 export const DoneResultSchema = z.object({
   done: z.literal(true),
@@ -77,7 +77,7 @@ export type EnrollSecrets = z.infer<typeof EnrollSecretsSchema>
 
 export const EnrollResultSchema = z.object({
   enrolled: z.literal(true),
-  entitlement: EntitlementSchema,
+  license: LicenseSchema,
   synced_at: z.string().optional(),
 })
 

@@ -572,8 +572,8 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.State != contract.ConfigCurrent || result.Revision != 7 || len(result.Applied) != 7 {
-		t.Fatalf("result = %+v, want current at 7 after one run", result)
+	if result.State != contract.ConfigCurrent || result.Revision != 8 || len(result.Applied) != 8 {
+		t.Fatalf("result = %+v, want current at 8 after one run", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -710,8 +710,8 @@ func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 7 || len(result.Applied) != 6 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
-		t.Fatalf("result = %+v, want the second to seventh migrations on a machine already at one", result)
+	if result.Revision != 8 || len(result.Applied) != 7 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
+		t.Fatalf("result = %+v, want the second to eighth migrations on a machine already at one", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -773,7 +773,7 @@ func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 7 || len(result.Applied) != 5 || result.Applied[0].ID != 3 {
+	if result.Revision != 8 || len(result.Applied) != 6 || result.Applied[0].ID != 3 {
 		t.Fatalf("result = %+v, want the third migration first on a machine already at two", result)
 	}
 
@@ -803,8 +803,8 @@ func TestMigrationSevenProtectsEveryProjectPublishedBeforeTheGate(t *testing.T) 
 		t.Fatalf("Run: %v", err)
 	}
 
-	if len(result.Applied) != 1 || result.Applied[0].ID != 7 {
-		t.Fatalf("result = %+v, want the seventh migration alone", result)
+	if len(result.Applied) != 2 || result.Applied[0].ID != 7 {
+		t.Fatalf("result = %+v, want the seventh migration first", result)
 	}
 
 	var document struct {
@@ -859,8 +859,8 @@ func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 7 || len(result.Applied) != 4 || result.Applied[0].ID != 4 {
-		t.Fatalf("result = %+v, want the fourth to seventh migrations on a machine already at three", result)
+	if result.Revision != 8 || len(result.Applied) != 5 || result.Applied[0].ID != 4 {
+		t.Fatalf("result = %+v, want the fourth to eighth migrations on a machine already at three", result)
 	}
 
 	var document struct {
@@ -905,8 +905,8 @@ func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 7 || len(result.Applied) != 3 || result.Applied[0].ID != 5 {
-		t.Fatalf("result = %+v, want the fifth to seventh migrations on a machine already at four", result)
+	if result.Revision != 8 || len(result.Applied) != 4 || result.Applied[0].ID != 5 {
+		t.Fatalf("result = %+v, want the fifth to eighth migrations on a machine already at four", result)
 	}
 
 	projects := migratedProjects(t, machine)

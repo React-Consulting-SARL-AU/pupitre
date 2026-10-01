@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from "bun:test"
-import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import type { StripeConfig } from "./config"
 import { createStripeBilling } from "./stripe"
 
@@ -38,17 +37,13 @@ function stubStripe(payload: unknown): StripeCall[] {
   return calls
 }
 
-function checkout(
-  interval: "month" | "year",
-  trialDays: number | null = TRIAL_DAYS
-) {
+function checkout(interval: "month" | "year") {
   return createStripeBilling(CONFIG).createCheckoutSession({
     organizationId: "org_1",
     customerId: null,
     customerEmail: "owner@example.com",
     quantity: 2,
     interval,
-    trialDays,
     successUrl: "https://app.pupitre.studio/dashboard/billing?checkout=done",
     cancelUrl:
       "https://app.pupitre.studio/dashboard/billing?checkout=cancelled",
@@ -60,45 +55,13 @@ afterEach(() => {
 })
 
 describe("createCheckoutSession", () => {
-  it("laisse Stripe tenir l'essai, et résilier quand il finit sans carte", async () => {
-    const calls = stubStripe({
-      id: "cs_test_trial",
-      url: "https://checkout.test/trial",
-    })
-
-    await checkout("month")
-
-    const { body } = calls[0]
-
-    expect(body.get("subscription_data[trial_period_days]")).toBe(
-      String(TRIAL_DAYS)
-    )
-    expect(body.get("payment_method_collection")).toBe("if_required")
-    expect(
-      body.get(
-        "subscription_data[trial_settings][end_behavior][missing_payment_method]"
-      )
-    ).toBe("cancel")
-  })
-
-  it("envoie les jours d'essai du lien d'affiliation", async () => {
-    const calls = stubStripe({
-      id: "cs_test_referred",
-      url: "https://checkout.test/referred",
-    })
-
-    await checkout("month", 90)
-
-    expect(calls[0].body.get("subscription_data[trial_period_days]")).toBe("90")
-  })
-
-  it("exige une carte et n'offre aucun essai après le premier checkout", async () => {
+  it("exige une carte et n'offre aucun essai", async () => {
     const calls = stubStripe({
       id: "cs_test_second",
       url: "https://checkout.test/second",
     })
 
-    await checkout("month", null)
+    await checkout("month")
 
     const { body } = calls[0]
 

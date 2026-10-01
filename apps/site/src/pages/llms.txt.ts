@@ -1,4 +1,5 @@
 import { getCollection } from "astro:content"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { CATALOG_ENTRIES } from "../content/site/catalog"
 import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import { LLMS } from "../content/site/llms"
@@ -48,6 +49,7 @@ export async function GET() {
     )
 
   const link = (path: string) => canonicalUrl(path)
+  const servers = { count: FREE_SERVERS }
 
   const sections = [
     block(LLMS.sections.start, [
@@ -86,7 +88,7 @@ export async function GET() {
       LLMS.product.map((entry) => ({
         title: entry.title,
         href: link(localizePath(entry.path, "en")),
-        note: entry.note,
+        note: fill(entry.note, servers),
       }))
     ),
     block(
@@ -121,7 +123,7 @@ export async function GET() {
     "",
     `> ${LLMS.summary}`,
     "",
-    LLMS.note,
+    fill(LLMS.note, servers),
     "",
     ...sections,
   ].join("\n")

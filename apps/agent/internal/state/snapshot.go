@@ -16,11 +16,11 @@ func (r *Reader) Snapshot() contract.Snapshot {
 	collected := r.collect()
 
 	return contract.Snapshot{
-		Machine:     Machine(r.ctx(), r.options.AgentVersion),
-		Services:    r.services(false),
-		Projects:    r.list(collected, table),
-		Sessions:    r.sessions(table, collected.Panes()),
-		Entitlement: r.entitlement(),
+		Machine:  Machine(r.ctx(), r.options.AgentVersion),
+		Services: r.services(false),
+		Projects: r.list(collected, table),
+		Sessions: r.sessions(table, collected.Panes()),
+		License:  r.license(),
 	}
 }
 

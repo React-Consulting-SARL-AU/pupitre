@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { SEATED_STATUSES } from "../../lib/billing/seats"
 import { authorizedKeysForServer } from "../../lib/servers/authorized-keys"
 import { enrollServer } from "../../lib/servers/enrollment"
@@ -9,7 +10,10 @@ import {
 import { CHART_MAX_POINTS } from "../../lib/servers/metrics"
 import { SshAddressInvalidError } from "../../lib/servers/ssh-address"
 import { bootApiTestServer, resetDb } from "../../testing"
-import { createOrganizationWithMembers } from "../../testing/factories"
+import {
+  createOrganizationWithMembers,
+  createServer,
+} from "../../testing/factories"
 import { ED25519_KEY, SECOND_ED25519_KEY } from "../../testing/keys"
 import { HOST_PUBLIC_KEY, PROBE_REPORT } from "../../testing/probe"
 import { apiRequest } from "../../testing/request"
@@ -221,86 +225,81 @@ describe("POST /servers/enroll", () => {
     expect(response.json.error.code).toBe("not_found")
   })
 
-  it("refuses to enroll without a subscription and points at billing", async () => {
+  it("enrolls without any licence within the free servers", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: null,
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
-    const me = await apiRequest<{ entitlement: string }>("/me", {
+    const me = await apiRequest<{ license: string }>("/me", {
       session: owner,
     })
     const response = await enroll(owner, device.json.data.id, "vps.test")
 
-    expect(me.json.entitlement).toBe("suspended")
-    expect(response.status).toBe(403)
-    expect(response.json.error.code).toBe("entitlement_required")
-    expect(response.json.error.fix).toContain("/dashboard/billing")
+    expect(me.json.license).toBe("valid")
+    expect(response.status).toBe(201)
   })
 
-  it("refuses to enroll on a suspended subscription", async () => {
-    const { members } = await createOrganizationWithMembers({
+  it("refuses to enroll past the free servers without a live licence, towards support", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: { status: "canceled" },
     })
+
+    for (let index = 0; index <= FREE_SERVERS; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
     const response = await enroll(owner, device.json.data.id, "vps.test")
 
     expect(response.status).toBe(403)
-    expect(response.json.error.code).toBe("server_suspended")
-    expect(response.json.error.fix).toContain("/dashboard/billing")
+    expect(response.json.error.code).toBe("license_required")
+    expect(response.json.error.fix).toContain("support@pupitre.studio")
   })
 
-  it("refuses the third server of a two-seat trial with a fix", async () => {
-    const { members } = await createOrganizationWithMembers({
+  it("refuses the server past the free ones and the licence seats, with a fix", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
       subscription: { quantity: 2 },
     })
-    const [owner] = members
-    const device = await addDevice(owner, "MacBook", ED25519_KEY)
-    const deviceId = device.json.data.id
 
-    expect((await enroll(owner, deviceId, "vps-1.test")).status).toBe(201)
-    expect((await enroll(owner, deviceId, "vps-2.test")).status).toBe(201)
+    for (let index = 0; index < FREE_SERVERS + 1; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
 
-    const third = await enroll(owner, deviceId, "vps-3.test")
-
-    expect(third.status).toBe(403)
-    expect(third.json.error.code).toBe("seat_quota_reached")
-    expect(third.json.error.fix).toBeTruthy()
-  })
-
-  it("follows the subscription quantity when the organization has one", async () => {
-    const { members } = await createOrganizationWithMembers({
-      roles: ["owner"],
-      subscription: { quantity: 1, status: "active" },
-    })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
     const deviceId = device.json.data.id
 
     expect((await enroll(owner, deviceId, "vps-1.test")).status).toBe(201)
 
-    const second = await enroll(owner, deviceId, "vps-2.test")
+    const refused = await enroll(owner, deviceId, "vps-2.test")
 
-    expect(second.status).toBe(403)
-    expect(second.json.error.code).toBe("seat_quota_reached")
+    expect(refused.status).toBe(403)
+    expect(refused.json.error.code).toBe("seat_quota_reached")
+    expect(refused.json.error.fix).toContain("support@pupitre.studio")
   })
 
   it("frees the seat of a revoked server", async () => {
     const { prisma } = await bootApiTestServer()
-    const { members } = await createOrganizationWithMembers({
+    const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
-      subscription: { quantity: 2 },
     })
+
+    for (let index = 0; index < FREE_SERVERS - 1; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
     const deviceId = device.json.data.id
     const first = await enroll(owner, deviceId, "vps-1.test")
 
-    await enroll(owner, deviceId, "vps-2.test")
+    expect((await enroll(owner, deviceId, "vps-2.test")).status).toBe(403)
+
     await prisma.server.update({
       where: { id: first.json.server_id },
       data: { status: "revoked" },
@@ -429,10 +428,14 @@ describe("POST /servers/enroll", () => {
   })
 
   it("repairs on a full quota but still refuses an unknown host", async () => {
-    const { members } = await createOrganizationWithMembers({
+    const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
-      subscription: { quantity: 1, status: "active" },
     })
+
+    for (let index = 0; index < FREE_SERVERS - 1; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
     const deviceId = device.json.data.id
@@ -607,7 +610,7 @@ describe("POST /servers/enroll", () => {
     ).toBe(0)
   })
 
-  it("keeps a repaired server in the entitlement its organization holds", async () => {
+  it("keeps a repaired server in the licence its organization holds", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -626,7 +629,7 @@ describe("POST /servers/enroll", () => {
       data: {
         status: "suspended",
         suspendedReason: "billing",
-        entitlementValidUntil: graceDeadline,
+        licenseValidUntil: graceDeadline,
       },
     })
 
@@ -635,7 +638,7 @@ describe("POST /servers/enroll", () => {
     const stored = await prisma.server.findUniqueOrThrow({
       where: { id: first.json.server_id },
     })
-    const state = await apiRequest<{ entitlement: string }>("/agent/state", {
+    const state = await apiRequest<{ license: string }>("/agent/state", {
       bearer: swapped.json.server_token,
     })
     const fresh = await enroll(owner, device.json.data.id, "second.test")
@@ -646,10 +649,10 @@ describe("POST /servers/enroll", () => {
     expect(repair.status).toBe(201)
     expect(swapped.status).toBe(200)
     expect(stored.status).toBe("suspended")
-    expect(stored.entitlementValidUntil?.toISOString()).toBe(
+    expect(stored.licenseValidUntil?.toISOString()).toBe(
       graceDeadline.toISOString()
     )
-    expect(state.json.entitlement).toBe("suspended")
+    expect(state.json.license).toBe("suspended")
     expect(freshServer.organizationId).toBe(organization.id)
 
     await exchange(fresh.json.enrollment_token)
@@ -659,7 +662,7 @@ describe("POST /servers/enroll", () => {
     })
 
     expect(enrolledInGrace.status).toBe("grace")
-    expect(enrolledInGrace.entitlementValidUntil?.getTime()).toBeGreaterThan(
+    expect(enrolledInGrace.licenseValidUntil?.getTime()).toBeGreaterThan(
       Date.now()
     )
   })
@@ -793,7 +796,7 @@ describe("GET /servers", () => {
     })
   })
 
-  it("marks a server without heartbeat for 24 hours as stale, without touching its entitlement", async () => {
+  it("marks a server without heartbeat for 24 hours as stale, without touching its licence", async () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -832,12 +835,12 @@ describe("GET /servers", () => {
 
     expect(stored.status).toBe("active")
 
-    const state = await apiRequest<{ entitlement: string }>("/agent/state", {
+    const state = await apiRequest<{ license: string }>("/agent/state", {
       bearer: token,
     })
 
     expect(state.status).toBe(200)
-    expect(state.json.entitlement).toBe("valid")
+    expect(state.json.license).toBe("valid")
   })
 })
 

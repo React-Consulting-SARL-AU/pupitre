@@ -1,11 +1,5 @@
 import { expect, type Page, test } from "@playwright/test"
-import {
-  harnessUrl,
-  openTrial,
-  seedServer,
-  signIn,
-  stayLocal,
-} from "./harness/session"
+import { harnessUrl, seedServer, signIn, stayLocal } from "./harness/session"
 
 const EMAIL = "mobile@e2e.local"
 const SERVER_NAME = "vps-mobile"
@@ -29,7 +23,6 @@ test.describe("la console sur un téléphone", () => {
     await stayLocal(page)
     await request.post(harnessUrl("/reset"))
     await signIn(page, request, EMAIL)
-    await openTrial(request, EMAIL)
     await seedServer(request, {
       email: EMAIL,
       name: SERVER_NAME,

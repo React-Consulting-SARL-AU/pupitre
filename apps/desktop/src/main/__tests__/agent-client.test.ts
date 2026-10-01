@@ -105,8 +105,8 @@ describe("le canal", () => {
     expect(ping.ts).toBe("2026-09-04T12:00:00Z");
     expect(agent.session(SERVER)).toMatchObject({
       agent_version: "0.0.0-test",
-      protocol: 2,
-      entitlement: "dev",
+      protocol: 3,
+      license: "dev",
     });
     expect(agent.capabilities(SERVER)).toContain("snapshot");
     expect(fake.trace()[0]).toBe("id=1 cmd=hello");
@@ -394,7 +394,7 @@ describe("le canal", () => {
 
     expect(first).toBeInstanceOf(AgentCallError);
     expect(first.code).toBe("protocol_mismatch");
-    expect(first.fix).toBe("Mets à jour l'app jusqu'au protocole 3.");
+    expect(first.fix).toBe("Mets à jour l'agent jusqu'au protocole 3.");
     expect(second.code).toBe("protocol_mismatch");
     expect(fake.started()).toBe(1);
 
@@ -504,8 +504,8 @@ describe("le canal", () => {
       error: {
         code: "protocol_mismatch",
         message:
-          "protocole 2 non pris en charge : cet agent parle le protocole 3",
-        fix: "Mets à jour l'app jusqu'au protocole 3.",
+          "protocole 3 non pris en charge : cet agent parle le protocole 2",
+        fix: "Mets à jour l'agent jusqu'au protocole 3.",
       },
     });
 
@@ -912,7 +912,7 @@ describe("un canal qui refuse de s'ouvrir", () => {
 });
 
 describe("la commande serve selon le compte", () => {
-  // As dev, a bare serve cannot read the 0600 root token and answers entitlement_required to everything.
+  // As dev, a bare serve cannot read the 0600 root token and answers license_required to everything.
   it("passe par sudo pour un compte non-root", () => {
     expect(serveAs("dev")).toBe("sudo -n pupitred serve");
     expect(serveAs("deploy")).toBe("sudo -n pupitred serve");
@@ -1296,8 +1296,8 @@ const GREETING = JSON.stringify({
   ok: true,
   result: {
     agent_version: "0.0.0-test",
-    protocol: 2,
-    entitlement: "dev",
+    protocol: 3,
+    license: "dev",
     capabilities: ["hello", "ping", "snapshot", "project.logs"],
   },
 });

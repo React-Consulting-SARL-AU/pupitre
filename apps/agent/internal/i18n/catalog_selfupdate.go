@@ -54,8 +54,8 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"selfupdate.token.refused.fix": {
-		FR: "Ouvrez %s pour rétablir l'abonnement de ce serveur.",
-		EN: "Open %s to restore this server's usage right.",
+		FR: "Ouvrez %s pour rétablir la licence de ce serveur.",
+		EN: "Open %s to restore this server's licence.",
 	},
 	"selfupdate.download.failed": {
 		FR: "téléchargement impossible : %s",

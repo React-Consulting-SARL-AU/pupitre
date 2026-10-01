@@ -13,6 +13,7 @@ export const fr: Dictionary = {
   "nav.integrations": "Intégrations",
   "nav.security": "Sécurité",
   "nav.cta": "Créer un compte",
+  "nav.source": "Code source sur GitHub",
   "nav.menu": "Menu",
   "nav.menuClose": "Fermer",
 
@@ -73,7 +74,7 @@ export const fr: Dictionary = {
   "legal.label": "Légal",
   "legal.title": "Légal — Pupitre",
   "legal.description":
-    "Conditions, licence, confidentialité, cookies, abonnement, sécurité et mentions légales de Pupitre.",
+    "Conditions, licence, confidentialité, cookies, serveurs gratuits, sécurité et mentions légales de Pupitre.",
   "legal.headline": "Les règles, écrites pour être lues.",
   "legal.lead": "Rien ici ne contredit ce que l’app fait sur votre machine.",
   "legal.updated": "Mise à jour",

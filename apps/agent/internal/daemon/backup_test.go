@@ -8,7 +8,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/platform"
 )
 
@@ -65,7 +65,7 @@ func TestEveryTurnOfTheLoopGivesTheBackupsTheirTurn(t *testing.T) {
 		Sys:               b.fake,
 		Now:               func() time.Time { return b.now },
 		Platform:          platform.Client{BaseURL: b.server.URL},
-		Entitlement:       entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }}),
+		License:           license.New(license.Options{Sys: b.fake, Now: func() time.Time { return b.now }}),
 		AgentVersion:      "1.2.3",
 		StateInterval:     time.Millisecond,
 		HeartbeatInterval: time.Hour,

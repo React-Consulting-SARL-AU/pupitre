@@ -7,7 +7,7 @@ import {
   isBackupFailed,
   isBackupStale,
   isDiskHigh,
-  isEntitlementGrace,
+  isLicenseGrace,
   isUnreachable,
   latestVersionOf,
   OUTDATED_AFTER_VERSIONS,
@@ -139,9 +139,9 @@ describe("agent périmé", () => {
 
 describe("droit d'usage en tolérance", () => {
   it("suit le statut du serveur", () => {
-    expect(isEntitlementGrace(state({ status: "grace" }))).toBe(true)
-    expect(isEntitlementGrace(state({ status: "active" }))).toBe(false)
-    expect(isEntitlementGrace(state({ status: "suspended" }))).toBe(false)
+    expect(isLicenseGrace(state({ status: "grace" }))).toBe(true)
+    expect(isLicenseGrace(state({ status: "active" }))).toBe(false)
+    expect(isLicenseGrace(state({ status: "suspended" }))).toBe(false)
   })
 })
 
@@ -173,7 +173,7 @@ describe("la décision d'ensemble", () => {
       "backup_failed",
       "backup_stale",
       "disk_high",
-      "entitlement_grace",
+      "license_grace",
       "server_unreachable",
     ])
   })

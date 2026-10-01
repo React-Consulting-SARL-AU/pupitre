@@ -33,7 +33,7 @@ export interface SubscriptionInput {
 export async function subscribeOrganization({
   organizationId,
   quantity = 5,
-  status = "trialing",
+  status = "active",
   currentPeriodEnd = null,
   cancelAtPeriodEnd = false,
 }: SubscriptionInput) {

@@ -1,6 +1,6 @@
 # L'agent refuse la configuration avant toute étape : il a lu la ligne des secrets, mais n'en a rien gardé.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
 > {"id":2,"cmd":"install","params":{"modules":["db.postgres"],"config":{"db.postgres":{"version":"17"}},"secrets_stdin":true}}
 $ {"db.postgres":{"app_password":"s3cret-de-test"}}
 < {"id":2,"ok":false,"error":{"code":"invalid_config","message":"db.postgres : port 70000 hors limites","fix":"Donne un port entre 1024 et 65535.","remedy":{"code":"invalid_fields","problems":[{"module":"db.postgres","field":"port","code":"max","expected":"65535","message":"port 70000 hors limites"}]}}}

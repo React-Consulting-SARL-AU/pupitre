@@ -17,7 +17,7 @@ describe("la réparation d'un serveur restreint", () => {
           ok: true,
           result: {
             enrolled: true,
-            entitlement: "valid",
+            license: "valid",
             synced_at: "2026-09-05T10:00:00Z",
           },
         }),
@@ -28,7 +28,7 @@ describe("la réparation d'un serveur restreint", () => {
     expect(useReenroll.getState().state).toEqual({
       result: {
         enrolled: true,
-        entitlement: "valid",
+        license: "valid",
         synced_at: "2026-09-05T10:00:00Z",
       },
       serverId: SERVER,
@@ -45,7 +45,7 @@ describe("la réparation d'un serveur restreint", () => {
           release = () =>
             resolve({
               ok: true,
-              result: { enrolled: true, entitlement: "valid" },
+              result: { enrolled: true, license: "valid" },
             });
         }),
     });
@@ -69,9 +69,9 @@ describe("la réparation d'un serveur restreint", () => {
         Promise.resolve({
           ok: false,
           error: {
-            code: "entitlement_required",
-            fix: "Régularise l'abonnement dans la console : https://app.pupitre.test/dashboard",
-            message: "Le droit d'usage de cette organisation est suspendu.",
+            code: "license_required",
+            fix: "Régularise la licence dans la console : https://app.pupitre.test/dashboard",
+            message: "La licence de cette organisation est suspendue.",
           },
         }),
     });
@@ -80,8 +80,8 @@ describe("la réparation d'un serveur restreint", () => {
 
     expect(useReenroll.getState().state).toMatchObject({
       error: {
-        code: "entitlement_required",
-        fix: "Régularise l'abonnement dans la console : https://app.pupitre.test/dashboard",
+        code: "license_required",
+        fix: "Régularise la licence dans la console : https://app.pupitre.test/dashboard",
       },
       serverId: SERVER,
       status: "failed",

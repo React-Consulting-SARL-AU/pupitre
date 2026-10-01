@@ -14,8 +14,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/migrate"
 	"pupitre.studio/agent/internal/modules"
 	_ "pupitre.studio/agent/internal/modules/ai"
@@ -78,7 +78,21 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		// A dropped channel ends the session, not the command: the write fails and the work goes on.
 		signal.Ignore(syscall.SIGPIPE, syscall.SIGHUP)
 
-		if err := newServer(newEngine(), limited).Serve(stdin, stdout); err != nil {
+		engine := newEngine()
+		server := newServer(engine, limited)
+
+		// Beside the session, never before hello: a tunnel restart takes half a minute.
+		settled := make(chan struct{})
+		go func() {
+			defer close(settled)
+			// A refusal leaves the steps in the journal; the next session, or tunnel.sync, tries again.
+			_ = exposure.Settle(engine)
+		}()
+
+		err := server.Serve(stdin, stdout)
+		<-settled
+
+		if err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
@@ -168,7 +182,7 @@ func newServer(engine *modules.Engine, limited bool) *protocol.Server {
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: version,
 		Config:       migrator.State,
-		Entitlement:  newResolver(engine).State,
+		License:      newResolver(engine).State,
 		ServerID:     backups.ServerID,
 		Limited:      limited,
 	})
@@ -247,7 +261,6 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 	options := daemonOptions(engine)
 	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
 	options.Backups = newBackups(engine, options.Reader)
-	options.Upkeep = func() error { return exposure.Settle(engine) }
 
 	return daemon.New(options)
 }
@@ -255,7 +268,7 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 func daemonOptions(engine *modules.Engine) daemon.Options {
 	return daemon.Options{
 		Sys:          engine.Sys,
-		Entitlement:  newResolver(engine),
+		License:      newResolver(engine),
 		AgentVersion: version,
 		TokenPath:    tokenPath(),
 		ServerIDPath: serverIDPath(),
@@ -269,10 +282,10 @@ func daemonOptions(engine *modules.Engine) daemon.Options {
 	}
 }
 
-func newResolver(engine *modules.Engine) *entitlement.Resolver {
-	return entitlement.New(entitlement.Options{
+func newResolver(engine *modules.Engine) *license.Resolver {
+	return license.New(license.Options{
 		Sys:       engine.Sys,
-		CachePath: entitlementPath(),
+		CachePath: licensePath(),
 		TokenPath: tokenPath(),
 	})
 }
@@ -281,8 +294,8 @@ func tokenPath() string {
 	return pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath)
 }
 
-func entitlementPath() string {
-	return pathFromEnv("PUPITRE_ENTITLEMENT_PATH", entitlement.DefaultCachePath)
+func licensePath() string {
+	return pathFromEnv("PUPITRE_LICENSE_PATH", license.DefaultCachePath)
 }
 
 func upgradeOptions(engine *modules.Engine, migrator *migrate.Runner) selfupdate.Options {
@@ -314,7 +327,7 @@ func newEngine() *modules.Engine {
 		LockPath:     pathFromEnv("PUPITRE_LOCK_PATH", modules.DefaultLockPath),
 	}
 	engine.ProjectsLockPath = projectsLockPath()
-	engine.Entitlement = newResolver(engine).Current
+	engine.License = newResolver(engine).Current
 
 	return engine
 }
@@ -334,6 +347,7 @@ func migrateOptions(engine *modules.Engine) migrate.Options {
 			Lock:    engine.LockPath,
 			Keys:    keysPath(),
 			Signers: signersPath(),
+			License: licensePath(),
 		},
 		Sys: engine.Sys,
 	}

@@ -9,7 +9,7 @@ import {
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import {
   createOrganizationWithMembers,
-  subscribeOrganization,
+  createServer,
 } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { useState } from "react"
@@ -48,8 +48,6 @@ async function seedLink() {
     data: {
       name: "Salon des makers",
       code: "makers",
-      freeMonths: 2,
-      seats: 3,
       partnerName: "Ada Lovelace",
       partnerEmail: "ada@partner.test",
       notes: "Met at the fair",
@@ -64,11 +62,7 @@ async function seedReferral(linkId: string, name: string) {
     roles: ["owner"],
   })
 
-  await subscribeOrganization({
-    organizationId: organization.id,
-    status: "active",
-    quantity: 2,
-  })
+  await createServer({ organizationId: organization.id, status: "active" })
   await prisma.referral.create({
     data: { organizationId: organization.id, linkId },
   })
@@ -116,7 +110,7 @@ describe("AdminAffiliateLinkDetail", () => {
     }
   })
 
-  it("opens on the address, the terms, the partner, the notes and what the link brought", async () => {
+  it("opens on the address, the partner, the notes and what the link brought", async () => {
     const link = await seedLink()
 
     await seedReferral(link.id, "Atelier")
@@ -136,11 +130,10 @@ describe("AdminAffiliateLinkDetail", () => {
     expect(container.textContent).toContain("Ada Lovelace")
     expect(container.textContent).toContain("ada@partner.test")
     expect(container.textContent).toContain("Met at the fair")
-    expect(container.textContent).toContain("Arrived")
-    expect(container.textContent).toContain("On trial")
-    expect(container.textContent).toContain("Past due")
-    expect(container.textContent).toContain("Canceled")
+    expect(container.textContent).toContain("Sign-ups")
+    expect(container.textContent).toContain("Servers installed")
     expect(container.textContent).toContain("Clicks, total")
+    expect(container.textContent).not.toContain("Free months")
     expect(
       container.querySelector('[aria-label="Copy the link"]')
     ).not.toBeNull()
@@ -164,7 +157,7 @@ describe("AdminAffiliateLinkDetail", () => {
     await click(trigger(container, "Organisations"))
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
 
-    expect(container.textContent).toContain("Active")
+    expect(container.textContent).toContain("1 server")
   })
 
   it("holds the apply button until a setting moves, then writes the change", async () => {

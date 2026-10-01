@@ -16,7 +16,7 @@ const CONTEXT = {
   organizations: [],
   activeOrganization: null,
   role: "owner" as const,
-  entitlement: "valid",
+  license: "valid",
   platformRole: null,
   platformCanAct: false,
 }

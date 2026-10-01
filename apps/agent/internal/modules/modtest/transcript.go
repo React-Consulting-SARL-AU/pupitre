@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/golden"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -27,13 +27,13 @@ type TranscriptOptions struct {
 }
 
 type transcript struct {
-	path        string
-	entitlement contract.Entitlement
-	unenrolled  bool
-	prepare     []func(*FakeSys)
-	input       []string
-	expected    []string
-	commands    map[int64]string
+	path       string
+	license    contract.License
+	unenrolled bool
+	prepare    []func(*FakeSys)
+	input      []string
+	expected   []string
+	commands   map[int64]string
 }
 
 // Lines: "> request", "$ secret line", "< expected output", "@directive"; UPDATE_GOLDEN=1 records a diverging run.
@@ -60,7 +60,7 @@ func parseTranscript(t *testing.T, path string) transcript {
 		t.Fatal(err)
 	}
 
-	parsed := transcript{path: path, entitlement: contract.EntitlementDev, commands: map[int64]string{}}
+	parsed := transcript{path: path, license: contract.LicenseDev, commands: map[int64]string{}}
 
 	for _, line := range strings.Split(string(raw), "\n") {
 		switch {
@@ -90,8 +90,8 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 	fields := strings.Fields(rest)
 
 	switch name {
-	case "entitlement":
-		f.entitlement = contract.Entitlement(rest)
+	case "license":
+		f.license = contract.License(rest)
 	case "unenrolled":
 		f.unenrolled = true
 	case "upgrade":
@@ -177,15 +177,15 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 		Registry:     options.Registry,
 		Sys:          fake,
 		Now:          fixed,
-		Entitlement:  func() contract.Entitlement { return f.entitlement },
+		License:      func() contract.License { return f.license },
 		AgentVersion: "0.0.0-test",
 		ReportPath:   filepath.Join(dir, "report.json"),
 		LogPath:      filepath.Join(dir, "pupitre.log"),
 		InstallPath:  "/etc/pupitre/install.json",
 	}
 
-	granted := entitlement.State{Entitlement: f.entitlement, Enrolled: !f.unenrolled}
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: func() entitlement.State { return granted }, Now: fixed})
+	granted := license.State{License: f.license, Enrolled: !f.unenrolled}
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", License: func() license.State { return granted }, Now: fixed})
 	modules.RegisterCommands(server, engine)
 
 	if options.Register != nil {

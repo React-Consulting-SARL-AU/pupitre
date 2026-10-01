@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test"
 import {
   harnessUrl,
-  openTrial,
   promotePlatformMember,
   signIn,
   stayLocal,
@@ -28,7 +27,6 @@ test.describe("organisation retenue par la plateforme", () => {
   }) => {
     await stayLocal(page)
     await signIn(page, request, OWNER_EMAIL)
-    await openTrial(request, OWNER_EMAIL)
     await promotePlatformMember(request, OWNER_EMAIL, "admin")
 
     const me = (await (await page.request.get("/api/v1/me")).json()) as MeBody

@@ -33,7 +33,7 @@ let organization: DashboardOrganization
 function panel() {
   return withDashboard(<DownloadPanel />, {
     organization,
-    entitlement: "valid",
+    license: "valid",
   })
 }
 

@@ -1,12 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import {
-  LAUNCH_PRODUCT,
-  LAUNCH_SEATS,
-  TRIAL_DAYS,
-  TRIAL_SEATS,
-} from "@pupitre/shared/plans"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
+import { GRACE_PERIOD_MS } from "../../lib/billing/license"
 import { reconcileSeats } from "../../lib/billing/reconcile"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -16,9 +13,12 @@ import {
   stripeSubscriptionObject,
   useFakeBilling,
 } from "../../testing/billing"
-import { createOrganizationWithMembers } from "../../testing/factories"
+import {
+  createOrganizationWithMembers,
+  createServer,
+} from "../../testing/factories"
 import { ED25519_KEY } from "../../testing/keys"
-import { HOST_PUBLIC_KEY, PROBE_REPORT } from "../../testing/probe"
+import { PROBE_REPORT } from "../../testing/probe"
 import { apiRequest } from "../../testing/request"
 
 interface Session {
@@ -33,12 +33,8 @@ interface ErrorBody {
   error: { code: string; message: string; fix?: string }
 }
 
-interface MeBody {
-  entitlement: string
-}
-
 interface StateBody {
-  entitlement: string
+  license: string
 }
 
 interface EventsBody {
@@ -111,6 +107,23 @@ function enroll(session: Session, deviceId: string, host: string) {
   })
 }
 
+async function enrollMany(session: Session, count: number, prefix: string) {
+  const device = await addDevice(session, "poste")
+  const statuses: number[] = []
+
+  for (let index = 1; index <= count; index += 1) {
+    const enrolled = await enroll(
+      session,
+      device.json.data.id,
+      `${prefix}-${index}.example.net`
+    )
+
+    statuses.push(enrolled.status)
+  }
+
+  return { deviceId: device.json.data.id, statuses }
+}
+
 describe("facturation d'une organisation", () => {
   let billing: FakeBilling
   let organizationId: string
@@ -135,7 +148,7 @@ describe("facturation d'une organisation", () => {
     member = created.members[2].session
   })
 
-  it("ouvre le premier checkout sur l'essai, un siège quelle que soit la demande", async () => {
+  it("ouvre un checkout sans essai, à la quantité demandée", async () => {
     const response = await apiRequest<UrlBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 3, interval: "month" }, session: owner }
@@ -146,14 +159,14 @@ describe("facturation d'une organisation", () => {
     expect(billing.checkouts).toHaveLength(1)
     expect(billing.checkouts[0]).toMatchObject({
       organizationId,
-      quantity: TRIAL_SEATS,
-      trialDays: TRIAL_DAYS,
+      quantity: 3,
       interval: "month",
       customerId: null,
     })
+    expect(billing.checkouts[0]).not.toHaveProperty("trialDays")
   })
 
-  it("ouvre les checkouts suivants sans essai, à la quantité demandée", async () => {
+  it("reprend le client Stripe connu d'un abonnement arrêté", async () => {
     await paySeats(billing, organizationId, 2, "canceled")
 
     await apiRequest(`/orgs/${organizationId}/checkout`, {
@@ -163,7 +176,6 @@ describe("facturation d'une organisation", () => {
 
     expect(billing.checkouts[0]).toMatchObject({
       quantity: 3,
-      trialDays: null,
       customerId: "cus_seat",
     })
   })
@@ -181,28 +193,6 @@ describe("facturation d'une organisation", () => {
     expect(response.json.error.fix).toContain(`/orgs/${organizationId}/seats`)
     expect(response.json.error.fix).toContain("portal")
     expect(billing.checkouts).toHaveLength(0)
-  })
-
-  it("ouvre un checkout payé à côté d'un siège gardé du lancement", async () => {
-    const { prisma } = await bootApiTestServer()
-
-    await prisma.subscription.create({
-      data: {
-        organizationId,
-        stripeSubscriptionId: `launch_${organizationId}`,
-        product: LAUNCH_PRODUCT,
-        quantity: LAUNCH_SEATS,
-        status: "active",
-      },
-    })
-
-    const response = await apiRequest<UrlBody>(
-      `/orgs/${organizationId}/checkout`,
-      { body: { quantity: 2, interval: "month" }, session: owner }
-    )
-
-    expect(response.status).toBe(200)
-    expect(billing.checkouts).toHaveLength(1)
   })
 
   it("ouvre un checkout annuel", async () => {
@@ -313,30 +303,6 @@ describe("facturation d'une organisation", () => {
     expect(billing.portals[0].customerId).toBe("cus_seat")
   })
 
-  it("ouvre le portail d'un abonnement payé à côté du siège gardé du lancement", async () => {
-    await paySeats(billing, organizationId, 2)
-
-    const { prisma } = await bootApiTestServer()
-
-    await prisma.subscription.create({
-      data: {
-        organizationId,
-        stripeSubscriptionId: `launch_${organizationId}`,
-        product: LAUNCH_PRODUCT,
-        quantity: LAUNCH_SEATS,
-        status: "active",
-      },
-    })
-
-    const response = await apiRequest<UrlBody>(
-      `/orgs/${organizationId}/portal`,
-      { method: "POST", session: owner }
-    )
-
-    expect(response.status).toBe(200)
-    expect(billing.portals[0]?.customerId).toBe("cus_seat")
-  })
-
   it("montre le miroir de l'abonnement", async () => {
     const before = await apiRequest<SubscriptionBody>(
       `/orgs/${organizationId}/subscription`,
@@ -361,120 +327,25 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("ouvre deux sièges payés et refuse le troisième vers le portail", async () => {
+  it("ajoute les sièges payés aux serveurs gratuits, et refuse le suivant", async () => {
     await paySeats(billing, organizationId, 2)
 
-    const device = await addDevice(owner, "poste")
-    const deviceId = device.json.data.id
-    const first = await enroll(owner, deviceId, "vps-1.example.net")
-    const second = await enroll(owner, deviceId, "vps-2.example.net")
-    const third = await enroll(owner, deviceId, "vps-3.example.net")
+    const { statuses } = await enrollMany(owner, FREE_SERVERS + 3, "vps")
 
-    expect(first.status).toBe(201)
-    expect(second.status).toBe(201)
-    expect(third.status).toBe(403)
-    expect(third.json.error.code).toBe("seat_quota_reached")
-    expect(third.json.error.message).toContain("2")
-    expect(third.json.error.fix).toContain("seats")
-    expect(third.json.error.fix).toContain(organizationId)
+    expect(statuses.at(-1)).toBe(403)
+    expect(statuses.slice(0, -1).every((status) => status === 201)).toBe(true)
   })
 
-  it("ajoute le siège gardé du lancement aux sièges payés, quel que soit l'abonnement touché en dernier", async () => {
-    await paySeats(billing, organizationId, 2)
+  it("passe en tolérance au-delà des serveurs gratuits quand l'abonnement s'arrête, puis suspend, puis rétablit une fois revenu aux serveurs gratuits", async () => {
+    await paySeats(billing, organizationId, 1)
 
-    const { prisma } = await bootApiTestServer()
+    const servers: Awaited<ReturnType<typeof createServer>>[] = []
 
-    await prisma.subscription.create({
-      data: {
-        organizationId,
-        stripeSubscriptionId: `launch_${organizationId}`,
-        product: LAUNCH_PRODUCT,
-        quantity: LAUNCH_SEATS,
-        status: "active",
-      },
-    })
-
-    const device = await addDevice(owner, "poste")
-    const deviceId = device.json.data.id
-    const statuses: number[] = []
-
-    for (const host of ["vps-1", "vps-2", "vps-3", "vps-4"]) {
-      statuses.push(
-        (await enroll(owner, deviceId, `${host}.example.net`)).status
-      )
+    for (let index = 0; index <= FREE_SERVERS; index += 1) {
+      servers.push(await createServer({ organizationId }))
     }
 
-    expect(statuses).toEqual([201, 201, 201, 403])
-
-    const resized = await apiRequest<ErrorBody>(
-      `/orgs/${organizationId}/seats`,
-      { body: { quantity: 2 }, session: owner }
-    )
-
-    expect(resized.status).toBe(200)
-  })
-
-  it("sans aucun abonnement, suspend le droit d'usage et refuse l'enrôlement", async () => {
-    const me = await apiRequest<MeBody>("/me", { session: owner })
-
-    expect(me.json.entitlement).toBe("suspended")
-
-    const device = await addDevice(owner, "poste")
-    const refused = await enroll(
-      owner,
-      device.json.data.id,
-      "dev-1.example.net"
-    )
-
-    expect(refused.status).toBe(403)
-    expect(refused.json.error.code).toBe("entitlement_required")
-    expect(refused.json.error.fix).toContain("/dashboard/billing")
-  })
-
-  it("enrôle jusqu'à la quantité de l'essai, puis refuse la suivante", async () => {
-    await paySeats(billing, organizationId, 2, "trialing")
-
-    const me = await apiRequest<MeBody>("/me", { session: owner })
-
-    expect(me.json.entitlement).toBe("valid")
-
-    const device = await addDevice(owner, "poste")
-    const deviceId = device.json.data.id
-
-    expect((await enroll(owner, deviceId, "trial-1.example.net")).status).toBe(
-      201
-    )
-    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
-      201
-    )
-
-    const refused = await enroll(owner, deviceId, "trial-3.example.net")
-
-    expect(refused.status).toBe(403)
-    expect(refused.json.error.code).toBe("seat_quota_reached")
-    expect(refused.json.error.message).toContain("2")
-  })
-
-  it("coupe l'accès quand l'essai se termine sans carte", async () => {
-    await paySeats(billing, organizationId, 1, "trialing")
-
-    const device = await addDevice(owner, "poste")
-    const enrolled = await enroll(owner, device.json.data.id, "vps.example.net")
-
-    expect(enrolled.status).toBe(201)
-
-    const exchanged = await apiRequest<{ server_token: string }>(
-      "/agent/exchange",
-      {
-        body: {
-          enrollment_token: enrolled.json.enrollment_token,
-          host_public_key: HOST_PUBLIC_KEY,
-          agent_version: "1.4.0",
-          arch: "amd64",
-        },
-      }
-    )
-    const trialEnd = new Date(Date.now() - 60_000)
+    const endedAt = new Date(Date.now() - 60_000)
 
     billing.put(
       remoteSubscription({
@@ -483,7 +354,7 @@ describe("facturation d'une organisation", () => {
         organizationId,
         quantity: 1,
         status: "canceled",
-        currentPeriodEnd: trialEnd,
+        currentPeriodEnd: endedAt,
       })
     )
 
@@ -496,25 +367,25 @@ describe("facturation d'une organisation", () => {
           organizationId,
           quantity: 1,
           status: "canceled",
-          currentPeriodEnd: trialEnd,
+          currentPeriodEnd: endedAt,
         })
       )
     )
 
-    const inGrace = await apiRequest<StateBody>("/agent/state", {
-      bearer: exchanged.json.server_token,
-    })
+    const bearer = servers[0]?.token ?? ""
+    const inGrace = await apiRequest<StateBody>("/agent/state", { bearer })
 
-    expect(inGrace.json.entitlement).toBe("grace")
+    expect(inGrace.json.license).toBe("grace")
 
-    expect(await suspendExpiredGrace(new Date())).toHaveLength(1)
+    const afterGrace = new Date(Date.now() + GRACE_PERIOD_MS + 60_000)
 
-    const suspended = await apiRequest<StateBody>("/agent/state", {
-      bearer: exchanged.json.server_token,
-    })
+    expect(await suspendExpiredGrace(afterGrace)).toHaveLength(FREE_SERVERS + 1)
 
-    expect(suspended.json.entitlement).toBe("suspended")
+    const suspended = await apiRequest<StateBody>("/agent/state", { bearer })
 
+    expect(suspended.json.license).toBe("suspended")
+
+    const device = await addDevice(owner, "poste")
     const refused = await enroll(
       owner,
       device.json.data.id,
@@ -522,16 +393,24 @@ describe("facturation d'une organisation", () => {
     )
 
     expect(refused.status).toBe(403)
-    expect(refused.json.error.code).toBe("server_suspended")
-    expect(refused.json.error.fix).toContain("/dashboard/billing")
+    expect(refused.json.error.code).toBe("license_required")
+    expect(refused.json.error.fix).toContain(LEGAL_CONTACTS.support)
+
+    const removed = await apiRequest(`/servers/${servers.at(-1)?.server.id}`, {
+      method: "DELETE",
+      session: owner,
+    })
+
+    expect(removed.status).toBe(204)
+
+    const restored = await apiRequest<StateBody>("/agent/state", { bearer })
+
+    expect(restored.json.license).toBe("valid")
   })
 
-  it("compare les sièges payés et les serveurs actifs", async () => {
+  it("compare les sièges payés aux serveurs au-delà des gratuits", async () => {
     await paySeats(billing, organizationId, 4)
-
-    const device = await addDevice(owner, "poste")
-
-    await enroll(owner, device.json.data.id, "vps-1.example.net")
+    await enrollMany(owner, FREE_SERVERS + 1, "vps")
 
     const report = await reconcileSeats()
 
@@ -548,10 +427,7 @@ describe("facturation d'une organisation", () => {
 
   it("aligne la quantité Stripe quand on le demande", async () => {
     await paySeats(billing, organizationId, 4)
-
-    const device = await addDevice(owner, "poste")
-
-    await enroll(owner, device.json.data.id, "vps-1.example.net")
+    await enrollMany(owner, FREE_SERVERS + 1, "vps")
 
     const report = await reconcileSeats({ apply: true })
 
@@ -568,33 +444,41 @@ describe("facturation d'une organisation", () => {
     expect(after.json.data?.quantity).toBe(1)
   })
 
-  it("verrouille les sièges pendant l'essai", async () => {
-    await paySeats(billing, organizationId, 1, "trialing")
+  it("verrouille les sièges d'une licence accordée par l'équipe", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: "granted_equipe",
+        product: GRANTED_PRODUCT,
+        quantity: 2,
+        status: "active",
+      },
+    })
 
     const refused = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/seats`,
-      { body: { quantity: 2 }, session: owner, locale: "fr" }
+      { body: { quantity: 3 }, session: owner, locale: "fr" }
     )
 
     expect(refused.status).toBe(409)
     expect(refused.json.error.code).toBe("conflict")
-    expect(refused.json.error.message).toContain("essai")
-    expect(refused.json.error.fix).toContain("/dashboard/billing")
+    expect(refused.json.error.message).toContain("licence")
+    expect(refused.json.error.fix).toContain(LEGAL_CONTACTS.support)
     expect(billing.quantities).toHaveLength(0)
   })
 
   it("ajoute un siège une fois l'abonnement payé, et l'enrôlement suivant passe", async () => {
     await paySeats(billing, organizationId, 1)
 
-    const device = await addDevice(owner, "poste")
-    const deviceId = device.json.data.id
+    const { deviceId, statuses } = await enrollMany(
+      owner,
+      FREE_SERVERS + 2,
+      "paid"
+    )
 
-    expect((await enroll(owner, deviceId, "paid-1.example.net")).status).toBe(
-      201
-    )
-    expect((await enroll(owner, deviceId, "paid-2.example.net")).status).toBe(
-      403
-    )
+    expect(statuses.at(-1)).toBe(403)
 
     const resized = await apiRequest<SubscriptionBody>(
       `/orgs/${organizationId}/seats`,
@@ -606,9 +490,10 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toEqual([
       { subscriptionId: "sub_seat", quantity: 2 },
     ])
-    expect((await enroll(owner, deviceId, "paid-2.example.net")).status).toBe(
-      201
-    )
+    expect(
+      (await enroll(owner, deviceId, `paid-${FREE_SERVERS + 2}.example.net`))
+        .status
+    ).toBe(201)
   })
 
   it("garde la trace du changement dans le journal", async () => {
@@ -630,13 +515,9 @@ describe("facturation d'une organisation", () => {
     })
   })
 
-  it("descend jusqu'aux serveurs en place, jamais en dessous", async () => {
+  it("descend jusqu'aux serveurs en place au-delà des gratuits, jamais en dessous", async () => {
     await paySeats(billing, organizationId, 4)
-
-    const device = await addDevice(owner, "poste")
-
-    await enroll(owner, device.json.data.id, "vps-1.example.net")
-    await enroll(owner, device.json.data.id, "vps-2.example.net")
+    await enrollMany(owner, FREE_SERVERS + 2, "vps")
 
     const lowered = await apiRequest<SubscriptionBody>(
       `/orgs/${organizationId}/seats`,
@@ -658,7 +539,7 @@ describe("facturation d'une organisation", () => {
     expect(billing.quantities).toHaveLength(1)
   })
 
-  it("refuse de changer les sièges sans abonnement en cours", async () => {
+  it("refuse de changer les sièges sans licence en cours, vers le support", async () => {
     const response = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/seats`,
       { body: { quantity: 2 }, session: owner }
@@ -666,7 +547,7 @@ describe("facturation d'une organisation", () => {
 
     expect(response.status).toBe(409)
     expect(response.json.error.code).toBe("conflict")
-    expect(response.json.error.fix).toContain("/dashboard/billing")
+    expect(response.json.error.fix).toContain(LEGAL_CONTACTS.support)
   })
 
   it("réserve le changement de sièges au propriétaire", async () => {

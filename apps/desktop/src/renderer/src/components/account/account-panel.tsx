@@ -1,13 +1,14 @@
 import { Section } from "@renderer/components/ui/section";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { useContactSupport } from "@renderer/lib/use-contact-support";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import { useEffect } from "react";
 import { AccountDevices } from "./account-devices";
 import { AccountIdentityCard } from "./account-identity-card";
 import { AccountKeyApprovals } from "./account-key-approvals";
+import { AccountLicenseCard } from "./account-license-card";
 import { AccountSignInCard } from "./account-sign-in-card";
-import { AccountSubscriptionCard } from "./account-subscription-card";
 import { AccountUsageNotice } from "./account-usage-notice";
 
 export function AccountPanel() {
@@ -20,6 +21,7 @@ export function AccountPanel() {
   const cancelSignIn = useAccount((state) => state.cancelSignIn);
   const refresh = useAccount((state) => state.refresh);
   const disconnect = useAccount((state) => state.disconnect);
+  const contactSupport = useContactSupport();
 
   useEffect(() => {
     read();
@@ -39,11 +41,11 @@ export function AccountPanel() {
           onOpenConsole={(url) => window.pupitre.openUrl(url)}
           usage={account.usage}
         />
-        {account.identity?.subscription ? (
-          <AccountSubscriptionCard
-            consoleUrl={account.consoleUrl}
-            onOpenConsole={(url) => window.pupitre.openUrl(url)}
-            subscription={account.identity.subscription}
+        {account.identity?.servers ? (
+          <AccountLicenseCard
+            grant={account.identity.licenseGrant}
+            onContactSupport={contactSupport}
+            servers={account.identity.servers}
           />
         ) : null}
       </Section>

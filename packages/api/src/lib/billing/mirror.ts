@@ -1,7 +1,11 @@
 import { getPrisma } from "../api/prisma"
 import type { AuditAction } from "../audit/audit"
-import { graceDeadline, subscriptionStateOf } from "./entitlement"
-import { graceOrganizationServers, restoreOrganizationServers } from "./grace"
+import {
+  graceOrganizationServers,
+  restoreOrganizationServers,
+  settleUnlicensedOrganization,
+} from "./grace"
+import { graceDeadline, subscriptionStateOf } from "./license"
 import type { RemoteSubscription } from "./provider"
 import { liveSubscriptionOf } from "./subscription"
 
@@ -32,17 +36,14 @@ export async function mirrorSubscription(
 }
 
 /** Reads the mirror back: the event that arrives last is not always the one that happened last. */
-export async function applyOrganizationEntitlement(
+export async function applyOrganizationLicense(
   organizationId: string,
   now: Date
 ): Promise<void> {
   const subscription = await liveSubscriptionOf(organizationId)
-
-  if (!subscription) {
-    return
-  }
-
-  const state = subscriptionStateOf(subscription.status)
+  const state = subscription
+    ? subscriptionStateOf(subscription.status)
+    : "suspended"
 
   if (state === "valid") {
     await restoreOrganizationServers(organizationId, now)
@@ -56,10 +57,5 @@ export async function applyOrganizationEntitlement(
     return
   }
 
-  if (subscription.status === "canceled") {
-    await graceOrganizationServers(
-      organizationId,
-      subscription.currentPeriodEnd ?? graceDeadline(now)
-    )
-  }
+  await settleUnlicensedOrganization(organizationId, now)
 }

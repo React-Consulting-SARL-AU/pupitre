@@ -6,14 +6,14 @@ La plateforme : console, API et authentification. Monorepo → [`../../CLAUDE.md
 
 ## Stack imposée
 
-TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict (`tsgo --noEmit`) · Elysia sur `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Cloudflare D1 + Prisma 7 (`@pupitre/db`) · R2 pour les binaires · Cloudflare Email · Workflows pour les tâches longues · Stripe Managed Payments par Checkout et Payment Links uniquement.
+TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict (`tsgo --noEmit`) · Elysia sur `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Cloudflare D1 + Prisma 7 (`@pupitre/db`) · R2 pour les binaires · Cloudflare Email · Workflows pour les tâches longues · Stripe Managed Payments par Checkout et Payment Links uniquement, en sommeil tant que `BILLING_MODE=off`.
 
 **Ne pas dévier :**
 - UI : Tailwind 4 sur `@pupitre/design` + Base UI + shadcn/ui. Prop `render`, jamais `asChild`. Jamais Radix.
 - Forms : React Hook Form + Zod via `@/hooks/use-form`.
 - State serveur : TanStack Query natif. State client : React.
 - Icônes : Lucide uniquement.
-- Paiement : Stripe Checkout et le portail client, rien d'autre. La quantité de sièges est la seule chose que la console change elle-même, par `POST /orgs/:id/seats` ; le portail ne la touche pas.
+- Licence : Pupitre est gratuit jusqu'à `FREE_SERVERS` serveurs par organisation ; au-delà, une licence (`Subscription` vivante, produit `granted` ou Stripe) ajoute ses places. La console dit « licence », jamais « abonnement », « offre » ou « essai ». Aujourd'hui seule l'admin de la plateforme accorde une licence ; le code Stripe — Checkout, portail, `POST /orgs/:id/seats` — reste en place mais ne sert qu'en `BILLING_MODE=stripe`, et rien d'autre ne paierait.
 
 **Banned** : `@radix-ui/*`, `axios`, `react-query`, `@tanstack/react-table`, `express`, `@polar-sh/*`, Stripe Elements, toute couleur en dur.
 
@@ -33,7 +33,7 @@ packages/auth/   createAuth, plugins, clients web et desktop
 
 - **La console n'a pas de logique métier.** Elle appelle l'API comme l'app desktop le fait. Une règle métier vit dans `packages/api/src/lib/`, jamais dans une route TanStack ni un composant.
 - **Multi-tenancy** : `const { user, activeOrganization, role } = useDashboardContext()`. Permissions via `usePermission(slug)`, slugs de `@pupitre/shared/permissions`. Gardes API : `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`.
-- **Les webhooks sont la seule entrée de la facturation Stripe.** La console ne crée rien à la fin d'un checkout ; elle attend l'événement Stripe. Idempotence par `event.id`. En `BILLING_MODE=launch`, il n'y a pas de Stripe : `POST /orgs/:id/checkout` accorde lui-même l'abonnement de lancement (`packages/api/src/lib/billing/launch.ts`), et c'est la seule exception.
+- **Les webhooks sont la seule entrée de la facturation Stripe.** La console ne crée rien à la fin d'un checkout ; elle attend l'événement Stripe. Idempotence par `event.id`. En `BILLING_MODE=off` — la production —, rien n'appelle Stripe : checkout et portail sont refusés, et une licence au-delà des serveurs gratuits ne naît que d'un octroi admin (`granted`).
 - **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit de projet, de secret ou de fichier client. Une PR qui ajoute un tel champ est refusée.
 - **Routes admin** : sous `/admin/**` et `{ detail: { hide: true } }` côté Elysia.
 - **Fichiers** `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `ui/`, pas de barrel files. Types inférés depuis Prisma et Eden, jamais redéclarés. Zod dans `src/lib/schemas/`.

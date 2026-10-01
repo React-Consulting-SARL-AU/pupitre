@@ -53,7 +53,7 @@ export interface ServerGrant {
   opened: boolean;
 }
 
-/** A suspended server is not gone: a subscription comes back, and the entry has to survive the wait. */
+/** A suspended server is not gone: a licence comes back, and the entry has to survive the wait. */
 export function grantGone(grant: ServerGrant): boolean {
   return !grant.listed || grant.status === "revoked";
 }

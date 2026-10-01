@@ -6,6 +6,7 @@ import { type AlertView, activeAlertsFor } from "../alerts/alerts"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
 import { readBackupBeat } from "../backups/beat"
+import { applyOrganizationLicense } from "../billing/mirror"
 import { metricsForServer } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
 import { keyReadyByServer } from "./authorized-keys"
@@ -44,7 +45,7 @@ export interface ServerView {
   assigned_user_id: string | null
   pending_assignment_email: string | null
   last_heartbeat_at: Date | null
-  entitlement_valid_until: Date | null
+  license_valid_until: Date | null
   decommission_at: Date | null
   usage: ServerUsage | null
   backup: BackupBeat | null
@@ -95,7 +96,7 @@ export function toServerView(
     assigned_user_id: server.assignedUserId,
     pending_assignment_email: server.pendingAssignmentEmail,
     last_heartbeat_at: server.lastHeartbeatAt,
-    entitlement_valid_until: server.entitlementValidUntil,
+    license_valid_until: server.licenseValidUntil,
     decommission_at: server.decommissionAt,
     usage: readUsage(server.lastUsage),
     backup: readBackupBeat(server.backup),
@@ -273,6 +274,9 @@ export async function deleteServer(
       decommissionAt,
     },
   })
+
+  // A freed seat may bring the organization back within its free servers.
+  await applyOrganizationLicense(server.organizationId, new Date())
 
   await recordEvent({
     action: "server.deleted",

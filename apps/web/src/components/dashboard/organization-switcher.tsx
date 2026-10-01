@@ -48,7 +48,7 @@ export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
       predicate: (query) => isOrganizationScoped(query.queryKey),
     })
     await queryClient.invalidateQueries({ queryKey: queryKeys.me })
-    await navigate({ to: "/dashboard/servers" })
+    await navigate({ to: "/dashboard" })
     setSwitching(false)
   }
 

@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { BillingPanel } from "@/components/dashboard/billing-panel"
+import { LicensePanel } from "@/components/dashboard/license-panel"
 import { PageHeader } from "@/components/ui/page-header"
 import { useTranslations } from "@/hooks/use-locale"
 import { type Me, queryKeys } from "@/lib/api/queries"
@@ -7,7 +7,7 @@ import { isPlatformOrganization } from "@/lib/domain/admin"
 import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/billing")({
-  // The platform organisation is never billed.
+  // The platform organisation needs no licence.
   beforeLoad: ({ context }) => {
     const me = context.queryClient.getQueryData<Me>(queryKeys.me)
 
@@ -20,17 +20,17 @@ export const Route = createFileRoute("/dashboard/billing")({
       { title: documentTitle("/dashboard/billing", match.context.locale) },
     ],
   }),
-  component: BillingPage,
+  component: LicensePage,
 })
 
-function BillingPage() {
+function LicensePage() {
   const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/billing")
 
   return (
     <>
       <PageHeader parents={parents} title={t(title)} />
-      <BillingPanel />
+      <LicensePanel />
     </>
   )
 }

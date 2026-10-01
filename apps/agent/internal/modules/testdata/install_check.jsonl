@@ -1,8 +1,8 @@
 # Ce que l'app demande en quittant l'écran de configuration : la même requête, pesée et non jouée.
 # Rien n'est touché. Un secret n'y est jamais jugé — l'app tient son coffre et l'écrira au moment de l'installation —
 # mais install, lui, le juge, parce que la ligne secrète est là.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install.check","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":"nope"}}}}
 < {"id":2,"ok":true,"result":{"problems":[{"module":"tool.demo","field":"port","code":"type","expected":"number","message":"a number is expected"}],"warnings":[]}}
 > {"id":3,"cmd":"install.check","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":8080}}}}

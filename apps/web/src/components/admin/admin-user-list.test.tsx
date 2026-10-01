@@ -69,7 +69,7 @@ describe("AdminUserList", () => {
     expect(container.textContent).toContain("ops@test.local")
     expect(container.textContent).toContain("1–2 of 2")
     expect(container.textContent).toContain("platform_admin")
-    expect(container.textContent).toContain("no subscription")
+    expect(container.textContent).toContain("free")
     expect(container.textContent).toContain("1 server")
     expect(container.textContent).toContain("0 servers")
     expect(container.querySelectorAll("[data-testid=status-dot]")).toHaveLength(

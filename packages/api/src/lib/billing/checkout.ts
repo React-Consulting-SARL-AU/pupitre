@@ -1,15 +1,8 @@
-import {
-  DAYS_PER_FREE_MONTH,
-  isPlatformProduct,
-  TRIAL_DAYS,
-  TRIAL_SEATS,
-} from "@pupitre/shared/plans"
-import { recordReferral, referralLinkOf } from "../affiliates/affiliates"
-import { getPrisma } from "../api/prisma"
+import { isPlatformProduct } from "@pupitre/shared/plans"
+import { recordReferral } from "../affiliates/affiliates"
 import { appUrlFromEnv } from "./config"
-import { grantLaunchSubscription, isLaunchMode } from "./launch"
 import type { BillingIntervalName } from "./provider"
-import { getBillingProvider } from "./runtime"
+import { assertBillingOn, getBillingProvider } from "./runtime"
 import {
   billedSubscriptionOf,
   liveSubscriptionOf,
@@ -23,16 +16,9 @@ export class BillingCustomerMissingError extends Error {
   }
 }
 
-export class BillingLaunchError extends Error {
-  constructor() {
-    super("the launch grants the subscription: there is no Stripe portal")
-    this.name = "BillingLaunchError"
-  }
-}
-
 export class BillingGrantedError extends Error {
   constructor() {
-    super("the platform granted this subscription: there is no Stripe portal")
+    super("the platform granted this licence: there is no Stripe portal")
     this.name = "BillingGrantedError"
   }
 }
@@ -66,11 +52,6 @@ export interface CheckoutInput {
   affiliate_code?: string
 }
 
-interface TrialTerms {
-  trialDays: number | null
-  quantity: number
-}
-
 function appUrl(path: string): string {
   return `${appUrlFromEnv()}${path}`
 }
@@ -79,33 +60,12 @@ function returnUrl(destination: CheckoutReturn, query: string): string {
   return appUrl(`${RETURN_PATHS[destination]}${query}`)
 }
 
-async function trialTermsFor(
-  organizationId: string,
-  requested: number
-): Promise<TrialTerms> {
-  const previous = await getPrisma().subscription.count({
-    where: { organizationId },
-  })
-
-  if (previous > 0) {
-    return { trialDays: null, quantity: requested }
-  }
-
-  const link = await referralLinkOf(organizationId)
-
-  return {
-    trialDays:
-      link && link.freeMonths > 0
-        ? link.freeMonths * DAYS_PER_FREE_MONTH
-        : TRIAL_DAYS,
-    quantity: link?.seats ?? TRIAL_SEATS,
-  }
-}
-
 export async function startCheckout(
   actor: CheckoutActor,
   input: CheckoutInput
 ): Promise<{ url: string }> {
+  assertBillingOn()
+
   const { organizationId } = actor
   const destination = input.return_to ?? "billing"
 
@@ -116,28 +76,17 @@ export async function startCheckout(
     )
   }
 
-  if (isLaunchMode()) {
-    await grantLaunchSubscription(actor)
-
-    return { url: returnUrl(destination, "?checkout=done") }
-  }
-
   if (await billedSubscriptionOf(organizationId)) {
     throw new BillingAlreadySubscribedError()
   }
 
-  const [billing, trial] = await Promise.all([
-    readBilling(organizationId),
-    trialTermsFor(organizationId, input.quantity),
-  ])
-
+  const billing = await readBilling(organizationId)
   const session = await getBillingProvider().createCheckoutSession({
     organizationId,
     customerId: billing?.stripeCustomerId ?? null,
     customerEmail: actor.email,
-    quantity: trial.quantity,
+    quantity: input.quantity,
     interval: input.interval,
-    trialDays: trial.trialDays,
     successUrl: returnUrl(destination, "?checkout=done"),
     cancelUrl: returnUrl(destination, "?checkout=cancelled"),
   })
@@ -148,9 +97,7 @@ export async function startCheckout(
 export async function startPortal(
   organizationId: string
 ): Promise<{ url: string }> {
-  if (isLaunchMode()) {
-    throw new BillingLaunchError()
-  }
+  assertBillingOn()
 
   const [billed, live] = await Promise.all([
     billedSubscriptionOf(organizationId),

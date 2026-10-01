@@ -5,67 +5,17 @@ import {
   describe,
   expect,
   it,
-  spyOn,
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
-import {
-  postStripeWebhook,
-  stripeEvent,
-  stripeSubscriptionObject,
-  useFakeBilling,
-  useLaunchBilling,
-} from "@pupitre/api/testing/billing"
-import type { OrgRole } from "@pupitre/shared/permissions"
 import { StartPanel } from "@/components/dashboard/start-panel"
 import type { DashboardOrganization } from "@/lib/domain/dashboard-context"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
-import {
-  type DashboardHarness,
-  render,
-  trigger,
-  waitUntil,
-  withDashboard,
-} from "@/testing/render"
-
-type Billing = ReturnType<typeof useFakeBilling>
+import { render, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
 
-function panel(
-  organization: DashboardOrganization,
-  role: OrgRole,
-  returning = false,
-  entitlement: DashboardHarness["entitlement"] = "suspended"
-) {
-  return withDashboard(<StartPanel returningFromCheckout={returning} />, {
-    organization,
-    role,
-    entitlement,
-  })
-}
-
-async function openTrial(organizationId: string) {
-  const received = await postStripeWebhook<{ handled: boolean }>(
-    stripeEvent(
-      "customer.subscription.created",
-      stripeSubscriptionObject({
-        id: "sub_trial",
-        customerId: "cus_trial",
-        organizationId,
-        status: "trialing",
-        quantity: 1,
-        currentPeriodEnd: new Date(Date.now() + 14 * 86_400_000),
-      })
-    )
-  )
-
-  expect(received.json.handled).toBe(true)
-}
-
 describe("StartPanel", () => {
-  let billing: Billing
   let organization: DashboardOrganization
-  let leave: ReturnType<typeof spyOn>
 
   beforeAll(async () => {
     await bootApiTestServer()
@@ -73,11 +23,6 @@ describe("StartPanel", () => {
 
   beforeEach(async () => {
     await resetDb()
-
-    billing = useFakeBilling()
-    leave = spyOn(window.location, "assign").mockImplementation(() => {
-      // The console leaves for Stripe; the test only records where.
-    })
 
     const console = await createConsoleUser({ email: "ada@test.local" })
 
@@ -92,118 +37,15 @@ describe("StartPanel", () => {
   })
 
   afterEach(() => {
-    leave.mockRestore()
-
     for (const unmount of mounted.splice(0)) {
       unmount()
     }
   })
 
-  it("offers the free launch instead of the trial, and grants it without Stripe", async () => {
-    const launch = useLaunchBilling()
-    const { container, unmount, click } = await render(
-      panel(organization, "owner")
+  it("names the three steps, the account behind, and goes straight to the app", async () => {
+    const { container, unmount } = await render(
+      withDashboard(<StartPanel />, { organization })
     )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () => container.textContent?.includes("Free launch") === true
-    )
-
-    expect(container.textContent).toContain("Free until")
-    expect(container.textContent).toContain("1 machine")
-    expect(container.textContent).toContain("stays free for good")
-    expect(container.textContent).not.toContain("servers stop")
-    expect(container.textContent).not.toContain("Monthly")
-    expect(container.textContent).not.toContain("$")
-    expect(container.textContent).not.toContain("Start the trial")
-
-    await click(trigger(container, "Start"))
-    await waitUntil(() => leave.mock.calls.length === 1)
-
-    expect(leave).toHaveBeenCalledWith(expect.stringContaining("checkout=done"))
-    expect(launch.checkouts).toHaveLength(0)
-
-    const { prisma } = await bootApiTestServer()
-    const granted = await prisma.subscription.findFirst({
-      where: { organizationId: organization.id },
-    })
-
-    expect(granted).toMatchObject({
-      product: "launch",
-      status: "trialing",
-      quantity: 1,
-    })
-  })
-
-  it("opens a one-seat monthly checkout on Stripe by default", async () => {
-    const { container, unmount, click } = await render(
-      panel(organization, "owner")
-    )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () => container.textContent?.includes("Start the trial") === true
-    )
-
-    expect(container.textContent).toContain("30 days, no card")
-    expect(container.textContent).toContain("1 machine")
-    expect(container.textContent).toContain("No card is asked for")
-    expect(container.textContent).toContain(
-      "After the trial: $5 per server per month"
-    )
-    expect(container.querySelector("#quantity")).toBeNull()
-    expect(trigger(container, "Monthly").getAttribute("aria-pressed")).toBe(
-      "true"
-    )
-
-    await click(trigger(container, "Start the trial"))
-    await waitUntil(() => billing.checkouts.length === 1)
-
-    expect(billing.checkouts[0]).toMatchObject({
-      organizationId: organization.id,
-      quantity: 1,
-      interval: "month",
-    })
-    expect(leave).toHaveBeenCalledWith(
-      expect.stringContaining("checkout.stripe.test")
-    )
-  })
-
-  it("lets the owner start the trial on the yearly rate", async () => {
-    const { container, unmount, click } = await render(
-      panel(organization, "owner")
-    )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () => container.textContent?.includes("Start the trial") === true
-    )
-
-    await click(trigger(container, "Yearly"))
-
-    expect(container.textContent).toContain(
-      "After the trial: $50 per server per year, 2 months free"
-    )
-    expect(trigger(container, "Yearly").getAttribute("aria-pressed")).toBe(
-      "true"
-    )
-
-    await click(trigger(container, "Start the trial"))
-    await waitUntil(() => billing.checkouts.length === 1)
-
-    expect(billing.checkouts[0]).toMatchObject({
-      organizationId: organization.id,
-      quantity: 1,
-      interval: "year",
-    })
-  })
-
-  it("names the four steps, and the account is already behind", async () => {
-    const { container, unmount } = await render(panel(organization, "owner"))
 
     mounted.push(unmount)
 
@@ -213,73 +55,26 @@ describe("StartPanel", () => {
 
     const text = container.textContent ?? ""
 
-    expect(text).toContain("Four steps, and your server works for you.")
+    expect(text).toContain("Three steps, and your server works for you.")
     expect(text).toContain("Install the app and link it to your account")
     expect(text).toContain("Rent a server and add it")
     expect(text).toContain("Done")
-  })
-
-  it("waits for the webhook on the way back", async () => {
-    const { container, unmount } = await render(
-      panel(organization, "owner", true)
-    )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () =>
-        container.textContent?.includes("Waiting for the confirmation") === true
-    )
-
-    expect(container.textContent).not.toContain("The trial is open.")
-
-    await openTrial(organization.id)
-
-    await waitUntil(
-      () => container.textContent?.includes("The trial is open.") === true
-    )
-  })
-
-  it("once the trial is confirmed, the list points at the app", async () => {
-    await openTrial(organization.id)
-
-    const { container, unmount } = await render(
-      panel(organization, "owner", true, "valid")
-    )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () => container.textContent?.includes("The trial is open.") === true
-    )
-    await waitUntil(
-      () =>
-        container.textContent?.includes(
-          "Install the app and link it to your account"
-        ) === true
-    )
+    expect(text).not.toContain("trial")
+    expect(text).not.toContain("card")
 
     const links = [...container.querySelectorAll("a")].map((link) =>
       link.getAttribute("href")
     )
 
     expect(links).toContain("/dashboard/download")
-    expect(container.textContent).toContain("All platforms")
-    expect(container.textContent).not.toContain("No card is asked for")
   })
 
-  it("tells a member who has to start the trial, and offers no checkout", async () => {
-    const { container, unmount } = await render(panel(organization, "member"))
+  it("asks for an organisation before anything else", async () => {
+    const { container, unmount } = await render(withDashboard(<StartPanel />))
 
     mounted.push(unmount)
 
-    await waitUntil(
-      () =>
-        container.textContent?.includes("The owner starts the trial") === true
-    )
-
-    expect(container.textContent).toContain("ada@test.local")
-    expect(container.querySelectorAll("button")).toHaveLength(0)
-    expect(container.textContent).not.toContain("No card is asked for")
+    expect(container.textContent).toContain("No active organisation")
+    expect(container.textContent).not.toContain("Create your account")
   })
 })

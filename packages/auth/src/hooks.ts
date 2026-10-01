@@ -4,8 +4,15 @@ export interface MemberRemoved {
   memberId: string
 }
 
+export interface SignedUp {
+  userId: string
+  organizationId: string
+  cookie: string | null
+}
+
 export interface OrganizationHooks {
   onMemberRemoved?: (removed: MemberRemoved) => Promise<void>
+  onSignedUp?: (signedUp: SignedUp) => Promise<void>
 }
 
 let configured: OrganizationHooks = {}

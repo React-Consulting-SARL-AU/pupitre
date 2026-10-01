@@ -14,7 +14,7 @@ import {
 } from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 import { stripeSubscriptionUrl } from "../billing/config"
-import { SEATED_STATUSES } from "../billing/seats"
+import { licensedSeatsFor, SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { type AdminEventView, RECENT_EVENTS, recentEvents } from "./events"
 import {
@@ -189,7 +189,9 @@ async function seatsUsedAmong(
     _count: { _all: true },
   })
 
-  return new Map(rows.map((row) => [row.organizationId, row._count._all]))
+  return new Map(
+    rows.map((row) => [row.organizationId, licensedSeatsFor(row._count._all)])
+  )
 }
 
 // Only the row an organisation is billed on can be short of seats.
@@ -204,7 +206,7 @@ function isDrifted(
   )
 }
 
-// A Stripe row is removable only once Stripe let go of it; only Stripe holds a trial.
+// A Stripe row is removable only once Stripe let go of it.
 export function allowedSubscriptionActions({
   product,
   status,
@@ -217,7 +219,6 @@ export function allowedSubscriptionActions({
   const billed = isLiveSubscriptionStatus(status)
   const allowed: Record<SubscriptionAction, boolean> = {
     resize: product === GRANTED_PRODUCT,
-    extend_trial: !platform && status === "trialing",
     resume: !platform && billed && cancelAtPeriodEnd,
     cancel: status !== "canceled",
     delete: platform || !billed,

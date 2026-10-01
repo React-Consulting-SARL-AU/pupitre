@@ -1,11 +1,9 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
-import { TRIAL_WORKLIST_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
+import { WORKLIST_ITEMS } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
-import { readSeatUsage } from "../billing/seats"
+import { readLicenseUsage } from "../billing/seats"
 
 export const OVERVIEW_SUBSCRIPTION_STATUSES = [
-  "trialing",
   "active",
   "past_due",
   "canceled",
@@ -17,7 +15,7 @@ export type OverviewSubscriptionStatus =
 export type ServerCounts = Record<ServerStatus | "total", number>
 
 export type SubscriptionCounts = Record<
-  OverviewSubscriptionStatus | "total" | "other" | "launch",
+  OverviewSubscriptionStatus | "total" | "other",
   number
 >
 
@@ -73,7 +71,6 @@ export interface Worklist<Item> {
 export interface PlatformWorklists {
   unread_mail: Worklist<UnreadMailItem>
   past_due: Worklist<SubscriptionWorklistItem>
-  trials_ending: Worklist<SubscriptionWorklistItem>
   servers_unreachable: Worklist<UnreachableServerItem>
   seats_drifted: Worklist<SeatDriftItem>
   deletions_scheduled: Worklist<ScheduledDeletionItem>
@@ -118,19 +115,16 @@ async function countServers(): Promise<ServerCounts> {
 }
 
 async function countSubscriptions(): Promise<SubscriptionCounts> {
-  const prisma = getPrisma()
-  const [rows, launch] = await Promise.all([
-    prisma.subscription.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.subscription.count({ where: { product: LAUNCH_PRODUCT } }),
-  ])
+  const rows = await getPrisma().subscription.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  })
   const counts: SubscriptionCounts = {
     total: 0,
-    trialing: 0,
     active: 0,
     past_due: 0,
     canceled: 0,
     other: 0,
-    launch,
   }
 
   for (const row of rows) {
@@ -205,14 +199,6 @@ async function readSubscriptionWorklist(
   }
 }
 
-function trialDeadline(now: Date): Date {
-  const deadline = new Date(now)
-
-  deadline.setDate(deadline.getDate() + TRIAL_WORKLIST_DAYS)
-
-  return deadline
-}
-
 async function readUnreachableServers(): Promise<
   Worklist<UnreachableServerItem>
 > {
@@ -250,9 +236,9 @@ async function readUnreachableServers(): Promise<
   }
 }
 
-// Must count like `reconcileSeats`, read only.
+// Must count like the `drifted` filter of the licence list it links to.
 async function readSeatDrift(): Promise<Worklist<SeatDriftItem>> {
-  const usage = await readSeatUsage()
+  const usage = await readLicenseUsage()
   const drifted = usage
     .map(({ subscription, seated }) => ({
       organization: subscription.organization,
@@ -327,30 +313,18 @@ async function readScheduledDeletions(): Promise<
 }
 
 export async function readPlatformWorklists(): Promise<PlatformWorklists> {
-  const now = new Date()
-  const [
-    unreadMail,
-    pastDue,
-    trialsEnding,
-    unreachable,
-    seatsDrifted,
-    deletions,
-  ] = await Promise.all([
-    readUnreadMail(),
-    readSubscriptionWorklist({ status: "past_due" }),
-    readSubscriptionWorklist({
-      status: "trialing",
-      currentPeriodEnd: { not: null, lte: trialDeadline(now) },
-    }),
-    readUnreachableServers(),
-    readSeatDrift(),
-    readScheduledDeletions(),
-  ])
+  const [unreadMail, pastDue, unreachable, seatsDrifted, deletions] =
+    await Promise.all([
+      readUnreadMail(),
+      readSubscriptionWorklist({ status: "past_due" }),
+      readUnreachableServers(),
+      readSeatDrift(),
+      readScheduledDeletions(),
+    ])
 
   return {
     unread_mail: unreadMail,
     past_due: pastDue,
-    trials_ending: trialsEnding,
     servers_unreachable: unreachable,
     seats_drifted: seatsDrifted,
     deletions_scheduled: deletions,

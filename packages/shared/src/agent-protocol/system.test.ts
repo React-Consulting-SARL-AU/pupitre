@@ -177,20 +177,19 @@ describe("enroll", () => {
     ).toBe(false)
   })
 
-  it("answers with the entitlement the platform granted", () => {
+  it("answers with the license the platform granted", () => {
     expect(
       EnrollResultSchema.safeParse({
         enrolled: true,
-        entitlement: "valid",
+        license: "valid",
         synced_at: "2026-09-05T10:00:00Z",
       }).success
     ).toBe(true)
     expect(
-      EnrollResultSchema.safeParse({ enrolled: true, entitlement: "valid" })
-        .success
+      EnrollResultSchema.safeParse({ enrolled: true, license: "valid" }).success
     ).toBe(true)
     expect(
-      EnrollResultSchema.safeParse({ enrolled: false, entitlement: "valid" })
+      EnrollResultSchema.safeParse({ enrolled: false, license: "valid" })
         .success
     ).toBe(false)
   })

@@ -2,7 +2,6 @@ import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import { QueryObserver } from "@tanstack/react-query"
 import {
-  pollSubscription,
   SERVERS_POLL_INTERVAL_MS,
   serversQueryOptions,
 } from "@/lib/api/queries"
@@ -88,86 +87,4 @@ describe("serversQueryOptions", () => {
     },
     { timeout: 30_000 }
   )
-})
-
-describe("pollSubscription", () => {
-  beforeAll(async () => {
-    await bootApiTestServer()
-  })
-
-  beforeEach(async () => {
-    await resetDb()
-  })
-
-  it("keeps waiting past a cancelled mirror until a live one lands", async () => {
-    const { prisma } = await bootApiTestServer()
-    const { organization, token } = await createConsoleUser({
-      email: "ada@test.local",
-    })
-
-    await useSessionApiClient(token)
-    await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: "sub_old",
-        product: "prod_server",
-        quantity: 1,
-        status: "canceled",
-      },
-    })
-
-    let settled = false
-    const polling = pollSubscription(organization.id, {
-      intervalMs: 20,
-      timeoutMs: 5000,
-    }).then((subscription) => {
-      settled = true
-
-      return subscription
-    })
-
-    await new Promise((resolve) => setTimeout(resolve, 150))
-
-    expect(settled).toBe(false)
-
-    await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: "sub_new",
-        product: "prod_server",
-        quantity: 2,
-        status: "trialing",
-      },
-    })
-
-    const subscription = await polling
-
-    expect(subscription.stripe_subscription_id).toBe("sub_new")
-    expect(subscription.status).toBe("trialing")
-  })
-
-  it("returns at once when the mirror is already live", async () => {
-    const { prisma } = await bootApiTestServer()
-    const { organization, token } = await createConsoleUser({
-      email: "ada@test.local",
-    })
-
-    await useSessionApiClient(token)
-    await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: "sub_live",
-        product: "prod_server",
-        quantity: 1,
-        status: "active",
-      },
-    })
-
-    const subscription = await pollSubscription(organization.id, {
-      intervalMs: 20,
-      timeoutMs: 1000,
-    })
-
-    expect(subscription.stripe_subscription_id).toBe("sub_live")
-  })
 })

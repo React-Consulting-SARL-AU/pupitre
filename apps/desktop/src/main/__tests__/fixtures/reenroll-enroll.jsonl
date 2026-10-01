@@ -1,6 +1,6 @@
 # La session privilégiée du ré-enrôlement : le jeton d'enrôlement arrive sur la ligne qui suit la requête, jamais dans params.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade","enroll","project.down"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade","enroll","project.down"]}}
 > {"id":2,"cmd":"enroll","params":{"platform_url":"*","secrets_stdin":true}}
 $ *
-< {"id":2,"ok":true,"result":{"enrolled":true,"entitlement":"valid","synced_at":"2026-09-05T10:00:00Z"}}
+< {"id":2,"ok":true,"result":{"enrolled":true,"license":"valid","synced_at":"2026-09-05T10:00:00Z"}}

@@ -1,4 +1,6 @@
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal";
+import { FREE_SERVERS } from "@pupitre/shared/plans";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
@@ -8,22 +10,22 @@ import { ExternalLink } from "lucide-react";
 import { ServerReenrollAction } from "./server-reenroll-action";
 
 export function ServerRestrictedNotice({
-  entitlement,
+  license,
   repair,
   repairable,
   onRepair,
   onOpenConsole,
 }: {
-  entitlement: SnapshotResult["entitlement"];
+  license: SnapshotResult["license"];
   repair: ReenrollState;
-  /** Requires a usage right: without one the platform refuses the new token. */
+  /** Requires a licence: without one the platform refuses the new token. */
   repairable: boolean;
   onRepair: () => void;
   onOpenConsole: () => void;
 }) {
   const t = useTranslations();
 
-  if (entitlement !== "restricted") {
+  if (license !== "restricted") {
     return null;
   }
 
@@ -40,7 +42,10 @@ export function ServerRestrictedNotice({
             </Button>
           </div>
         }
-        fix={t("shell.restricted.fix")}
+        fix={t("shell.restricted.fix", {
+          free: FREE_SERVERS,
+          support: LEGAL_CONTACTS.support,
+        })}
         tone="danger"
       >
         {t("shell.restricted.message")}

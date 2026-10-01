@@ -1,5 +1,5 @@
 # Le canal revient, mais l'agent n'a écrit aucun rapport : c'est la coupure qu'il faut dire.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
 > {"id":2,"cmd":"report"}
 < {"id":2,"ok":false,"error":{"code":"no_report","message":"aucun rapport : aucune installation n'a encore eu lieu sur ce serveur","fix":"Lance install depuis l'app, ou sudo pupitred install sur le serveur."}}

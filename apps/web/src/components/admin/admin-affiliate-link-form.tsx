@@ -1,6 +1,5 @@
 import { ApiError } from "@pupitre/api/client"
 import {
-  AFFILIATE_MAX_FREE_MONTHS,
   AFFILIATE_NOTES_MAX_LENGTH,
   AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
@@ -29,7 +28,6 @@ import {
   type AffiliateLinkFormInput,
   type AffiliateLinkFormValues,
   affiliateLinkSchema,
-  MIN_AFFILIATE_SEATS,
 } from "@/lib/schemas/admin"
 
 const CONFLICT = 409
@@ -37,8 +35,6 @@ const CONFLICT = 409
 const EMPTY: AffiliateLinkFormInput = {
   name: "",
   code: "",
-  free_months: 1,
-  seats: MIN_AFFILIATE_SEATS,
   partner_name: "",
   partner_email: "",
   notes: "",
@@ -57,8 +53,6 @@ export function AdminAffiliateLinkForm() {
     mutationFn: (values: AffiliateLinkFormValues) =>
       createAffiliateLink({
         name: values.name,
-        free_months: values.free_months,
-        seats: values.seats,
         partner_name: values.partner_name,
         partner_email: values.partner_email,
         notes: values.notes,
@@ -125,53 +119,18 @@ export function AdminAffiliateLinkForm() {
             <FieldError>{form.formState.errors.name?.message}</FieldError>
           </div>
 
-          <div className="flex flex-wrap items-start gap-gutter">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="affiliate-code">
-                {t("admin.links.codeOptional")}
-              </Label>
-              <Input
-                autoComplete="off"
-                className="w-44 font-data"
-                id="affiliate-code"
-                placeholder={t("admin.links.codePlaceholder")}
-                {...form.register("code")}
-              />
-              <FieldError>{form.formState.errors.code?.message}</FieldError>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="affiliate-free-months">
-                {t("admin.links.freeMonthsField")}
-              </Label>
-              <Input
-                className="w-24 font-data tabular-nums"
-                id="affiliate-free-months"
-                inputMode="numeric"
-                max={AFFILIATE_MAX_FREE_MONTHS}
-                min={0}
-                type="number"
-                {...form.register("free_months")}
-              />
-              <FieldError>
-                {form.formState.errors.free_months?.message}
-              </FieldError>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="affiliate-seats">
-                {t("admin.links.seatsField")}
-              </Label>
-              <Input
-                className="w-24 font-data tabular-nums"
-                id="affiliate-seats"
-                inputMode="numeric"
-                min={MIN_AFFILIATE_SEATS}
-                type="number"
-                {...form.register("seats")}
-              />
-              <FieldError>{form.formState.errors.seats?.message}</FieldError>
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="affiliate-code">
+              {t("admin.links.codeOptional")}
+            </Label>
+            <Input
+              autoComplete="off"
+              className="w-44 font-data"
+              id="affiliate-code"
+              placeholder={t("admin.links.codePlaceholder")}
+              {...form.register("code")}
+            />
+            <FieldError>{form.formState.errors.code?.message}</FieldError>
           </div>
 
           <div className="flex flex-wrap items-start gap-gutter">

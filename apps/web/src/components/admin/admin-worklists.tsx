@@ -1,11 +1,4 @@
-import {
-  CreditCard,
-  HardDrive,
-  Hourglass,
-  Inbox,
-  Trash2,
-  Users,
-} from "lucide-react"
+import { CreditCard, HardDrive, Inbox, Trash2, Users } from "lucide-react"
 import { AdminWorklistCard } from "@/components/admin/admin-worklist-card"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminOverviewData } from "@/lib/api/admin-queries"
@@ -62,28 +55,6 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
           search: { status: "past_due" },
         }}
         title={t("admin.worklists.pastDue")}
-      />
-
-      <AdminWorklistCard
-        count={worklists.trials_ending.count}
-        emptyLabel={empty}
-        entries={worklists.trials_ending.items.map((subscription) => ({
-          id: subscription.id,
-          to: {
-            to: "/dashboard/admin/subscriptions/$id",
-            params: { id: subscription.id },
-          },
-          primary: subscription.organization.name,
-          secondary: subscription.current_period_end
-            ? formatDate(subscription.current_period_end, t)
-            : t("admin.subscriptions.noEnd"),
-        }))}
-        icon={Hourglass}
-        seeAll={{
-          to: "/dashboard/admin/subscriptions",
-          search: { status: "trialing" },
-        }}
-        title={t("admin.worklists.trialsEnding")}
       />
 
       <AdminWorklistCard

@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/license"
 )
 
 func serverAt(config contract.ConfigRevision) *Server {
 	server := NewServer(Options{
 		AgentVersion: testAgentVersion,
 		Config:       func() contract.ConfigRevision { return config },
-		Entitlement:  entitlement.Fixed(contract.EntitlementDev),
+		License:      license.Fixed(contract.LicenseDev),
 		Now:          fixedNow,
 	})
 
@@ -87,7 +87,7 @@ func TestHelloCarriesTheRevisionTheMachineIsAt(t *testing.T) {
 }
 
 func TestAServerWithoutALedgerSaysNothingOfIt(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev), Now: fixedNow})
 
 	result, err := server.Call("hello", map[string]any{"app_version": "0.1.0", "protocol": contract.ProtocolVersion}, nil)
 	if err != nil {

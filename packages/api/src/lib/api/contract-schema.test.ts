@@ -48,6 +48,7 @@ const declaration = {
 }
 
 const state = {
+  license: "valid",
   entitlement: "valid",
   valid_until: "2026-09-26T00:00:00.000Z",
   authorized_keys: [],
@@ -74,13 +75,15 @@ const me = {
   role: null,
   platform_role: null,
   platform_can_act: false,
-  entitlement: "none",
-  subscription: {
-    status: "trialing",
-    trial_ends_at: "2026-10-01T00:00:00.000Z",
+  license: "valid",
+  servers: { used: 1, limit: 3 },
+  license_grant: {
+    status: "active",
+    seats: 2,
     current_period_end: "2026-10-01T00:00:00.000Z",
-    servers: { used: 1, limit: 1 },
   },
+  entitlement: "valid",
+  subscription: null,
 }
 
 const cases: [string, ContractSchema, unknown[]][] = [
@@ -134,7 +137,8 @@ const cases: [string, ContractSchema, unknown[]][] = [
     AgentStateSchema,
     [
       state,
-      { ...state, entitlement: "none" },
+      { ...state, license: "none" },
+      { ...state, entitlement: undefined },
       { ...state, keys: [{ ...state.keys[0], public_key: "ssh-rsa AAAA" }] },
       { ...state, valid_until: null },
     ],
@@ -145,14 +149,14 @@ const cases: [string, ContractSchema, unknown[]][] = [
     [
       me,
       { ...me, role: "superuser" },
-      { ...me, entitlement: "valid", role: "owner", platform_role: "member" },
+      { ...me, license: "grace", role: "owner", platform_role: "member" },
       { ...me, platform_role: "admin", platform_can_act: true },
       { ...me, platform_can_act: undefined },
       { ...me, user: { ...me.user, locale: "de" } },
-      {
-        ...me,
-        subscription: { ...me.subscription, servers: { used: 1.5, limit: 1 } },
-      },
+      { ...me, servers: { used: 1.5, limit: 3 } },
+      { ...me, servers: null, license_grant: null, license: "none" },
+      { ...me, license_grant: { ...me.license_grant, seats: -1 } },
+      { ...me, subscription: { status: "active" } },
     ],
   ],
   [

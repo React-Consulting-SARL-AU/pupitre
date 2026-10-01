@@ -1,10 +1,10 @@
 # A machine with the base system in place but no mise: the three runtimes install, then replay untouched.
 @file /proc/meminfo MemTotal:       4015000 kB
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["runtime.node","runtime.java","runtime.python"],"config":{"runtime.node":{"node_versions":["22"],"bun":true,"pnpm":true},"runtime.java":{"java_versions":["21"]},"runtime.python":{"python_versions":["3.12"]}}}}
 > {"id":3,"cmd":"install","params":{"secrets_stdin":false,"modules":["runtime.node","runtime.java","runtime.python"],"config":{"runtime.node":{"node_versions":["22"],"bun":true,"pnpm":true},"runtime.java":{"java_versions":["21"]},"runtime.python":{"python_versions":["3.12"]}}}}
 > {"id":4,"cmd":"report"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

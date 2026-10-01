@@ -3,20 +3,22 @@ import { z } from "zod"
 export const PLATFORM_API_PATH = "/api/v1"
 
 // The platform's vocabulary, not the agent's own, which `hello` speaks.
-const SERVER_ENTITLEMENTS = ["valid", "grace", "suspended"] as const
+const SERVER_LICENSES = ["valid", "grace", "suspended"] as const
 
-export const ServerEntitlementSchema = z.enum(SERVER_ENTITLEMENTS)
+export const ServerLicenseSchema = z.enum(SERVER_LICENSES)
+
+export type ServerLicense = z.infer<typeof ServerLicenseSchema>
 
 // `none` without an active organization.
-export const AccountEntitlementSchema = z.enum(["none", ...SERVER_ENTITLEMENTS])
+export const AccountLicenseSchema = z.enum(["none", ...SERVER_LICENSES])
 
-export type AccountEntitlement = z.infer<typeof AccountEntitlementSchema>
+export type AccountLicense = z.infer<typeof AccountLicenseSchema>
 
 // Grace still lets everything run.
-const ENTITLED: readonly string[] = ["valid", "grace"]
+const LICENSED: readonly string[] = ["valid", "grace"]
 
-export function isEntitled(entitlement: string): boolean {
-  return ENTITLED.includes(entitlement)
+export function isLicensed(license: string): boolean {
+  return LICENSED.includes(license)
 }
 
 export const SERVER_STATUSES = [
@@ -45,7 +47,7 @@ export const ALERT_KINDS = [
   "server_unreachable",
   "disk_high",
   "agent_outdated",
-  "entitlement_grace",
+  "license_grace",
   "backup_failed",
   "backup_stale",
 ] as const

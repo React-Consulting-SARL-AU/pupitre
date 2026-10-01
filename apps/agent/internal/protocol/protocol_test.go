@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/golden"
+	"pupitre.studio/agent/internal/license"
 )
 
 const testAgentVersion = "0.0.0-test"
@@ -25,10 +25,10 @@ var fixedNow = func() time.Time {
 }
 
 type fixture struct {
-	path        string
-	entitlement contract.Entitlement
-	input       []string
-	expected    []string
+	path     string
+	license  contract.License
+	input    []string
+	expected []string
 }
 
 func parseFixture(t *testing.T, path string) fixture {
@@ -39,13 +39,13 @@ func parseFixture(t *testing.T, path string) fixture {
 		t.Fatal(err)
 	}
 
-	parsed := fixture{path: path, entitlement: contract.EntitlementDev}
+	parsed := fixture{path: path, license: contract.LicenseDev}
 
 	for _, line := range strings.Split(string(raw), "\n") {
 		switch {
 		case line == "" || strings.HasPrefix(line, "#"):
-		case strings.HasPrefix(line, "@entitlement "):
-			parsed.entitlement = contract.Entitlement(strings.TrimPrefix(line, "@entitlement "))
+		case strings.HasPrefix(line, "@license "):
+			parsed.license = contract.License(strings.TrimPrefix(line, "@license "))
 		case strings.HasPrefix(line, "> "), strings.HasPrefix(line, "$ "):
 			parsed.input = append(parsed.input, line[2:])
 		case strings.HasPrefix(line, "< "):
@@ -58,8 +58,8 @@ func parseFixture(t *testing.T, path string) fixture {
 	return parsed
 }
 
-func newTestServer(granted contract.Entitlement) *Server {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(granted), Now: fixedNow})
+func newTestServer(granted contract.License) *Server {
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(granted), Now: fixedNow})
 
 	server.Register("probe", func(_ *Context, _ json.RawMessage) (any, error) {
 		return nil, NewError(contract.ErrorBusy, "an installation is in progress").WithFix("Wait for the installation to finish.")
@@ -99,7 +99,7 @@ func newTestServer(granted contract.Entitlement) *Server {
 			return nil, badRequest("enrolment token missing")
 		}
 
-		return map[string]any{"enrolled": true, "entitlement": string(contract.EntitlementValid)}, nil
+		return map[string]any{"enrolled": true, "license": string(contract.LicenseValid)}, nil
 	})
 
 	return server
@@ -135,7 +135,7 @@ func runFixture(t *testing.T, f fixture) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join(f.input, "\n") + "\n")
 
-	if err := newTestServer(f.entitlement).Serve(input, &out); err != nil {
+	if err := newTestServer(f.license).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
@@ -212,9 +212,9 @@ func assertContractLine(t *testing.T, line string) {
 
 func TestHelloResultMatchesTheContract(t *testing.T) {
 	var out bytes.Buffer
-	input := strings.NewReader(`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + `{"id":2,"cmd":"ping"}` + "\n")
+	input := strings.NewReader(`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}` + "\n" + `{"id":2,"cmd":"ping"}` + "\n")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -229,7 +229,7 @@ func TestHelloResultMatchesTheContract(t *testing.T) {
 }
 
 func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
-	result, err := newTestServer(contract.EntitlementDev).Call("hello", map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}, nil)
+	result, err := newTestServer(contract.LicenseDev).Call("hello", map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}, nil)
 	if err != nil {
 		t.Fatalf("Call(hello): %v", err)
 	}
@@ -296,13 +296,13 @@ func TestHelloStillAnswersANewerAgentThanTheSheetKnows(t *testing.T) {
 func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":7,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":7,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":7,"cmd":"ping"}`,
 		`{"id":3,"cmd":"ping"}`,
 		`{"id":8,"cmd":"ping"}`,
 	}, "\n") + "\n")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -325,12 +325,12 @@ func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
 func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["tool.github"],"config":{},"secrets_stdin":true}}`,
 		`{"API_KEY":"s3cret-de-test"}`,
 	}, "\n") + "\n")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -345,9 +345,9 @@ func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 
 func TestServeSurvivesInvalidInputAndReturnsNilAtEOF(t *testing.T) {
 	var out bytes.Buffer
-	input := strings.NewReader("\x00\xff\n\n   \n{\"id\":1,\"cmd\":\"hello\",\"params\":{\"app_version\":\"0.2.0\",\"protocol\":2}}")
+	input := strings.NewReader("\x00\xff\n\n   \n{\"id\":1,\"cmd\":\"hello\",\"params\":{\"app_version\":\"0.2.0\",\"protocol\":3}}")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
@@ -365,10 +365,10 @@ func TestALinePastTheLimitIsRefusedAndEndsTheSession(t *testing.T) {
 	var out bytes.Buffer
 	flood := strings.Repeat("a", lineLimit+1024)
 	input := strings.NewReader(
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + flood + "\n",
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}` + "\n" + flood + "\n",
 	)
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err == nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err == nil {
 		t.Fatal("a flood must end the session, not pass as EOF")
 	}
 
@@ -382,10 +382,10 @@ func TestTheLargestLegalLineStillPasses(t *testing.T) {
 	// Stands in for the largest real line, an fs.write just under the cap.
 	padded := `{"id":2,"cmd":"ping","params":{}}` + strings.Repeat(" ", lineLimit-len(`{"id":2,"cmd":"ping","params":{}}`)-1)
 	input := strings.NewReader(
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + padded + "\n",
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}` + "\n" + padded + "\n",
 	)
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+	if err := newTestServer(contract.LicenseDev).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
@@ -395,7 +395,7 @@ func TestTheLargestLegalLineStillPasses(t *testing.T) {
 }
 
 func TestRegisterRefusesCommandsOutsideTheContract(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev)})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev)})
 
 	assertPanics(t, "unknown command", func() {
 		server.Register("nope", func(_ *Context, _ json.RawMessage) (any, error) { return nil, nil })
@@ -419,7 +419,7 @@ func assertPanics(t *testing.T, label string, fn func()) {
 }
 
 func TestCapabilitiesAreSorted(t *testing.T) {
-	got := newTestServer(contract.EntitlementDev).Capabilities()
+	got := newTestServer(contract.LicenseDev).Capabilities()
 	want := []string{"enroll", "hello", "install", "ping", "probe", "project.logs", "reboot"}
 
 	if !reflect.DeepEqual(got, want) {
@@ -451,7 +451,7 @@ func (w *droppingWriter) Write(p []byte) (int, error) {
 }
 
 func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev), Now: fixedNow})
 
 	steps := 0
 	server.Register("install", func(ctx *Context, _ json.RawMessage) (any, error) {
@@ -464,7 +464,7 @@ func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
 	})
 
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["db.postgres"],"config":{},"secrets_stdin":false}}`,
 	}, "\n") + "\n")
 
@@ -481,7 +481,7 @@ func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
 }
 
 func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev), Now: fixedNow})
 
 	released := make(chan bool, 1)
 	server.Register("project.logs", func(ctx *Context, _ json.RawMessage) (any, error) {
@@ -500,7 +500,7 @@ func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(reader, &out) }()
 
-	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`+"\n")
+	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`+"\n")
 	io.WriteString(writer, `{"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","follow":true}}`+"\n")
 	writer.Close()
 
@@ -514,7 +514,7 @@ func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
 }
 
 func TestTheChannelContextEndsWhenAWriteFails(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+	server := NewServer(Options{AgentVersion: testAgentVersion, License: license.Fixed(contract.LicenseDev), Now: fixedNow})
 
 	released := make(chan bool, 1)
 	server.Register("project.logs", func(ctx *Context, _ json.RawMessage) (any, error) {
@@ -536,7 +536,7 @@ func TestTheChannelContextEndsWhenAWriteFails(t *testing.T) {
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(reader, &droppingWriter{keep: 1}) }()
 
-	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`+"\n")
+	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`+"\n")
 	io.WriteString(writer, `{"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","follow":true}}`+"\n")
 
 	if !<-released {

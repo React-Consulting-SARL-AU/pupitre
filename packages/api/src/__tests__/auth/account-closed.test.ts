@@ -164,7 +164,7 @@ describe("un compte suspendu", () => {
       data: {
         banned: true,
         banReason: "signalement 4412",
-        banExpires: new Date("2026-10-01T12:00:00.000Z"),
+        banExpires: new Date("2036-10-01T12:00:00.000Z"),
       },
     })
 
@@ -176,7 +176,7 @@ describe("un compte suspendu", () => {
     expect(refused.status).toBe(403)
     expect(refused.json.error.code).toBe("forbidden")
     expect(refused.json.error.message).toBe(
-      "Ce compte est suspendu jusqu'au 1 octobre 2026."
+      "Ce compte est suspendu jusqu'au 1 octobre 2036."
     )
     expect(refused.json.error.fix).toContain("support@pupitre.studio")
   })

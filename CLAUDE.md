@@ -8,7 +8,7 @@ Source de vérité du monorepo. Lis aussi le guide du workspace que tu touches :
 - Agent serveur : [`apps/agent/CLAUDE.md`](./apps/agent/CLAUDE.md)
 - Produit : [`docs/product/PRODUCT.md`](./docs/product/PRODUCT.md) · design : [`docs/product/DESIGN.md`](./docs/product/DESIGN.md)
 
-Pupitre est un produit **fermé et commercial**. Rien de ce dépôt n'est publié. Tout le code est produit par des agents ; le propriétaire du projet spécifie, relit et valide.
+Pupitre est **source disponible** : le code de ce dépôt est public, sous licence Apache 2.0 assortie de la Commons Clause ([`LICENSE`](./LICENSE), concédant React Consulting SARL AU). Ce n'est pas de l'open source au sens de l'OSI : chacun peut lire, modifier et auto-héberger le code, personne ne peut vendre Pupitre ni un service qui en tire l'essentiel de sa valeur. La plateforme hébergée est gratuite jusqu'à `FREE_SERVERS` serveurs par organisation ; au-delà, une licence est requise, accordée aujourd'hui par un admin de la plateforme (voir [décision 0018](./docs/decisions/0018-source-disponible-et-gratuit.md)). Tout ce qui est commité est public : aucun secret, aucune donnée client, aucune note interne dans le dépôt. Tout le code est produit par des agents ; le propriétaire du projet spécifie, relit et valide.
 
 ## Structure
 

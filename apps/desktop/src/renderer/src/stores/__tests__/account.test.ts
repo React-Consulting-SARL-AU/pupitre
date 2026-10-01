@@ -14,7 +14,7 @@ const SIGNED_OUT: AccountState = {
   device: null,
   identity: null,
   refusal: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: "Connecte-toi depuis les réglages, ou ouvre la console : https://app.pupitre.test/dashboard",
     message: "Installer un serveur demande un compte Pupitre.",
   },
@@ -34,15 +34,16 @@ const SIGNED_IN: AccountState = {
   },
   identity: {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada",
     organization: { id: "org-1", name: "Ada", slug: "ada" },
     organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
     role: "owner",
-    subscription: null,
+    servers: { limit: 3, used: 1 },
   },
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: "2026-09-11T10:00:00.000Z",
@@ -59,7 +60,7 @@ beforeEach(() => {
 const CACHED: AccountState = {
   ...SIGNED_IN,
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "cache",
     status: "granted",
     validUntil: "2026-09-11T10:00:00.000Z",
@@ -69,10 +70,10 @@ const CACHED: AccountState = {
 const STALE: AccountState = {
   ...SIGNED_IN,
   refusal: {
-    code: "entitlement_required",
+    code: "license_required",
     fix: "Reconnecte cet appareil, ou vérifie l'état du compte : https://app.pupitre.test/dashboard",
     message:
-      "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La console n'a pas répondu depuis plus de sept jours : la licence a expiré.",
   },
   usage: {
     consoleUrl: "https://app.pupitre.test/dashboard",
@@ -108,35 +109,35 @@ describe("un pont qui ne répond pas", () => {
 });
 
 describe("la lecture du compte", () => {
-  it("porte l'abonnement tel que le processus principal l'a rendu, sans le relire", async () => {
-    const trialing: AccountState = {
+  it("porte la licence tel que le processus principal l'a rendue, sans la relire", async () => {
+    const licensed: AccountState = {
       ...SIGNED_IN,
       identity: SIGNED_IN.identity && {
         ...SIGNED_IN.identity,
-        subscription: {
-          current_period_end: "2026-09-25T00:00:00.000Z",
-          servers: { limit: 2, used: 1 },
-          status: "trialing",
-          trial_ends_at: "2026-09-25T00:00:00.000Z",
+        licenseGrant: {
+          current_period_end: "2027-09-25T00:00:00.000Z",
+          seats: 5,
+          status: "active",
         },
+        servers: { limit: 8, used: 6 },
       },
     };
 
     stubPupitre({
-      account: () => Promise.resolve(trialing),
+      account: () => Promise.resolve(licensed),
       refreshAccount: () => Promise.resolve(SIGNED_IN),
     });
 
     await useAccount.getState().read();
 
     expect(
-      accountOf(useAccount.getState().view)?.identity?.subscription
-    ).toEqual(trialing.identity?.subscription ?? null);
+      accountOf(useAccount.getState().view)?.identity?.licenseGrant
+    ).toEqual(licensed.identity?.licenseGrant ?? null);
 
     await useAccount.getState().refresh();
 
     expect(
-      accountOf(useAccount.getState().view)?.identity?.subscription
+      accountOf(useAccount.getState().view)?.identity?.licenseGrant
     ).toBeNull();
   });
 

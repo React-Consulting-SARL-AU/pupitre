@@ -1,5 +1,5 @@
 # Un agent qui ne déclare qu'une partie du contrat : ce qu'il ne nomme pas ne lui est pas envoyé.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","ping"]}}
 > {"id":2,"cmd":"ping"}
 < {"id":2,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

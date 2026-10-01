@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/caddy"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflare"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -79,7 +80,7 @@ func report(engine *modules.Engine, ctx *protocol.Context, chosen provider, run 
 	return answer, nil
 }
 
-// Read-only, so it skips the run lock and the entitlement: an install under way must not read as absent.
+// Read-only, so it skips the run lock and the license: an install under way must not read as absent.
 func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error) {
 	var answer routes.Report
 
@@ -119,11 +120,21 @@ func Resync(sibling func(id string) (*modules.Context, bool)) (bool, error) {
 	return false, nil
 }
 
-// Settle brings what the exposure serves up to what this agent writes; the daemon runs it once it starts,
-// so an agent update puts the gate in front of every name without waiting for a gesture in the app.
+// Settle brings what the exposure serves up to what this agent writes when the gate is missing or outdated:
+// `serve` runs it as it opens, so an agent update puts the gate in front of every name without a gesture in the app.
+// Not the daemon: its unit keeps /etc/systemd and /etc/cloudflared read-only.
 func Settle(engine *modules.Engine) error {
 	chosen, ok, err := installed(engine)
 	if err != nil || !ok {
+		return err
+	}
+
+	current := true
+	if err := engine.Inspect(chosen.id, func(ctx *modules.Context) error {
+		current = gateway.Current(ctx)
+
+		return nil
+	}); err != nil || current {
 		return err
 	}
 

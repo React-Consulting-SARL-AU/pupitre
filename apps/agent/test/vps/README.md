@@ -101,7 +101,7 @@ ssh -p 2222 $VPS 'install -m 755 /dev/stdin /usr/local/bin/pupitred' < apps/agen
 ssh -p 2222 $VPS pupitred install --only=runtime.node,ai.claude
 ```
 
-Le build `dev` embarque un droit d'usage : ni jeton ni plateforme. Sur le PC, `build:dev` et
+Le build `dev` embarque une licence : ni jeton ni plateforme. Sur le PC, `build:dev` et
 `pupitred-linux-amd64`, avec l'adresse relevée à la place de `127.0.0.1`.
 
 Tests d'intégration :

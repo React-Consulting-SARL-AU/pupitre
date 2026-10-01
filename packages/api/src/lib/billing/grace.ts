@@ -1,10 +1,10 @@
 import {
-  sendEntitlementGraceEmail,
+  sendLicenseGraceEmail,
   sendServerSuspendedEmail,
 } from "../../emails/notifications"
 import { D1_BATCH_SIZE, drainBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
-import { entitlementWindow } from "./entitlement"
+import { fitsFreeTier, graceDeadline, licenseWindow } from "./license"
 
 /** A server already in grace keeps its deadline, whatever Stripe retries in between. */
 export async function graceOrganizationServers(
@@ -13,11 +13,11 @@ export async function graceOrganizationServers(
 ): Promise<number> {
   const { count } = await getPrisma().server.updateMany({
     where: { organizationId, status: "active" },
-    data: { status: "grace", entitlementValidUntil: validUntil },
+    data: { status: "grace", licenseValidUntil: validUntil },
   })
 
   if (count > 0) {
-    await sendEntitlementGraceEmail({
+    await sendLicenseGraceEmail({
       organizationId,
       deadline: validUntil,
       serverCount: count,
@@ -43,10 +43,24 @@ export function restoreOrganizationServers(
       data: {
         status: "active",
         suspendedReason: null,
-        entitlementValidUntil: entitlementWindow(now),
+        licenseValidUntil: licenseWindow(now),
       },
     })
     .then((result) => result.count)
+}
+
+/** Without a licence, the free servers keep running; past them, the grace opens from now. */
+export async function settleUnlicensedOrganization(
+  organizationId: string,
+  now: Date = new Date()
+): Promise<void> {
+  if (await fitsFreeTier(organizationId)) {
+    await restoreOrganizationServers(organizationId, now)
+
+    return
+  }
+
+  await graceOrganizationServers(organizationId, graceDeadline(now))
 }
 
 export const SUSPENSION_BATCH_SIZE = D1_BATCH_SIZE
@@ -65,7 +79,7 @@ export function suspendExpiredGraceBatch(
   now: Date = new Date()
 ): Promise<SuspendedServer[]> {
   return getPrisma().server.updateManyAndReturn({
-    where: { status: "grace", entitlementValidUntil: { lte: now } },
+    where: { status: "grace", licenseValidUntil: { lte: now } },
     data: { status: "suspended", suspendedReason: "billing" },
     limit: SUSPENSION_BATCH_SIZE,
     select: { id: true, organizationId: true },

@@ -590,19 +590,20 @@ const SIGNED_IN: AccountState = {
   device: DEVICE,
   identity: {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada Lovelace",
     organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
     organizations: [
       { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
     ],
     role: "owner",
-    subscription: null,
+    servers: { limit: 3, used: 1 },
   },
   refusal: null,
   sealed: true,
   usage: {
-    entitlement: "valid",
+    license: "valid",
     source: "platform",
     status: "granted",
     validUntil: "2026-09-11T10:00:00.000Z",
@@ -615,7 +616,7 @@ describe("le compte", () => {
       <AccountUsageNotice
         checkedAt={null}
         onOpenConsole={NOOP}
-        usage={{ consoleUrl: "https://app.pupitre.test", status: "suspended" }}
+        usage={{ consoleUrl: "https://app.pupitre.test", status: "absent" }}
       />
     );
     const granted = renderToStaticMarkup(
@@ -626,7 +627,7 @@ describe("le compte", () => {
       />
     );
 
-    expect(text(suspended)).toContain("Gérer l'abonnement");
+    expect(text(suspended)).toContain("Ouvrir la console");
     expect(text(granted)).not.toContain("console");
   });
 

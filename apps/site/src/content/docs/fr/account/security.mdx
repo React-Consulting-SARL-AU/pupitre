@@ -11,7 +11,7 @@ Quatre règles tiennent le produit. Chacune est énoncée pour que vous puissiez
 
 ## Rien ne se connecte vers l’intérieur
 
-L’app ouvre une session SSH depuis votre laptop. L’agent fait des appels HTTPS sortants pour son droit d’usage, les clés publiques et ses propres mises à jour. Ni la plateforme ni le support n’ouvrent de connexion vers votre machine.
+L’app ouvre une session SSH depuis votre laptop. L’agent fait des appels HTTPS sortants pour sa licence, les clés publiques et ses propres mises à jour. Ni la plateforme ni le support n’ouvrent de connexion vers votre machine.
 
 Ce que le pare-feu laisse entrer est à votre usage : SSH sur 22, et aussi sur 443 si vous avez choisi SSH sur 443 à la sécurisation ; 80 et 443 pour le web une fois `exposure.caddy` installé ; et votre propre tailnet si vous installez `exposure.tailscale`.
 

@@ -74,7 +74,7 @@ describe("ServerActions", () => {
                 reason: null,
               },
               role: "owner",
-              entitlement: "valid",
+              license: "valid",
               platformRole: null,
               platformCanAct: false,
             }}

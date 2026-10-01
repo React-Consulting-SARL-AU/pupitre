@@ -26,7 +26,7 @@ import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 const SERVER = "srv-1";
 
 const REFUSAL = {
-  code: "entitlement_required",
+  code: "license_required",
   fix: "Connecte-toi depuis les réglages, ou ouvre la console : https://app.pupitre.test/dashboard",
   message: "Installer un serveur demande un compte Pupitre.",
 };

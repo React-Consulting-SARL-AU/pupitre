@@ -2,12 +2,12 @@
 # jeton de serveur auprès de la plateforme, puis installe, sur la même session
 # privilégiée. Le jeton et l'adresse de la plateforme changent à chaque
 # exécution : le transcript les accepte par joker, et l'échange lui-même est réel.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"restricted","capabilities":["hello","ping","diag","enroll","install"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"restricted","capabilities":["hello","ping","diag","enroll","install"]}}
 @enrol
 > {"id":2,"cmd":"enroll","params":{"platform_url":"*","secrets_stdin":true}}
 $ *
-< {"id":2,"ok":true,"result":{"enrolled":true,"entitlement":"valid","synced_at":"2026-09-05T10:00:00Z"}}
+< {"id":2,"ok":true,"result":{"enrolled":true,"license":"valid","synced_at":"2026-09-05T10:00:00Z"}}
 > {"id":3,"cmd":"install","params":{"modules":["core.system"],"config":{"core.system":{}},"secrets_stdin":false}}
 < {"id":3,"event":"step","module":"core.system","step":"paquets","status":"start","ms":0}
 < {"id":3,"event":"step","module":"core.system","step":"paquets","status":"ok","ms":1200}

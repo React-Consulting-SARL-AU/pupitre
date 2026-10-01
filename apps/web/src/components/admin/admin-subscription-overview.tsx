@@ -26,10 +26,7 @@ export function AdminSubscriptionOverview({
       <CardHeader>
         <CardTitle>{t("admin.subscriptions.profile")}</CardTitle>
         <div className="flex items-center gap-3">
-          <AdminSubscriptionStatus
-            product={subscription.product}
-            status={subscription.status}
-          />
+          <AdminSubscriptionStatus status={subscription.status} />
           {subscription.stripe_url ? (
             <a
               className="inline-flex items-center gap-1.5 text-[13px] text-ink-2 underline-offset-2 hover:text-ink hover:underline"

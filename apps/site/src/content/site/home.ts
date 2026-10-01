@@ -21,7 +21,6 @@ export interface FaqItem {
 export interface StepItem {
   title: string
   detail: string
-  duringLaunch?: { title: string; detail: string }
 }
 
 // `mark` names a product a module installs under another name, such as Bun inside `runtime.node`.
@@ -80,11 +79,9 @@ export interface HomeContent {
   pricing: {
     label: string
     title: string
-    perServer: string
-    annual: string
-    trial: string
-    launch: string
-    hosted: string
+    figure: string
+    lead: string
+    lines: string[]
     link: string
   }
   cta: { title: string; lead: string; signUp: string; docs: string }

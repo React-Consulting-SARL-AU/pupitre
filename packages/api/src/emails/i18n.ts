@@ -60,24 +60,24 @@ export const EMAIL_FR = {
     "L'équipe Pupitre a suspendu {organization}. Ses {count} serveur(s) ne distribuent plus de clés et l'agent refuse de travailler dès son prochain contact. La console reste ouverte ; vos données, vos projets et vos services restent en place sur les machines : rien n'est effacé.",
   "organization_suspended.cta": "Écrire au support",
   "organization_suspended.footnote":
-    "Le remède : répondez au support avec le motif ci-dessus. Un abonnement ne lève pas cette suspension ; seule l'équipe le fait.",
+    "Le remède : répondez au support avec le motif ci-dessus. Une licence ne lève pas cette suspension ; seule l'équipe le fait.",
 
   "organization_restored.subject": "{organization} est rétablie",
   "organization_restored.preview":
     "La suspension est levée. Les serveurs reprennent leur travail.",
   "organization_restored.title": "{organization} est rétablie",
   "organization_restored.body":
-    "L'équipe Pupitre a levé la suspension de {organization}. Ses {count} serveur(s) reprennent le droit d'usage de son abonnement à leur prochain contact. Un serveur que l'équipe avait suspendu à part reste suspendu.",
+    "L'équipe Pupitre a levé la suspension de {organization}. Ses {count} serveur(s) reprennent le droit d'usage de sa licence à leur prochain contact. Un serveur que l'équipe avait suspendu à part reste suspendu.",
   "organization_restored.cta": "Ouvrir la console",
   "organization_restored.footnote":
     "Un serveur encore suspendu après ce message porte sa propre suspension : écrivez au support pour la lever.",
 
   "organization_closed.subject": "{organization} est fermée",
   "organization_closed.preview":
-    "L'équipe Pupitre a fermé cette organisation. Son abonnement est arrêté.",
+    "L'équipe Pupitre a fermé cette organisation. Sa licence est arrêtée.",
   "organization_closed.title": "{organization} est fermée",
   "organization_closed.body":
-    "L'équipe Pupitre a fermé {organization}. Ses membres n'y entrent plus, son abonnement est arrêté et ses serveurs sont suspendus. Rien n'est effacé sur les machines, et la fermeture se lève si l'équipe rouvre l'organisation.",
+    "L'équipe Pupitre a fermé {organization}. Ses membres n'y entrent plus, sa licence est arrêtée et ses serveurs sont suspendus. Rien n'est effacé sur les machines, et la fermeture se lève si l'équipe rouvre l'organisation.",
   "organization_closed.cta": "Écrire au support",
   "organization_closed.footnote":
     "Le remède : répondez au support avec le motif ci-dessus. Vos autres organisations restent accessibles depuis le sélecteur de la console.",
@@ -128,15 +128,15 @@ export const EMAIL_FR = {
   "device_added.footnote":
     "Ce n'est pas vous ? Retirez cet appareil depuis la console : sa clé quitte vos serveurs à leur prochain contact.",
 
-  "entitlement_grace.subject": "Votre droit d'usage Pupitre est en tolérance",
-  "entitlement_grace.preview":
-    "Le paiement n'a pas abouti. Vos serveurs tournent jusqu'au {deadline}.",
-  "entitlement_grace.title": "Paiement en attente",
-  "entitlement_grace.body":
-    "Le dernier paiement de {organization} n'a pas abouti. Vos serveurs continuent de travailler jusqu'au {deadline}. Passé cette date, l'agent se met en veille.",
-  "entitlement_grace.cta": "Corriger le paiement",
-  "entitlement_grace.footnote":
-    "Le remède : ouvrez la facturation, mettez à jour le moyen de paiement. Vos serveurs repartent au contact suivant.",
+  "license_grace.subject": "Votre licence Pupitre est en tolérance",
+  "license_grace.preview":
+    "La licence de {organization} ne couvre plus ses serveurs. Ils tournent jusqu'au {deadline}.",
+  "license_grace.title": "Licence en tolérance",
+  "license_grace.body":
+    "La licence de {organization} a pris fin ou son paiement n'a pas abouti, et l'organisation dépasse ses serveurs gratuits. Vos serveurs continuent de travailler jusqu'au {deadline}. Passé cette date, l'agent se met en veille.",
+  "license_grace.cta": "Ouvrir la console",
+  "license_grace.footnote":
+    "Le remède : supprimez les serveurs en trop pour revenir aux serveurs gratuits, ou écrivez au support pour une licence. Vos serveurs repartent au contact suivant.",
 
   "server_suspended.subject": "Vos serveurs Pupitre sont suspendus",
   "server_suspended.preview":
@@ -144,9 +144,9 @@ export const EMAIL_FR = {
   "server_suspended.title": "Serveurs suspendus",
   "server_suspended.body":
     "La tolérance de {organization} est écoulée. L'agent refuse désormais de travailler sur {count} serveur(s). Vos données, vos projets et vos services restent en place sur les machines : rien n'est effacé.",
-  "server_suspended.cta": "Reprendre l'abonnement",
+  "server_suspended.cta": "Ouvrir la console",
   "server_suspended.footnote":
-    "Le remède : reprenez l'abonnement depuis la facturation. Les serveurs redeviennent actifs à leur prochain contact.",
+    "Le remède : supprimez les serveurs en trop pour revenir aux serveurs gratuits, ou écrivez au support pour une licence. Les serveurs redeviennent actifs à leur prochain contact.",
 
   "server_suspended_admin.subject": "{server} a été suspendu par Pupitre",
   "server_suspended_admin.preview":
@@ -156,14 +156,14 @@ export const EMAIL_FR = {
     "L'équipe Pupitre a suspendu ce serveur de {organization}. Ses clés ne sont plus distribuées et l'agent refuse de travailler dès son prochain contact. Vos données, vos projets et vos services restent en place sur la machine : rien n'est effacé.",
   "server_suspended_admin.cta": "Écrire au support",
   "server_suspended_admin.footnote":
-    "Le remède : répondez au support avec le motif ci-dessus. Un abonnement ne lève pas cette suspension ; seule l'équipe le fait.",
+    "Le remède : répondez au support avec le motif ci-dessus. Une licence ne lève pas cette suspension ; seule l'équipe le fait.",
 
   "seats_drift.subject":
     "{organization} occupe plus de sièges qu'elle n'en paie",
   "seats_drift.preview": "{seated} serveurs pour {paid} sièges payés.",
   "seats_drift.title": "Plus de serveurs que de sièges",
   "seats_drift.body":
-    "{organization} occupe {seated} serveurs alors que l'abonnement couvre {paid} sièges. Rien n'est coupé aujourd'hui, mais l'écart doit se résorber : ajoutez des sièges ou supprimez des serveurs.",
+    "{organization} occupe {seated} serveurs au-delà de ses serveurs gratuits alors que sa licence couvre {paid} sièges. Rien n'est coupé aujourd'hui, mais l'écart doit se résorber : ajoutez des sièges ou supprimez des serveurs.",
   "seats_drift.cta": "Ajuster les sièges",
   "seats_drift.footnote":
     "Le remède : ouvrez la facturation et portez le nombre de sièges au nombre de serveurs, ou supprimez ceux qui ne servent plus.",
@@ -228,15 +228,15 @@ export const EMAIL_FR = {
   "alert_backup_stale.footnote":
     "Le remède : vérifiez que l'agent tourne avec systemctl status pupitred, puis lancez « Sauvegarder maintenant » depuis la fiche du serveur dans l'app Pupitre.",
 
-  "alert_entitlement_grace.subject": "{server} tourne en tolérance",
-  "alert_entitlement_grace.preview":
-    "Le droit d'usage de ce serveur expire le {deadline}.",
-  "alert_entitlement_grace.title": "{server} est en tolérance",
-  "alert_entitlement_grace.body":
-    "Le paiement de {organization} est en attente. Ce serveur continue de tourner jusqu'au {deadline} ; après cette date, l'agent se met en pause et vos sessions s'arrêtent. La machine et ses données restent intactes.",
-  "alert_entitlement_grace.cta": "Corriger le paiement",
-  "alert_entitlement_grace.footnote":
-    "Le remède : mettez le moyen de paiement à jour depuis la facturation. Le serveur redevient actif à son prochain contact.",
+  "alert_license_grace.subject": "{server} tourne en tolérance",
+  "alert_license_grace.preview":
+    "La licence de ce serveur expire le {deadline}.",
+  "alert_license_grace.title": "{server} est en tolérance",
+  "alert_license_grace.body":
+    "{organization} dépasse ses serveurs gratuits sans licence en cours. Ce serveur continue de tourner jusqu'au {deadline} ; après cette date, l'agent se met en pause et vos sessions s'arrêtent. La machine et ses données restent intactes.",
+  "alert_license_grace.cta": "Ouvrir la console",
+  "alert_license_grace.footnote":
+    "Le remède : supprimez les serveurs en trop, ou écrivez au support pour une licence. Le serveur redevient actif à son prochain contact.",
 
   "server_decommission.subject": "{server} sera effacé le {deadline}",
   "server_decommission.preview":
@@ -311,24 +311,24 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
     "The Pupitre team suspended {organization}. Its {count} server(s) hand out no key any more and the agent refuses to work from its next contact on. The console stays open; your data, your projects and your services stay in place on the machines: nothing is erased.",
   "organization_suspended.cta": "Write to support",
   "organization_suspended.footnote":
-    "The fix: answer support with the reason above. A subscription does not lift this suspension; only the team does.",
+    "The fix: answer support with the reason above. A licence does not lift this suspension; only the team does.",
 
   "organization_restored.subject": "{organization} is back",
   "organization_restored.preview":
     "The suspension is lifted. The servers go back to work.",
   "organization_restored.title": "{organization} is back",
   "organization_restored.body":
-    "The Pupitre team lifted the suspension on {organization}. Its {count} server(s) take back the entitlement of its subscription at their next contact. A server the team suspended on its own stays suspended.",
+    "The Pupitre team lifted the suspension on {organization}. Its {count} server(s) take back the licence of the organization at their next contact. A server the team suspended on its own stays suspended.",
   "organization_restored.cta": "Open the console",
   "organization_restored.footnote":
     "A server still suspended after this message carries a suspension of its own: write to support to have it lifted.",
 
   "organization_closed.subject": "{organization} is closed",
   "organization_closed.preview":
-    "The Pupitre team closed this organisation. Its subscription is stopped.",
+    "The Pupitre team closed this organisation. Its licence is stopped.",
   "organization_closed.title": "{organization} is closed",
   "organization_closed.body":
-    "The Pupitre team closed {organization}. Its members no longer enter it, its subscription is stopped and its servers are suspended. Nothing is erased on the machines, and the closure lifts if the team reopens the organisation.",
+    "The Pupitre team closed {organization}. Its members no longer enter it, its licence is stopped and its servers are suspended. Nothing is erased on the machines, and the closure lifts if the team reopens the organisation.",
   "organization_closed.cta": "Write to support",
   "organization_closed.footnote":
     "The fix: answer support with the reason above. Your other organisations stay reachable from the console switcher.",
@@ -378,15 +378,15 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "device_added.footnote":
     "Not you? Remove the device from the console: its key leaves your servers on their next contact.",
 
-  "entitlement_grace.subject": "Your Pupitre entitlement is in grace",
-  "entitlement_grace.preview":
-    "The payment did not go through. Your servers run until {deadline}.",
-  "entitlement_grace.title": "Payment pending",
-  "entitlement_grace.body":
-    "The last payment for {organization} did not go through. Your servers keep working until {deadline}. After that date, the agent goes to sleep.",
-  "entitlement_grace.cta": "Fix the payment",
-  "entitlement_grace.footnote":
-    "The fix: open billing and update the payment method. Your servers resume on their next contact.",
+  "license_grace.subject": "Your Pupitre licence is in grace",
+  "license_grace.preview":
+    "The licence of {organization} no longer covers its servers. They run until {deadline}.",
+  "license_grace.title": "Licence in grace",
+  "license_grace.body":
+    "The licence of {organization} ended or its payment did not go through, and the organization holds more than its free servers. Your servers keep working until {deadline}. After that date, the agent goes to sleep.",
+  "license_grace.cta": "Open the console",
+  "license_grace.footnote":
+    "The fix: delete the extra servers to get back to the free ones, or write to support for a licence. Your servers resume on their next contact.",
 
   "server_suspended.subject": "Your Pupitre servers are suspended",
   "server_suspended.preview":
@@ -394,9 +394,9 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "server_suspended.title": "Servers suspended",
   "server_suspended.body":
     "The grace period for {organization} ran out. The agent now refuses to work on {count} server(s). Your data, projects and services stay in place on the machines: nothing is erased.",
-  "server_suspended.cta": "Resume the subscription",
+  "server_suspended.cta": "Open the console",
   "server_suspended.footnote":
-    "The fix: resume the subscription from billing. The servers turn active again on their next contact.",
+    "The fix: delete the extra servers to get back to the free ones, or write to support for a licence. The servers turn active again on their next contact.",
 
   "server_suspended_admin.subject": "{server} was suspended by Pupitre",
   "server_suspended_admin.preview":
@@ -406,13 +406,13 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
     "The Pupitre team suspended this server of {organization}. Its keys are no longer handed out and the agent refuses to work from its next contact on. Your data, projects and services stay in place on the machine: nothing is erased.",
   "server_suspended_admin.cta": "Write to support",
   "server_suspended_admin.footnote":
-    "The fix: answer support with the reason above. A subscription does not lift this suspension; only the team does.",
+    "The fix: answer support with the reason above. A licence does not lift this suspension; only the team does.",
 
   "seats_drift.subject": "{organization} seats more servers than it pays for",
   "seats_drift.preview": "{seated} servers for {paid} paid seats.",
   "seats_drift.title": "More servers than seats",
   "seats_drift.body":
-    "{organization} seats {seated} servers while the subscription covers {paid} seats. Nothing is cut today, but the gap has to close: add seats or remove servers.",
+    "{organization} seats {seated} servers beyond its free ones while its licence covers {paid} seats. Nothing is cut today, but the gap has to close: add seats or remove servers.",
   "seats_drift.cta": "Adjust the seats",
   "seats_drift.footnote":
     "The fix: open billing and raise the seat count to the number of servers, or remove the ones no longer in use.",
@@ -474,15 +474,15 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "alert_backup_stale.footnote":
     "The fix: check that the agent runs with systemctl status pupitred, then run “Back up now” from the server's page in the Pupitre app.",
 
-  "alert_entitlement_grace.subject": "{server} is running in grace",
-  "alert_entitlement_grace.preview":
-    "The entitlement of this server expires on {deadline}.",
-  "alert_entitlement_grace.title": "{server} is in grace",
-  "alert_entitlement_grace.body":
-    "The payment for {organization} is pending. This server keeps running until {deadline}; after that date the agent pauses and your sessions stop. The machine and its data stay intact.",
-  "alert_entitlement_grace.cta": "Fix the payment",
-  "alert_entitlement_grace.footnote":
-    "The fix: update the payment method from billing. The server turns active again on its next contact.",
+  "alert_license_grace.subject": "{server} is running in grace",
+  "alert_license_grace.preview":
+    "The licence of this server expires on {deadline}.",
+  "alert_license_grace.title": "{server} is in grace",
+  "alert_license_grace.body":
+    "{organization} holds more than its free servers without a live licence. This server keeps running until {deadline}; after that date the agent pauses and your sessions stop. The machine and its data stay intact.",
+  "alert_license_grace.cta": "Open the console",
+  "alert_license_grace.footnote":
+    "The fix: delete the extra servers, or write to support for a licence. The server turns active again on its next contact.",
 
   "server_decommission.subject": "{server} will be erased on {deadline}",
   "server_decommission.preview":

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test"
 import {
   EmptyParamsSchema,
-  EntitlementSchema,
   HelloParamsSchema,
   HelloResultSchema,
+  LicenseSchema,
   PingResultSchema,
 } from "./session"
 
@@ -36,7 +36,7 @@ describe("HelloResultSchema", () => {
         agent_version: "0.3.1",
         protocol: 2,
         server_id: "srv_01H",
-        entitlement: "valid",
+        license: "valid",
         capabilities: ["projects", "tunnel"],
       }).success
     ).toBe(true)
@@ -44,22 +44,22 @@ describe("HelloResultSchema", () => {
       HelloResultSchema.safeParse({
         agent_version: "0.3.1",
         protocol: 2,
-        entitlement: "dev",
+        license: "dev",
         capabilities: [],
       }).success
     ).toBe(true)
   })
 
-  it("rejects an unknown entitlement", () => {
+  it("rejects an unknown license", () => {
     expect(
       HelloResultSchema.safeParse({
         agent_version: "0.3.1",
         protocol: 2,
-        entitlement: "trial",
+        license: "trial",
         capabilities: [],
       }).success
     ).toBe(false)
-    expect(EntitlementSchema.safeParse("suspended").success).toBe(false)
+    expect(LicenseSchema.safeParse("suspended").success).toBe(false)
   })
 })
 

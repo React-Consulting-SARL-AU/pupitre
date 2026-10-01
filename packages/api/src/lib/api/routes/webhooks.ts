@@ -1,5 +1,6 @@
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
+import { BillingOffError } from "../../billing/runtime"
 import {
   handleStripeWebhook,
   StripeEventInFlightError,
@@ -33,6 +34,16 @@ export const webhooksRoutes = new Elysia({
         duplicate: result.duplicate,
       }
     } catch (error) {
+      if (error instanceof BillingOffError) {
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "billing_off"),
+          translate(locale, "billing_off_fix")
+        )
+      }
+
       if (error instanceof StripeSignatureInvalidError) {
         set.status = 400
 

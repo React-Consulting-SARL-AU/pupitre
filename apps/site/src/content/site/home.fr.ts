@@ -7,14 +7,14 @@ export const homeFr: HomeContent = {
       "Une app pour Mac, Windows et Linux qui prépare pour vous un serveur loué — un VPS — et y installe vos outils, vos bases et vos agents IA. Sans une seule ligne de commande.",
   },
   hero: {
-    eyebrow: "Pour Mac, Windows et Linux",
+    eyebrow: "Gratuit et code source ouvert",
     headline:
       "Vos agents IA travaillent sur une machine à eux. Votre laptop respire.",
     cooled: "respire",
     lead: "Louez un serveur qui reste allumé jour et nuit, et laissez Pupitre le préparer à votre place. Vos outils, vos bases de données et vos agents s’installent tout seuls, et vous suivez tout depuis une app posée sur votre bureau.",
     signUp: "Créer un compte",
     download: "Télécharger l’app",
-    note: "Pas une ligne de commande à taper : vous cochez, Pupitre installe, vous regardez faire.",
+    note: "Pour Mac, Windows et Linux, sans une ligne de commande à taper : vous cochez, Pupitre installe, vous regardez faire.",
   },
   stack: {
     title: "Tout ça, installé pour vous",
@@ -45,17 +45,12 @@ export const homeFr: HomeContent = {
       {
         title: "Créez votre compte",
         detail:
-          "Une adresse mail suffit. Le compte porte votre organisation, vos factures et les serveurs que vous y rattachez.",
+          "Une adresse mail suffit. Le compte porte votre organisation, ses membres et les serveurs que vous y rattachez.",
       },
       {
-        title: "Démarrez votre essai",
+        title: "Commencez gratuitement",
         detail:
-          "{days} jours sur une machine, et aucune carte bancaire demandée. L’essai ouvre tout le catalogue et tout ce que l’app sait faire.",
-        duringLaunch: {
-          title: "Commencez gratuitement",
-          detail:
-            "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation, sans carte bancaire. Une machine enrôlée pendant le lancement reste gratuite pour de bon.",
-        },
+          "Jusqu’à {count} serveurs par organisation, sans carte bancaire, sans essai et sans limite de durée. Vous avez tout le catalogue et tout ce que l’app sait faire.",
       },
       {
         title: "Téléchargez l’app",
@@ -157,7 +152,7 @@ export const homeFr: HomeContent = {
       {
         statement: "Vous gardez tout si vous partez.",
         proof:
-          "Arrêtez l’abonnement et le serveur continue de tourner, avec vos projets, vos bases et vos données. Vous perdez l’app, rien d’autre.",
+          "Retirez Pupitre et le serveur continue de tourner, avec vos projets, vos bases et vos données. Vous perdez l’app, rien d’autre.",
       },
     ],
   },
@@ -178,7 +173,7 @@ export const homeFr: HomeContent = {
       {
         question: "Combien ça coûte en tout ?",
         answer:
-          "Deux choses : la location du serveur, que vous payez à votre hébergeur — comptez cinq à dix euros par mois pour commencer — et l’abonnement à Pupitre. Vos abonnements Claude ou ChatGPT restent les vôtres et ne changent pas. Rien n’est facturé à l’usage : aucune surprise en fin de mois.",
+          "Seulement le serveur, que vous payez à votre hébergeur — comptez cinq à dix euros par mois pour commencer. Pupitre est gratuit jusqu’à {count} serveurs par organisation, sans carte bancaire ; au-delà, une licence est accordée sur demande. Vos abonnements Claude ou ChatGPT restent les vôtres et ne changent pas.",
       },
       {
         question: "Est-ce que mon code reste privé ?",
@@ -204,15 +199,14 @@ export const homeFr: HomeContent = {
   },
   pricing: {
     label: "Tarifs",
-    title: "Un prix par serveur",
-    perServer: "{price} HT par serveur et par mois, en {solo} comme en {team}.",
-    annual:
-      "À l’année, {months} mois sont offerts : {yearly} par serveur et par an.",
-    trial: "{days} jours d’essai sur une machine, sans carte bancaire.",
-    launch:
-      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Une machine enrôlée pendant le lancement reste gratuite pour de bon. Ces prix s’appliqueront à l’ouverture de la facturation.",
-    hosted:
-      "{hosted}, un serveur fourni par Pupitre, à partir de {price} par mois. Plus tard.",
+    title: "Gratuit jusqu’à {count} serveurs",
+    figure: "Gratuit",
+    lead: "Pupitre ne coûte rien pour les {count} premiers serveurs de chaque organisation : l’app, l’agent et tout le catalogue.",
+    lines: [
+      "Ni carte, ni essai, ni abonnement.",
+      "Au-delà de {count} serveurs, une licence est accordée sur demande.",
+      "Le code source est public : vous pouvez le lire, le modifier et le faire tourner vous-même.",
+    ],
     link: "Voir les tarifs",
   },
   cta: {

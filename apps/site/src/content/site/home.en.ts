@@ -7,14 +7,14 @@ export const homeEn: HomeContent = {
       "A Mac, Windows and Linux app that sets up a rented server — a VPS — for you and installs your tools, your databases and your AI agents on it. Without a single command line.",
   },
   hero: {
-    eyebrow: "For Mac, Windows and Linux",
+    eyebrow: "Free and source-available",
     headline:
       "Your AI agents get a machine of their own. Your laptop cools down.",
     cooled: "cools down",
     lead: "Rent a server that stays on day and night, and let Pupitre set it up for you. Your tools, your databases and your agents install themselves, and you watch it all from an app on your desk.",
     signUp: "Create an account",
     download: "Download the app",
-    note: "Not one command to type: you tick the boxes, Pupitre installs, you watch it work.",
+    note: "For Mac, Windows and Linux, with not one command to type: you tick the boxes, Pupitre installs, you watch it work.",
   },
   stack: {
     title: "All of this, installed for you",
@@ -45,17 +45,12 @@ export const homeEn: HomeContent = {
       {
         title: "Create your account",
         detail:
-          "An email address is enough. The account holds your organisation, your invoices and the servers you attach to it.",
+          "An email address is enough. The account holds your organisation, its members and the servers you attach to it.",
       },
       {
-        title: "Start your trial",
+        title: "Start for free",
         detail:
-          "{days} days on one machine, and no card is asked for. The trial opens the whole catalogue and everything the app knows how to do.",
-        duringLaunch: {
-          title: "Start for free",
-          detail:
-            "Free during the launch, until {date}, on one machine per organisation, and no card is asked for. A machine enrolled during the launch stays free for good.",
-        },
+          "Up to {count} servers per organisation, with no card, no trial and no time limit. You get the whole catalogue and everything the app knows how to do.",
       },
       {
         title: "Download the app",
@@ -157,7 +152,7 @@ export const homeEn: HomeContent = {
       {
         statement: "You keep everything if you leave.",
         proof:
-          "Stop the subscription and the server keeps running, with your projects, your databases and your data. You lose the app, nothing else.",
+          "Remove Pupitre and the server keeps running, with your projects, your databases and your data. You lose the app, nothing else.",
       },
     ],
   },
@@ -178,7 +173,7 @@ export const homeEn: HomeContent = {
       {
         question: "What does it cost in total?",
         answer:
-          "Two things: renting the server, which you pay to your host — count five to ten euros a month to start — and the Pupitre subscription. Your Claude or ChatGPT subscriptions stay yours and do not change. Nothing is billed by usage: no surprise at the end of the month.",
+          "Only the server, which you pay to your host — count five to ten euros a month to start. Pupitre is free up to {count} servers per organisation, with no card asked for; beyond that, a licence is granted on request. Your Claude or ChatGPT subscriptions stay yours and do not change.",
       },
       {
         question: "Does my code stay private?",
@@ -204,15 +199,14 @@ export const homeEn: HomeContent = {
   },
   pricing: {
     label: "Pricing",
-    title: "One price per server",
-    perServer:
-      "{price} per server per month, excluding tax, on {solo} as on {team}.",
-    annual: "Yearly, {months} months are free: {yearly} per server per year.",
-    trial: "{days}-day trial on one machine, no card.",
-    launch:
-      "Free during the launch, until {date}, on one machine per organisation. A machine enrolled during the launch stays free for good. These prices apply once billing opens.",
-    hosted:
-      "{hosted}, a server provided by Pupitre, from {price} per month. Later.",
+    title: "Free up to {count} servers",
+    figure: "Free",
+    lead: "Pupitre costs nothing for the first {count} servers of each organisation: the app, the agent and the whole catalogue.",
+    lines: [
+      "No card, no trial, no subscription.",
+      "Beyond {count} servers, a licence is granted on request.",
+      "The source code is public: you may read it, change it and run it yourself.",
+    ],
     link: "See the pricing",
   },
   cta: {

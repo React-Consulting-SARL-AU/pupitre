@@ -150,7 +150,7 @@ Un message HTML qui porte `<img src="cid:…">` désigne une partie du même mes
 
 ### La purge des dépôts
 
-`purgeStaleMailUploads` (`lib/mail/uploads.ts`) liste `mail/uploads/` par le binding et efface ce qui a plus de vingt-quatre heures, d'après la date de dépôt de l'objet. Elle tourne en dernière étape du workflow quotidien `SuspendExpiredGrace`, après `reconcile-launch` et `suspend-expired-grace`. Rien d'autre n'est purgé : un fil et ses objets restent.
+`purgeStaleMailUploads` (`lib/mail/uploads.ts`) liste `mail/uploads/` par le binding et efface ce qui a plus de vingt-quatre heures, d'après la date de dépôt de l'objet. Elle tourne en dernière étape du workflow quotidien `SuspendExpiredGrace`, après `suspend-expired-grace`. Rien d'autre n'est purgé : un fil et ses objets restent.
 
 ## Le temps réel
 

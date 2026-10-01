@@ -1,0 +1,25 @@
+---
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+import { homeContent } from "../content/site/home"
+import { fill, localeFromPath, localizePath } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const { pricing } = homeContent(locale)
+const servers = { count: FREE_SERVERS }
+---
+
+<div class="card-soft mx-auto grid max-w-4xl gap-x-12 gap-y-8 p-8 md:grid-cols-[auto_1fr] md:p-12">
+  <p class="figure figure-xl">{pricing.figure}</p>
+  <div class="max-w-xl">
+    <p class="lead">{fill(pricing.lead, servers)}</p>
+    <ul class="mt-6 flex flex-col gap-3 text-ink-2">
+      {pricing.lines.map((line) => <li class="body-lg">{fill(line, servers)}</li>)}
+    </ul>
+    <a
+      href={localizePath("/pricing/", locale)}
+      class="link-underline mt-6 inline-block py-2"
+    >
+      {pricing.link}
+    </a>
+  </div>
+</div>

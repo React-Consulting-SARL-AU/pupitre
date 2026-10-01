@@ -16,7 +16,9 @@ describe("translate", () => {
       "account_deactivated_fix",
       "account_suspended_fix",
       "organization_closed_fix",
-      "launch_subscription_ended_fix",
+      "license_required_fix",
+      "seat_quota_reached_fix",
+      "billing_off_fix",
     ]
 
     for (const key of keys) {

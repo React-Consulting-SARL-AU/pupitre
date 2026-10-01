@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import {
   reconcileSeats,
   SEAT_RECONCILIATION_BATCH_SIZE,
@@ -12,7 +12,7 @@ import {
   subscribeOrganization,
 } from "../../testing/factories"
 
-async function organizationSeating(servers: number, paid: number) {
+async function organizationSeating(beyondFree: number, paid: number) {
   const { organization, members } = await createOrganizationWithMembers({
     roles: ["owner", "member"],
   })
@@ -22,7 +22,7 @@ async function organizationSeating(servers: number, paid: number) {
     status: "active",
   })
 
-  for (let index = 0; index < servers; index += 1) {
+  for (let index = 0; index < FREE_SERVERS + beyondFree; index += 1) {
     await createServer({ organizationId: organization.id })
   }
 
@@ -103,32 +103,20 @@ describe("reconcileSeats", () => {
     expect(warnedOf()).toHaveLength(2)
   })
 
-  it("never counts the seat kept from the launch as a billed one", async () => {
-    const { organization, subscription } = await organizationSeating(3, 2)
+  it("never bills the free servers", async () => {
+    const { subscription } = await organizationSeating(0, 1)
 
-    await server.prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: `launch_${organization.id}`,
-        product: LAUNCH_PRODUCT,
-        quantity: LAUNCH_SEATS,
-        status: "active",
-      },
-    })
-
-    const report = await reconcileSeats({ apply: true })
+    const report = await reconcileSeats()
 
     expect(report).toEqual([
       expect.objectContaining({
         stripe_subscription_id: subscription.stripeSubscriptionId,
-        paid: 2,
-        seated: 2,
-        drift: 0,
-        applied: false,
+        paid: 1,
+        seated: 0,
+        drift: -1,
       }),
     ])
     expect(server.sentEmails).toHaveLength(0)
-    expect(useFakeBilling().quantities).toHaveLength(0)
   })
 
   it("reconciles every billed subscription, page after page", async () => {

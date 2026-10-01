@@ -13,7 +13,7 @@ describe("ProtocolErrorCodeSchema", () => {
       "protocol_mismatch",
       "bad_request",
       "unknown_command",
-      "entitlement_required",
+      "license_required",
       "project_not_found",
       "no_report",
       "bad_signature",
@@ -41,8 +41,8 @@ describe("ProtocolErrorSchema", () => {
     ).toBe(true)
     expect(
       ProtocolErrorSchema.safeParse({
-        code: "entitlement_required",
-        message: "Subscription expired",
+        code: "license_required",
+        message: "Licence required",
         fix: "https://app.pupitre.studio/billing",
       }).success
     ).toBe(true)

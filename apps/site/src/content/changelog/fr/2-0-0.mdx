@@ -1,0 +1,62 @@
+---
+title: Le code est public, et trois serveurs sont gratuits
+description: Le code source de Pupitre est publié sous Apache 2.0 assortie de la Commons Clause, chaque organisation enrôle trois serveurs sans rien payer, ni carte ni essai, une licence s'obtient sur demande au-delà, et l'abonnement devient la licence partout où il se voit.
+locale: fr
+version: 2.0.0
+channel: stable
+date: 2026-10-01
+order: 24
+---
+
+Cette version est un palier : une app 2.0 ne pilote qu'un agent 2.0. Mettez d'abord l'app à jour ; un agent de la génération précédente refuse de lui répondre, l'app propose alors d'installer l'agent et pose le binaire 2.0 par **Mettre à jour**, migrations comprises.
+
+## Gratuit jusqu'à trois serveurs
+
+- **Chaque organisation enrôle trois serveurs sans rien payer**, sans carte, sans essai, sans abonnement et sans limite de durée. Tout le catalogue et tout ce que l'app sait faire viennent avec, membres, rôles et audit compris.
+- Au-delà de trois serveurs, une organisation a besoin d'une **licence**, qui ajoute des places aux serveurs gratuits. Les licences s'accordent sur demande : écrivez à `support@pupitre.studio` avec le nom de l'organisation et le nombre de serveurs qu'il lui faut. Rien ne se vend, aucun paiement n'est pris, et aucun prix n'est fixé.
+- Les serveurs se comptent par organisation, pas par personne : les membres d'une organisation partagent ses serveurs gratuits, et une personne dans deux organisations a les serveurs gratuits de chacune.
+- L'essai de trente jours, le mode lancement et sa place gardée pour de bon, les offres Solo, Équipe et Hébergé et leurs prix disparaissent. Les liens d'affiliation restent, pour le suivi seulement — clics, inscriptions, et serveurs enrôlés par les organisations qu'ils ont amenées.
+- Quand une licence s'arrête alors que l'organisation tient plus de serveurs que ses serveurs gratuits, ceux-là gardent leur droit d'usage pendant sept jours, puis passent en mode restreint : ils se laissent lire et refusent tout le reste. Rien de ce qui tourne dessus ne s'arrête, rien n'est effacé.
+
+## Le code source est public
+
+- **Le dépôt est publié** sous licence Apache 2.0 assortie de la Commons Clause, concédée par React Consulting SARL AU. Chacun peut lire, modifier, compiler et auto-héberger Pupitre, y compris une plateforme à lui ; personne ne peut le vendre, ni vendre un service qui en tire l'essentiel de sa valeur — un hébergeur qui facture une installation en un clic, par exemple. C'est du code source disponible, pas de l'open source.
+- **Le binaire de l'agent n'est plus obscurci.** La sécurité d'un serveur n'a jamais reposé sur le secret du code, et la page Sécurité le dit désormais.
+- Le site porte un lien vers le dépôt dans son en-tête, et la page Licence des pages légales, réécrite, dit ce que la licence permet et ce qu'elle interdit.
+
+## L'app
+
+- **« Abonnement requis » devient « Licence requise »**, de l'écran de compte à chaque refus : un serveur en mode restreint nomme les serveurs gratuits et l'adresse à qui écrire, au lieu de renvoyer à la console régulariser un paiement.
+- L'écran de compte montre la licence : les serveurs utilisés sur ceux permis, les places qu'une licence ajoute aux gratuits, la date jusqu'à laquelle elle vaut, et `support@pupitre.studio` à qui écrire.
+- Un serveur dont l'agent est de la génération précédente se lit désormais comme périmé avant même qu'une session soit ouverte, donc sa mise à jour se propose là où toutes les autres se proposent.
+
+## La console
+
+- **Facturation devient Licence.** La page dit les serveurs gratuits, les serveurs utilisés, et la licence quand l'organisation en tient une ; le paiement, le choix d'une offre et la proposition d'essai disparaissent.
+- Une organisation sans serveur arrive sur les étapes de démarrage, désormais trois — créer le compte, télécharger l'app, enrôler un serveur — et les garde ouvertes tant qu'aucun serveur n'est enrôlé.
+
+## Le site
+
+- La page d'accueil, la page des tarifs et la documentation disent la même chose : gratuit jusqu'à trois serveurs, une licence accordée sur demande au-delà, et le code source public. La page **Licence** remplace la page Facturation de la documentation, et son ancienne adresse redirige.
+- Les pages légales sont réécrites autour de la licence et de React Consulting SARL AU, dont le registre du commerce, l'ICE, l'identifiant fiscal, la taxe professionnelle et le siège figurent maintenant dans les mentions légales.
+
+## L'agent
+
+- **Une adresse publiée est vraiment derrière le portier à nouveau.** Sur un serveur mis à jour en 1.2.x, c'était le daemon qu'on chargeait de mettre `pupitre-gate` et l'ingress du tunnel en place, et son confinement le faisait échouer en silence à chaque tour : une adresse continuait de répondre sans clé jusqu'à une mise à jour des services ou l'enregistrement de la configuration d'un projet publié. `pupitred serve`, qu'ouvre l'app, fait désormais cette resynchronisation lui-même à son démarrage quand le portier manque ou est périmé.
+- Le cache du droit d'usage de l'agent passe d'`entitlement.json` à `license.json`, par une migration : une mise à jour ne réinstalle rien.
+
+## Limites connues
+
+- Une licence au-delà de trois serveurs s'accorde à la main, depuis la console de la plateforme, après un email : il n'y a rien à acheter et rien en libre-service.
+- Un processus déclaré toujours public répond à quiconque détient son adresse : réservez-le à un récepteur qui vérifie sa propre signature.
+- Une clé n'expire jamais et plusieurs personnes peuvent la partager : pour distinguer deux personnes, donnez-leur deux clés.
+- Un script du serveur qui appelle son propre projet par `PUPITRE_PUBLIC_URL` demande une clé comme n'importe quel client ; `PUPITRE_LOCAL_URL` n'en demande pas.
+- Une clé créée sur un autre ordinateur ne se copie pas ici ; créez-en une autre à la place.
+- La galerie publiée garde son propre jeton et ne demande pas de clé d'accès, donc rien de secret n'a sa place dans une capture.
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

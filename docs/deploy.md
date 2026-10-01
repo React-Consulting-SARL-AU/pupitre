@@ -46,11 +46,11 @@ gh auth status              # doit afficher le compte propriétaire du dépôt
 
 **Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — le coffre et la note de chaque environnement sont nommés dans [`environments.json`](../environments.json) — et `bun run dev:prepare` va chercher ceux de la note `local` pour le développement. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
 
-## 3. Les quinze secrets
+## 3. Les onze secrets
 
 C'est la partie qui bloque tout le monde. Elle est ici en entier.
 
-Le Worker exige **les quinze**. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:production` refuse de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
+Le Worker exige **les onze**. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:production` refuse de partir s'il en manque un : c'est un garde-fou, pas une préférence. Les quatre `STRIPE_*` n'en font pas partie : la production tourne en `BILLING_MODE=off` (dans les `vars`), qui ne vend rien et n'appelle jamais Stripe ; `check:secrets` ne les exige que d'un environnement dont `BILLING_MODE` vaut `stripe` ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)). `LAUNCH_ENDS_AT` n'existe plus. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
 
 En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent en une commande.
 
@@ -61,10 +61,10 @@ En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent
 | `BETTER_AUTH_SECRET` | signe les sessions de connexion | tu le tires toi-même | **valeurs différentes** |
 | `INTERNAL_WORKFLOW_SECRET` | ferme le déclencheur interne des tâches de fond | tu le tires toi-même | **valeurs différentes** |
 | `PUPITRE_PUBLISH_TOKEN` | laisse la CI déclarer une version publiée | tu le tires toi-même | même valeur des deux côtés |
-| `STRIPE_SECRET_KEY` | ouvrir un paiement | Stripe | sandbox / live |
-| `STRIPE_WEBHOOK_SECRET` | vérifier que Stripe est bien l'émetteur | Stripe | sandbox / live |
-| `STRIPE_PRICE_SERVER_MONTH` | le prix mensuel | Stripe | sandbox / live |
-| `STRIPE_PRICE_SERVER_YEAR` | le prix annuel | Stripe | sandbox / live |
+| `STRIPE_SECRET_KEY` | ouvrir un paiement — **seulement en `BILLING_MODE=stripe`** | Stripe | sandbox / live |
+| `STRIPE_WEBHOOK_SECRET` | vérifier que Stripe est bien l'émetteur — idem | Stripe | sandbox / live |
+| `STRIPE_PRICE_SERVER_MONTH` | le prix mensuel d'une place de licence — idem | Stripe | sandbox / live |
+| `STRIPE_PRICE_SERVER_YEAR` | le prix annuel d'une place de licence — idem | Stripe | sandbox / live |
 | `R2_ACCOUNT_ID` | servir le binaire de l'agent, signer les pièces jointes de la boîte | Cloudflare | même valeur des deux côtés |
 | `R2_ACCESS_KEY_ID` | idem | Cloudflare | même valeur des deux côtés |
 | `R2_SECRET_ACCESS_KEY` | idem | Cloudflare | même valeur des deux côtés |
@@ -84,7 +84,7 @@ Un secret présent mais faux ne bloque pas le déploiement : le garde-fou compte
 | `BETTER_AUTH_SECRET` | les pages publiques | toute connexion |
 | `INTERNAL_WORKFLOW_SECRET` | tout, tâches planifiées comprises | seulement le déclenchement manuel d'une tâche de fond, qui ne sert qu'en développement |
 | `PUPITRE_PUBLISH_TOKEN` | tout le service | la CI ne peut plus déclarer de version publiée |
-| les quatre `STRIPE_*` | la connexion, la console, l'ajout d'un serveur | souscrire un abonnement |
+| les quatre `STRIPE_*`, en `BILLING_MODE=stripe` | la connexion, la console, l'ajout d'un serveur | acheter une licence ; en `off`, ils ne servent pas |
 | les quatre `R2_*` | la console entière | l'app ne peut pas télécharger l'agent, donc aucune installation sur un serveur ; la boîte ne peut ni ouvrir ni joindre une pièce jointe |
 
 Autrement dit : `BETTER_AUTH_SECRET` est le seul dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent. La base n'est pas un secret : c'est une D1 **liée** au Worker par `wrangler.jsonc`, sans adresse ni mot de passe.
@@ -118,19 +118,21 @@ Le nom du seau des mails n'est pas un secret : `R2_MAIL_BUCKET_NAME` vaut `ppt-m
 
 Crée **un second jeton** au même endroit, en **Object Read & Write** sur `ppt-agent` et `ppt-downloads` : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans la note 1Password de la release, étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à toucher au seau public.
 
-### Les quatre `STRIPE_*` — Stripe
+### Les quatre `STRIPE_*` — Stripe, en sommeil
 
-Un produit et deux prix, à créer **deux fois** : en sandbox pour le poste de travail, en live pour la production. Tant que la production reste volontairement en sandbox — c'est le cas au premier déploiement, le temps que le compte Stripe soit vérifié — les deux notes partagent la clé et les prix, et la production a son propre webhook.
+**Rien à faire aujourd'hui** : la production tourne en `BILLING_MODE=off`, Pupitre est gratuit jusqu'à trois serveurs par organisation et les licences au-delà s'accordent depuis la console d'administration. Ce qui suit ne sert que le jour où des licences se vendent et où `BILLING_MODE` passe à `stripe` ; aucun prix n'est décidé.
+
+Un produit et deux prix, à créer **deux fois** : en sandbox pour le poste de travail, en live pour la production. Les deux notes peuvent partager la clé et les prix tant que la production reste en sandbox, la production ayant son propre webhook.
 
 | | |
 | --- | --- |
-| Produit | `Pupitre Server`, code fiscal `txcd_10103001` (logiciel en ligne, usage professionnel) |
-| Prix mensuel | 5 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
-| Prix annuel | 50 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+| Produit | une place de licence au-delà des serveurs gratuits, code fiscal `txcd_10103001` (logiciel en ligne, usage professionnel) |
+| Prix mensuel | à décider → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | à décider → `STRIPE_PRICE_SERVER_YEAR` |
 
 `STRIPE_SECRET_KEY` se relève dans *Developers* → *API keys*.
 
-`STRIPE_WEBHOOK_SECRET` demande une adresse en ligne : il vient d'un point de terminaison créé sur `https://<ton-domaine>/api/v1/webhooks/stripe`. **Tu ne peux donc pas l'obtenir avant l'étape 6.** Deux façons de s'en sortir : créer le Worker une première fois avec une valeur factice pour ce seul secret et la remplacer ensuite, ou faire l'étape 6 en sachant que la souscription ne marchera qu'après ce retour. Rien d'autre n'en dépend. C'est la seule circularité du document, et elle coûte un aller-retour.
+`STRIPE_WEBHOOK_SECRET` demande une adresse en ligne : il vient d'un point de terminaison créé sur `https://<ton-domaine>/api/v1/webhooks/stripe`. **Tu ne peux donc pas l'obtenir avant l'étape 6.** Deux façons de s'en sortir : créer le Worker une première fois avec une valeur factice pour ce seul secret et la remplacer ensuite, ou faire l'étape 6 en sachant que l'achat d'une licence ne marchera qu'après ce retour. Rien d'autre n'en dépend. C'est la seule circularité du document, et elle coûte un aller-retour.
 
 Trois réglages à faire une fois dans le tableau de bord Stripe : **Managed Payments** activé et conditions acceptées — c'est ce qui fait de Stripe le vendeur, qui calcule et reverse la taxe ; l'adresse de support à jour, car Stripe y escalade et rembourse sans réponse sous 48 heures ; le portail client limité au moyen de paiement, aux factures et à la résiliation, **jamais à la quantité** — le nombre de serveurs se change depuis la console, pas depuis Stripe.
 
@@ -190,7 +192,7 @@ Une base migrée est vide : le seed y pose l'organisation de Pupitre, `pupitre` 
 
 ## 6. Le premier déploiement, à la main
 
-Un Worker naît avec ses quinze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les quinze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
+Un Worker naît avec ses onze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les onze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
 
 Les valeurs vivent dans 1Password : une note par environnement, `pupitre` (`local`, le poste de travail) et `pupitre-prod`, nommées dans [`environments.json`](../environments.json), un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
 
@@ -208,15 +210,15 @@ Le Worker s'appelle `ppt-web-production`. Rien ne se saisit dans le tableau de b
 Ensuite, un secret qui change se pose seul, ou tous d'un coup, par le même canal :
 
 ```bash
-op read "op://DEV - React Consulting/pupitre-prod/STRIPE_WEBHOOK_SECRET" \
-  | bun x wrangler secret put STRIPE_WEBHOOK_SECRET --config apps/web/wrangler.jsonc --env production
+op read "op://DEV - React Consulting/pupitre-prod/PUPITRE_PUBLISH_TOKEN" \
+  | bun x wrangler secret put PUPITRE_PUBLISH_TOKEN --config apps/web/wrangler.jsonc --env production
 bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env production <(op item get pupitre-prod \
   --vault "DEV - React Consulting" --format json \
   | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 bun --cwd=apps/web run check:secrets production     # doit dire que tout est là
 ```
 
-Les valeurs de la note `pupitre-prod` diffèrent de celles du poste : ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes dans les deux notes.
+Les valeurs de la note `pupitre-prod` diffèrent de celles du poste : ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, et, le jour où Stripe sert, son propre webhook. Les quatre `R2_*` et le jeton de publication sont les mêmes dans les deux notes.
 
 Vérifie :
 
@@ -272,7 +274,7 @@ gh api -X PUT repos/<compte>/pupitre/actions/permissions/workflow \
 
 Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'une version sortirait de l'historique de `main`, et `next` compterait depuis le mauvais tag. La seconde commande autorise GitHub Actions à ouvrir des pull requests — *Settings* → *Actions* → *General* → *Allow GitHub Actions to create and approve pull requests* : sans elle, le dernier job de `release.yml` construit tout et ne peut pas fusionner.
 
-**Ce dépôt est privé, dans une organisation sur le plan GitHub gratuit**, qui refuse la protection de branche, les rulesets, les checks requis et les relecteurs obligatoires (l'API répond 403). `main` n'a donc **aucune protection côté serveur**. Ce qui tient à la place : les hooks du dépôt, sur la seule machine où `bun install` est passé, et la release elle-même — `release.yml` appelle `ci.yml` avant tout build, et `merge` ne fusionne la pull request `staging` → `main` qu'avec la CI verte sur son commit de tête (voir [`monorepo.md`](./monorepo.md#vérifications)). Une pull request fusionnée à la main n'est tenue par rien. Le message de l'API parle de GitHub Pro, qui vaut pour un compte personnel ; pour une organisation, c'est GitHub Team.
+**Tant que ce dépôt est privé, dans une organisation sur le plan GitHub gratuit**, GitHub refuse la protection de branche, les rulesets, les checks requis et les relecteurs obligatoires (l'API répond 403). Le code est désormais public sous Apache 2.0 + Commons Clause ([décision 0018](./decisions/0018-source-disponible-et-gratuit.md)) : le jour où le dépôt passe public, ces protections deviennent disponibles sur le plan gratuit et se posent sur `main`, et ce paragraphe change. `main` n'a donc **aucune protection côté serveur**. Ce qui tient à la place : les hooks du dépôt, sur la seule machine où `bun install` est passé, et la release elle-même — `release.yml` appelle `ci.yml` avant tout build, et `merge` ne fusionne la pull request `staging` → `main` qu'avec la CI verte sur son commit de tête (voir [`monorepo.md`](./monorepo.md#vérifications)). Une pull request fusionnée à la main n'est tenue par rien. Le message de l'API parle de GitHub Pro, qui vaut pour un compte personnel ; pour une organisation, c'est GitHub Team.
 
 ## 8 bis. La note 1Password de la release
 
@@ -330,7 +332,7 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
 | La construction échoue sur la migration | un fichier de `packages/db/migrations` ne s'applique pas sur D1 : il s'applique d'abord en local, `bun run db:migrate local`, et les tests le rejouent |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
-| Le premier déploiement refuse en nommant les quinze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
+| Le premier déploiement refuse en nommant les onze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
 | La chaîne publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre la note 1Password et le Worker, ou a perdu son préfixe |
 | La release construit tout et le job `Merge into main` échoue en ouvrant la pull request | GitHub Actions n'a pas le droit de créer des pull requests : étape 8 |
 | `next` propose une version déjà sortie | la pull request a été fusionnée en squash ou en rebase, et le commit tagué a quitté l'historique de `main` |

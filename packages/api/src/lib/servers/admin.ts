@@ -9,10 +9,10 @@ import { activeAlertsFor, closeOpenAlerts } from "../alerts/alerts"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import {
-  type Entitlement,
-  entitlementForOrganization,
-  entitlementWindow,
-} from "../billing/entitlement"
+  type License,
+  licenseForOrganization,
+  licenseWindow,
+} from "../billing/license"
 import { SEATED_STATUSES } from "../billing/seats"
 import { type AdminEventView, recentEvents } from "../platform/events"
 import { metricsForServer } from "./agent-state"
@@ -438,7 +438,7 @@ export async function clearServerAlertsByAdmin(
   return closed.length
 }
 
-/** Lifts only a team suspension, into what the organization is entitled to now. */
+/** Lifts only a team suspension, into what the organization's licence allows now. */
 export async function restoreServerByAdmin(
   actor: AdminActor,
   serverId: string,
@@ -463,7 +463,7 @@ export async function restoreServerByAdmin(
     throw new ServerNotAdminSuspendedError(server.id)
   }
 
-  const held = await entitlementForOrganization(server.organizationId, now)
+  const held = await licenseForOrganization(server.organizationId, now)
 
   await prisma.server.update({
     where: { id: server.id },
@@ -476,7 +476,7 @@ export async function restoreServerByAdmin(
     organizationId: server.organizationId,
     targetType: "server",
     targetId: server.id,
-    payload: { entitlement: held.state },
+    payload: { license: held.state },
   })
 
   return await readServerForPlatform(server.id)
@@ -517,12 +517,12 @@ export async function deleteServerByAdmin(
   return { deletion, server: await detailOf(revoked) }
 }
 
-function standingAfterRestore(held: Entitlement, now: Date) {
+function standingAfterRestore(held: License, now: Date) {
   if (held.state === "valid") {
     return {
       status: "active" as const,
       suspendedReason: null,
-      entitlementValidUntil: entitlementWindow(now),
+      licenseValidUntil: licenseWindow(now),
     }
   }
 
@@ -530,13 +530,13 @@ function standingAfterRestore(held: Entitlement, now: Date) {
     return {
       status: "grace" as const,
       suspendedReason: null,
-      entitlementValidUntil: held.valid_until,
+      licenseValidUntil: held.valid_until,
     }
   }
 
   return {
     status: "suspended" as const,
     suspendedReason: "billing" as const,
-    entitlementValidUntil: held.valid_until,
+    licenseValidUntil: held.valid_until,
   }
 }

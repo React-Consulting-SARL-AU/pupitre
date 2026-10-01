@@ -10,6 +10,8 @@ const ME = {
     state: "active",
   },
   entitlement: "valid",
+  license: "valid",
+  license_grant: null,
   organizations: [
     {
       id: "org-1",
@@ -22,6 +24,7 @@ const ME = {
   platform_can_act: false,
   platform_role: null,
   role: "owner",
+  servers: { limit: 3, used: 1 },
   subscription: null,
   user: {
     created_at: "2026-09-01T10:00:00.000Z",
@@ -33,11 +36,10 @@ const ME = {
   },
 };
 
-const SUBSCRIPTION = {
-  current_period_end: "2026-09-25T00:00:00.000Z",
-  servers: { limit: 2, used: 1 },
-  status: "trialing",
-  trial_ends_at: "2026-09-25T00:00:00.000Z",
+const GRANT = {
+  current_period_end: "2027-09-25T00:00:00.000Z",
+  seats: 5,
+  status: "active",
 };
 
 function answering(body: unknown): typeof fetch {
@@ -51,10 +53,14 @@ function answering(body: unknown): typeof fetch {
 }
 
 describe("l'identité lue sur la plateforme", () => {
-  it("porte l'abonnement tel que /me le rend", async () => {
+  it("porte la licence et les serveurs tels que /me les rend", async () => {
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
-      fetch: answering({ ...ME, subscription: SUBSCRIPTION }),
+      fetch: answering({
+        ...ME,
+        license_grant: GRANT,
+        servers: { limit: 8, used: 6 },
+      }),
     });
 
     const identity = await platform.me("jeton");
@@ -63,13 +69,14 @@ describe("l'identité lue sur la plateforme", () => {
       ok: true,
       result: {
         email: "ada@pupitre.studio",
-        entitlement: "valid",
-        subscription: SUBSCRIPTION,
+        license: "valid",
+        licenseGrant: GRANT,
+        servers: { limit: 8, used: 6 },
       },
     });
   });
 
-  it("garde de l'organisation active ce que le compte retient, sans son état", async () => {
+  it("garde de l'organisation active ce que le compte retient, sans son état ni les champs hérités", async () => {
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
       fetch: answering(ME),
@@ -81,24 +88,25 @@ describe("l'identité lue sur la plateforme", () => {
       ok: true,
       result: {
         email: "ada@pupitre.studio",
-        entitlement: "valid",
+        license: "valid",
+        licenseGrant: null,
         name: "Ada Lovelace",
         organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
         organizations: [
           { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
         ],
         role: "owner",
-        subscription: null,
+        servers: { limit: 3, used: 1 },
       },
     });
   });
 
   it("refuse un /me qu'elle ne sait pas lire plutôt que d'inventer une identité", async () => {
-    const { subscription: _subscription, ...withoutSubscription } = ME;
+    const { license: _license, ...withoutLicense } = ME;
 
     for (const body of [
-      withoutSubscription,
-      { ...ME, entitlement: "unknown" },
+      withoutLicense,
+      { ...ME, license: "unknown" },
       { ...ME, role: "superuser" },
     ]) {
       const platform = createPlatformClient({

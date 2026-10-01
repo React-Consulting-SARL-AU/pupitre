@@ -1,40 +1,42 @@
 ---
 title: "Conditions d’utilisation"
-description: "Le contrat entre vous et l’éditeur de Pupitre : ce que le service vous donne, ce qu’il ne fait jamais sur votre machine, ce qui est gratuit, et ce qui se passe quand il s’arrête."
+description: "Le contrat entre vous et l’éditeur de Pupitre : ce que le service vous donne, ce qu’il ne fait jamais sur votre machine, ce qui est gratuit, le code source public, et ce qui se passe quand il s’arrête."
 locale: fr
-updated: 2026-09-25
+updated: 2026-10-01
 order: 1
 ---
 
-Ces conditions s’appliquent dès que vous créez un compte sur `app.pupitre.studio` ou installez l’app Pupitre. Lisez-les avec la [licence](/fr/legal/licence/), la [politique d’usage acceptable](/fr/legal/acceptable-use/), la [politique de confidentialité](/fr/legal/privacy/), l’[accord de traitement des données](/fr/legal/data-processing/) et, à partir du jour où la facturation ouvre, les [conditions d’abonnement](/fr/legal/billing/) : ensemble, ils forment tout le contrat.
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+
+Ces conditions s’appliquent dès que vous créez un compte sur `app.pupitre.studio` ou installez l’app Pupitre. Lisez-les avec la [licence](/fr/legal/licence/), la [politique d’usage acceptable](/fr/legal/acceptable-use/), la [politique de confidentialité](/fr/legal/privacy/), l’[accord de traitement des données](/fr/legal/data-processing/) et les [serveurs gratuits et licences](/fr/legal/billing/) : ensemble, ils forment tout le contrat.
 
 ## Qui nous sommes
 
-Pupitre est édité par Jordan Monier, personne physique résidant au Maroc, qui en est aussi le directeur de la publication. Il n’y a pas encore de société derrière le service : le code, la marque, les noms de domaine et la plateforme appartiennent personnellement à Jordan Monier. Vous contractez avec lui, et avec lui seul. Écrivez-nous à `legal@pupitre.studio`.
+Pupitre est édité par React Consulting SARL AU, société à responsabilité limitée à associé unique établie au Maroc, représentée par son gérant, Jordan Monier, qui est aussi le directeur de la publication. React Consulting SARL AU détient le code, la marque, les noms de domaine et la plateforme, publie le code source sous la [licence](/fr/legal/licence/), et paie l’hébergement de la plateforme. Vous contractez avec elle, et avec elle seule. Écrivez-nous à `legal@pupitre.studio`.
 
 Le site et la console sont hébergés par Cloudflare, San Francisco, États-Unis. Les [mentions légales](/fr/legal/legal-notice/) réunissent l’identité de l’éditeur et celle de l’hébergeur.
 
 ## L’entité responsable peut changer
 
-Le projet a vocation à être apporté à une société une fois qu’il aura fait ses preuves. Ce jour-là, la société reprend ces conditions, la licence, les comptes et les données en l’état, sans rien changer à vos droits ni à ce que vous payez. Il en va de même de la manière dont les paiements seront encaissés et facturés, et du prestataire de paiement, le jour où la facturation ouvrira.
-
-Un tel changement est annoncé par email à chaque compte actif au moins trente jours avant de prendre effet. Si vous ne voulez pas continuer avec la nouvelle entité, vous supprimez votre compte avant cette date : vos machines continuent de fonctionner, comme décrit plus bas.
+Si le service était transmis à une autre société, celle-ci reprendrait ces conditions, les comptes et les données en l’état, sans rien changer à vos droits. Un tel changement est annoncé par email à chaque compte actif au moins trente jours avant de prendre effet. Si vous ne voulez pas continuer avec la nouvelle entité, vous supprimez votre compte avant cette date : vos machines continuent de fonctionner, comme décrit plus bas.
 
 ## Le service
 
-Pupitre, c’est une app desktop, un agent installé sur une machine qui vous appartient — un VPS, un serveur dédié, un ordinateur — et une console. L’app inspecte votre machine, installe les services que vous choisissez, la sécurise, et devient votre fenêtre sur elle : projets, terminaux, agents de code, bases de données, éditeurs distants. La console tient votre compte, votre organisation, la liste de vos machines et votre abonnement.
+Pupitre, c’est une app desktop, un agent installé sur une machine qui vous appartient — un VPS, un serveur dédié, un ordinateur — et une console. L’app inspecte votre machine, installe les services que vous choisissez, la sécurise, et devient votre fenêtre sur elle : projets, terminaux, agents de code, bases de données, éditeurs distants. La console tient votre compte, votre organisation, la liste de vos machines et, au-delà des machines gratuites, votre licence.
 
 Un compte est requis. Tout appartient à une organisation : une organisation personnelle naît avec votre compte, et vous pouvez en créer ou en rejoindre d’autres.
 
 Le service s’adresse aux professionnels et aux adultes. En créant un compte, vous déclarez avoir la capacité de conclure ce contrat et, si vous le faites pour une entreprise, le pouvoir de l’engager.
 
-## Le lancement gratuit
+## Ce qui est gratuit
 
-Le service est gratuit pendant son lancement. Aucun paiement n’est encaissé, aucune carte n’est demandée, aucune facture n’est émise. Pendant le lancement, l’abonnement qui donne à une machine son droit d’usage est accordé par la plateforme elle-même, sans frais, pour une machine par organisation.
+Le service est gratuit pour toute organisation jusqu’à {FREE_SERVERS} machines rattachées. Aucun paiement n’est encaissé, aucune carte n’est demandée, aucune facture n’est émise. Au-delà de {FREE_SERVERS} machines, une organisation a besoin d’une licence, que la plateforme accorde sur demande, sans frais aujourd’hui, comme le décrivent les [serveurs gratuits et licences](/fr/legal/billing/).
 
-Les prix affichés sur la [page des tarifs](/fr/pricing/) sont ceux qui s’appliqueront le jour où la facturation ouvrira. Ce jour est annoncé par email au moins trente jours à l’avance. Rien n’est jamais prélevé sans une action explicite de votre part : la facturation ouvre quand vous souscrivez, pas quand le lancement se termine.
+Si des licences payantes étaient proposées un jour, ce serait annoncé par email à chaque compte actif au moins trente jours à l’avance, et rien ne serait jamais prélevé sans une action explicite de votre part.
 
-**Ce que le lancement vous donne pour de bon.** Toute organisation qui a rattaché une machine pendant le lancement gratuit garde, aussi longtemps que le service existe, le droit d’utiliser Pupitre sur une machine sans payer. Ce droit ne se perd ni à l’ouverture de la facturation, ni au changement d’entité responsable, ni quand la machine est remplacée par une autre. Les machines au-delà de celle-là suivent les prix en vigueur.
+## Le code source
+
+Le code source de l’app, de l’agent, de la console et de la plateforme est public, sous licence Apache 2.0 assortie de la Commons Clause. Cette licence, décrite dans la [licence](/fr/legal/licence/), régit ce que vous pouvez faire du code ; ces conditions régissent le service que nous hébergeons sur `app.pupitre.studio`. Une plateforme que vous faites tourner vous-même à partir du code source est la vôtre : ces conditions ne s’y appliquent pas, et nous ne l’exploitons pas.
 
 ## Ce que vous apportez
 
@@ -57,7 +59,7 @@ La plateforme ne reçoit jamais un fichier, une ligne de code, une variable d’
 
 La plateforme a exactement trois leviers sur votre machine, tous appliqués par l’agent lui-même quand il lit son état :
 
-1. **Le droit d’usage.** La plateforme dit à l’agent si l’abonnement de votre organisation est valide. Sans réponse valide pendant sept jours, ou quand la réponse est une suspension, l’agent passe en mode restreint : il refuse les commandes de l’app, et rien d’autre. Il n’arrête aucun service, ne supprime aucune donnée et ne touche aucun fichier.
+1. **Le droit d’usage.** La plateforme dit à l’agent si la licence de votre organisation est valide : gratuite jusqu’à {FREE_SERVERS} machines, ou couverte par une licence au-delà. Sans réponse valide pendant sept jours, ou quand la réponse est une suspension, l’agent passe en mode restreint : il refuse les commandes de l’app, et rien d’autre. Il n’arrête aucun service, ne supprime aucune donnée et ne touche aucun fichier.
 2. **La liste des clés demandées.** La plateforme transmet à l’agent les clés publiques des appareils des membres de votre organisation attribués à cette machine, avec les approbations que vos appareils ont signées pour elles. Elle ne peut pas, seule, donner accès à votre machine : l’agent n’écrit une clé dans le bloc balisé du fichier `authorized_keys` du compte SSH qu’il gère que s’il la tient déjà pour sûre — la clé que votre app a posée elle-même en SSH, ou celles que le bloc tenait quand l’agent a appris cette règle — ou si elle arrive avec une approbation signée par la clé privée d’un appareil qu’il tient déjà pour sûr. Ces clés privées restent sur vos ordinateurs ; la plateforme n’en a aucune et ne peut pas fabriquer une approbation. L’agent écrit ce bloc de façon atomique, sans toucher aucune ligne hors de lui. Révoquer un appareil ou retirer un membre retire sa clé à la lecture suivante, sans signature — mais l’agent ne retire jamais la dernière clé du bloc : une machine suspendue, ou dont la plateforme ne demande plus aucune clé, garde celles qui y sont. Les clés que vous avez ajoutées vous-même hors du bloc, et tout autre accès que vous gardez à la machine, restent tels quels.
 3. **La version à exécuter.** La plateforme nomme la version de l’agent à installer. L’agent la télécharge depuis la plateforme et vérifie sa signature Ed25519 avec la clé qu’il embarque avant de l’installer. Un binaire qui ne porte pas cette signature n’est jamais installé.
 
@@ -80,7 +82,7 @@ L’agent installe sur votre machine des logiciels qui ne sont pas les nôtres �
 
 ## Quand le droit d’usage s’arrête
 
-Quand l’abonnement de votre organisation s’arrête, ou quand une machine est suspendue, votre machine continue de fonctionner. Les services installés restent installés, vos projets restent à vous, rien n’est effacé. L’agent passe en mode restreint comme décrit plus haut : vous perdez l’app, pas la machine. La désinstallation de l’agent est documentée et tient en une commande.
+Quand la licence de votre organisation s’arrête alors qu’elle tient plus de machines que ses machines gratuites, ou quand une machine est suspendue, votre machine continue de fonctionner. Les services installés restent installés, vos projets restent à vous, rien n’est effacé. L’agent passe en mode restreint comme décrit plus haut : vous perdez l’app, pas la machine. La désinstallation de l’agent est documentée et tient en une commande.
 
 ## Disponibilité et support
 
@@ -92,11 +94,11 @@ Nous pouvons suspendre ou interrompre le service, en tout ou partie, à tout mom
 
 ## Fin du contrat
 
-Vous y mettez fin en supprimant votre compte depuis la console, à tout moment ; ce qui a déjà été payé suit alors les [conditions d’abonnement](/fr/legal/billing/). Nous y mettons fin, pour votre organisation ou pour l’une de ses machines, en cas de manquement grave à ces conditions ou à la politique d’usage acceptable, ou quand la loi l’exige. Une suspension fondée sur une erreur est levée dès que l’erreur est établie.
+Vous y mettez fin en supprimant votre compte depuis la console, à tout moment. Nous y mettons fin, pour votre organisation ou pour l’une de ses machines, en cas de manquement grave à ces conditions ou à la politique d’usage acceptable, ou quand la loi l’exige. Une suspension fondée sur une erreur est levée dès que l’erreur est établie.
 
 ## Responsabilité
 
-Le service est fourni en l’état, gratuitement pendant le lancement, et sans autre garantie que celles que la loi impose. Dans toute la mesure permise par la loi applicable, nous ne sommes pas responsables des dommages indirects, des pertes de données, des pertes de revenus ou des interruptions d’activité, ni de ce que fait un agent de code que vous avez lancé, des factures d’un hébergeur ou d’un fournisseur de modèles, ou des actes d’un tiers qui a atteint votre machine.
+Le service est fourni en l’état, gratuitement, et sans autre garantie que celles que la loi impose. Dans toute la mesure permise par la loi applicable, nous ne sommes pas responsables des dommages indirects, des pertes de données, des pertes de revenus ou des interruptions d’activité, ni de ce que fait un agent de code que vous avez lancé, des factures d’un hébergeur ou d’un fournisseur de modèles, ou des actes d’un tiers qui a atteint votre machine.
 
 Dans la même mesure, notre responsabilité totale pour tout ce qui découle du service est limitée à ce que vous nous avez payé dans les douze mois précédant l’événement à l’origine de la réclamation. Rien ici n’exclut ni ne limite une responsabilité que la loi applicable ne permet pas d’exclure ou de limiter.
 

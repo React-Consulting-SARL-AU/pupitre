@@ -45,33 +45,29 @@ export function affiliateLinkTabFor(
   return canAct || READER_TABS.includes(tab) ? tab : AFFILIATE_LINK_TAB
 }
 
-export interface AffiliateConversion {
-  referred: number
-  trialing: number
-  active: number
-  past_due: number
-  canceled: number
-  seats: number
+export interface AffiliateReach {
+  clicks: { total: number; last_30_days: number }
+  conversion: { referred: number; servers: number }
 }
 
-const CONVERSION_LABELS: [keyof AffiliateConversion, DictionaryKey][] = [
-  ["referred", "admin.links.conversion.referred"],
-  ["trialing", "admin.links.conversion.trialing"],
-  ["active", "admin.links.conversion.active"],
-  ["past_due", "admin.links.conversion.pastDue"],
-  ["canceled", "admin.links.conversion.canceled"],
-  ["seats", "admin.links.conversion.seats"],
-]
+function figure(
+  id: string,
+  label: DictionaryKey,
+  value: number
+): OverviewFigure {
+  return { id, label, value, parts: [] }
+}
 
-export function affiliateConversionFigures(
-  conversion: AffiliateConversion
-): OverviewFigure[] {
-  return CONVERSION_LABELS.map(([key, label]) => ({
-    id: key,
-    label,
-    value: conversion[key],
-    parts: [],
-  }))
+export function affiliateReachFigures({
+  clicks,
+  conversion,
+}: AffiliateReach): OverviewFigure[] {
+  return [
+    figure("clicks", "admin.links.clicksTotal", clicks.total),
+    figure("clicks_30_days", "admin.links.clicks30Days", clicks.last_30_days),
+    figure("referred", "admin.links.conversion.referred", conversion.referred),
+    figure("servers", "admin.links.conversion.servers", conversion.servers),
+  ]
 }
 
 export interface AffiliateLinkMatch {
@@ -171,12 +167,6 @@ export function affiliateCookieToWrite(
     : affiliateCookieFor(code, hostname, secure)
 }
 
-export function readAffiliateCode(): string | null {
-  return typeof document === "undefined"
-    ? null
-    : affiliateCodeFrom(document.cookie)
-}
-
 export function writeAffiliateCookie(code: string): void {
   const cookie = affiliateCookieToWrite(
     document.cookie,
@@ -186,7 +176,7 @@ export function writeAffiliateCookie(code: string): void {
   )
 
   if (cookie) {
-    // biome-ignore lint/suspicious/noDocumentCookie: the code must survive the sign-in and reach the checkout on another page
+    // biome-ignore lint/suspicious/noDocumentCookie: the code must survive the sign-in and reach the platform with the sign-up
     document.cookie = cookie
   }
 }

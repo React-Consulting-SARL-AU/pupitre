@@ -2,7 +2,7 @@
 title: "Confidentialité"
 description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, où ça vit, combien de temps ça reste, et comment le récupérer ou le faire supprimer."
 locale: fr
-updated: 2026-09-25
+updated: 2026-10-01
 order: 4
 ---
 
@@ -10,7 +10,7 @@ import SubProcessors from "../../../components/SubProcessors.astro"
 
 ## Qui est responsable
 
-Le responsable du traitement est Jordan Monier, personne physique résidant au Maroc, qui édite Pupitre. Écrivez à `privacy@pupitre.studio` pour tout ce qui concerne vos données ; nous répondons sous trente jours.
+Le responsable du traitement est React Consulting SARL AU, société établie au Maroc, représentée par son gérant Jordan Monier, qui édite Pupitre. Écrivez à `privacy@pupitre.studio` pour tout ce qui concerne vos données ; nous répondons sous trente jours.
 
 Pour les données qu’une organisation nous confie sur ses membres et ses machines, nous agissons aussi pour le compte de cette organisation, comme le dit l’[accord de traitement des données](/fr/legal/data-processing/).
 
@@ -26,11 +26,11 @@ Pour les données qu’une organisation nous confie sur ses membres et ses machi
 
 **Vos sauvegardes.** Quand vous les activez, une référence par sauvegarde, telle que les [conditions](/fr/legal/terms/) l’énumèrent : sa date, sa place dans votre propre stockage (endpoint, région, bucket, préfixe des objets), l’empreinte de son manifeste, sa taille, ce qu’elle contient en nombres — jamais en noms —, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée et son sel, et le nom que vous donnez à une sauvegarde lancée vous-même, si vous lui en donnez un ; avec le heartbeat, l’intervalle des sauvegardes et l’issue de la dernière tentative ; et, quand vous en restaurez une, sur quelle machine. La sauvegarde elle-même vit dans votre stockage, chiffrée pour une clé que seule votre passphrase donne ; nous ne la recevons jamais, et personne ne garde la passphrase. La clé d’accès à votre stockage reste dans le trousseau de votre ordinateur et sur votre machine : la plateforme ne la reçoit jamais et refuse une référence qui la contiendrait. Une référence est gardée jusqu’à ce que la machine efface la sauvegarde ou qu’un administrateur de votre organisation l’oublie.
 
-**Votre abonnement.** Pendant le lancement gratuit : le fait que votre organisation détient l’abonnement de lancement, et ses dates. Aucune donnée de paiement n’existe, puisque rien n’est payé.
+**Votre licence.** Combien de machines votre organisation a rattachées et, quand elle détient une licence au-delà des serveurs gratuits, son nombre de places, ses dates et qui l’a accordée. Aucune donnée de paiement n’existe, puisque rien n’est payé.
 
 **Ce que vous nous écrivez.** Chaque email envoyé à une adresse en `pupitre.studio` est stocké sur la plateforme — son texte, ses en-têtes et ses pièces jointes — et lu par l’équipe depuis la console, où chaque lecture d’un fil sensible est elle-même journalisée.
 
-**D’où vous venez.** Quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé 90 jours dans le cookie `pupitre_ref` sur `pupitre.studio`, pour que la console note quel lien a amené votre organisation quand elle démarre son abonnement. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé. La plateforme compte aussi une visite pour ce lien, une fois par session de navigation, sans rien garder de vous. Pendant le lancement, cette note ne dit que d’où vous venez.
+**D’où vous venez.** Quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé 90 jours dans le cookie `pupitre_ref` sur `pupitre.studio`, pour que la console note quel lien vous a amené quand vous créez votre compte. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé. La plateforme compte aussi une visite pour ce lien, une fois par session de navigation, sans rien garder de vous, et, pour chaque lien, combien de machines les organisations qu’il a amenées ont rattachées. Cette note ne dit que d’où vous venez : aucune offre, aucun prix ni aucune récompense ne s’y attache.
 
 Tout ce que le site et la console écrivent dans votre navigateur est décrit dans la [politique relative aux cookies](/fr/legal/cookies/).
 
@@ -40,12 +40,12 @@ Aucun code, aucun fichier de projet, aucun secret de service, aucun log applicat
 
 ## Pourquoi, et sur quelle base
 
-- **Pour vous fournir le service**, c’est-à-dire exécuter le contrat que forment les [conditions](/fr/legal/terms/) : votre compte, vos appareils, votre organisation, vos machines, vos sauvegardes, votre abonnement et les emails qui font fonctionner le compte.
+- **Pour vous fournir le service**, c’est-à-dire exécuter le contrat que forment les [conditions](/fr/legal/terms/) : votre compte, vos appareils, votre organisation, vos machines, vos sauvegardes, votre licence et les emails qui font fonctionner le compte.
 - **Pour protéger le service et les organisations**, au titre de notre intérêt légitime : l’adresse IP et l’appareil de chaque session, le journal de chaque organisation, la journalisation des lectures de fils sensibles.
 - **Pour vous répondre**, au titre de notre intérêt légitime, ou pour préparer le contrat que vous nous demandez : les emails que vous nous écrivez.
 - **Pour savoir quel lien vous a amené**, au titre de notre intérêt légitime : le code d’affiliation et le compte des visites d’un lien.
 - **Pour mesurer l’audience du site**, avec votre consentement, que vous retirez à tout moment.
-- **Pour respecter la loi**, le jour où des factures existeront : leur conservation.
+- **Pour respecter la loi** : garder ce que la loi nous oblige à garder, et répondre aux autorités qui peuvent légalement le demander.
 
 Aucune décision qui vous concerne n’est prise par un traitement automatisé seul, hormis ce que le contrat prévoit lui-même : une machine sans droit d’usage valide passe en mode restreint.
 
@@ -61,11 +61,11 @@ Nous n’utilisons aucun réseau publicitaire, aucun cookie publicitaire, et nou
 
 ## Emails transactionnels
 
-Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, lien de connexion, invitation à une organisation, alerte sur une machine, avis sur votre abonnement ou sur un changement de ces documents. Ils ne se désactivent pas tant que le compte existe. Tout autre message — nouveautés, conseils — se désactive en un clic depuis le message lui-même.
+Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, lien de connexion, invitation à une organisation, alerte sur une machine, avis sur votre licence ou sur un changement de ces documents. Ils ne se désactivent pas tant que le compte existe. Tout autre message — nouveautés, conseils — se désactive en un clic depuis le message lui-même.
 
 ## Paiements
 
-Rien n’est payé pendant le lancement, et aucune donnée de paiement n’existe. Le jour où la facturation ouvrira, Stripe encaissera les paiements en tant que merchant of record : il facturera, gérera les taxes et détiendra les données de paiement. Nous garderons un identifiant client Stripe, l’offre, l’état de l’abonnement et l’historique des factures, jamais un numéro de carte. Ce jour est annoncé par email au moins trente jours à l’avance.
+Rien n’est payé, et aucune donnée de paiement n’existe. Si des licences payantes étaient proposées un jour, cette page dirait d’abord qui encaisse les paiements et ce que nous en gardons, et le changement serait annoncé par email au moins trente jours à l’avance.
 
 ## Sous-traitants
 
@@ -79,8 +79,7 @@ Vos données sont donc traitées hors de l’Union européenne : par le responsa
 
 ## Conservation
 
-Votre compte et votre organisation sont gardés tant que le compte existe. Supprimer le compte depuis la console le supprime immédiatement, avec vos appareils et leurs clés publiques ; une suppression que nous faisons à votre demande ou en sanction est programmée sept jours à l’avance, pour qu’une erreur puisse être rattrapée, puis exécutée. Les sessions de connexion expirent après soixante jours. Les mesures des machines sont une fenêtre glissante de sept jours. Le journal d’une organisation est gardé avec l’organisation ; quand un compte est supprimé, ses lignes perdent leur auteur. Les emails que vous nous avez envoyés sont gardés tant que l’échange peut encore servir à vous aider, et supprimés sur demande. La mesure d’audience est gardée douze mois, et n’est jamais reliée à votre compte. Les factures, le jour où elles existeront, seront gardées aussi longtemps que le droit comptable l’exige.
-
+Votre compte et votre organisation sont gardés tant que le compte existe. Supprimer le compte depuis la console le supprime immédiatement, avec vos appareils et leurs clés publiques ; une suppression que nous faisons à votre demande ou en sanction est programmée sept jours à l’avance, pour qu’une erreur puisse être rattrapée, puis exécutée. Les sessions de connexion expirent après soixante jours. Les mesures des machines sont une fenêtre glissante de sept jours. Le journal d’une organisation est gardé avec l’organisation ; quand un compte est supprimé, ses lignes perdent leur auteur. Les emails que vous nous avez envoyés sont gardés tant que l’échange peut encore servir à vous aider, et supprimés sur demande. La mesure d’audience est gardée douze mois, et n’est jamais reliée à votre compte.
 ## Vos droits
 
 Vous pouvez voir, corriger, exporter et faire supprimer vos données, en limiter le traitement, vous opposer à un traitement fondé sur notre intérêt légitime, et retirer à tout moment un consentement donné, sans que cela remette en cause ce qui a été fait avant. La suppression du compte se fait depuis la console et emporte vos appareils ; vos machines continuent de fonctionner. Pour tout le reste, écrivez à `privacy@pupitre.studio` ; nous pouvons vous demander de prouver que l’adresse est la vôtre avant d’y donner suite.

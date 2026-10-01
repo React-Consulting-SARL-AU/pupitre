@@ -134,7 +134,7 @@ describe("un serveur attribué", () => {
       {},
       {
         error: {
-          code: "entitlement_required",
+          code: "license_required",
           fix: "Demande une nouvelle attribution.",
           message: "Ce serveur ne t'est plus attribué.",
         },
@@ -157,7 +157,8 @@ describe("un serveur attribué", () => {
 describe("les organisations", () => {
   const identity: AccountIdentity = {
     email: "ada@pupitre.studio",
-    entitlement: "valid",
+    license: "valid",
+    licenseGrant: null,
     name: "Ada",
     organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
     organizations: [
@@ -165,7 +166,7 @@ describe("les organisations", () => {
       { id: "org-2", name: "Fonderie", role: "owner", slug: "fonderie" },
     ],
     role: "member",
-    subscription: null,
+    servers: { limit: 3, used: 1 },
   };
 
   it("marque l'organisation active par une forme pleine", () => {

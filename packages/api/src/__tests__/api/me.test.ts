@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { ApiError, createApiClient, unwrap } from "../../client"
-import { KEPT_LAUNCH_SEAT } from "../../lib/billing/subscription"
 import { bootApiTestServer, resetDb, TEST_BASE_URL } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -29,13 +29,15 @@ interface MeBody {
   role: string | null
   platform_role: string | null
   platform_can_act: boolean
-  entitlement: string
-  subscription: {
+  license: string
+  servers: { used: number; limit: number } | null
+  license_grant: {
     status: string
-    trial_ends_at: string | null
+    seats: number
     current_period_end: string | null
-    servers: { used: number; limit: number }
   } | null
+  entitlement: string
+  subscription: null
 }
 
 describe("GET /me", () => {
@@ -86,7 +88,8 @@ describe("GET /me", () => {
       reason: null,
     })
     expect(me.json.role).toBe("owner")
-    expect(me.json.entitlement).toBe("suspended")
+    expect(me.json.license).toBe("valid")
+    expect(me.json.entitlement).toBe("valid")
 
     const asOwner = await apiRequest<MeBody>("/me", { session: owner })
 
@@ -151,10 +154,12 @@ describe("GET /me", () => {
     expect(me.status).toBe(200)
     expect(me.json.active_organization).toBeNull()
     expect(me.json.role).toBeNull()
-    expect(me.json.entitlement).toBe("none")
+    expect(me.json.license).toBe("none")
+    expect(me.json.servers).toBeNull()
+    expect(me.json.license_grant).toBeNull()
   })
 
-  it("mirrors the entitlement of the active organization", async () => {
+  it("mirrors the licence of the active organization, legacy field included", async () => {
     const { prisma } = await bootApiTestServer()
     const { user, organization } = await createUser({
       email: "grace@test.local",
@@ -164,24 +169,16 @@ describe("GET /me", () => {
     await prisma.subscription.create({
       data: {
         organizationId: organization.id,
-        stripeSubscriptionId: "sub_me_entitlement",
+        stripeSubscriptionId: "sub_me_license",
         product: "prod_server",
         quantity: 2,
-        status: "trialing",
+        status: "past_due",
       },
-    })
-
-    const inTrial = await apiRequest<MeBody>("/me", { session })
-
-    expect(inTrial.json.entitlement).toBe("valid")
-
-    await prisma.subscription.updateMany({
-      where: { organizationId: organization.id },
-      data: { status: "past_due" },
     })
 
     const inGrace = await apiRequest<MeBody>("/me", { session })
 
+    expect(inGrace.json.license).toBe("grace")
     expect(inGrace.json.entitlement).toBe("grace")
 
     await prisma.subscription.updateMany({
@@ -189,55 +186,66 @@ describe("GET /me", () => {
       data: { status: "canceled" },
     })
 
-    const suspended = await apiRequest<MeBody>("/me", { session })
+    const free = await apiRequest<MeBody>("/me", { session })
 
-    expect(suspended.json.entitlement).toBe("suspended")
+    expect(free.json.license).toBe("valid")
+
+    for (let index = 0; index <= FREE_SERVERS; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
+
+    const beyond = await apiRequest<MeBody>("/me", { session })
+
+    expect(beyond.json.license).toBe("suspended")
+    expect(beyond.json.entitlement).toBe("suspended")
   })
 
-  it("rend l'abonnement de l'organisation active, ou null sans abonnement", async () => {
+  it("rend la licence de l'organisation active, ou null sans licence en cours", async () => {
     const { user, organization } = await createUser({
       email: "ada@test.local",
     })
     const session = await createSession({ userId: user.id })
 
+    await createServer({ organizationId: organization.id, status: "active" })
+    await createServer({ organizationId: organization.id, status: "revoked" })
+
     const without = await apiRequest<MeBody>("/me", { session })
 
+    expect(without.json.license_grant).toBeNull()
     expect(without.json.subscription).toBeNull()
+    expect(without.json.servers).toEqual({ used: 1, limit: FREE_SERVERS })
 
-    const trialEnd = new Date("2026-09-25T00:00:00.000Z")
+    const periodEnd = new Date("2026-12-25T00:00:00.000Z")
 
     await subscribeOrganization({
       organizationId: organization.id,
       quantity: 2,
-      status: "trialing",
-      currentPeriodEnd: trialEnd,
+      currentPeriodEnd: periodEnd,
     })
-    await createServer({ organizationId: organization.id, status: "active" })
-    await createServer({ organizationId: organization.id, status: "revoked" })
 
-    const inTrial = await apiRequest<MeBody>("/me", { session })
+    const licensed = await apiRequest<MeBody>("/me", { session })
 
-    expect(inTrial.json.subscription).toEqual({
-      status: "trialing",
-      trial_ends_at: trialEnd.toISOString(),
-      current_period_end: trialEnd.toISOString(),
-      servers: { used: 1, limit: 2 },
+    expect(licensed.json.license_grant).toEqual({
+      status: "active",
+      seats: 2,
+      current_period_end: periodEnd.toISOString(),
     })
+    expect(licensed.json.servers).toEqual({
+      used: 1,
+      limit: FREE_SERVERS + 2,
+    })
+    expect(licensed.json.subscription).toBeNull()
 
     const { prisma } = await bootApiTestServer()
 
     await prisma.subscription.updateMany({
       where: { organizationId: organization.id },
-      data: { status: "active" },
+      data: { status: "canceled" },
     })
 
-    const paying = await apiRequest<MeBody>("/me", { session })
+    const ended = await apiRequest<MeBody>("/me", { session })
 
-    expect(paying.json.subscription).toMatchObject({
-      status: "active",
-      trial_ends_at: null,
-      current_period_end: trialEnd.toISOString(),
-    })
+    expect(ended.json.license_grant).toBeNull()
   })
 
   it("ne compte que les serveurs de l'organisation active", async () => {
@@ -255,34 +263,10 @@ describe("GET /me", () => {
 
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
-    expect(me.json.subscription?.servers).toEqual({ used: 0, limit: 3 })
+    expect(me.json.servers).toEqual({ used: 0, limit: FREE_SERVERS + 3 })
   })
 
-  it("compte le siège gardé du lancement dans la limite, comme l'enrôlement", async () => {
-    const own = await createOrganizationWithMembers({
-      roles: ["owner"],
-      subscription: { quantity: 2, status: "active" },
-    })
-    const [owner] = own.members
-    const { prisma } = await bootApiTestServer()
-
-    await prisma.subscription.create({
-      data: {
-        organizationId: own.organization.id,
-        stripeSubscriptionId: "launch_kept_fixture",
-        product: KEPT_LAUNCH_SEAT.product,
-        quantity: 1,
-        status: KEPT_LAUNCH_SEAT.status,
-        currentPeriodEnd: KEPT_LAUNCH_SEAT.currentPeriodEnd,
-      },
-    })
-
-    const me = await apiRequest<MeBody>("/me", { session: owner })
-
-    expect(me.json.subscription?.servers.limit).toBe(3)
-  })
-
-  it("describes the paid subscription, not the kept launch seat touched after it", async () => {
+  it("describes the live licence, not a canceled row touched after it", async () => {
     const periodEnd = new Date("2026-10-25T00:00:00.000Z")
     const own = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -298,23 +282,22 @@ describe("GET /me", () => {
     await prisma.subscription.create({
       data: {
         organizationId: own.organization.id,
-        stripeSubscriptionId: "launch_kept_after_paid",
-        product: KEPT_LAUNCH_SEAT.product,
-        quantity: 1,
-        status: KEPT_LAUNCH_SEAT.status,
-        currentPeriodEnd: KEPT_LAUNCH_SEAT.currentPeriodEnd,
+        stripeSubscriptionId: "sub_canceled_after",
+        product: "prod_server",
+        quantity: 7,
+        status: "canceled",
         updatedAt: new Date(Date.now() + 60_000),
       },
     })
 
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
-    expect(me.json.subscription).toEqual({
+    expect(me.json.license_grant).toEqual({
       status: "past_due",
-      trial_ends_at: null,
+      seats: 2,
       current_period_end: periodEnd.toISOString(),
-      servers: { used: 0, limit: 3 },
     })
+    expect(me.json.servers).toEqual({ used: 0, limit: FREE_SERVERS + 2 })
   })
 
   it("is reachable through the typed Eden client", async () => {
@@ -329,7 +312,7 @@ describe("GET /me", () => {
     const me = unwrap(await client.api.v1.me.get())
 
     expect(me.user.id).toBe(user.id)
-    expect(me.entitlement).toBe("suspended")
+    expect(me.license).toBe("valid")
 
     const anonymous = createApiClient(TEST_BASE_URL, { fetch: server.fetch })
 

@@ -11,6 +11,7 @@ export const en = {
   "nav.integrations": "Integrations",
   "nav.security": "Security",
   "nav.cta": "Create an account",
+  "nav.source": "Source code on GitHub",
   "nav.menu": "Menu",
   "nav.menuClose": "Close",
 
@@ -70,7 +71,7 @@ export const en = {
   "legal.label": "Legal",
   "legal.title": "Legal — Pupitre",
   "legal.description":
-    "Terms, licence, privacy, cookies, subscription, security and legal notice for Pupitre.",
+    "Terms, licence, privacy, cookies, free servers, security and legal notice for Pupitre.",
   "legal.headline": "The rules, written to be read.",
   "legal.lead": "Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",

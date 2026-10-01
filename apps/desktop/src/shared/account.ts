@@ -1,8 +1,8 @@
-import type { MeSubscription } from "@pupitre/shared/plans";
-import type { AccountEntitlement } from "@pupitre/shared/platform-api";
+import type { MeLicenseGrant, MeServers } from "@pupitre/shared/plans";
+import type { AccountLicense } from "@pupitre/shared/platform-api";
 import type { ErrorPhrase } from "./agent";
 
-export type Entitlement = AccountEntitlement;
+export type License = AccountLicense;
 
 export type BuildKind = "development" | "production";
 
@@ -34,9 +34,11 @@ export interface AccountIdentity {
   /** The active one included. */
   organizations: AccountMembership[];
   role: string | null;
-  entitlement: Entitlement;
-  /** The Stripe mirror of the active organization. */
-  subscription: MeSubscription | null;
+  license: License;
+  /** Null without an active organization. */
+  servers: MeServers | null;
+  /** Null while the organization runs on its free servers alone. */
+  licenseGrant: MeLicenseGrant | null;
 }
 
 /** Never its key file. */
@@ -47,17 +49,17 @@ export interface AccountDevice {
   publicKey: string;
 }
 
-/** The platform says "suspended" also of an organization that never subscribed: the missing mirror tells them apart. */
+/** The platform says "suspended" also of an organization past its free servers: the server count tells them apart. */
 export type UsageRight =
   | {
       status: "granted";
       source: "platform" | "cache" | "development";
-      entitlement: Entitlement;
+      license: License;
       validUntil: string | null;
     }
   | { status: "stale"; since: string; consoleUrl: string }
   | { status: "suspended"; consoleUrl: string }
-  | { status: "unsubscribed"; consoleUrl: string }
+  | { status: "unlicensed"; servers: MeServers; consoleUrl: string }
   | { status: "absent"; consoleUrl: string };
 
 export interface AccountState {

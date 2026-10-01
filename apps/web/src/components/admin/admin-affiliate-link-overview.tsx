@@ -4,7 +4,7 @@ import { CopyButton } from "@/components/ui/copy-button"
 import { Facts } from "@/components/ui/facts"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AffiliateLinkDetail } from "@/lib/api/admin-queries"
-import { affiliateConversionFigures } from "@/lib/domain/affiliate"
+import { affiliateReachFigures } from "@/lib/domain/affiliate"
 import { formatDateTime } from "@/lib/utils/format"
 
 export interface AdminAffiliateLinkOverviewProps {
@@ -37,17 +37,25 @@ export function AdminAffiliateLinkOverview({
 
       <Card>
         <CardHeader>
+          <CardTitle>{t("admin.links.conversion")}</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <div className="flex min-w-max">
+            {affiliateReachFigures(link).map((figure) => (
+              <AdminFigure figure={figure} key={figure.id} />
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{t("admin.links.terms")}</CardTitle>
         </CardHeader>
 
         <Facts
           facts={[
             { label: t("admin.links.code"), value: link.code },
-            {
-              label: t("admin.links.freeMonthsField"),
-              value: link.free_months,
-            },
-            { label: t("admin.links.seatsField"), value: link.seats },
             {
               label: t("admin.links.partnerNameField"),
               value: link.partner?.name ?? t("format.none"),
@@ -60,26 +68,8 @@ export function AdminAffiliateLinkOverview({
               label: t("admin.users.createdAt"),
               value: formatDateTime(link.created_at, t),
             },
-            { label: t("admin.links.clicksTotal"), value: link.clicks.total },
-            {
-              label: t("admin.links.clicks30Days"),
-              value: link.clicks.last_30_days,
-            },
           ]}
         />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.links.conversion")}</CardTitle>
-        </CardHeader>
-        <div className="overflow-x-auto">
-          <div className="flex min-w-max">
-            {affiliateConversionFigures(link.conversion).map((figure) => (
-              <AdminFigure figure={figure} key={figure.id} />
-            ))}
-          </div>
-        </div>
       </Card>
 
       <Card>

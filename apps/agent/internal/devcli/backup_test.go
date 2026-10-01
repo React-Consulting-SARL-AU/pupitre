@@ -8,14 +8,14 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/protocol"
 )
 
 func backups(t *testing.T) func(...string) run {
 	t.Helper()
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementDev)})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", License: license.Fixed(contract.LicenseDev)})
 
 	server.Register("backup.status", func(*protocol.Context, json.RawMessage) (any, error) {
 		return contract.BackupStatusResult{Configured: true, IntervalHours: 24, Keep: 14, NextRunAt: "2026-09-25T03:00:00Z", Last: &contract.BackupLastRun{At: "2026-09-24T03:00:00Z", OK: true, ID: "20260924T030000Z-abcdef", Bytes: 3 << 20}}, nil

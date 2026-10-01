@@ -198,7 +198,7 @@ describe("le workflow PurgeDeletions", () => {
       roles: ["owner"],
     })
     const link = await prisma.affiliateLink.create({
-      data: { code: "atelier", name: "Atelier", freeMonths: 2 },
+      data: { code: "atelier", name: "Atelier" },
     })
 
     await prisma.organizationBilling.create({

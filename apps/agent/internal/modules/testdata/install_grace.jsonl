@@ -1,6 +1,6 @@
-@entitlement grace
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"grace","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+@license grace
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"grace","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install","params":{"modules":["core.system"],"config":{"core.system":{"port":81}},"secrets_stdin":false}}
 < {"id":2,"event":"step","module":"core.system","step":"install-package","status":"start","ms":0}
 < {"id":2,"event":"step","module":"core.system","step":"install-package","status":"ok","ms":0}

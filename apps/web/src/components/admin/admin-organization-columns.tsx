@@ -51,10 +51,7 @@ export function adminOrganizationColumns(
       width: "w-36",
       cell: (organization) => {
         const look = organization.subscription
-          ? subscriptionStatusLook(
-              organization.subscription.status,
-              organization.subscription.product
-            )
+          ? subscriptionStatusLook(organization.subscription.status)
           : null
 
         return look ? t(look.label) : t("admin.users.noSubscription")

@@ -1370,9 +1370,9 @@ describe("un démarrage qui prend son temps", () => {
 
         return Promise.resolve({
           error: {
-            code: "entitlement_required",
-            fix: "Ouvre la console.",
-            message: "droit d'usage suspendu",
+            code: "license_required",
+            fix: "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
+            message: "licence requise : ce serveur est en mode restreint",
           },
           ok: false,
         } as never);
@@ -1395,7 +1395,10 @@ describe("un démarrage qui prend son temps", () => {
     expect(reads).toBe(1);
     expect(phase("up")).toBe("fail");
     expect(useProjectAdd.getState().run).toMatchObject({
-      error: { code: "entitlement_required", fix: "Ouvre la console." },
+      error: {
+        code: "license_required",
+        fix: "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
+      },
       phase: "up",
       status: "failed",
     });

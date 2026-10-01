@@ -93,7 +93,7 @@ func TestUninstallRemovesTheAgentAndKeepsTheClientsServer(t *testing.T) {
 		daemon.UnitPath, daemon.ResumeUnitPath, galleryUnitPath,
 		agentBinary, shots.Link,
 		"/etc/pupitre/install.json", "/etc/pupitre/demo/tool.demo.conf", "/etc/pupitre/server.token",
-		"/var/lib/pupitre/report.json", "/var/lib/pupitre/entitlement.json",
+		"/var/lib/pupitre/report.json", "/var/lib/pupitre/license.json",
 		"/var/log/pupitre.log", "/var/log/pupitre.log.1", logRotationPath,
 	} {
 		if _, left := fake.Files[gone]; left {

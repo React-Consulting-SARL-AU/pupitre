@@ -6,7 +6,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { signedAppMessage } from "../../apps/desktop/scripts/release-artefacts"
 import { compatibility } from "../../packages/shared/src/compat"
-import { helloFrom, readableOccurrences } from "../release/agent"
+import { helloFrom } from "../release/agent"
 import { releaseKey, signArtefact } from "../release/app"
 import { appVersion } from "../release/check"
 import { argumentOf, hasFlag, required, variable } from "../release/cli"
@@ -365,11 +365,6 @@ describe("what must be true before a build", () => {
 })
 
 describe("the agent's checks", () => {
-  it("counts what garble left readable", () => {
-    expect(readableOccurrences(Buffer.from("nothing here"))).toBe(0)
-    expect(readableOccurrences(Buffer.from("pupitre\0\0pupitre"))).toBe(2)
-  })
-
   it("greets the agent as the app of the same release, which its floor accepts", () => {
     for (const version of ["1.0.0", "1.4.2", "2.0.0"]) {
       const hello = JSON.parse(helloFrom(version))

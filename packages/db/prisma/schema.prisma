@@ -47,7 +47,7 @@ enum AlertKind {
   server_unreachable
   disk_high
   agent_outdated
-  entitlement_grace
+  license_grace
   backup_failed
   backup_stale
 }
@@ -301,7 +301,7 @@ model Server {
   enrollmentTokenHash    String?               @unique
   enrollmentKey          String?               @unique
   enrollmentExpiresAt    DateTime?
-  entitlementValidUntil  DateTime?
+  licenseValidUntil      DateTime?
   decommissionAt         DateTime?
   status                 ServerStatus          @default(enrolling)
   suspendedReason        SuspensionReason?
@@ -454,8 +454,6 @@ model AffiliateLink {
   id           String              @id @default(cuid())
   code         String              @unique
   name         String
-  freeMonths   Int
-  seats        Int                 @default(1)
   partnerName  String?
   partnerEmail String?
   notes        String?

@@ -214,7 +214,7 @@ export function App() {
     };
   }, []);
 
-  useServerPolls(serverId, snapshot?.entitlement === "restricted");
+  useServerPolls(serverId, snapshot?.license === "restricted");
 
   const projects = snapshot?.projects;
 
@@ -460,7 +460,7 @@ export function App() {
         </WindowBand>
 
         <ServerRestrictedNotice
-          entitlement={snapshot.entitlement}
+          license={snapshot.license}
           onOpenConsole={() => window.pupitre.openUrl(account.consoleUrl)}
           onRepair={() => repair(serverId).then(() => read(serverId))}
           repair={reenroll}

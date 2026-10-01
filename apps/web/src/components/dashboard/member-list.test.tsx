@@ -41,7 +41,7 @@ function list(
           organizations: [],
           activeOrganization: organization,
           role,
-          entitlement: "valid",
+          license: "valid",
           platformRole: null,
           platformCanAct: false,
         }}

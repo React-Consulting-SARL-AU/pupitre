@@ -11,8 +11,6 @@ import type { TestResponse } from "./request"
 
 export const TEST_WEBHOOK_SECRET = "whsec_pupitre_test_secret"
 
-export const TEST_LAUNCH_END = new Date("2026-12-31T23:59:59.000Z")
-
 let fake: FakeBilling | null = null
 
 function fakeProvider(): FakeBilling {
@@ -29,30 +27,19 @@ export function useFakeBilling(): FakeBilling {
     provider,
     webhookSecret: TEST_WEBHOOK_SECRET,
     mode: "stripe",
-    launchEndsAt: null,
   })
 
   return provider
 }
 
-export interface LaunchBillingInput {
-  endsAt?: Date
-  adminSeats?: number
-}
-
-/** Launch mode: the platform grants the subscription, so any provider call is a bug the fake records. */
-export function useLaunchBilling({
-  endsAt = TEST_LAUNCH_END,
-  adminSeats,
-}: LaunchBillingInput = {}): FakeBilling {
+/** Billing off: nothing may reach Stripe, so any provider call is a bug the fake records. */
+export function useBillingOff(): FakeBilling {
   const provider = fakeProvider()
 
   configureBilling({
     provider,
     webhookSecret: TEST_WEBHOOK_SECRET,
-    mode: "launch",
-    launchEndsAt: endsAt,
-    adminSeats,
+    mode: "off",
   })
 
   return provider

@@ -39,7 +39,7 @@ func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
 		Registry:    registry,
 		Sys:         fake,
 		Now:         modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(dir, "report.json"),
 		LogPath:     filepath.Join(dir, "pupitre.log"),
 		InstallPath: "/etc/pupitre/install.json",
@@ -82,7 +82,7 @@ func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
 		Registry:    registry,
 		Sys:         modtest.NewFakeSys(),
 		Now:         modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(dir, "report.json"),
 		LogPath:     filepath.Join(dir, "pupitre.log"),
 		InstallPath: "/etc/pupitre/install.json",
@@ -125,7 +125,7 @@ func TestSettlePutsTheGateInFrontOfATunnelFromBeforeIt(t *testing.T) {
 		Registry:    reg,
 		Sys:         fake,
 		Now:         modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(dir, "report.json"),
 		LogPath:     filepath.Join(dir, "pupitre.log"),
 		InstallPath: "/etc/pupitre/install.json",
@@ -147,6 +147,16 @@ func TestSettlePutsTheGateInFrontOfATunnelFromBeforeIt(t *testing.T) {
 	if gated := string(fake.Files[gate.RoutesPath]); !strings.Contains(gated, `"protected": true`) {
 		t.Fatalf("routes = %s", gated)
 	}
+
+	fake.Mutations = nil
+
+	if err := Settle(engine); err != nil {
+		t.Fatalf("second Settle: %v", err)
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("a gate in place must cost a session nothing: %v", fake.Mutations)
+	}
 }
 
 func TestSettleLeavesAMachineWithoutExposureAlone(t *testing.T) {
@@ -160,7 +170,7 @@ func TestSettleLeavesAMachineWithoutExposureAlone(t *testing.T) {
 		Registry:    reg,
 		Sys:         fake,
 		Now:         modtest.NewClock(10 * time.Millisecond).Now,
-		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		License:     func() contract.License { return contract.LicenseDev },
 		ReportPath:  filepath.Join(dir, "report.json"),
 		LogPath:     filepath.Join(dir, "pupitre.log"),
 		InstallPath: "/etc/pupitre/install.json",

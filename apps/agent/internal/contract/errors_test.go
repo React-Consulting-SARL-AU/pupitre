@@ -77,19 +77,19 @@ func TestErrorCodesMatchSchema(t *testing.T) {
 	assertSameSet(t, "ErrorCode", codes, enumOf(t, "ErrorCode"))
 }
 
-func TestEntitlementsMatchSchema(t *testing.T) {
-	values := make([]string, 0, len(Entitlements))
+func TestLicensesMatchSchema(t *testing.T) {
+	values := make([]string, 0, len(Licenses))
 
-	for _, entitlement := range Entitlements {
-		values = append(values, string(entitlement))
+	for _, license := range Licenses {
+		values = append(values, string(license))
 	}
 
-	assertSameSet(t, "Entitlement", values, enumOf(t, "HelloResult", "properties", "entitlement"))
+	assertSameSet(t, "License", values, enumOf(t, "HelloResult", "properties", "license"))
 }
 
 func TestProtocolVersionComesFromSchema(t *testing.T) {
-	if ProtocolVersion != 2 {
-		t.Fatalf("ProtocolVersion = %d, want 2", ProtocolVersion)
+	if ProtocolVersion != 3 {
+		t.Fatalf("ProtocolVersion = %d, want 3", ProtocolVersion)
 	}
 }
 

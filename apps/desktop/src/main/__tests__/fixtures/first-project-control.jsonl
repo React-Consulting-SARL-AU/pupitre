@@ -1,6 +1,6 @@
 # Le canal de lecture : la liste des projets, le démarrage.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.pull","project.up","project.url"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.pull","project.up","project.url"]}}
 > {"id":2,"cmd":"project.list"}
 < {"id":2,"ok":true,"result":{"projects":[]}}
 > {"id":3,"cmd":"project.up","params":{"name":"vite-starter"}}

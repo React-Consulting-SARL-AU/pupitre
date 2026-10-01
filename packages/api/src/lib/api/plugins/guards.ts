@@ -7,7 +7,7 @@ import {
 import { Elysia, status } from "elysia"
 import { formatDate } from "../../../emails/format"
 import { PIPELINE_ACTOR } from "../../audit/audit"
-import { entitlementRefusalFor } from "../../billing/entitlement"
+import { licenseRefusalFor } from "../../billing/license"
 import { type MessageKey, type MessageParams, translate } from "../../i18n"
 import {
   isPublishToken,
@@ -165,8 +165,8 @@ export function requireRole(minimum: OrgRole) {
   )
 }
 
-export const requireEntitlement = new Elysia({
-  name: "requireEntitlement",
+export const requireLicense = new Elysia({
+  name: "requireLicense",
 }).resolve({ as: "scoped" }, async ({ request }) => {
   const membership = await resolveMembership(request)
 
@@ -174,7 +174,7 @@ export const requireEntitlement = new Elysia({
     return membership
   }
 
-  const refusal = await entitlementRefusalFor(membership.organizationId)
+  const refusal = await licenseRefusalFor(membership.organizationId)
 
   if (refusal) {
     return refuse(request, {

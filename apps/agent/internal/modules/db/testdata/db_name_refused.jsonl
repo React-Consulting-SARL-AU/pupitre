@@ -1,10 +1,10 @@
 # A database name reaches an identifier, a path under ~/dumps and an argv: one that is not a plain name is refused before any engine sees it.
 @package mysql-server 8.0.36-0ubuntu0.24.04.1
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"db.dump","params":{"engine":"mysql","name":"../../etc/shop"}}
 > {"id":3,"cmd":"db.url","params":{"engine":"mysql","name":"shop; drop database mysql"}}
 > {"id":4,"cmd":"db.url","params":{"engine":"mysql","name":"shop"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","db.dump","db.import","db.shell","db.url","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","db.dump","db.import","db.shell","db.url","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"id":2,"ok":false,"error":{"code":"bad_request","message":"database name refused: ../../etc/shop","fix":"A database name is letters, digits, dashes and underscores, 64 characters at most."}}
 < {"id":3,"ok":false,"error":{"code":"bad_request","message":"database name refused: shop; drop database mysql","fix":"A database name is letters, digits, dashes and underscores, 64 characters at most."}}
 < {"id":4,"ok":true,"result":{"url":"mysql://dev@127.0.0.1:3306/shop"}}

@@ -7,10 +7,9 @@ export interface AdminAffiliateLinkRowLink {
   id: string
   code: string
   name: string
-  free_months: number
-  seats: number
   disabled: boolean
   referrals: number
+  servers: number
   partner_name: string | null
   clicks_30_days: number
   url: string
@@ -51,20 +50,12 @@ export function adminAffiliateLinkColumns(
       cell: (link) => link.partner_name ?? t("format.none"),
     },
     {
-      key: "free_months",
-      header: t("admin.links.freeMonthsField"),
-      width: "w-24",
+      key: "clicks",
+      header: t("admin.links.clicksHeader"),
+      width: "w-28",
       align: "end",
-      hideBelow: "lg",
-      cell: (link) => link.free_months,
-    },
-    {
-      key: "seats",
-      header: t("admin.links.seatsField"),
-      width: "w-20",
-      align: "end",
-      hideBelow: "lg",
-      cell: (link) => link.seats,
+      hideBelow: "sm",
+      cell: (link) => link.clicks_30_days,
     },
     {
       key: "referrals",
@@ -74,12 +65,12 @@ export function adminAffiliateLinkColumns(
       cell: (link) => link.referrals,
     },
     {
-      key: "clicks",
-      header: t("admin.links.clicksHeader"),
-      width: "w-28",
+      key: "servers",
+      header: t("admin.links.serversHeader"),
+      width: "w-24",
       align: "end",
       hideBelow: "sm",
-      cell: (link) => link.clicks_30_days,
+      cell: (link) => link.servers,
     },
     {
       key: "state",

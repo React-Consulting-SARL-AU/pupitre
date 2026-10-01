@@ -110,7 +110,7 @@ export const onboarding = {
     "onboarding.channel.retrying": "Trying again…",
     "onboarding.channel.back": "Connection to {name} is back.",
     "onboarding.usage.held":
-      "Your subscription could not be checked: the install is waiting.",
+      "Your organization's licence could not be checked: the install is waiting.",
     "onboarding.step.agent": "Agent",
     "onboarding.step.catalog": "Services",
     "onboarding.step.config": "Configuration",
@@ -278,7 +278,7 @@ export const onboarding = {
     "onboarding.channel.retrying": "Nouvelle tentative…",
     "onboarding.channel.back": "Connexion à {name} rétablie.",
     "onboarding.usage.held":
-      "Votre abonnement n'a pas pu être vérifié : l'installation attend.",
+      "La licence de votre organisation n'a pas pu être vérifiée : l'installation attend.",
     "onboarding.step.agent": "Agent",
     "onboarding.step.catalog": "Services",
     "onboarding.step.config": "Configuration",

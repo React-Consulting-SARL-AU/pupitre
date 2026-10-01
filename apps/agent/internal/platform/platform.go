@@ -21,7 +21,7 @@ const (
 	DefaultBaseURL   = "https://app.pupitre.studio/api/v1"
 	DefaultTokenPath = "/etc/pupitre/server.token"
 
-	// Written at enrolment: heartbeat, entitlement and keys later run with no one else to ask.
+	// Written at enrolment: heartbeat, license and keys later run with no one else to ask.
 	DefaultBaseURLPath = "/etc/pupitre/platform.url"
 
 	// Also the prefix of this server's backups in the client's bucket.
@@ -107,8 +107,8 @@ func (e *Error) Revoked() bool {
 }
 
 type State struct {
-	Entitlement string    `json:"entitlement"`
-	ValidUntil  time.Time `json:"valid_until"`
+	License    string    `json:"license"`
+	ValidUntil time.Time `json:"valid_until"`
 	// Nil when the platform predates approvals: the keys are then left alone.
 	Keys           *[]contract.AgentStateKey `json:"keys"`
 	TargetVersion  string                    `json:"target_version"`

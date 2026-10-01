@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import {
   compareVersions,
   floorOf,
+  judgedForApp,
   orderOf,
   verdictOf,
   versionCore,
@@ -56,5 +58,55 @@ describe("la 1.0 face à un agent 0.9", () => {
   it("garde une app 0.9 d'accord avec son agent 0.9", () => {
     expect(verdictOf("0.9.1", "0.9.1")).toBe("ok");
     expect(verdictOf("0.9.1", "1.0.0")).toBe("app_too_old");
+  });
+});
+
+function managedBy(agentVersion: string | null): ProbeResult {
+  return {
+    agent_version: agentVersion,
+    arch: "amd64",
+    disk_free_gb: 38,
+    docker: false,
+    installed_modules: [],
+    os: "ubuntu",
+    panel: null,
+    ports: [],
+    ram_mb: 8192,
+    sudo: true,
+    version: "24.04",
+    verdict: {
+      fixes: [],
+      kind: "managed",
+      level: "ready",
+      reasons: [],
+      up_to_date: true,
+    },
+  };
+}
+
+describe("la 2.0 face à un agent 1.x", () => {
+  it("le juge trop ancien : il parle le protocole 2 et refuse le hello de la 2.0", () => {
+    expect(verdictOf("2.0.0", "1.2.1")).toBe("agent_too_old");
+    expect(floorOf("2.0.0")).toBe("2.0.0");
+  });
+
+  it("dit à l'installation de remplacer l'agent que la sonde du shell croit à jour", () => {
+    expect(judgedForApp(managedBy("1.2.1"), "2.0.0").verdict).toMatchObject({
+      level: "warning",
+      up_to_date: false,
+    });
+  });
+
+  it("laisse tel quel un agent de la même génération, un build de développement et une machine nue", () => {
+    const current = managedBy("2.0.0");
+    const development = managedBy("0.0.0-dev");
+    const bare = {
+      ...managedBy(null),
+      verdict: { fixes: [], kind: "bare", level: "ready", reasons: [] },
+    } satisfies ProbeResult;
+
+    expect(judgedForApp(current, "2.0.0")).toBe(current);
+    expect(judgedForApp(development, "g4c9f2a")).toBe(development);
+    expect(judgedForApp(bare, "2.0.0")).toBe(bare);
   });
 });

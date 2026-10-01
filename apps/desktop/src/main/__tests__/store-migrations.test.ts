@@ -227,19 +227,49 @@ describe("le registre de account.json", () => {
     const migrated = migrate({ device: null }, ACCOUNT_MIGRATIONS);
 
     expect(migrated.document.identity).toBeUndefined();
-    expect(migrated.revision).toBe(2);
+    expect(migrated.revision).toBe(3);
   });
 
-  it("donne un abonnement nul à une identité écrite avant qu'on le lise, et n'y revient pas", () => {
+  it("donne un abonnement nul à une identité écrite avant qu'on le lise", () => {
     const held: JsonObject = {
       identity: { id: "u_1", organizations: [] },
       version: 1,
     };
 
-    const migrated = migrate(held, ACCOUNT_MIGRATIONS);
+    const migrated = migrate(held, ACCOUNT_MIGRATIONS.slice(0, 2));
 
     expect(migrated.applied).toEqual([2]);
     expect(migrated.document.identity).toMatchObject({ subscription: null });
+  });
+
+  it("nomme licence le droit d'usage et garde les serveurs de l'abonnement, sans en faire une licence", () => {
+    const held: JsonObject = {
+      identity: {
+        entitlement: "valid",
+        id: "u_1",
+        legacy: 1,
+        organizations: [],
+        subscription: {
+          current_period_end: null,
+          servers: { limit: 1, used: 1 },
+          status: "active",
+          trial_ends_at: null,
+        },
+      },
+      version: 2,
+    };
+
+    const migrated = migrate(held, ACCOUNT_MIGRATIONS);
+
+    expect(migrated.applied).toEqual([3]);
+    expect(migrated.document.identity).toEqual({
+      id: "u_1",
+      legacy: 1,
+      license: "valid",
+      licenseGrant: null,
+      organizations: [],
+      servers: { limit: 1, used: 1 },
+    });
 
     const again = migrate(migrated.document, ACCOUNT_MIGRATIONS);
 
@@ -247,19 +277,40 @@ describe("le registre de account.json", () => {
     expect(again.document).toEqual(migrated.document);
   });
 
-  it("garde l'abonnement qu'une identité porte déjà", () => {
+  it("donne des serveurs nuls à une identité sans abonnement", () => {
     const held: JsonObject = {
       identity: {
+        entitlement: "suspended",
         id: "u_1",
         organizations: [],
-        subscription: { status: "active" },
+        subscription: null,
       },
+      version: 2,
     };
 
     const migrated = migrate(held, ACCOUNT_MIGRATIONS);
 
-    expect(migrated.document.identity).toMatchObject({
-      subscription: { status: "active" },
+    expect(migrated.document.identity).toEqual({
+      id: "u_1",
+      license: "suspended",
+      licenseGrant: null,
+      organizations: [],
+      servers: null,
+    });
+  });
+
+  it("porte jusqu'à la licence une identité de la toute première forme", () => {
+    const migrated = migrate(
+      { identity: { entitlement: "grace", id: "u_1" } },
+      ACCOUNT_MIGRATIONS
+    );
+
+    expect(migrated.document.identity).toEqual({
+      id: "u_1",
+      license: "grace",
+      licenseGrant: null,
+      organizations: [],
+      servers: null,
     });
   });
 });

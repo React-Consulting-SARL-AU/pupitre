@@ -2,6 +2,7 @@
   "name": "@pupitre/api",
   "version": "0.0.0",
   "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
   "type": "module",
   "exports": {
     "./alerts/evaluate": "./src/lib/alerts/alerts.ts",
@@ -9,7 +10,6 @@
     "./billing/admin": "./src/lib/billing/admin.ts",
     "./billing/expiry": "./src/lib/billing/expiry.ts",
     "./billing/grace": "./src/lib/billing/grace.ts",
-    "./billing/launch": "./src/lib/billing/launch.ts",
     "./billing/reconcile": "./src/lib/billing/reconcile.ts",
     "./client": "./src/client.ts",
     "./mail/ingest": "./src/lib/mail/ingest.ts",

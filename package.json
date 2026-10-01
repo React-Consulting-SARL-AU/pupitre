@@ -1,6 +1,7 @@
 {
   "name": "pupitre-monorepo",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "bun@1.3.14",
   "engines": {
     "node": ">=22"

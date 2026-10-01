@@ -1,5 +1,4 @@
 import {
-  AFFILIATE_MAX_FREE_MONTHS,
   AFFILIATE_NOTES_MAX_LENGTH,
   AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
@@ -23,7 +22,6 @@ import {
   type AffiliateLinkEditInput,
   type AffiliateLinkEditValues,
   affiliateLinkEditSchema,
-  MIN_AFFILIATE_SEATS,
 } from "@/lib/schemas/admin"
 
 export interface AdminAffiliateLinkSettingsProps {
@@ -36,8 +34,6 @@ export function AdminAffiliateLinkSettings({
   const t = useTranslations()
   const held: AffiliateLinkEditInput = {
     name: link.name,
-    free_months: link.free_months,
-    seats: link.seats,
     partner_name: link.partner?.name ?? "",
     partner_email: link.partner?.email ?? "",
     notes: link.notes ?? "",
@@ -67,8 +63,6 @@ export function AdminAffiliateLinkSettings({
   const wanted = form.watch()
   const unchanged =
     wanted.name === held.name &&
-    Number(wanted.free_months) === Number(held.free_months) &&
-    Number(wanted.seats) === Number(held.seats) &&
     wanted.partner_name === held.partner_name &&
     wanted.partner_email === held.partner_email &&
     wanted.notes === held.notes
@@ -94,39 +88,6 @@ export function AdminAffiliateLinkSettings({
               {...form.register("name")}
             />
             <FieldError>{form.formState.errors.name?.message}</FieldError>
-          </div>
-
-          <div className="flex flex-wrap items-start gap-gutter">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="link-free-months">
-                {t("admin.links.freeMonthsField")}
-              </Label>
-              <Input
-                className="w-24 font-data tabular-nums"
-                id="link-free-months"
-                inputMode="numeric"
-                max={AFFILIATE_MAX_FREE_MONTHS}
-                min={0}
-                type="number"
-                {...form.register("free_months")}
-              />
-              <FieldError>
-                {form.formState.errors.free_months?.message}
-              </FieldError>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="link-seats">{t("admin.links.seatsField")}</Label>
-              <Input
-                className="w-24 font-data tabular-nums"
-                id="link-seats"
-                inputMode="numeric"
-                min={MIN_AFFILIATE_SEATS}
-                type="number"
-                {...form.register("seats")}
-              />
-              <FieldError>{form.formState.errors.seats?.message}</FieldError>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-start gap-gutter">

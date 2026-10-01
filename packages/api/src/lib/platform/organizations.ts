@@ -5,7 +5,7 @@ import {
   type OrganizationState,
 } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
-import { SEATED_STATUSES } from "../billing/seats"
+import { licensedSeatsFor, SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { type AdminServerView, listServersForPlatform } from "../servers/admin"
 import { type AdminEventView, recentEvents } from "./events"
@@ -60,7 +60,7 @@ export interface AdminOrganizationSubscriptionRow {
   current_period_end: Date | null
   cancel_at_period_end: boolean
   note: string | null
-  // Launch or granted: a product Stripe never sees.
+  // Granted: a product Stripe never sees.
   platform: boolean
   created_at: Date
   updated_at: Date
@@ -312,7 +312,7 @@ export async function readOrganizationForPlatform(
     })),
     servers: servers.data,
     subscriptions: subscriptions.map(toSubscriptionRow),
-    seats: { paid: counted?.quantity ?? 0, used: seated },
+    seats: { paid: counted?.quantity ?? 0, used: licensedSeatsFor(seated) },
     events,
   }
 }

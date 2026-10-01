@@ -1,6 +1,6 @@
 ---
 name: elysia-api-routes
-description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais SQLite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
+description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireLicense`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais SQLite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
 ---
 
 # Routes Elysia — `/api/v1`
@@ -16,14 +16,14 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 | `packages/api/src/lib/api/routes/<ressource>.ts` | un routeur |
 | `packages/api/src/lib/api/routes/<ressource>-schemas.ts` | les schémas `t` colocalisés de ce routeur |
 | `packages/api/src/lib/api/plugins/auth.ts` | `authPlugin`, `resolveAuthContext`, `AuthContext` |
-| `packages/api/src/lib/api/plugins/guards.ts` | `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `hasPermission`, `ROLE_RANK` |
+| `packages/api/src/lib/api/plugins/guards.ts` | `requireAuth`, `requireOrg`, `requireRole`, `requireLicense`, `requireServer`, `requirePlatformAdmin`, `hasPermission`, `ROLE_RANK` |
 | `packages/api/src/lib/api/prisma.ts` | `getPrisma`, `configurePrisma`, `ApiPrisma`, `serializeData`, `withOrganization` |
 | `packages/api/src/lib/api/errors.ts` | `apiError`, `createErrorRef` |
 | `packages/api/src/lib/api/openapi-models.ts` | `errorResponse`, `withAuthErrors`, `dataResponse`, `paginatedResponse`, `dateTime` |
 | `packages/api/src/lib/api/validation-errors.ts` | traduction des erreurs `t` (appelée par `server.ts`) |
 | `packages/api/src/lib/api/rate-limit.ts` | `createRateLimiter`, `GLOBAL_RATE_LIMIT` |
 | `packages/api/src/lib/i18n/` | `resolveLocale(headers)`, `translate(locale, key, params)`, dictionnaire fr/en |
-| `packages/api/src/lib/<domaine>/` | la logique métier : `me/`, `servers/`, puis `devices/`, `entitlement/`, `billing/`, `releases/`, `audit/`, `emails/` |
+| `packages/api/src/lib/<domaine>/` | la logique métier : `me/`, `servers/`, puis `devices/`, `billing/` (dont `license.ts`), `releases/`, `audit/`, `emails/` |
 | `packages/api/src/testing/` | harnais SQLite : `bootApiTestServer`, `resetDb`, `request` (`apiRequest`, `authRequest`), `session` (`createUser`, `createSession`), `factories` (`createOrganizationWithMembers`, `createServer`) |
 | `packages/api/src/__tests__/api/` | tests d'intégration des routes |
 | `packages/shared/src/api/errors.ts` | `API_ERROR_CODES`, les codes stables, `ApiErrorBodySchema` |
@@ -32,7 +32,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 
 ## État du dépôt
 
-Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement` : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais SQLite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
+Le socle existe : `GET /health`, `GET /me` (les guards, et la licence de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `licenseForOrganization` — gratuite jusqu'à `FREE_SERVERS` serveurs, au-delà il faut une licence en cours), les guards (dont `requireLicense` : une organisation suspendue par l'équipe, ou au-delà de ses serveurs gratuits sans licence, n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais SQLite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
 
 ## Règles
 
@@ -41,7 +41,7 @@ Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l
 - **Les codes d'erreur viennent de `@pupitre/shared/api/errors`.** Un code nouveau se déclare là, jamais comme une chaîne libre dans un handler. `apiError` refuse un code inconnu à la compilation.
 - **Les messages d'erreur sont traduits** : une clé dans `src/lib/i18n/index.ts` (fr et en dans la même passe), `translate(resolveLocale(request.headers), clé)` dans le handler. Pas de phrase en dur.
 - **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit un projet, un secret ou un fichier client. Une PR qui ajoute un tel champ est refusée (`apps/web/CLAUDE.md`).
-- **Les webhooks Stripe sont la seule entrée de la facturation Stripe.** Une route ne crée jamais un abonnement ou un siège à la fin d'un checkout. Deux exceptions, toutes deux hors Stripe (`PLATFORM_PRODUCTS` de `@pupitre/shared/plans`) : le mode `launch` (`POST /orgs/:id/checkout` accorde l'abonnement de lancement par `grantLaunchSubscription` de `lib/billing/launch.ts`) et l'abonnement `granted` que l'équipe accorde depuis `/admin` (`lib/billing/admin.ts`). Rien d'autre n'écrit `Subscription` hors du webhook, et un abonnement Stripe ne s'arrête que par l'API Stripe (`cancelSubscription` du fournisseur), jamais par une ligne.
+- **Les webhooks Stripe sont la seule entrée de la facturation Stripe.** Une route ne crée jamais une licence ou un siège à la fin d'un checkout. Une exception, hors Stripe (`PLATFORM_PRODUCTS` de `@pupitre/shared/plans`) : la licence `granted` que l'équipe accorde depuis `/admin` (`lib/billing/admin.ts`). En `BILLING_MODE=off` (la production), checkout, portail, sièges et webhook refusent en 409 `conflict` (`BillingOffError`, `assertBillingOn` de `lib/billing/runtime.ts`) et rien n'appelle Stripe. Rien d'autre n'écrit `Subscription` hors du webhook, et un abonnement Stripe ne s'arrête que par l'API Stripe (`cancelSubscription` du fournisseur), jamais par une ligne.
 - **Types inférés**, jamais redéclarés : Prisma pour les entités, `t` pour les entrées et sorties, Eden côté client.
 - **Imports relatifs** dans `packages/api` : pas d'alias `@/`. `@pupitre/api/lib/*` est interdit hors du package (`scripts/assert-package-boundaries.ts`). Le client Prisma s'importe depuis `@pupitre/db/cloudflare/client` (`ApiPrisma`), jamais depuis `@pupitre/db/client` hors des tests.
 - Style Biome du monorepo : guillemets doubles, pas de point-virgule, lignes vides entre les blocs, pas de commentaire qui répète le code, pas de `export … from` (Biome `noBarrelFile`).
@@ -74,13 +74,13 @@ Composition, jamais réimplémentation. Le guard se monte **une fois**, juste ap
 | `requireAuth` | idem, `user` et `session` non nuls | 401 `unauthenticated` | tout ce qui parle à un humain : `/me`, `/me/devices` |
 | `requireOrg` | idem, `organizationId` et `role` non nuls (le rôle vient de la table `member`) | 401 `unauthenticated` ; 403 `forbidden` avec `fix` sans organisation active ; 403 `forbidden` si l'utilisateur n'est plus membre | `/servers`, `/orgs/:id/*` |
 | `requireRole("admin")` | idem `requireOrg` | 403 `forbidden` si le rôle est sous celui demandé ; `owner` > `admin` > `member` (`ROLE_RANK`) | `/servers/:id/assign`, `/orgs/:id/invitations`, la facturation en `owner` |
-| `requireEntitlement` | idem `requireOrg` | 403 `entitlement_required` sans abonnement sur l'organisation ; 403 `server_suspended` quand celui qu'elle a est suspendu ; `fix` vers `/dashboard/billing` dans les deux cas | tout ce qui suppose un abonnement en cours, fût-il en essai : `POST /servers/enroll`, les routes d'attribution |
+| `requireLicense` | idem `requireOrg` | 403 `license_required` quand l'organisation dépasse ses serveurs gratuits sans licence en cours ; 403 `server_suspended` quand l'équipe la tient suspendue ou fermée ; `fix` vers le support dans les deux cas | tout ce qui suppose une licence utilisable : `POST /servers/enroll`, les routes d'attribution |
 | `requireServer` | `currentServer` : le `Server` dont `serverTokenHash` est le SHA-256 du bearer, quel que soit son statut sauf `revoked` | 401 `unauthenticated` sans bearer, jeton inconnu, ou serveur `revoked` (avec `fix`) | `/agent/state`, `/agent/heartbeat`, `/agent/release/:version` |
 | `requirePlatformAdmin` | `user`, `session` non nuls, `platformRole` non nul : tout membre de l'organisation Pupitre | 401 `unauthenticated` ; 403 `forbidden` (`platform_admin_required`) | **lire** sous `/admin/**` : listes, fiches, boîte de réception |
 | `requirePlatformRole("admin")` | idem, `platformRole` valant `admin` ou `owner` dans l'organisation Pupitre | 403 `forbidden` (`platform_role_required`) pour un simple `member` | **agir** sous `/admin/**` : suspendre, bannir, créer un lien, répondre à un mail ; un routeur `/admin` se scinde en une instance lecture et une instance écriture |
 | `requirePublisher` | `actor` : `{ userId, source: "console" }` pour une session `admin`/`owner` de l'organisation Pupitre, `PIPELINE_ACTOR` pour le jeton `PUPITRE_PUBLISH_TOKEN` | 401 `publish_token_invalid` ; 403 comme `requirePlatformRole("admin")` | publier et promouvoir une version |
 
-`currentServer` et non `server` : Elysia réserve `server` dans son contexte (l'instance Bun). Un serveur `suspended` passe `requireServer` : c'est `/agent/state` qui lui dit `entitlement: "suspended"`. Les jetons de serveur sont préfixés `pupitre_srv_` (`src/lib/servers/tokens.ts` : `generateServerToken`, `hashServerToken`, `isServerToken`) ; `authPlugin` ne cherche pas de session Better Auth derrière un tel bearer.
+`currentServer` et non `server` : Elysia réserve `server` dans son contexte (l'instance Bun). Un serveur `suspended` passe `requireServer` : c'est `/agent/state` qui lui dit `license: "suspended"` (et `entitlement`, le même, pour les agents d'avant 2.0.0). Les jetons de serveur sont préfixés `pupitre_srv_` (`src/lib/servers/tokens.ts` : `generateServerToken`, `hashServerToken`, `isServerToken`) ; `authPlugin` ne cherche pas de session Better Auth derrière un tel bearer.
 
 `POST /agent/exchange` et `POST /webhooks/stripe` n'ont aucun guard de session : le premier vérifie le jeton d'enrôlement, le second la signature Stripe, dans leur domaine respectif.
 

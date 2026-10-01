@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/platform"
@@ -55,18 +55,18 @@ func enrol(t *testing.T, fake *modtest.FakeSys) {
 
 	now := time.Now()
 
-	cache, err := json.Marshal(entitlement.Cache{State: "valid", ValidUntil: now.Add(24 * time.Hour), CheckedAt: now})
+	cache, err := json.Marshal(license.Cache{State: "valid", ValidUntil: now.Add(24 * time.Hour), CheckedAt: now})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	fake.Files[platform.DefaultTokenPath] = []byte("jeton-de-serveur\n")
-	fake.Files[entitlement.DefaultCachePath] = cache
+	fake.Files[license.DefaultCachePath] = cache
 }
 
 func unenrol(fake *modtest.FakeSys) {
 	delete(fake.Files, platform.DefaultTokenPath)
-	delete(fake.Files, entitlement.DefaultCachePath)
+	delete(fake.Files, license.DefaultCachePath)
 }
 
 func runCLI(t *testing.T, args ...string) (int, string, string) {

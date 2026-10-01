@@ -1,0 +1,46 @@
+---
+title: Licence
+description: Les serveurs gratuits, la licence au-delà, ce qui compte comme un serveur, et ce qui arrive quand le droit d’utiliser Pupitre s’arrête.
+locale: fr
+section: account
+sectionOrder: 3
+order: 3
+---
+
+import { FREE_SERVERS } from "@pupitre/shared/plans"
+
+Pupitre est gratuit pour toute organisation jusqu’à {FREE_SERVERS} serveurs. L’app et l’agent viennent avec, sur tous les appareils que vous utilisez, avec tout le catalogue. Aucune carte n’est demandée, il n’y a ni essai ni abonnement. Voir les [tarifs](/fr/pricing/).
+
+Le compte est obligatoire : l’app enrôle un serveur pour une organisation, et la plateforme compte les serveurs de l’organisation.
+
+## Les serveurs gratuits
+
+Chaque organisation enrôle jusqu’à {FREE_SERVERS} serveurs sans rien ouvrir ni rien payer. Ils restent gratuits, sans limite de durée. Les serveurs se comptent par organisation, pas par personne : les membres d’une organisation partagent ses serveurs gratuits, et une personne membre de deux organisations a les serveurs gratuits de chacune.
+
+## Au-delà de {FREE_SERVERS} serveurs
+
+Une organisation qui a besoin de plus de serveurs a besoin d’une licence. Une licence ajoute des places aux serveurs gratuits : avec une licence de cinq places, l’organisation enrôle {FREE_SERVERS} plus cinq serveurs.
+
+Les licences sont accordées sur demande aujourd’hui : écrivez à `support@pupitre.studio` depuis l’adresse d’un propriétaire de l’organisation, avec son nom et le nombre de serveurs qu’il vous faut. Aucun paiement n’est demandé. Une fois la licence accordée, la console montre combien de serveurs l’organisation peut enrôler, et combien elle en utilise.
+
+Sans licence, l’enrôlement d’un serveur de plus est refusé avec sa raison, et rien de ce qui est déjà enrôlé ne change.
+
+## Ce qui compte comme un serveur
+
+Une machine enrôlée auprès de la plateforme, sous votre organisation. Supprimer un serveur dans la console libère sa place aussitôt ; l’agent retire alors du serveur les clés de la plateforme et passe en mode restreint. Voir [désinstaller](/fr/docs/account/uninstall/).
+
+## Quand le droit d’utiliser Pupitre s’arrête
+
+Le serveur continue de fonctionner comme un serveur ordinaire. Projets, bases, services et tunnels restent en place, et vous vous connectez en SSH comme avant.
+
+- **Une licence qui expire** alors que l’organisation tient plus de serveurs que ses serveurs gratuits ouvre sept jours de tolérance : tout continue de fonctionner, et la console dit jusqu’à quand. Ensuite, les serveurs sont suspendus jusqu’à ce que la licence soit renouvelée ou que des serveurs soient supprimés pour revenir à {FREE_SERVERS}.
+- **Une organisation suspendue** suspend ses serveurs à leur prochain contact avec la plateforme.
+- **Un serveur qui ne joint plus la plateforme** garde sa dernière réponse sept jours, puis se suspend lui-même.
+
+Un serveur suspendu met l’agent en mode restreint : l’app lit encore son état et peut mettre l’agent à jour, mais les installations et les changements attendent, et l’app affiche **Licence requise**. Rien de ce qui tourne déjà n’est arrêté. Voir le [dépannage](/fr/docs/account/troubleshooting/).
+
+Une fois la licence de nouveau valide, l’app reprend là où elle s’était arrêtée, au prochain contact du serveur.
+
+## Le code source
+
+Le code de l’app, de l’agent et de la plateforme est public, sous licence Apache 2.0 avec la Commons Clause. Vous pouvez le lire, le modifier et le faire tourner, y compris une plateforme à vous, qui compte alors ses propres serveurs. Vous ne pouvez pas vendre Pupitre, ni un service bâti pour l’essentiel sur lui. La [licence](/fr/legal/licence/) dit le reste.

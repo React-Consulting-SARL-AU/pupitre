@@ -14,7 +14,7 @@
 @version java temurin-21.0.4+7.0.LTS
 @dir /home/dev/projects/shop
 @dir /home/dev/projects/shop/.git
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
 > {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","runtimes":{"node":"22"},"processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev"}]}}
 > {"id":3,"cmd":"fs.read","params":{"path":"projects/shop/mise.local.toml"}}
 > {"id":4,"cmd":"fs.read","params":{"path":"projects/shop/.git/info/exclude"}}
@@ -26,7 +26,7 @@
 > {"id":10,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{}}}}
 > {"id":11,"cmd":"fs.stat","params":{"path":"projects/shop/mise.local.toml"}}
 > {"id":12,"cmd":"project.list"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev","install":"bun install","state":"stopped","url":"http://127.0.0.1:3100"}],"state":"stopped","url":"http://127.0.0.1:3100","boot":false,"runtimes":{"node":"22"},"protected":true}}
 < {"bytes":"W3Rvb2xzXQpub2RlID0gIjIyIgo=","event":"file","id":3,"seq":0}
 < {"id":3,"ok":true,"result":{"path":"projects/shop/mise.local.toml","media_type":"text/plain","size_bytes":20,"sha256":"ce98956f06283b132562f74ba10fe88b2c9569b36439cbe7d3585c8a15a6d1fc","chunks":1}}

@@ -37,7 +37,7 @@ func runShotCommand(engine *modules.Engine, args []string, stdout, stderr io.Wri
 
 	var agent devcli.Caller
 
-	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Caller(local, version)
+	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), licensePath()).Caller(local, version)
 	if err != nil {
 		agent = unreachable{err: err}
 	} else {

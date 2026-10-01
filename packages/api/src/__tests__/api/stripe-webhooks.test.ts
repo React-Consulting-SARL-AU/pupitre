@@ -1,11 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { FREE_SERVERS } from "@pupitre/shared/plans"
 import { stripeEventLeaseMsFromEnv } from "../../lib/billing/config"
-import {
-  entitlementForOrganization,
-  GRACE_PERIOD_MS,
-} from "../../lib/billing/entitlement"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
+import {
+  GRACE_PERIOD_MS,
+  licenseForOrganization,
+} from "../../lib/billing/license"
 import { SIGNATURE_TOLERANCE_MS } from "../../lib/billing/signature"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -32,13 +33,13 @@ interface ErrorBody {
 }
 
 interface StateBody {
-  entitlement: string
+  license: string
   valid_until: string
 }
 
 interface MeBody {
-  entitlement: string
-  subscription: { status: string } | null
+  license: string
+  license_grant: { status: string } | null
 }
 
 function invoicePaymentFailed(id: string) {
@@ -64,6 +65,21 @@ const SECOND_MS = 1000
 
 function secondsFloor(at: number): Date {
   return new Date(Math.floor(at / SECOND_MS) * SECOND_MS)
+}
+
+// Within the free servers a lost subscription changes nothing; one more puts them all at stake.
+async function beyondFreeServers(organizationId: string) {
+  const [first] = await Promise.all(
+    Array.from({ length: FREE_SERVERS + 1 }, () =>
+      createServer({ organizationId })
+    )
+  )
+
+  if (!first) {
+    throw new Error("no server created")
+  }
+
+  return first
 }
 
 describe("POST /webhooks/stripe", () => {
@@ -250,9 +266,9 @@ describe("POST /webhooks/stripe", () => {
     ).toBe(3)
   })
 
-  it("passe les serveurs en tolérance à la résiliation, avec la date de fin", async () => {
+  it("passe en tolérance les serveurs au-delà des gratuits à la résiliation", async () => {
     const periodEnd = secondsFloor(Date.now() + 3 * 86_400_000)
-    const enrolled = await createServer({ organizationId })
+    const enrolled = await beyondFreeServers(organizationId)
 
     await postStripeWebhook<AckBody>(
       stripeEvent(
@@ -280,8 +296,8 @@ describe("POST /webhooks/stripe", () => {
     })
 
     expect(stored.status).toBe("grace")
-    expect(stored.entitlementValidUntil?.toISOString()).toBe(
-      periodEnd.toISOString()
+    expect(stored.licenseValidUntil?.getTime()).toBeGreaterThan(
+      Date.now() + GRACE_PERIOD_MS - 60 * SECOND_MS
     )
 
     const state = await apiRequest<StateBody>("/agent/state", {
@@ -289,8 +305,10 @@ describe("POST /webhooks/stripe", () => {
     })
 
     expect(state.status).toBe(200)
-    expect(state.json.entitlement).toBe("grace")
-    expect(state.json.valid_until).toBe(periodEnd.toISOString())
+    expect(state.json.license).toBe("grace")
+    expect(state.json.valid_until).toBe(
+      stored.licenseValidUntil?.toISOString() ?? ""
+    )
 
     const canceled = await server.prisma.event.findFirstOrThrow({
       where: { action: "subscription.canceled" },
@@ -299,22 +317,15 @@ describe("POST /webhooks/stripe", () => {
     expect(canceled.organizationId).toBe(organizationId)
   })
 
-  it("coupe l'accès dès la fin d'un essai, sans sursis supplémentaire", async () => {
-    const trialEnd = secondsFloor(Date.now() - 60_000)
+  it("laisse actifs les serveurs gratuits à la résiliation", async () => {
     const enrolled = await createServer({ organizationId })
 
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
-        stripeSubscriptionObject({
-          organizationId,
-          quantity: 1,
-          status: "trialing",
-        })
+        stripeSubscriptionObject({ organizationId, quantity: 1 })
       )
     )
-
-    // A trial ending without a card cancels with an already past period end, so the grace window adds nothing.
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.deleted",
@@ -322,24 +333,18 @@ describe("POST /webhooks/stripe", () => {
           organizationId,
           quantity: 1,
           status: "canceled",
-          currentPeriodEnd: trialEnd,
+          currentPeriodEnd: secondsFloor(Date.now() - 60_000),
         })
       )
     )
 
-    expect(await suspendExpiredGrace(new Date())).toContain(enrolled.server.id)
-
-    const stored = await server.prisma.server.findUniqueOrThrow({
-      where: { id: enrolled.server.id },
-    })
-
-    expect(stored.status).toBe("suspended")
+    expect(await suspendExpiredGrace(new Date())).toEqual([])
 
     const state = await apiRequest<StateBody>("/agent/state", {
       bearer: enrolled.token,
     })
 
-    expect(state.json.entitlement).toBe("suspended")
+    expect(state.json.license).toBe("valid")
   })
 
   it("met l'organisation en tolérance sept jours sur un impayé, puis suspend", async () => {
@@ -369,7 +374,7 @@ describe("POST /webhooks/stripe", () => {
     })
 
     expect(graced.status).toBe("grace")
-    expect(graced.entitlementValidUntil?.getTime()).toBeGreaterThan(
+    expect(graced.licenseValidUntil?.getTime()).toBeGreaterThan(
       Date.now() + GRACE_PERIOD_MS - 60 * SECOND_MS
     )
     expect(
@@ -384,7 +389,7 @@ describe("POST /webhooks/stripe", () => {
       bearer: enrolled.token,
     })
 
-    expect(inGrace.json.entitlement).toBe("grace")
+    expect(inGrace.json.license).toBe("grace")
 
     const suspended = await suspendExpiredGrace(
       new Date(Date.now() + GRACE_PERIOD_MS + SECOND_MS)
@@ -396,7 +401,7 @@ describe("POST /webhooks/stripe", () => {
       bearer: enrolled.token,
     })
 
-    expect(afterGrace.json.entitlement).toBe("suspended")
+    expect(afterGrace.json.license).toBe("suspended")
   })
 
   it("lit l'abonnement d'une facture rangé sous parent.subscription_details", async () => {
@@ -458,7 +463,7 @@ describe("POST /webhooks/stripe", () => {
       bearer: enrolled.token,
     })
 
-    expect(state.json.entitlement).toBe("valid")
+    expect(state.json.license).toBe("valid")
   })
 
   it("rend leur droit d'usage aux serveurs suspendus par la facturation", async () => {
@@ -486,7 +491,7 @@ describe("POST /webhooks/stripe", () => {
       bearer: enrolled.token,
     })
 
-    expect(state.json.entitlement).toBe("valid")
+    expect(state.json.license).toBe("valid")
   })
 
   it("laisse suspendu un serveur que l'équipe a suspendu, abonnement ou pas", async () => {
@@ -511,13 +516,13 @@ describe("POST /webhooks/stripe", () => {
     expect(stored.suspendedReason).toBe("admin")
   })
 
-  it("ramène les serveurs d'un essai fini, puis suspendus, quand un nouvel abonnement arrive", async () => {
-    const enrolled = await createServer({ organizationId })
+  it("ramène les serveurs suspendus après une résiliation quand un nouvel abonnement arrive", async () => {
+    const enrolled = await beyondFreeServers(organizationId)
 
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
-        stripeSubscriptionObject({ organizationId, status: "trialing" })
+        stripeSubscriptionObject({ organizationId })
       )
     )
     await postStripeWebhook<AckBody>(
@@ -531,7 +536,11 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    expect(await suspendExpiredGrace(new Date())).toEqual([enrolled.server.id])
+    expect(
+      await suspendExpiredGrace(
+        new Date(Date.now() + GRACE_PERIOD_MS + SECOND_MS)
+      )
+    ).toContain(enrolled.server.id)
 
     await postStripeWebhook<AckBody>(
       stripeEvent(
@@ -553,9 +562,9 @@ describe("POST /webhooks/stripe", () => {
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
     expect(stored.status).toBe("active")
-    expect(state.json.entitlement).toBe("valid")
-    expect(me.json.entitlement).toBe("valid")
-    expect(me.json.subscription?.status).toBe("active")
+    expect(state.json.license).toBe("valid")
+    expect(me.json.license).toBe("valid")
+    expect(me.json.license_grant?.status).toBe("active")
   })
 
   it("ne repousse jamais la tolérance ni ne renvoie l'email sur les relances d'un impayé", async () => {
@@ -589,8 +598,8 @@ describe("POST /webhooks/stripe", () => {
 
     expect(emailsAfterFirst).toBe(1)
     expect(second.status).toBe("grace")
-    expect(second.entitlementValidUntil?.toISOString()).toBe(
-      first.entitlementValidUntil?.toISOString() ?? ""
+    expect(second.licenseValidUntil?.toISOString()).toBe(
+      first.licenseValidUntil?.toISOString() ?? ""
     )
     expect(subjectsSent(server)).toHaveLength(1)
   })
@@ -792,7 +801,7 @@ describe("POST /webhooks/stripe", () => {
 
   it("relit l'abonnement chez Stripe plutôt que de croire un événement en retard", async () => {
     const periodEnd = secondsFloor(Date.now() + 86_400_000)
-    const enrolled = await createServer({ organizationId })
+    const enrolled = await beyondFreeServers(organizationId)
 
     await postStripeWebhook<AckBody>(
       stripeEvent(
@@ -833,9 +842,6 @@ describe("POST /webhooks/stripe", () => {
 
     expect(mirror.status).toBe("canceled")
     expect(stored.status).toBe("grace")
-    expect(stored.entitlementValidUntil?.toISOString()).toBe(
-      periodEnd.toISOString()
-    )
   })
 
   it("met les serveurs en tolérance sept jours quand Stripe dit past_due, et /me le dit aussi", async () => {
@@ -869,13 +875,13 @@ describe("POST /webhooks/stripe", () => {
       bearer: enrolled.token,
     })
     const me = await apiRequest<MeBody>("/me", { session: owner })
-    const held = await entitlementForOrganization(organizationId)
+    const held = await licenseForOrganization(organizationId)
 
     expect(stored.status).toBe("grace")
-    expect(state.json.entitlement).toBe("grace")
-    expect(me.json.entitlement).toBe("grace")
+    expect(state.json.license).toBe("grace")
+    expect(me.json.license).toBe("grace")
     expect(held.valid_until.toISOString()).toBe(
-      stored.entitlementValidUntil?.toISOString() ?? ""
+      stored.licenseValidUntil?.toISOString() ?? ""
     )
     expect(new Date(state.json.valid_until).getTime()).toBeLessThan(
       periodEnd.getTime()
@@ -887,7 +893,7 @@ describe("POST /webhooks/stripe", () => {
     ).toEqual([enrolled.server.id])
   })
 
-  it("lit un abonnement incomplete comme suspendu", async () => {
+  it("lit un abonnement incomplete comme aucune licence", async () => {
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.created",
@@ -895,7 +901,11 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    expect((await entitlementForOrganization(organizationId)).state).toBe(
+    expect((await licenseForOrganization(organizationId)).state).toBe("valid")
+
+    await beyondFreeServers(organizationId)
+
+    expect((await licenseForOrganization(organizationId)).state).toBe(
       "suspended"
     )
   })
@@ -927,22 +937,21 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    const held = await entitlementForOrganization(organizationId)
+    const held = await licenseForOrganization(organizationId)
     const stored = await server.prisma.server.findUniqueOrThrow({
       where: { id: enrolled.server.id },
     })
     const me = await apiRequest<{
-      entitlement: string
-      subscription: { status: string; servers: { limit: number } } | null
+      license: string
+      servers: { limit: number } | null
+      license_grant: { status: string; seats: number } | null
     }>("/me", { session: owner })
 
     expect(held.state).toBe("valid")
     expect(stored.status).toBe("active")
-    expect(me.json.entitlement).toBe("valid")
-    expect(me.json.subscription).toMatchObject({
-      status: "active",
-      servers: { limit: 4 },
-    })
+    expect(me.json.license).toBe("valid")
+    expect(me.json.license_grant).toMatchObject({ status: "active", seats: 4 })
+    expect(me.json.servers).toMatchObject({ limit: FREE_SERVERS + 4 })
   })
 
   it("ignore un événement dont l'organisation est inconnue", async () => {

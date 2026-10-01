@@ -187,22 +187,3 @@ func TestEveryDevCommandTheContentNamesIsOneTheGrammarAccepts(t *testing.T) {
 		t.Fatalf("only %d dev commands found in the content: the extraction no longer reads it", named)
 	}
 }
-
-// Embedded files escape garble: every lowercase product name here counts against the release's obfuscation limit.
-func TestTheEmbeddedContentNeverNamesTheProductInLowercase(t *testing.T) {
-	err := fs.WalkDir(content, "content", func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || entry.IsDir() {
-			return err
-		}
-
-		body, err := content.ReadFile(path)
-		if count := strings.Count(string(body), "pupitre"); count > 0 {
-			t.Errorf("%s names the product %d time(s) in lowercase", path, count)
-		}
-
-		return err
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}

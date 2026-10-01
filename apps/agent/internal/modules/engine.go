@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/license"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
@@ -32,7 +32,7 @@ type Engine struct {
 	Registry     *Registry
 	Sys          sys.Sys
 	Now          func() time.Time
-	Entitlement  func() contract.Entitlement
+	License      func() contract.License
 	AgentVersion string
 	ReportPath   string
 	LogPath      string
@@ -282,7 +282,7 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 	return fn(r.recalled(module.Manifest(), recalled))
 }
 
-// No lock nor entitlement: a status asked mid-install must answer, not report absent an exposure the machine holds.
+// No lock nor license: a status asked mid-install must answer, not report absent an exposure the machine holds.
 func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
 	module, ok := e.Registry.Get(id)
 	if !ok {
@@ -378,8 +378,8 @@ func (e *Engine) now() time.Time {
 }
 
 func (e *Engine) acquire() (func(), error) {
-	if !e.entitled() {
-		return nil, protocol.EntitlementRequired()
+	if !e.licensed() {
+		return nil, protocol.LicenseRequired()
 	}
 
 	if !e.mu.TryLock() {
@@ -404,14 +404,14 @@ func busy() error {
 		WithFix(i18n.T("engine.busy.fix"))
 }
 
-func (e *Engine) entitled() bool {
-	current := entitlement.Current
-	if e.Entitlement != nil {
-		current = e.Entitlement
+func (e *Engine) licensed() bool {
+	current := license.Current
+	if e.License != nil {
+		current = e.License
 	}
 
 	switch current() {
-	case contract.EntitlementValid, contract.EntitlementGrace, contract.EntitlementDev:
+	case contract.LicenseValid, contract.LicenseGrace, contract.LicenseDev:
 		return true
 	}
 

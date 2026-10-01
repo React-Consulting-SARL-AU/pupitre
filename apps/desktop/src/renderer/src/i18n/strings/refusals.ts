@@ -43,9 +43,9 @@ export const refusals = {
     "refusal.secret.unknown": "Invalid key: {key}.",
     "refusal.secrets.stale": "This server has declared no key named {key}.",
     "refusal.account.suspended.fix":
-      "Settle the subscription in the console: {console}",
-    "refusal.account.unsubscribed.fix":
-      "Choose a plan in the console: {console}",
+      "Write to {support} to have the organization restored.",
+    "refusal.account.unlicensed.fix":
+      "Pupitre is free up to {free} servers per organization: remove a server, or write to {support} for a licence.",
     "refusal.account.stale.fix":
       "Reconnect this computer, or check the account's state: {console}",
     "refusal.account.required.fix":
@@ -69,7 +69,7 @@ export const refusals = {
     "refusal.account.signedOut.fix":
       "Sign in from the account screen, then try again.",
     "refusal.account.stale":
-      "The console has not answered for more than seven days: the subscription has to be checked again.",
+      "The console has not answered for more than seven days: the licence has to be checked again.",
     "refusal.enrollment.none": "The console handed no token for this server.",
     "refusal.binary.mismatch":
       "The agent the server received does not match the one sent.",
@@ -281,8 +281,9 @@ export const refusals = {
     "refusal.harden.account.fix":
       "Open the settings, fix this server's account, then sign in again.",
     "refusal.account.suspended":
-      "This organization's subscription is suspended.",
-    "refusal.account.unsubscribed": "This organization has no subscription.",
+      "The platform has suspended this organization.",
+    "refusal.account.unlicensed":
+      "Licence required: this organization has {used} servers, {free} of them free.",
     "refusal.account.required":
       "Installing a server asks for a Pupitre account.",
     "refusal.signIn.denied": "The request was denied in the browser.",
@@ -459,9 +460,9 @@ export const refusals = {
     "refusal.secret.unknown": "Clé invalide : {key}.",
     "refusal.secrets.stale": "Ce serveur n'a pas déclaré de clé nommée {key}.",
     "refusal.account.suspended.fix":
-      "Régularisez l'abonnement dans la console : {console}",
-    "refusal.account.unsubscribed.fix":
-      "Choisissez une offre dans la console : {console}",
+      "Écrivez à {support} pour faire rétablir l'organisation.",
+    "refusal.account.unlicensed.fix":
+      "Pupitre est gratuit jusqu'à {free} serveurs par organisation : retirez un serveur, ou écrivez à {support} pour une licence.",
     "refusal.account.stale.fix":
       "Reconnectez cet ordinateur, ou vérifiez l'état du compte : {console}",
     "refusal.account.required.fix":
@@ -487,7 +488,7 @@ export const refusals = {
     "refusal.account.signedOut.fix":
       "Connectez-vous depuis l'écran de compte, puis réessayez.",
     "refusal.account.stale":
-      "La console n'a pas répondu depuis plus de sept jours : l'abonnement doit être vérifié à nouveau.",
+      "La console n'a pas répondu depuis plus de sept jours : la licence doit être vérifiée à nouveau.",
     "refusal.enrollment.none":
       "La console n'a remis aucun token pour ce serveur.",
     "refusal.binary.mismatch":
@@ -703,9 +704,9 @@ export const refusals = {
     "refusal.command.unknown": "Commande inconnue : {cmd}.",
     "refusal.harden.account.fix":
       "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectez-vous.",
-    "refusal.account.suspended":
-      "L'abonnement de cette organisation est suspendu.",
-    "refusal.account.unsubscribed": "Cette organisation n'a pas d'abonnement.",
+    "refusal.account.suspended": "La plateforme a suspendu cette organisation.",
+    "refusal.account.unlicensed":
+      "Licence requise : cette organisation a {used} serveurs, dont {free} gratuits.",
     "refusal.account.required":
       "Installer un serveur demande un compte Pupitre.",
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",

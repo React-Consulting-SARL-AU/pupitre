@@ -49,7 +49,7 @@ export type ServerMinAggregateOutputType = {
   enrollmentTokenHash: string | null
   enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
-  entitlementValidUntil: Date | null
+  licenseValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus | null
   suspendedReason: $Enums.SuspensionReason | null
@@ -78,7 +78,7 @@ export type ServerMaxAggregateOutputType = {
   enrollmentTokenHash: string | null
   enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
-  entitlementValidUntil: Date | null
+  licenseValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus | null
   suspendedReason: $Enums.SuspensionReason | null
@@ -107,7 +107,7 @@ export type ServerCountAggregateOutputType = {
   enrollmentTokenHash: number
   enrollmentKey: number
   enrollmentExpiresAt: number
-  entitlementValidUntil: number
+  licenseValidUntil: number
   decommissionAt: number
   status: number
   suspendedReason: number
@@ -149,7 +149,7 @@ export type ServerMinAggregateInputType = {
   enrollmentTokenHash?: true
   enrollmentKey?: true
   enrollmentExpiresAt?: true
-  entitlementValidUntil?: true
+  licenseValidUntil?: true
   decommissionAt?: true
   status?: true
   suspendedReason?: true
@@ -178,7 +178,7 @@ export type ServerMaxAggregateInputType = {
   enrollmentTokenHash?: true
   enrollmentKey?: true
   enrollmentExpiresAt?: true
-  entitlementValidUntil?: true
+  licenseValidUntil?: true
   decommissionAt?: true
   status?: true
   suspendedReason?: true
@@ -207,7 +207,7 @@ export type ServerCountAggregateInputType = {
   enrollmentTokenHash?: true
   enrollmentKey?: true
   enrollmentExpiresAt?: true
-  entitlementValidUntil?: true
+  licenseValidUntil?: true
   decommissionAt?: true
   status?: true
   suspendedReason?: true
@@ -326,7 +326,7 @@ export type ServerGroupByOutputType = {
   enrollmentTokenHash: string | null
   enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
-  entitlementValidUntil: Date | null
+  licenseValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus
   suspendedReason: $Enums.SuspensionReason | null
@@ -381,7 +381,7 @@ export type ServerWhereInput = {
   enrollmentTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentKey?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
+  licenseValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
   suspendedReason?: Prisma.EnumSuspensionReasonNullableFilter<"Server"> | $Enums.SuspensionReason | null
@@ -421,7 +421,7 @@ export type ServerOrderByWithRelationInput = {
   enrollmentTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
+  licenseValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   suspendedReason?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -464,7 +464,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   agentVersion?: Prisma.StringNullableFilter<"Server"> | string | null
   targetVersion?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
+  licenseValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
   suspendedReason?: Prisma.EnumSuspensionReasonNullableFilter<"Server"> | $Enums.SuspensionReason | null
@@ -504,7 +504,7 @@ export type ServerOrderByWithAggregationInput = {
   enrollmentTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
+  licenseValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   suspendedReason?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -544,7 +544,7 @@ export type ServerScalarWhereWithAggregatesInput = {
   enrollmentTokenHash?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   enrollmentKey?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
-  entitlementValidUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
+  licenseValidUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusWithAggregatesFilter<"Server"> | $Enums.ServerStatus
   suspendedReason?: Prisma.EnumSuspensionReasonNullableWithAggregatesFilter<"Server"> | $Enums.SuspensionReason | null
@@ -575,7 +575,7 @@ export type ServerCreateInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -613,7 +613,7 @@ export type ServerUncheckedCreateInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -649,7 +649,7 @@ export type ServerUpdateInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -687,7 +687,7 @@ export type ServerUncheckedUpdateInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -724,7 +724,7 @@ export type ServerCreateManyInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -755,7 +755,7 @@ export type ServerUpdateManyMutationInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -785,7 +785,7 @@ export type ServerUncheckedUpdateManyInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -827,7 +827,7 @@ export type ServerCountOrderByAggregateInput = {
   enrollmentTokenHash?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
-  entitlementValidUntil?: Prisma.SortOrder
+  licenseValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   suspendedReason?: Prisma.SortOrder
@@ -863,7 +863,7 @@ export type ServerMaxOrderByAggregateInput = {
   enrollmentTokenHash?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
-  entitlementValidUntil?: Prisma.SortOrder
+  licenseValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   suspendedReason?: Prisma.SortOrder
@@ -892,7 +892,7 @@ export type ServerMinOrderByAggregateInput = {
   enrollmentTokenHash?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
-  entitlementValidUntil?: Prisma.SortOrder
+  licenseValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   suspendedReason?: Prisma.SortOrder
@@ -1144,7 +1144,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1181,7 +1181,7 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1245,7 +1245,7 @@ export type ServerScalarWhereInput = {
   enrollmentTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentKey?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
+  licenseValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
   suspendedReason?: Prisma.EnumSuspensionReasonNullableFilter<"Server"> | $Enums.SuspensionReason | null
@@ -1276,7 +1276,7 @@ export type ServerCreateWithoutOrganizationInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1312,7 +1312,7 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1373,7 +1373,7 @@ export type ServerCreateWithoutDeviceInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1410,7 +1410,7 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1470,7 +1470,7 @@ export type ServerCreateWithoutMetricSamplesInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1507,7 +1507,7 @@ export type ServerUncheckedCreateWithoutMetricSamplesInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1558,7 +1558,7 @@ export type ServerUpdateWithoutMetricSamplesInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1595,7 +1595,7 @@ export type ServerUncheckedUpdateWithoutMetricSamplesInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1630,7 +1630,7 @@ export type ServerCreateWithoutAlertsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1667,7 +1667,7 @@ export type ServerUncheckedCreateWithoutAlertsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1718,7 +1718,7 @@ export type ServerUpdateWithoutAlertsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1755,7 +1755,7 @@ export type ServerUncheckedUpdateWithoutAlertsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1790,7 +1790,7 @@ export type ServerCreateWithoutBackupsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1827,7 +1827,7 @@ export type ServerUncheckedCreateWithoutBackupsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1878,7 +1878,7 @@ export type ServerUpdateWithoutBackupsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1915,7 +1915,7 @@ export type ServerUncheckedUpdateWithoutBackupsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -1950,7 +1950,7 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -1987,7 +1987,7 @@ export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2038,7 +2038,7 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2075,7 +2075,7 @@ export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2110,7 +2110,7 @@ export type ServerCreateWithoutKeyApprovalsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2147,7 +2147,7 @@ export type ServerUncheckedCreateWithoutKeyApprovalsInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2198,7 +2198,7 @@ export type ServerUpdateWithoutKeyApprovalsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2235,7 +2235,7 @@ export type ServerUncheckedUpdateWithoutKeyApprovalsInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2271,7 +2271,7 @@ export type ServerCreateManyAssignedUserInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2301,7 +2301,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2338,7 +2338,7 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2374,7 +2374,7 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2404,7 +2404,7 @@ export type ServerCreateManyOrganizationInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2435,7 +2435,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2471,7 +2471,7 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2507,7 +2507,7 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2539,7 +2539,7 @@ export type ServerCreateManyDeviceInput = {
   enrollmentTokenHash?: string | null
   enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
-  entitlementValidUntil?: Date | string | null
+  licenseValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   suspendedReason?: $Enums.SuspensionReason | null
@@ -2569,7 +2569,7 @@ export type ServerUpdateWithoutDeviceInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2606,7 +2606,7 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2642,7 +2642,7 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  licenseValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
@@ -2740,7 +2740,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   enrollmentTokenHash?: boolean
   enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
-  entitlementValidUntil?: boolean
+  licenseValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
   suspendedReason?: boolean
@@ -2781,7 +2781,7 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   enrollmentTokenHash?: boolean
   enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
-  entitlementValidUntil?: boolean
+  licenseValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
   suspendedReason?: boolean
@@ -2816,7 +2816,7 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   enrollmentTokenHash?: boolean
   enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
-  entitlementValidUntil?: boolean
+  licenseValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
   suspendedReason?: boolean
@@ -2851,7 +2851,7 @@ export type ServerSelectScalar = {
   enrollmentTokenHash?: boolean
   enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
-  entitlementValidUntil?: boolean
+  licenseValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
   suspendedReason?: boolean
@@ -2868,7 +2868,7 @@ export type ServerSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "lastUsage" | "backup" | "keyReport" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "licenseValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "lastUsage" | "backup" | "keyReport" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
@@ -2921,7 +2921,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     enrollmentTokenHash: string | null
     enrollmentKey: string | null
     enrollmentExpiresAt: Date | null
-    entitlementValidUntil: Date | null
+    licenseValidUntil: Date | null
     decommissionAt: Date | null
     status: $Enums.ServerStatus
     suspendedReason: $Enums.SuspensionReason | null
@@ -3390,7 +3390,7 @@ export interface ServerFieldRefs {
   readonly enrollmentTokenHash: Prisma.FieldRef<"Server", 'String'>
   readonly enrollmentKey: Prisma.FieldRef<"Server", 'String'>
   readonly enrollmentExpiresAt: Prisma.FieldRef<"Server", 'DateTime'>
-  readonly entitlementValidUntil: Prisma.FieldRef<"Server", 'DateTime'>
+  readonly licenseValidUntil: Prisma.FieldRef<"Server", 'DateTime'>
   readonly decommissionAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly status: Prisma.FieldRef<"Server", 'ServerStatus'>
   readonly suspendedReason: Prisma.FieldRef<"Server", 'SuspensionReason'>

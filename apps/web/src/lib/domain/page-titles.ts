@@ -105,7 +105,7 @@ const TITLES: Record<string, PageTitle> = {
   "/dashboard/members": { title: "nav.members", parents: [] },
   "/dashboard/audit": { title: "nav.audit", parents: [] },
   "/dashboard/devices": { title: "nav.devices", parents: [] },
-  "/dashboard/billing": { title: "nav.billing", parents: [] },
+  "/dashboard/billing": { title: "nav.license", parents: [] },
   "/dashboard/settings": { title: "nav.settings", parents: [] },
   "/dashboard/organization": { title: "nav.organization", parents: [] },
   "/dashboard/download": { title: "nav.download", parents: [] },

@@ -55,7 +55,7 @@ func errorCode(t *testing.T, line string) string {
 
 func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 	lines := serveLines(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 		`{"id":2,"cmd":"ping"}`,
 		`{"id":3,"cmd":"snapshot"}`,
 	)
@@ -74,7 +74,7 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 		t.Fatalf("hello result violates HelloResult: %v", err)
 	}
 
-	if result["agent_version"] != version || result["entitlement"] != string(buildEntitlement) {
+	if result["agent_version"] != version || result["license"] != string(buildLicense) {
 		t.Fatalf("unexpected hello result: %v", result)
 	}
 
@@ -108,7 +108,7 @@ func TestServeRequiresHello(t *testing.T) {
 func TestServeRejectsInvalidJSONAndKeepsGoing(t *testing.T) {
 	lines := serveLines(t,
 		"not json",
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}`,
 	)
 
 	if code := errorCode(t, lines[0]); code != "bad_request" {

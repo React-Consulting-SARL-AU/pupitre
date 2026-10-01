@@ -13,7 +13,7 @@ import {
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { cancelSubscriptionByAdmin } from "../billing/admin"
-import { applyOrganizationEntitlement } from "../billing/mirror"
+import { applyOrganizationLicense } from "../billing/mirror"
 import { unassignServersOfMember } from "../servers/assign"
 import {
   type AdminOrganizationDetail,
@@ -171,7 +171,7 @@ async function suspendOrganizationServers(
   return servers.length
 }
 
-// Servers come back to what the subscription now allows: a lapsed one leaves them in grace.
+// Servers come back to what the licence now allows: past the free servers without one, they enter grace.
 async function releaseOrganizationServers(
   organizationId: string,
   now: Date
@@ -182,7 +182,7 @@ async function releaseOrganizationServers(
     data: { suspendedReason: "billing", suspendedByOrganization: false },
   })
 
-  await applyOrganizationEntitlement(organizationId, now)
+  await applyOrganizationLicense(organizationId, now)
 
   return count
 }

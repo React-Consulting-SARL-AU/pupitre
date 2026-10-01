@@ -49,7 +49,7 @@ async function mount(organization: { id: string; name: string; slug: string }) {
       <ListSearchHarness<AuditLogSearch>>
         {(handle) => <AuditLog {...handle} />}
       </ListSearchHarness>,
-      { organization, entitlement: "valid" }
+      { organization, license: "valid" }
     )
   )
 

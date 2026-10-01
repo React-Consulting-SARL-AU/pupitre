@@ -15,11 +15,11 @@ type helloParams struct {
 }
 
 type helloResult struct {
-	AgentVersion string               `json:"agent_version"`
-	Protocol     int                  `json:"protocol"`
-	ServerID     string               `json:"server_id,omitempty"`
-	Entitlement  contract.Entitlement `json:"entitlement"`
-	Capabilities []string             `json:"capabilities"`
+	AgentVersion string           `json:"agent_version"`
+	Protocol     int              `json:"protocol"`
+	ServerID     string           `json:"server_id,omitempty"`
+	License      contract.License `json:"license"`
+	Capabilities []string         `json:"capabilities"`
 	// Absent from pre-ledger agents, which the app rightly reads as a current configuration.
 	Config *contract.ConfigRevision `json:"config,omitempty"`
 }
@@ -55,7 +55,7 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 		AgentVersion: s.options.AgentVersion,
 		Protocol:     contract.ProtocolVersion,
 		ServerID:     s.serverID(),
-		Entitlement:  s.Entitlement().Entitlement,
+		License:      s.License().License,
 		Capabilities: s.Capabilities(),
 		Config:       s.config(),
 	}, nil

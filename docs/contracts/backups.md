@@ -37,7 +37,7 @@ Une sauvegarde est un préfixe du seau, un objet par partie, et un `manifest.jso
 
 Un dossier de projet ou un chemin d'`extra_paths` qui est lui-même un lien est suivi s'il mène à un dossier de `/home/dev` : la partie porte ce qu'il y trouve, sous le nom du lien, et la restauration le remet là où le lien mène, le lien gardé. Les liens rencontrés à l'intérieur ne sont jamais suivis. Un lien qui mène hors de `/home/dev`, ou nulle part, laisse la partie de côté avec un avertissement, jamais une archive vide.
 
-Ce qui n'y est jamais : `server.token`, `platform.url`, `entitlement.json`, les clés d'hôte SSH, `authorized_keys`, les binaires, les paquets, les runtimes, les dépendances des projets, les journaux, la galerie de captures, les volumes Docker.
+Ce qui n'y est jamais : `server.token`, `platform.url`, `license.json`, les clés d'hôte SSH, `authorized_keys`, les binaires, les paquets, les runtimes, les dépendances des projets, les journaux, la galerie de captures, les volumes Docker.
 
 ## Le chiffrement
 

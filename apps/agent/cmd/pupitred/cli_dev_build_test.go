@@ -10,8 +10,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The development build carries its own entitlement, so hello answers dev whatever the disk says.
-const buildEntitlement = contract.EntitlementDev
+// The development build carries its own license, so hello answers dev whatever the disk says.
+const buildLicense = contract.LicenseDev
 
 func TestTheDevelopmentBuildInstallsWithoutAToken(t *testing.T) {
 	fake, dir := setupCLI(t)
@@ -22,7 +22,7 @@ func TestTheDevelopmentBuildInstallsWithoutAToken(t *testing.T) {
 	})
 
 	code, _, stderr := runCLI(t, "install", "--only=tool.demo")
-	if code != 0 || strings.Contains(stderr, "entitlement_required") {
+	if code != 0 || strings.Contains(stderr, "license_required") {
 		t.Fatalf("code = %d, stderr:\n%s", code, stderr)
 	}
 }

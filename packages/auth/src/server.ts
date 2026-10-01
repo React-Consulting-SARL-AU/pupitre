@@ -98,7 +98,7 @@ function headersOf(value: unknown): Headers | null {
 }
 
 // Better Auth passes either a Request or an endpoint context holding headers behind `request`.
-function acceptLanguageOf(source: unknown): string | null {
+function headerOf(source: unknown, name: string): string | null {
   if (!(source && typeof source === "object")) {
     return null
   }
@@ -110,7 +110,11 @@ function acceptLanguageOf(source: unknown): string | null {
   const headers =
     headersOf(holder.headers) ?? headersOf(holder.request?.headers)
 
-  return headers?.get("accept-language") ?? null
+  return headers?.get(name) ?? null
+}
+
+function acceptLanguageOf(source: unknown): string | null {
+  return headerOf(source, "accept-language")
 }
 
 function credentialsOf(clientId?: string, clientSecret?: string) {
@@ -269,8 +273,17 @@ export function createAuth({
                 locale: localeOf(acceptLanguageOf(context)),
               },
             }),
-          after: async (user) => {
-            await ensurePersonalOrganization(prisma, user)
+          after: async (user, context) => {
+            const organizationId = await ensurePersonalOrganization(
+              prisma,
+              user
+            )
+
+            await organizationHooks().onSignedUp?.({
+              userId: user.id,
+              organizationId,
+              cookie: headerOf(context, "cookie"),
+            })
           },
         },
       },

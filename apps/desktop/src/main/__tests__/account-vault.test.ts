@@ -88,14 +88,15 @@ describe("le coffre du jeton", () => {
       },
       identity: {
         email: "ada@pupitre.studio",
-        entitlement: "valid",
+        license: "valid",
+        licenseGrant: null,
         name: "Ada",
         organization: { id: "org-1", name: "Ada", slug: "ada" },
         organizations: [
           { id: "org-1", name: "Ada", role: "owner", slug: "ada" },
         ],
         role: "owner",
-        subscription: null,
+        servers: { limit: 3, used: 1 },
       },
     });
 

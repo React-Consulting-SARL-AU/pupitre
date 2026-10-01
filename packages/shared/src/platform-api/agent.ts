@@ -3,7 +3,7 @@ import { BackupBeatSchema } from "../backup"
 import { ArchitectureSchema } from "../catalog"
 import { AgentStateKeySchema, KeysBeatSchema } from "../keys"
 import { SSH_USER_MAX, SSH_USER_PATTERN } from "../ssh"
-import { InstantSchema, ServerEntitlementSchema } from "./index"
+import { InstantSchema, ServerLicenseSchema } from "./index"
 
 const AGENT_VERSION_MAX = 40
 
@@ -26,7 +26,9 @@ export const ServerTokenSchema = z.object({ server_token: z.string() })
 export type ServerToken = z.infer<typeof ServerTokenSchema>
 
 export const AgentStateSchema = z.object({
-  entitlement: ServerEntitlementSchema,
+  license: ServerLicenseSchema,
+  // For agents older than the licence, which read it instead of `license`.
+  entitlement: ServerLicenseSchema,
   valid_until: InstantSchema,
   // For agents older than the approvals, which read it instead of `keys`.
   authorized_keys: z.array(z.string()),

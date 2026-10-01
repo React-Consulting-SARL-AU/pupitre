@@ -1,8 +1,8 @@
 # Un retour en arrière : la machine est d'abord sauvegardée telle qu'elle est,
 # puis la configuration de la sauvegarde choisie est posée. La ligne de secrets
 # porte la clé S3 et la clé privée dérivée ; aucune n'entre dans params.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","backup.run","backup.restore.setup","backup.restore.data"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["hello","backup.run","backup.restore.setup","backup.restore.data"]}}
 > {"id":2,"cmd":"backup.run","params":{}}
 < {"id":2,"event":"step","module":"core.backup","step":"setup","status":"ok","ms":210}
 < {"id":2,"event":"step","module":"core.backup","step":"manifest","status":"ok","ms":40}

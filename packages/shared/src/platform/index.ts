@@ -56,9 +56,6 @@ export function deletionDeadline(from: Date = new Date()): Date {
 
 export const WORKLIST_ITEMS = 5
 
-// The team looks further ahead than the customer, whose own warning is `TRIAL_WARN_DAYS`.
-export const TRIAL_WORKLIST_DAYS = 7
-
 export const PLATFORM_SEARCH_MIN_LENGTH = 2
 
 export const PLATFORM_SEARCH_MAX_LENGTH = 80

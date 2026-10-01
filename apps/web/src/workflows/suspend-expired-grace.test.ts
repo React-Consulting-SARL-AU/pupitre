@@ -1,20 +1,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
-import { useFakeBilling, useLaunchBilling } from "@pupitre/api/testing/billing"
+import { useFakeBilling } from "@pupitre/api/testing/billing"
 import {
   createOrganizationWithMembers,
   createServer,
 } from "@pupitre/api/testing/factories"
 import { resetFakeMail, useFakeMail } from "@pupitre/api/testing/mail"
-import { GRANTED_PRODUCT, LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { recordSteps } from "@/testing/workflow"
 import { batchStep } from "./steps"
 import {
-  ALIGN_LAUNCH_STEP,
   ANNOUNCE_SUSPENSION_STEP,
-  CANCEL_ENDED_LAUNCH_STEP,
   EXPIRE_GRANTED_STEP,
-  KEEP_LAUNCH_SEATS_STEP,
   PURGE_MAIL_UPLOADS_STEP,
   runSuspendExpiredGrace,
   SUSPEND_EXPIRED_GRACE_STEP,
@@ -35,11 +32,26 @@ async function serverWithExpiredGrace(): Promise<string> {
       name: "vps-en-tolerance",
       arch: "amd64",
       status: "grace",
-      entitlementValidUntil: new Date(Date.now() - DAY_MS),
+      licenseValidUntil: new Date(Date.now() - DAY_MS),
     },
   })
 
   return server.id
+}
+
+async function endedGrant(organizationId: string) {
+  const { prisma } = await bootApiTestServer()
+
+  return await prisma.subscription.create({
+    data: {
+      organizationId,
+      stripeSubscriptionId: `granted_${organizationId}`,
+      product: GRANTED_PRODUCT,
+      quantity: 2,
+      status: "active",
+      currentPeriodEnd: new Date(Date.now() - DAY_MS),
+    },
+  })
 }
 
 describe("le workflow SuspendExpiredGrace", () => {
@@ -61,22 +73,18 @@ describe("le workflow SuspendExpiredGrace", () => {
     resetFakeMail()
   })
 
-  it("réconcilie le lancement, ferme les octrois échus, suspend, puis purge les dépôts, chacun dans une étape nommée", async () => {
+  it("ferme les octrois échus, suspend, puis purge les dépôts, chacun dans une étape nommée", async () => {
     const serverId = await serverWithExpiredGrace()
     const recorder = recordSteps()
 
     const report = await runSuspendExpiredGrace(recorder.step)
 
     expect(report).toEqual({
-      launch: { aligned: [], kept: [], canceled: [] },
       granted: [],
       suspended: [serverId],
       purgedUploads: [],
     })
     expect(recorder.names).toEqual([
-      batchStep(ALIGN_LAUNCH_STEP, 0),
-      batchStep(KEEP_LAUNCH_SEATS_STEP, 0),
-      batchStep(CANCEL_ENDED_LAUNCH_STEP, 0),
       batchStep(EXPIRE_GRANTED_STEP, 0),
       batchStep(SUSPEND_EXPIRED_GRACE_STEP, 0),
       batchStep(ANNOUNCE_SUSPENSION_STEP, 0),
@@ -102,7 +110,7 @@ describe("le workflow SuspendExpiredGrace", () => {
         name: "vps-encore-tolere",
         arch: "amd64",
         status: "grace",
-        entitlementValidUntil: new Date(Date.now() + DAY_MS),
+        licenseValidUntil: new Date(Date.now() + DAY_MS),
       },
     })
 
@@ -114,35 +122,18 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toMatchObject({ status: "grace" })
   })
 
-  it("garde pour de bon le siège d'un lancement dépassé dont la machine est enrôlée, et ne suspend rien", async () => {
+  it("ferme un octroi échu sans rien couper tant que l'organisation tient dans ses serveurs gratuits", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
-    const ended = new Date(Date.now() - DAY_MS)
-    const subscription = await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: `launch_${organization.id}`,
-        product: LAUNCH_PRODUCT,
-        quantity: 1,
-        status: "trialing",
-        currentPeriodEnd: ended,
-      },
-    })
+    const subscription = await endedGrant(organization.id)
     const { server } = await createServer({ organizationId: organization.id })
-
-    await prisma.server.update({
-      where: { id: server.id },
-      data: { createdAt: new Date(ended.getTime() - DAY_MS) },
-    })
-    useLaunchBilling({ endsAt: ended })
 
     const report = await runSuspendExpiredGrace(recordSteps().step)
 
     expect(report).toEqual({
-      launch: { aligned: [], kept: [subscription.id], canceled: [] },
-      granted: [],
+      granted: [subscription.id],
       suspended: [],
       purgedUploads: [],
     })
@@ -150,80 +141,32 @@ describe("le workflow SuspendExpiredGrace", () => {
       await prisma.subscription.findUniqueOrThrow({
         where: { id: subscription.id },
       })
-    ).toMatchObject({ status: "active", currentPeriodEnd: null })
+    ).toMatchObject({ status: "canceled" })
     expect(
       await prisma.server.findUniqueOrThrow({ where: { id: server.id } })
     ).toMatchObject({ status: "active" })
   })
 
-  it("ferme un lancement dépassé qui n'a jamais enrôlé de machine", async () => {
+  it("ouvre la tolérance des serveurs d'un octroi échu au-delà des serveurs gratuits", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
-    const ended = new Date(Date.now() - DAY_MS)
-    const subscription = await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: `launch_${organization.id}`,
-        product: LAUNCH_PRODUCT,
-        quantity: 1,
-        status: "trialing",
-        currentPeriodEnd: ended,
-      },
-    })
+    const subscription = await endedGrant(organization.id)
 
-    useLaunchBilling({ endsAt: ended })
+    for (let index = 0; index <= FREE_SERVERS; index += 1) {
+      await createServer({ organizationId: organization.id })
+    }
 
     const report = await runSuspendExpiredGrace(recordSteps().step)
 
-    expect(report).toEqual({
-      launch: { aligned: [], kept: [], canceled: [subscription.id] },
-      granted: [],
-      suspended: [],
-      purgedUploads: [],
-    })
+    expect(report.granted).toEqual([subscription.id])
+    expect(report.suspended).toEqual([])
     expect(
-      await prisma.subscription.findUniqueOrThrow({
-        where: { id: subscription.id },
+      await prisma.server.count({
+        where: { organizationId: organization.id, status: "grace" },
       })
-    ).toMatchObject({ status: "canceled" })
-  })
-
-  it("ferme un octroi arrivé à échéance et suspend ses serveurs dans la même passe", async () => {
-    const { prisma } = await bootApiTestServer()
-    const { organization } = await createOrganizationWithMembers({
-      roles: ["owner"],
-    })
-    const ended = new Date(Date.now() - DAY_MS)
-    const subscription = await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: "granted_partenaire",
-        product: GRANTED_PRODUCT,
-        quantity: 2,
-        status: "active",
-        currentPeriodEnd: ended,
-      },
-    })
-    const { server } = await createServer({ organizationId: organization.id })
-
-    const report = await runSuspendExpiredGrace(recordSteps().step)
-
-    expect(report).toEqual({
-      launch: { aligned: [], kept: [], canceled: [] },
-      granted: [subscription.id],
-      suspended: [server.id],
-      purgedUploads: [],
-    })
-    expect(
-      await prisma.subscription.findUniqueOrThrow({
-        where: { id: subscription.id },
-      })
-    ).toMatchObject({ status: "canceled" })
-    expect(
-      await prisma.server.findUniqueOrThrow({ where: { id: server.id } })
-    ).toMatchObject({ status: "suspended", suspendedReason: "billing" })
+    ).toBe(FREE_SERVERS + 1)
   })
 
   it("purge les dépôts de mail vieux d'un jour et laisse les autres", async () => {

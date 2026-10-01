@@ -49,7 +49,7 @@ Elle retire :
 - `/usr/local/bin/pupitred`, et les commandes `dev` et `shot` de `/usr/local/bin`, qui sont des liens vers lui ;
 - dans `/etc/sudoers.d/90-dev`, les deux lignes qui laissent `pupitred` tourner sans mot de passe : `dev` garde `sudo` sur son mot de passe. La nouvelle règle est vérifiée par `visudo` avant de remplacer l’ancienne. Un serveur sécurisé avant le mot de passe garde sa règle sans mot de passe telle quelle ;
 - `/etc/pupitre`, sauf `/etc/pupitre/env` ;
-- `/var/lib/pupitre`, l’état de l’agent : le droit d’usage en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration ;
+- `/var/lib/pupitre`, l’état de l’agent : la licence en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration ;
 - `/var/log/pupitre.log`, ses copies tournées, et leur rotation dans `/etc/logrotate.d/pupitre`.
 
 `/etc/pupitre/env` reste, lisible par root seul : il porte les mots de passe et tokens de vos services — mots de passe des bases, token du tunnel, clés d’API — et rien d’autre ne les garde. Copiez ce dont vous avez encore besoin en lieu sûr, puis supprimez-le si vous le souhaitez :

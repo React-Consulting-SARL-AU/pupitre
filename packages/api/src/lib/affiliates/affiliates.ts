@@ -1,24 +1,27 @@
-import type { AffiliateLink, Prisma } from "@pupitre/db/cloudflare/client"
+import type {
+  AffiliateLink,
+  Prisma,
+  ServerStatus,
+} from "@pupitre/db/cloudflare/client"
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import {
   AFFILIATE_CODE_LENGTH,
   AFFILIATE_CODE_RE,
-  LIVE_SUBSCRIPTION_STATUSES,
+  AFFILIATE_COOKIE,
 } from "@pupitre/shared/plans"
+import { inBatches } from "../api/batches"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { type LiveCandidate, liveAmong } from "../billing/subscription"
 import { type AffiliateClicks, clicksInWindow, clicksOf } from "./clicks"
 
 export interface AffiliateLinkView {
   id: string
   code: string
   name: string
-  free_months: number
-  seats: number
   disabled: boolean
   created_at: Date
   referrals: number
+  servers: number
   partner_name: string | null
   clicks_30_days: number
   url: string
@@ -27,8 +30,6 @@ export interface AffiliateLinkView {
 export interface AffiliateLinkInput {
   name: string
   code?: string
-  free_months: number
-  seats?: number
   partner_name?: string | null
   partner_email?: string | null
   notes?: string | null
@@ -37,8 +38,6 @@ export interface AffiliateLinkInput {
 export interface AffiliateLinkUpdate {
   disabled?: boolean
   name?: string
-  free_months?: number
-  seats?: number
   partner_name?: string | null
   partner_email?: string | null
   notes?: string | null
@@ -67,6 +66,9 @@ const CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 const WITH_REFERRAL_COUNT = { _count: { select: { referrals: true } } }
 
+// Servers that went through the exchange and still hold their place.
+const ENROLLED_STATUSES: ServerStatus[] = ["active", "grace", "suspended"]
+
 type LinkRow = AffiliateLink & { _count: { referrals: number } }
 
 export function generateAffiliateCode(): string {
@@ -82,20 +84,87 @@ export function affiliateUrl(code: string): string {
   return `${PUPITRE_ORIGINS.site}/?ref=${encodeURIComponent(code)}`
 }
 
-function toView(link: LinkRow, clicks30Days: number): AffiliateLinkView {
+export function affiliateCodeFromCookie(cookie: string | null): string | null {
+  for (const part of cookie?.split(";") ?? []) {
+    const separator = part.indexOf("=")
+
+    if (
+      separator === -1 ||
+      part.slice(0, separator).trim() !== AFFILIATE_COOKIE
+    ) {
+      continue
+    }
+
+    const value = part.slice(separator + 1).trim()
+
+    return AFFILIATE_CODE_RE.test(value) ? value : null
+  }
+
+  return null
+}
+
+function toView(
+  link: LinkRow,
+  clicks30Days: number,
+  servers: number
+): AffiliateLinkView {
   return {
     id: link.id,
     code: link.code,
     name: link.name,
-    free_months: link.freeMonths,
-    seats: link.seats,
     disabled: link.disabledAt !== null,
     created_at: link.createdAt,
     referrals: link._count.referrals,
+    servers,
     partner_name: link.partnerName,
     clicks_30_days: clicks30Days,
     url: affiliateUrl(link.code),
   }
+}
+
+async function enrolledServersOf(
+  organizationIds: string[]
+): Promise<Map<string, number>> {
+  const enrolled = new Map<string, number>()
+
+  for (const batch of inBatches(organizationIds)) {
+    const rows = await getPrisma().server.groupBy({
+      by: ["organizationId"],
+      where: {
+        organizationId: { in: batch },
+        status: { in: ENROLLED_STATUSES },
+      },
+      _count: { _all: true },
+    })
+
+    for (const row of rows) {
+      enrolled.set(row.organizationId, row._count._all)
+    }
+  }
+
+  return enrolled
+}
+
+async function serversByLink(
+  where: Prisma.ReferralWhereInput = {}
+): Promise<Map<string, number>> {
+  const referrals = await getPrisma().referral.findMany({
+    where,
+    select: { organizationId: true, linkId: true },
+  })
+  const enrolled = await enrolledServersOf(
+    referrals.map((referral) => referral.organizationId)
+  )
+  const byLink = new Map<string, number>()
+
+  for (const { organizationId, linkId } of referrals) {
+    byLink.set(
+      linkId,
+      (byLink.get(linkId) ?? 0) + (enrolled.get(organizationId) ?? 0)
+    )
+  }
+
+  return byLink
 }
 
 export async function listAffiliateLinks(): Promise<AffiliateLinkView[]> {
@@ -103,9 +172,14 @@ export async function listAffiliateLinks(): Promise<AffiliateLinkView[]> {
     orderBy: { createdAt: "desc" },
     include: WITH_REFERRAL_COUNT,
   })
-  const clicks = await clicksInWindow(links.map((link) => link.id))
+  const [clicks, servers] = await Promise.all([
+    clicksInWindow(links.map((link) => link.id)),
+    serversByLink(),
+  ])
 
-  return links.map((link) => toView(link, clicks.get(link.id) ?? 0))
+  return links.map((link) =>
+    toView(link, clicks.get(link.id) ?? 0, servers.get(link.id) ?? 0)
+  )
 }
 
 export interface AffiliateReferredOrganization {
@@ -113,7 +187,7 @@ export interface AffiliateReferredOrganization {
   name: string
   slug: string
   created_at: Date
-  subscription_status: string | null
+  servers: number
   referred_at: Date
 }
 
@@ -124,11 +198,7 @@ export interface AffiliatePartner {
 
 export interface AffiliateConversion {
   referred: number
-  trialing: number
-  active: number
-  past_due: number
-  canceled: number
-  seats: number
+  servers: number
 }
 
 export interface AffiliateLinkDetail extends AffiliateLinkView {
@@ -139,48 +209,6 @@ export interface AffiliateLinkDetail extends AffiliateLinkView {
   organizations: AffiliateReferredOrganization[]
 }
 
-interface CountingSubscription extends LiveCandidate {
-  quantity: number
-}
-
-const COUNTED_STATUSES = ["trialing", "active", "past_due", "canceled"] as const
-
-type CountedStatus = (typeof COUNTED_STATUSES)[number]
-
-function isCounted(status: string): status is CountedStatus {
-  return (COUNTED_STATUSES as readonly string[]).includes(status)
-}
-
-// One counting subscription per organization, so a stale row never speaks for the live one.
-function conversionOf(
-  counting: (CountingSubscription | null)[]
-): AffiliateConversion {
-  const conversion: AffiliateConversion = {
-    referred: counting.length,
-    trialing: 0,
-    active: 0,
-    past_due: 0,
-    canceled: 0,
-    seats: 0,
-  }
-
-  for (const subscription of counting) {
-    if (!subscription) {
-      continue
-    }
-
-    if (isCounted(subscription.status)) {
-      conversion[subscription.status] += 1
-    }
-
-    if (LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)) {
-      conversion.seats += subscription.quantity
-    }
-  }
-
-  return conversion
-}
-
 function partnerOf(link: AffiliateLink): AffiliatePartner | null {
   if (link.partnerName === null && link.partnerEmail === null) {
     return null
@@ -189,11 +217,16 @@ function partnerOf(link: AffiliateLink): AffiliatePartner | null {
   return { name: link.partnerName, email: link.partnerEmail }
 }
 
+async function serversOfLink(linkId: string): Promise<number> {
+  const servers = await serversByLink({ linkId })
+
+  return servers.get(linkId) ?? 0
+}
+
 export async function readAffiliateLink(
   linkId: string
 ): Promise<AffiliateLinkDetail | null> {
-  const prisma = getPrisma()
-  const link = await prisma.affiliateLink.findUnique({
+  const link = await getPrisma().affiliateLink.findUnique({
     where: { id: linkId },
     include: {
       ...WITH_REFERRAL_COUNT,
@@ -212,53 +245,32 @@ export async function readAffiliateLink(
     return null
   }
 
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      organizationId: {
-        in: link.referrals.map((referral) => referral.organizationId),
-      },
-    },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      organizationId: true,
-      status: true,
-      quantity: true,
-      product: true,
-      currentPeriodEnd: true,
-    },
-  })
-  const byOrganization = new Map<string, CountingSubscription[]>()
-
-  for (const subscription of subscriptions) {
-    const kept = byOrganization.get(subscription.organizationId) ?? []
-
-    kept.push(subscription)
-    byOrganization.set(subscription.organizationId, kept)
-  }
-
-  const counting = new Map(
-    link.referrals.map((referral) => [
-      referral.organizationId,
-      liveAmong(byOrganization.get(referral.organizationId) ?? []),
-    ])
+  const [enrolled, clicks] = await Promise.all([
+    enrolledServersOf(
+      link.referrals.map((referral) => referral.organizationId)
+    ),
+    clicksOf(link.id),
+  ])
+  const organizations = link.referrals.map((referral) => ({
+    id: referral.organization.id,
+    name: referral.organization.name,
+    slug: referral.organization.slug,
+    created_at: referral.organization.createdAt,
+    servers: enrolled.get(referral.organizationId) ?? 0,
+    referred_at: referral.createdAt,
+  }))
+  const servers = organizations.reduce(
+    (total, organization) => total + organization.servers,
+    0
   )
-  const clicks = await clicksOf(link.id)
 
   return {
-    ...toView(link, clicks.last_30_days),
+    ...toView(link, clicks.last_30_days, servers),
     partner: partnerOf(link),
     notes: link.notes,
     clicks,
-    conversion: conversionOf([...counting.values()]),
-    organizations: link.referrals.map((referral) => ({
-      id: referral.organization.id,
-      name: referral.organization.name,
-      slug: referral.organization.slug,
-      created_at: referral.organization.createdAt,
-      subscription_status:
-        counting.get(referral.organizationId)?.status ?? null,
-      referred_at: referral.createdAt,
-    })),
+    conversion: { referred: organizations.length, servers },
+    organizations,
   }
 }
 
@@ -297,8 +309,6 @@ export async function createAffiliateLink(
       data: {
         code,
         name: input.name,
-        freeMonths: input.free_months,
-        seats: input.seats ?? 1,
         partnerName: trimmedOrNull(input.partner_name) ?? null,
         partnerEmail: trimmedOrNull(input.partner_email) ?? null,
         notes: trimmedOrNull(input.notes) ?? null,
@@ -319,15 +329,10 @@ export async function createAffiliateLink(
     actorUserId: actor.userId,
     targetType: "affiliate_link",
     targetId: link.id,
-    payload: {
-      code: link.code,
-      name: link.name,
-      free_months: link.freeMonths,
-      seats: link.seats,
-    },
+    payload: { code: link.code, name: link.name },
   })
 
-  return toView(link, 0)
+  return toView(link, 0, 0)
 }
 
 function trimmedOrNull(
@@ -360,19 +365,6 @@ function pendingChanges(
   if (input.name !== undefined && input.name !== existing.name) {
     data.name = input.name
     payload.name = input.name
-  }
-
-  if (
-    input.free_months !== undefined &&
-    input.free_months !== existing.freeMonths
-  ) {
-    data.freeMonths = input.free_months
-    payload.free_months = input.free_months
-  }
-
-  if (input.seats !== undefined && input.seats !== existing.seats) {
-    data.seats = input.seats
-    payload.seats = input.seats
   }
 
   if (partnerName !== undefined && partnerName !== existing.partnerName) {
@@ -427,7 +419,10 @@ export async function updateAffiliateLink(
         where: { id: linkId },
         include: WITH_REFERRAL_COUNT,
       })
-  const clicks = await clicksOf(link.id)
+  const [clicks, servers] = await Promise.all([
+    clicksOf(link.id),
+    serversOfLink(link.id),
+  ])
 
   if (changed) {
     await recordEvent({
@@ -439,7 +434,7 @@ export async function updateAffiliateLink(
     })
   }
 
-  return toView(link, clicks.last_30_days)
+  return toView(link, clicks.last_30_days, servers)
 }
 
 export class AffiliateLinkReferredError extends Error {
@@ -480,18 +475,7 @@ export async function deleteAffiliateLink(
   return true
 }
 
-export async function referralLinkOf(
-  organizationId: string
-): Promise<AffiliateLink | null> {
-  const referral = await getPrisma().referral.findUnique({
-    where: { organizationId },
-    include: { link: true },
-  })
-
-  return referral?.link ?? null
-}
-
-/** A bad code never blocks the checkout; of two concurrent writes, only the winner logs. */
+/** A bad code never blocks the caller; of two concurrent writes, only the winner logs. */
 export async function recordReferral(
   actor: ReferralActor,
   code: string
@@ -538,4 +522,20 @@ export async function recordReferral(
   })
 
   return true
+}
+
+export interface SignUpReferral extends ReferralActor {
+  cookie: string | null
+}
+
+// The site leaves the code in a cookie on the shared domain; the sign-up request carries it here.
+export async function recordSignUpReferral({
+  cookie,
+  ...actor
+}: SignUpReferral): Promise<void> {
+  const code = affiliateCodeFromCookie(cookie)
+
+  if (code) {
+    await recordReferral(actor, code)
+  }
 }

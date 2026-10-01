@@ -8,6 +8,14 @@ const DEFAULT_CONFIG = join(ROOT, "apps/web/wrangler.jsonc")
 const WHITESPACE_RE = /\s/
 const SEPARATOR_RE = /[\s,]+/
 
+// Required only once the Worker actually bills: `BILLING_MODE=off` never reaches Stripe.
+export const STRIPE_SECRETS = [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_SERVER_MONTH",
+  "STRIPE_PRICE_SERVER_YEAR",
+]
+
 export interface TWorkerEnvironment {
   name?: string
   vars?: Record<string, unknown>
@@ -148,11 +156,13 @@ export function environmentSecrets(
   }
 
   const secrets = block.secrets ?? config.secrets
+  const declared = secrets?.required ?? []
+  const billing = block.vars?.BILLING_MODE === "stripe" ? STRIPE_SECRETS : []
 
   // Legacy environments, the mode the Vite plugin builds with: name + environment.
   return {
     workerName: `${config.name ?? "unknown"}-${environment}`,
-    required: secrets?.required ?? [],
+    required: [...new Set([...declared, ...billing])],
     varNames: Object.keys(block.vars ?? {}),
   }
 }

@@ -131,7 +131,7 @@ function notify(
 
   return sendServerGraceEmail({
     server,
-    deadline: server.entitlementValidUntil ?? now,
+    deadline: server.licenseValidUntil ?? now,
   })
 }
 

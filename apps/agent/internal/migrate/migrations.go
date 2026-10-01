@@ -61,7 +61,30 @@ func All() []Migration {
 			Touches: []Target{TargetProjects},
 			Apply:   projectsProtected,
 		},
+		{
+			ID:      8,
+			Slug:    "license-cache",
+			Since:   "2.0.0",
+			Touches: []Target{TargetEntitlement, TargetLicense},
+			Apply:   licenseCache,
+		},
 	}
+}
+
+// Carried over rather than awaited from the platform: an offline server keeps its seven days of tolerance.
+func licenseCache(ctx *Context) error {
+	cached, present, err := ctx.Read(TargetEntitlement)
+	if err != nil || !present {
+		return err
+	}
+
+	if !ctx.Exists(TargetLicense) {
+		if err := ctx.Write(TargetLicense, cached); err != nil {
+			return err
+		}
+	}
+
+	return ctx.Remove(TargetEntitlement)
 }
 
 // Every project published before the access gate goes behind it: its names answered anyone holding the URL.

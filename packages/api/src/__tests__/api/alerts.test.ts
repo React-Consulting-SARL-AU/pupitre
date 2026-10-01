@@ -277,13 +277,13 @@ describe("les autres genres d'alerte", () => {
       where: { id: server.id },
       data: {
         lastHeartbeatAt: new Date(),
-        entitlementValidUntil: new Date(Date.now() + 86_400_000),
+        licenseValidUntil: new Date(Date.now() + 86_400_000),
       },
     })
 
     const verdict = await evaluateServerAlerts(await reload(server.id))
 
-    expect(verdict.opened).toEqual(["entitlement_grace"])
+    expect(verdict.opened).toEqual(["license_grace"])
     expect(alertEmails()).toHaveLength(1)
   })
 })

@@ -24,10 +24,7 @@ export function AdminOrganizationOverview({
     ? affiliateUrlFor(detail.referral.code)
     : null
   const live = detail.subscription
-    ? subscriptionStatusLook(
-        detail.subscription.status,
-        detail.subscription.product
-      )
+    ? subscriptionStatusLook(detail.subscription.status)
     : null
   const owners = detail.members.filter((member) => member.role === OWNER_ROLE)
   const reason = detail.reason

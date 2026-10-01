@@ -106,20 +106,9 @@ func Enable(ctx *modules.Context, published []routes.Route) error {
 	})
 }
 
-// A reload keeps the WebSockets the gate carries; the names it learns take effect on the next request.
-func Publish(ctx *modules.Context, published []routes.Route) error {
-	changed, err := writeRoutes(ctx, published)
-	if err != nil || !changed {
-		return err
-	}
-
-	return ctx.Step("reload-gate", func() (modules.Outcome, error) {
-		if !systemd.Active(ctx, gate.Unit) {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, systemd.Reload(ctx, gate.Unit)
-	})
+// The gate this agent writes is in place: its unit as this binary would write it, and its routes.
+func Current(ctx *modules.Context) bool {
+	return file.Same(ctx, UnitPath, UnitFile) && file.Exists(ctx, gate.RoutesPath)
 }
 
 // The keys stay: a tunnel put back finds every key it had given out.
@@ -152,14 +141,15 @@ func Disable(ctx *modules.Context) error {
 	})
 }
 
-func Content(published []routes.Route) []byte {
+func routesFile(published []routes.Route) []byte {
 	encoded, _ := json.MarshalIndent(gate.Routes{Routes: routes.Gate(published)}, "", "  ")
 
 	return append(encoded, '\n')
 }
 
+// A reload keeps the WebSockets the gate carries; the names it learns take effect on the next request.
 func writeRoutes(ctx *modules.Context, published []routes.Route) (bool, error) {
-	content := Content(published)
+	content := routesFile(published)
 	changed := false
 
 	err := ctx.Step("write-gate-routes", func() (modules.Outcome, error) {

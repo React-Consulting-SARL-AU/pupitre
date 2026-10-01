@@ -22,7 +22,7 @@ const ANY = "*";
 
 const RESTRICTED = "restricted";
 
-const ENTITLEMENT_DIRECTIVE = "@entitlement ";
+const LICENSE_DIRECTIVE = "@license ";
 
 /** The contract's list, so a transcript cannot test a repair (`enroll`) the real agent refuses. */
 const RESTRICTED_COMMANDS = new Set<string>(CONTRACT_RESTRICTED);
@@ -50,8 +50,8 @@ function parse(path: string): Transcript {
       continue;
     }
 
-    if (line.startsWith(ENTITLEMENT_DIRECTIVE)) {
-      restricted = line.slice(ENTITLEMENT_DIRECTIVE.length) === RESTRICTED;
+    if (line.startsWith(LICENSE_DIRECTIVE)) {
+      restricted = line.slice(LICENSE_DIRECTIVE.length) === RESTRICTED;
       continue;
     }
 
@@ -117,26 +117,26 @@ function fail(id: number, code: string, message: string): void {
   say(JSON.stringify({ id, ok: false, error: { code, message } }));
 }
 
-/** Worded as `protocol.EntitlementRequired()`; refused before dispatch, so the transcript cursor stays put. */
-function refuseEntitlement(id: number): void {
+/** Worded as `protocol.LicenseRequired()`; refused before dispatch, so the transcript cursor stays put. */
+function refuseLicense(id: number): void {
   say(
     JSON.stringify({
       id,
       ok: false,
       error: {
-        code: "entitlement_required",
-        message: "droit d'usage requis : ce serveur est en mode restreint",
-        fix: "Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.",
+        code: "license_required",
+        message: "licence requise : ce serveur est en mode restreint",
+        fix: "Ouvrez https://app.pupitre.studio : Pupitre est gratuit jusqu'à 3 serveurs par organisation, une licence est requise au-delà.",
       },
     })
   );
 }
 
-function entitlementOf(reply: Record<string, unknown>): string | null {
-  const result = reply.result as { entitlement?: unknown } | undefined;
+function licenseOf(reply: Record<string, unknown>): string | null {
+  const result = reply.result as { license?: unknown } | undefined;
 
-  return reply.ok === true && typeof result?.entitlement === "string"
-    ? result.entitlement
+  return reply.ok === true && typeof result?.license === "string"
+    ? result.license
     : null;
 }
 
@@ -337,7 +337,7 @@ function main(): void {
     }
 
     if (right.refusing() && !RESTRICTED_COMMANDS.has(request.cmd)) {
-      refuseEntitlement(request.id);
+      refuseLicense(request.id);
 
       return;
     }
@@ -404,14 +404,15 @@ function main(): void {
       ) as Record<string, unknown>;
 
       value.id = request.id;
-      say(JSON.stringify(value));
 
-      // The agent resolves its entitlement again after an enrolment that granted a right.
-      const granted = exchange.cmd === "enroll" ? entitlementOf(value) : null;
+      // Like `pupitred`, the right is on disk before the reply leaves, or another channel races the write.
+      const granted = exchange.cmd === "enroll" ? licenseOf(value) : null;
 
       if (granted) {
         right.set(granted === RESTRICTED);
       }
+
+      say(JSON.stringify(value));
     }
 
     if (exchange.die) {

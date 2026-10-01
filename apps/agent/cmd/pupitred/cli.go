@@ -23,7 +23,7 @@ import (
 func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
 	local := func() devcli.Caller { return newServer(engine, false) }
 
-	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Caller(local, version)
+	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), licensePath()).Caller(local, version)
 	if err != nil {
 		return devcli.PrintFailure(stderr, err)
 	}

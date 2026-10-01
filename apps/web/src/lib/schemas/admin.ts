@@ -1,17 +1,17 @@
 import {
   AFFILIATE_CODE_RE,
-  AFFILIATE_MAX_FREE_MONTHS,
   AFFILIATE_NOTES_MAX_LENGTH,
   AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
 import { z } from "zod"
 import { endOfDayIso } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
-import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
+
+export const MIN_SEATS = 1
+
+export const MAX_SEATS = 500
 
 export const MAX_AFFILIATE_LINK_NAME_LENGTH = 80
-
-export const MIN_AFFILIATE_SEATS = 1
 
 export const MAX_SUBSCRIPTION_NOTE_LENGTH = 500
 
@@ -47,35 +47,6 @@ function endsAtField(t: Translate) {
       return iso
     })
 }
-
-// An empty field is refused here, not read as an open end.
-function trialEndField(t: Translate) {
-  return z
-    .string()
-    .trim()
-    .transform((value, context) => {
-      const iso = value === "" ? null : endOfDayIso(value)
-
-      if (iso === null) {
-        context.addIssue({
-          code: "custom",
-          message: t("admin.subscriptions.endsAtRequired"),
-        })
-
-        return z.NEVER
-      }
-
-      return iso
-    })
-}
-
-export function trialEndSchema(t: Translate) {
-  return z.object({ ends_at: trialEndField(t) })
-}
-
-export type TrialEndInput = z.input<ReturnType<typeof trialEndSchema>>
-
-export type TrialEndValues = z.output<ReturnType<typeof trialEndSchema>>
 
 export function grantSubscriptionSchema(t: Translate) {
   return z.object({
@@ -154,30 +125,6 @@ function affiliateNameField(t: Translate) {
     )
 }
 
-function affiliateFreeMonthsField(t: Translate) {
-  return z.coerce
-    .number({ error: t("admin.links.integer") })
-    .int(t("admin.links.integer"))
-    .min(
-      0,
-      t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
-    )
-    .max(
-      AFFILIATE_MAX_FREE_MONTHS,
-      t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
-    )
-}
-
-function affiliateSeatsField(t: Translate) {
-  return z.coerce
-    .number({ error: t("admin.links.integer") })
-    .int(t("admin.links.integer"))
-    .min(
-      MIN_AFFILIATE_SEATS,
-      t("admin.links.seatsMin", { min: MIN_AFFILIATE_SEATS })
-    )
-}
-
 // An empty field clears the value: the API takes `null` for that.
 function clearableText(t: Translate, max: number) {
   return z
@@ -213,8 +160,6 @@ export function affiliateLinkSchema(t: Translate) {
         (value) => value === "" || AFFILIATE_CODE_RE.test(value),
         t("admin.links.codeInvalid")
       ),
-    free_months: affiliateFreeMonthsField(t),
-    seats: affiliateSeatsField(t),
     ...affiliatePartnerFields(t),
   })
 }
@@ -222,8 +167,6 @@ export function affiliateLinkSchema(t: Translate) {
 export function affiliateLinkEditSchema(t: Translate) {
   return z.object({
     name: affiliateNameField(t),
-    free_months: affiliateFreeMonthsField(t),
-    seats: affiliateSeatsField(t),
     ...affiliatePartnerFields(t),
   })
 }

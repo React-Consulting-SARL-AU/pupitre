@@ -24,9 +24,10 @@ import {
   type GrantSubscriptionInput,
   type GrantSubscriptionValues,
   grantSubscriptionSchema,
+  MAX_SEATS,
   MAX_SUBSCRIPTION_NOTE_LENGTH,
+  MIN_SEATS,
 } from "@/lib/schemas/admin"
-import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
 
 export interface AdminGrantDialogOrganization {
   id: string

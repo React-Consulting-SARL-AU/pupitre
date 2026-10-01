@@ -17,7 +17,7 @@ import {
   subscribeOrganization,
 } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { GRANTED_PRODUCT } from "@pupitre/shared/plans"
+import { FREE_SERVERS, GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { useState } from "react"
 import {
   ADMIN_SUBSCRIPTION_TAB,
@@ -26,7 +26,6 @@ import {
 } from "@/components/admin/admin-subscription-detail"
 import {
   createConsoleUser,
-  grantLaunch,
   usePlatformReaderClient,
   useSessionApiClient,
   useSeveredApiClient,
@@ -58,6 +57,12 @@ function page(
   }: { tab?: AdminSubscriptionTab; platformRole?: OrgRole } = {}
 ) {
   return withDashboard(<Detail id={id} start={tab} />, { platformRole })
+}
+
+async function seedServers(organizationId: string, count: number) {
+  for (let index = 0; index < count; index += 1) {
+    await createServer({ organizationId })
+  }
 }
 
 async function grantedSubscription(organizationId: string, quantity: number) {
@@ -109,7 +114,7 @@ describe("AdminSubscriptionDetail", () => {
     })
     const granted = await grantedSubscription(organization.id, 3)
 
-    await createServer({ organizationId: organization.id })
+    await seedServers(organization.id, FREE_SERVERS + 1)
 
     const { container, unmount } = await render(page(granted.id))
 
@@ -125,14 +130,14 @@ describe("AdminSubscriptionDetail", () => {
     expect(container.textContent).toContain("Actions")
   })
 
-  it("marks the drift when the servers outnumber the seats", async () => {
+  it("marks the drift when the servers beyond the free ones outnumber the seats", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
     })
     const granted = await grantedSubscription(organization.id, 1)
 
-    await createServer({ organizationId: organization.id })
+    await seedServers(organization.id, FREE_SERVERS + 1)
     await createServer({ organizationId: organization.id, status: "grace" })
 
     const { container, unmount } = await render(page(granted.id))
@@ -180,7 +185,7 @@ describe("AdminSubscriptionDetail", () => {
     expect(container.textContent).toContain("Failed")
   })
 
-  it("stops a subscription now, with the reason, and its servers follow", async () => {
+  it("stops a licence now, with the reason, and leaves the free servers running", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
@@ -196,11 +201,11 @@ describe("AdminSubscriptionDetail", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Stop the subscription") === true
+      () => container.textContent?.includes("Stop the licence") === true
     )
 
     expect(container.textContent).toContain(
-      "The servers of Atelier are suspended right away."
+      "the servers of Atelier are suspended right away."
     )
 
     await click(trigger(container, "Stop now"))
@@ -222,10 +227,10 @@ describe("AdminSubscriptionDetail", () => {
         prisma.server.findUniqueOrThrow({ where: { id: server.id } }),
       ])
 
-      return stored.status === "canceled" && machine.status === "suspended"
+      return stored.status === "canceled" && machine.status === "active"
     })
     await waitUntil(
-      () => container.textContent?.includes("Stop the subscription") === false
+      () => container.textContent?.includes("Stop the licence") === false
     )
   })
 
@@ -308,7 +313,7 @@ describe("AdminSubscriptionDetail", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Stop the subscription") === true
+      () => container.textContent?.includes("Stop the licence") === true
     )
     await click(trigger(container, "Stop now"))
 
@@ -327,7 +332,7 @@ describe("AdminSubscriptionDetail", () => {
       () =>
         document
           .querySelector("[role=dialog]")
-          ?.textContent?.includes("The subscription was not stopped.") === true
+          ?.textContent?.includes("The licence was not stopped.") === true
     )
 
     const close = [...document.querySelectorAll("[role=dialog] button")].find(
@@ -344,33 +349,27 @@ describe("AdminSubscriptionDetail", () => {
     await waitUntil(() => document.querySelector("[role=dialog]") !== null)
 
     expect(document.querySelector("[role=dialog]")?.textContent).not.toContain(
-      "The subscription was not stopped."
+      "The licence was not stopped."
     )
   })
 
-  it("deletes a launch row once its identifier is retyped, and leaves the page", async () => {
+  it("deletes a granted row once its identifier is retyped, and leaves the page", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
     })
-    const launch = await grantLaunch(
-      organization.id,
-      new Date(Date.now() + 30 * DAY_MS)
-    )
+    const granted = await grantedSubscription(organization.id, 2)
 
     const { container, unmount, click } = await render(
-      page(launch.id, { tab: "actions" })
+      page(granted.id, { tab: "actions" })
     )
 
     mounted.push(unmount)
 
     await waitUntil(
-      () =>
-        container.textContent?.includes("Delete the subscription row") === true
+      () => container.textContent?.includes("Delete the licence row") === true
     )
-
-    expect(container.textContent).not.toContain("Seats and end date")
 
     await click(trigger(container, "Delete the row"))
 
@@ -385,11 +384,11 @@ describe("AdminSubscriptionDetail", () => {
 
     expect((confirm as HTMLButtonElement).disabled).toBe(true)
 
-    await fill(keyword, launch.stripeSubscriptionId)
+    await fill(keyword, granted.stripeSubscriptionId)
     await click(confirm)
     await waitUntilStored(
       async () =>
-        (await prisma.subscription.count({ where: { id: launch.id } })) === 0
+        (await prisma.subscription.count({ where: { id: granted.id } })) === 0
     )
   })
 
@@ -411,38 +410,11 @@ describe("AdminSubscriptionDetail", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Stop the subscription") === true
+      () => container.textContent?.includes("Stop the licence") === true
     )
 
-    expect(container.textContent).not.toContain("Delete the subscription row")
+    expect(container.textContent).not.toContain("Delete the licence row")
     expect(container.textContent).not.toContain("Seats and end date")
-    expect(container.textContent).not.toContain("Push the end of the trial")
-  })
-
-  it("pushes the end of a Stripe trial", async () => {
-    const { organization } = await createOrganizationWithMembers({
-      name: "Atelier",
-      roles: ["owner"],
-    })
-    const stripe = await subscribeOrganization({
-      organizationId: organization.id,
-      status: "trialing",
-      quantity: 1,
-    })
-
-    const { container, unmount } = await render(
-      page(stripe.id, { tab: "actions" })
-    )
-
-    mounted.push(unmount)
-
-    await waitUntil(
-      () =>
-        container.textContent?.includes("Push the end of the trial") === true
-    )
-
-    expect(container.querySelector("#trial-ends-at")).not.toBeNull()
-    expect(stripe.status).toBe("trialing")
   })
 
   it("leaves a reader of the platform without the actions tab", async () => {

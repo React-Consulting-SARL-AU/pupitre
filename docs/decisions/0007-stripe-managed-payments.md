@@ -1,6 +1,6 @@
 # 0007 — Stripe Managed Payments en Merchant of Record
 
-Date : 2026-09-04 · Statut : acceptée
+Date : 2026-09-04 · Statut : amendée le 2026-10-01 par [0018](./0018-source-disponible-et-gratuit.md) — en sommeil : la production tourne en `BILLING_MODE=off`, rien n'est vendu, et le jour où Stripe sert, il vend une licence au-delà des serveurs gratuits, sans les prix mensuel et annuel décrits ici
 
 Stripe encaisse en Merchant of Record via Managed Payments : Stripe est le vendeur légal, gère taxes, litiges et support transactionnel. Seuls Checkout et Payment Links sont utilisés ; aucun flux Elements ni personnalisé. Chaque session porte `managed_payments[enabled]=true` — sans ce paramètre, la vente se fait en notre nom et aucune taxe n'est collectée.
 

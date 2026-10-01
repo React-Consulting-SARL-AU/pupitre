@@ -1,9 +1,5 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
-import {
-  GRANTED_PRODUCT,
-  LAUNCH_PRODUCT,
-  STRIPE_PRODUCT,
-} from "@pupitre/shared/plans"
+import { GRANTED_PRODUCT, STRIPE_PRODUCT } from "@pupitre/shared/plans"
 import {
   type AccountState,
   type OrganizationState,
@@ -42,7 +38,6 @@ export function suspendedReasonKey(
 }
 
 export const SUBSCRIPTION_STATUS_FILTERS = [
-  "trialing",
   "active",
   "past_due",
   "unpaid",
@@ -51,13 +46,11 @@ export const SUBSCRIPTION_STATUS_FILTERS = [
 ] as const
 
 export const SUBSCRIPTION_PRODUCT_FILTERS = [
-  LAUNCH_PRODUCT,
   GRANTED_PRODUCT,
   STRIPE_PRODUCT,
 ] as const
 
 const PRODUCT_KEYS: Record<string, DictionaryKey> = {
-  [LAUNCH_PRODUCT]: "admin.subscriptions.product.launch",
   [GRANTED_PRODUCT]: "admin.subscriptions.product.granted",
   [STRIPE_PRODUCT]: "admin.subscriptions.product.stripe",
 }
@@ -330,9 +323,7 @@ const SERVER_PARTS: Record<(typeof SERVER_STATUSES)[number], DictionaryKey> = {
   revoked: "status.revoked",
 }
 
-// The launch is a product, not a status: it has its own figure.
 const SUBSCRIPTION_PARTS: [string, DictionaryKey][] = [
-  ["trialing", "billing.status.trialing"],
   ["active", "billing.status.active"],
   ["past_due", "billing.status.past_due"],
   ["canceled", "billing.status.canceled"],
@@ -370,12 +361,6 @@ export function overviewFigures(overview: AdminOverview): OverviewFigure[] {
         label,
         value: overview.subscriptions[status] ?? 0,
       })),
-    },
-    {
-      id: "launch",
-      label: "admin.overview.launch",
-      value: overview.subscriptions.launch ?? 0,
-      parts: [],
     },
     {
       id: "affiliate_links",

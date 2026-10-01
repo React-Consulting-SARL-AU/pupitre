@@ -4,7 +4,7 @@ import type {
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentMigrateResult } from "@pupitre/shared/agent-protocol/migrate";
-import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
+import type { License } from "@pupitre/shared/agent-protocol/session";
 import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import type { AccountResponse } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
@@ -25,7 +25,7 @@ import { refusalOf, refuseWith } from "./refusal";
 export interface MachineFacts {
   arch: string;
   version: string | null;
-  entitlement: Entitlement | null;
+  license: License | null;
 }
 
 export interface AgentUpdateDeps {
@@ -56,7 +56,7 @@ export async function machineFacts(
       ok: true,
       result: {
         arch: snapshot.result.machine.arch,
-        entitlement: snapshot.result.entitlement,
+        license: snapshot.result.license,
         version: snapshot.result.machine.agent_version,
       },
     };
@@ -73,7 +73,7 @@ export async function machineFacts(
         ok: true,
         result: {
           arch: probe.result.arch,
-          entitlement: null,
+          license: null,
           version: probe.result.agent_version,
         },
       }
@@ -133,7 +133,7 @@ export async function readAgentUpdate(
     return facts;
   }
 
-  const platform = platformAnswers(facts.result.entitlement);
+  const platform = platformAnswers(facts.result.license);
   const offer = await offerFor(facts.result.arch, platform, deps);
 
   return {
@@ -200,7 +200,7 @@ export async function runAgentUpgrade(
     return facts;
   }
 
-  const platform = platformAnswers(facts.result.entitlement);
+  const platform = platformAnswers(facts.result.license);
   const offer = await offerFor(facts.result.arch, platform, deps);
 
   if (!offer) {

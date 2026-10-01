@@ -19,24 +19,34 @@ import {
 } from "./index"
 
 describe("l'éditeur", () => {
-  it("est une personne identifiée, sans identité de société inventée", () => {
+  it("est la société qui concède la licence du code, avec ses identifiants publiés", () => {
     expect(LegalEntitySchema.parse(LEGAL_ENTITY)).toEqual(LEGAL_ENTITY)
-    expect(LEGAL_ENTITY.status).toBe("individual")
-    expect(isIncorporated()).toBe(false)
+    expect(LEGAL_ENTITY.status).toBe("incorporated")
+    expect(isIncorporated()).toBe(true)
+    expect(LEGAL_ENTITY.legalName).toBe("React Consulting SARL AU")
     expect(LEGAL_ENTITY.jurisdiction).toBe("Morocco")
     expect(LEGAL_ENTITY.publicationDirector).toBe(LEGAL_ENTITY.owner)
-    expect(LEGAL_ENTITY.legalName).toBeNull()
-    expect(LEGAL_ENTITY.registeredAddress).toBeNull()
+    expect(LEGAL_ENTITY.registrationNumber).toBe("144445")
+    expect(LEGAL_ENTITY.taxId).toBe("60198624")
+    expect(LEGAL_ENTITY.ice).toBe("003399449000060")
+    expect(LEGAL_ENTITY.professionalTax).toBe("45112803")
+    expect(LEGAL_ENTITY.registeredAddress).toContain("40000 Marrakech")
   })
 
-  it("appartient à une personne tant que la société n'existe pas", () => {
-    expect(LEGAL_ENTITY.owner).toBe("Jordan Monier")
-    expect(copyrightHolder()).toBe("Jordan Monier")
+  it("détient les droits du code, la société qui signe aussi l'app", () => {
+    expect(copyrightHolder()).toBe("React Consulting SARL AU")
+    expect(copyrightHolder()).toBe(CODE_SIGNING_ENTITY.name)
   })
 
-  it("nomme la société qui signe l'app, distincte de l'éditeur", () => {
-    expect(CODE_SIGNING_ENTITY.name).toBe("React Consulting SARL AU")
-    expect(CODE_SIGNING_ENTITY.name).not.toBe(copyrightHolder())
+  it("rend les droits à la personne tant qu'aucune société n'est immatriculée", () => {
+    const individual = {
+      ...LEGAL_ENTITY,
+      status: "individual" as const,
+      legalName: null,
+    }
+
+    expect(isIncorporated(individual)).toBe(false)
+    expect(copyrightHolder(individual)).toBe("Jordan Monier")
   })
 
   it("passe les droits à la société dès qu'elle est immatriculée", () => {
@@ -51,7 +61,11 @@ describe("l'éditeur", () => {
   })
 
   it("garde la personne tant que la société n'a pas de nom légal", () => {
-    const named = { ...LEGAL_ENTITY, legalName: "Pupitre Inc." }
+    const named = {
+      ...LEGAL_ENTITY,
+      status: "individual" as const,
+      legalName: "Pupitre Inc.",
+    }
 
     expect(copyrightHolder(named)).toBe("Jordan Monier")
   })

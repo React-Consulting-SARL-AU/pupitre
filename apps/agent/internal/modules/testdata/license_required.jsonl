@@ -1,0 +1,15 @@
+@license restricted
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"restricted","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+> {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":false}}
+< {"id":2,"ok":false,"error":{"code":"license_required","message":"a licence is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio: Pupitre is free for up to 3 servers per organization, a licence is required beyond that."}}
+> {"id":3,"cmd":"uninstall","params":{"modules":["tool.demo"]}}
+< {"id":3,"ok":false,"error":{"code":"license_required","message":"a licence is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio: Pupitre is free for up to 3 servers per organization, a licence is required beyond that."}}
+> {"id":4,"cmd":"upgrade"}
+< {"id":4,"ok":false,"error":{"code":"license_required","message":"a licence is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio: Pupitre is free for up to 3 servers per organization, a licence is required beyond that."}}
+> {"id":5,"cmd":"catalog"}
+< {"id":5,"ok":false,"error":{"code":"license_required","message":"a licence is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio: Pupitre is free for up to 3 servers per organization, a licence is required beyond that."}}
+> {"id":6,"cmd":"report"}
+< {"id":6,"ok":false,"error":{"code":"license_required","message":"a licence is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio: Pupitre is free for up to 3 servers per organization, a licence is required beyond that."}}
+> {"id":7,"cmd":"ping"}
+< {"id":7,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

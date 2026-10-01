@@ -6,7 +6,6 @@ import type { BuildKind, SignInProgress } from "@shared/account";
 import { type AccountDeps, createAccount, TOLERANCE_MS } from "../account-run";
 import { createTokenVault } from "../account-vault";
 import {
-  CANCELED_SUBSCRIPTION,
   DEVICE,
   FAKE_KEY,
   FAKE_TOKEN,
@@ -14,6 +13,7 @@ import {
   fakePlatform,
   IDENTITY,
   memorySealer,
+  OVER_FREE_SERVERS,
 } from "./fixtures/fake-platform";
 
 const DAY_MS = 86_400_000;
@@ -224,7 +224,7 @@ describe("le jeton", () => {
   });
 });
 
-describe("le droit d'usage", () => {
+describe("la licence", () => {
   it("tient sept jours sans la plateforme, et pas huit", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
     const { account } = harness({ build: "production", now: () => clock });
@@ -248,7 +248,7 @@ describe("le droit d'usage", () => {
     expect(account.state().usage).toMatchObject({ status: "stale" });
     expect(account.guard()).toMatchObject({
       ok: false,
-      error: { code: "entitlement_required" },
+      error: { code: "license_required" },
     });
   });
 
@@ -272,7 +272,7 @@ describe("le droit d'usage", () => {
     expect(deps.vault.token()).toBeNull();
     expect(account.guard()).toMatchObject({
       ok: false,
-      error: { code: "entitlement_required" },
+      error: { code: "license_required" },
     });
   });
 
@@ -297,11 +297,7 @@ describe("le droit d'usage", () => {
   it("refuse tout de suite une organisation suspendue", async () => {
     const { account } = harness({
       build: "production",
-      identity: {
-        ...IDENTITY,
-        entitlement: "suspended",
-        subscription: CANCELED_SUBSCRIPTION,
-      },
+      identity: { ...IDENTITY, license: "suspended" },
     });
     const { report } = progressOf();
 
@@ -314,10 +310,14 @@ describe("le droit d'usage", () => {
     });
   });
 
-  it("distingue l'organisation qui n'a jamais choisi d'offre de celle dont l'abonnement s'est arrêté", async () => {
+  it("distingue l'organisation au-delà de ses serveurs gratuits de celle que la plateforme suspend", async () => {
     const { account } = harness({
       build: "production",
-      identity: { ...IDENTITY, entitlement: "suspended", subscription: null },
+      identity: {
+        ...IDENTITY,
+        license: "suspended",
+        servers: OVER_FREE_SERVERS,
+      },
     });
     const { report } = progressOf();
 
@@ -325,15 +325,16 @@ describe("le droit d'usage", () => {
 
     expect(account.state().usage).toEqual({
       consoleUrl: "https://app.pupitre.test/dashboard",
-      status: "unsubscribed",
+      servers: OVER_FREE_SERVERS,
+      status: "unlicensed",
     });
     expect(account.guard()).toMatchObject({
       ok: false,
       error: {
-        code: "entitlement_required",
+        code: "license_required",
         phrase: {
-          id: "refusal.account.unsubscribed",
-          values: { console: "https://app.pupitre.test/dashboard" },
+          id: "refusal.account.unlicensed",
+          values: { free: 3, support: "support@pupitre.studio", used: 4 },
         },
       },
     });
@@ -349,7 +350,7 @@ describe("le droit d'usage", () => {
     expect(account.guard()).toMatchObject({
       ok: false,
       error: {
-        code: "entitlement_required",
+        code: "license_required",
         phrase: {
           id: "refusal.account.required",
           values: { console: "https://app.pupitre.test/dashboard" },
@@ -377,7 +378,7 @@ describe("le droit d'usage", () => {
 
     expect(account.state().refusal).toEqual(first.ok ? null : first.error);
     expect(account.state().refusal).toMatchObject({
-      code: "entitlement_required",
+      code: "license_required",
     });
 
     await account.signIn(report);
@@ -398,11 +399,7 @@ describe("le droit d'usage", () => {
   it("porte le refus d'une organisation suspendue tel que le garde le dit", async () => {
     const { account } = harness({
       build: "production",
-      identity: {
-        ...IDENTITY,
-        entitlement: "suspended",
-        subscription: CANCELED_SUBSCRIPTION,
-      },
+      identity: { ...IDENTITY, license: "suspended" },
     });
     const { report } = progressOf();
 

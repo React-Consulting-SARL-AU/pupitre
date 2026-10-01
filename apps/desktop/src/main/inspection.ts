@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
+import { judgedForApp } from "@shared/agent-update";
 import { app } from "electron";
 import { agentClient } from "./agent";
+import { appVersion } from "./app-version";
 import { handle } from "./ipc";
 import { isString, shape } from "./ipc-guard";
 import { runShellProbe } from "./probe-shell";
@@ -37,10 +39,14 @@ export async function inspect(
     return await agentClient.request(server.id, "probe");
   }
 
-  return await runShellProbe({
+  const probed = await runShellProbe({
     args: sshArgs(server, paths()),
     script: readFileSync(probeScriptPath(), "utf8"),
   });
+
+  return probed.ok
+    ? { ok: true, result: judgedForApp(probed.result, appVersion()) }
+    : probed;
 }
 
 export function registerInspection(): void {

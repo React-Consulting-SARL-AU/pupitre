@@ -42,8 +42,8 @@ func TestAnEngineWithoutALockPathOnlyKnowsItself(t *testing.T) {
 
 func TestAcquireHoldsTheFileAcrossEngines(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "install.lock")
-	first := &Engine{LockPath: path, Entitlement: func() contract.Entitlement { return contract.EntitlementDev }}
-	second := &Engine{LockPath: path, Entitlement: func() contract.Entitlement { return contract.EntitlementDev }}
+	first := &Engine{LockPath: path, License: func() contract.License { return contract.LicenseDev }}
+	second := &Engine{LockPath: path, License: func() contract.License { return contract.LicenseDev }}
 
 	unlock, err := first.acquire()
 	if err != nil {

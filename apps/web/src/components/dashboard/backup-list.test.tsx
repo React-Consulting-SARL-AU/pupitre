@@ -90,7 +90,7 @@ async function mount(
           {(handle) => <BackupList {...handle} />}
         </ListSearchHarness>
       </ToastProvider>,
-      { organization, role, entitlement: "valid" }
+      { organization, role, license: "valid" }
     )
   )
 

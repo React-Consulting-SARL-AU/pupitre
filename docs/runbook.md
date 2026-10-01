@@ -4,7 +4,7 @@ Quoi regarder, dans quel ordre, quand quelque chose casse chez un client ou sur 
 
 ## Les trois endroits où lire
 
-**La console d'administration**, `app.pupitre.studio/dashboard/admin` : organisations, serveurs, abonnements, événements (`/dashboard/admin/events`), boîte mail. C'est la première lecture : elle ne demande rien d'autre qu'une session de l'équipe.
+**La console d'administration**, `app.pupitre.studio/dashboard/admin` : organisations, serveurs, licences, événements (`/dashboard/admin/events`), boîte mail. C'est la première lecture : elle ne demande rien d'autre qu'une session de l'équipe.
 
 **La base**, quand la console ne montre pas ce qu'on cherche. Depuis `apps/web` :
 
@@ -32,7 +32,7 @@ Aucune erreur ne part vers un service tiers : ce qui n'est pas dans ces journaux
 | `dev status --json` | la vue de la machine que l'app lit |
 | `sudo tail -n 200 /var/log/pupitre.log` | le journal de l'agent : commandes, chemins, jamais un secret |
 | `sudo cat /var/lib/pupitre/report.json` | le même rapport que `pupitred report`, brut |
-| `sudo cat /var/lib/pupitre/entitlement.json` | le dernier droit d'usage lu : `state`, `valid_until`, `checked_at` |
+| `sudo cat /var/lib/pupitre/license.json` | la dernière licence lue : `state`, `valid_until`, `checked_at` (`entitlement.json` sur un agent antérieur à 2.0.0, que la migration 8 renomme) |
 | `systemctl status pupitred` · `journalctl -u pupitred -n 200` | le daemon qui lit la plateforme toutes les 30 secondes |
 | `sudo pupitred migrate --status` | la révision de la configuration, ce qui reste dû, les sauvegardes gardées |
 
@@ -48,13 +48,13 @@ L'app enchaîne `server` (adresse, compte, clé), `inspection`, `agent` (le bina
 4. **Les modules** — `sudo pupitred report` nomme l'étape tombée, sa sortie et sa commande de rejeu ; `/var/log/pupitre.log` a le détail. Un échec n'arrête pas les autres modules : le rapport dit tout en une fois. Rejouer depuis l'app est sûr, les étapes sont idempotentes.
 5. **Le durcissement** — root ne se ferme que si une clé ouvre `dev`. S'il s'arrête, root reste ouvert et l'app le dit ; la cause est dans le rapport (`harden`). Un client qui ne joint plus rien juste après : voir [fail2ban](#fail2ban-a-banni-un-client).
 
-## « Abonnement requis » qui ne part pas
+## « Licence requise » qui ne part pas
 
-L'agent passe en mode restreint quand il n'a pas de jeton de serveur, quand son dernier droit d'usage lu a plus de sept jours, ou quand la plateforme a répondu `suspended`. Seules `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`, `agent.migrate`, `enroll` et `platform.sync` répondent ; rien de ce qui tourne ne s'arrête.
+L'agent passe en mode restreint quand il n'a pas de jeton de serveur, quand sa dernière licence lue a plus de sept jours, ou quand la plateforme a répondu `suspended`. Seules `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`, `agent.migrate`, `enroll` et `platform.sync` répondent ; rien de ce qui tourne ne s'arrête.
 
-1. **L'organisation a-t-elle un abonnement en cours ?** Console → Abonnements, ou l'organisation. Sans abonnement — essai fini, lancement terminé —, la plateforme rend `suspended` : c'est au client de s'abonner, ou à l'équipe d'accorder (`subscription.granted`).
+1. **L'organisation tient-elle dans sa licence ?** Console → l'organisation : ses serveurs qui occupent un siège contre `FREE_SERVERS` plus les places de sa licence. Gratuite jusqu'à trois serveurs, elle n'a besoin de rien ; au-delà sans licence vivante — un octroi expiré —, la plateforme rend `grace` sept jours puis `suspended` : l'équipe accorde ou prolonge une licence (`subscription.granted`, Console → Licences), ou le client supprime des serveurs. Une organisation suspendue ou fermée par l'équipe est `suspended` quoi qu'elle tienne.
 2. **Le serveur est-il suspendu ou révoqué ?** Console → Serveurs : `status` (`grace`, `suspended`, `revoked`) et `suspendedReason`. Un serveur suspendu par l'équipe se rétablit depuis sa fiche (`server.restored`).
-3. **L'agent lit-il la plateforme ?** `sudo cat /var/lib/pupitre/entitlement.json` : un `checked_at` ancien dit que le daemon ne joint plus la console — `systemctl status pupitred`, `journalctl -u pupitred`. Sans `/etc/pupitre/server.token`, le serveur n'a jamais fini son enrôlement (étape 3 ci-dessus).
+3. **L'agent lit-il la plateforme ?** `sudo cat /var/lib/pupitre/license.json` : un `checked_at` ancien dit que le daemon ne joint plus la console — `systemctl status pupitred`, `journalctl -u pupitred`. Sans `/etc/pupitre/server.token`, le serveur n'a jamais fini son enrôlement (étape 3 ci-dessus).
 4. **La plateforme dit valide et l'app dit restreint ?** Le daemon relit toutes les 30 secondes ; l'app peut le demander tout de suite par `platform.sync`, qui reste ouverte en mode restreint. Si rien ne bouge, « Rattacher à nouveau ce serveur » ré-enrôle : un jeton perdu ou révoqué se répare ainsi, sans toucher à ce qui tourne.
 
 ## Une release qui échoue

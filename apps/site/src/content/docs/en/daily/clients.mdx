@@ -142,7 +142,7 @@ dev db url                    the connection string, for a client on your laptop
 dev doctor                    a short diagnosis of the machine
 ```
 
-The agent reads its enrolment and its entitlement from files only root can open, so the command speaks to `sudo -n pupitred serve`, which sudo runs without a password. `dev db dump`, `dev db import` and `dev backup now` go through a privileged session, for which sudo asks for the sudo password of `dev` on the terminal. Typing `sudo dev …` yourself changes nothing.
+The agent reads its enrolment and its licence from files only root can open, so the command speaks to `sudo -n pupitred serve`, which sudo runs without a password. `dev db dump`, `dev db import` and `dev backup now` go through a privileged session, for which sudo asks for the sudo password of `dev` on the terminal. Typing `sudo dev …` yourself changes nothing.
 
 `dev db` also takes `shell`, `dump` and `import`, and the engine goes without saying when the machine holds one database — `dev db url postgres` when it holds two.
 

@@ -176,7 +176,7 @@ func unopened(privileged bool) error {
 			WithFix(i18n.T("devcli.elevate.privileged.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("devcli.elevate.required")).
+	return protocol.NewError(contract.ErrorLicenseRequired, i18n.T("devcli.elevate.required")).
 		WithFix(i18n.T("devcli.elevate.password.fix"))
 }
 

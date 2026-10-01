@@ -53,7 +53,7 @@ async function aServerAndALink() {
   })
   const { server } = await createServer({ organizationId: organization.id })
   const link = await harness.prisma.affiliateLink.create({
-    data: { code: "blog", name: "Blog", freeMonths: 1 },
+    data: { code: "blog", name: "Blog" },
   })
   const subscription = await subscribeOrganization({
     organizationId: organization.id,
@@ -134,7 +134,7 @@ describe("les pages de la plateforme", () => {
       { path: `/admin/subscriptions/${subscription.id}`, method: "DELETE" },
       {
         path: "/admin/affiliate-links",
-        body: { name: "Forum", free_months: 1 },
+        body: { name: "Forum" },
       },
       {
         path: `/admin/affiliate-links/${link.id}`,

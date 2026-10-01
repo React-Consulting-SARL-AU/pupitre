@@ -34,7 +34,7 @@ interface OrganizationDetailBody {
 interface MeBody {
   active_organization: { id: string; state: string; reason: string | null }
   organizations: { id: string; state: string }[]
-  entitlement: string
+  license: string
 }
 
 let harness: ApiTestServer
@@ -110,7 +110,7 @@ describe("le cycle de vie d'une organisation", () => {
       state: "suspended",
       reason: "abus signalé",
     })
-    expect(me.json.entitlement).toBe("suspended")
+    expect(me.json.license).toBe("suspended")
 
     const assign = await apiRequest<ErrorBody>(
       `/servers/${server.id}/unassign`,

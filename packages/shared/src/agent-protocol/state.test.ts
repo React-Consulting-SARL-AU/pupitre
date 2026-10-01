@@ -90,7 +90,7 @@ describe("SnapshotResultSchema", () => {
         services: [service],
         projects: [project],
         sessions: [session],
-        entitlement: "valid",
+        license: "valid",
       }).success
     ).toBe(true)
   })
@@ -101,7 +101,7 @@ describe("SnapshotResultSchema", () => {
         services: [],
         projects: [],
         sessions: [],
-        entitlement: "valid",
+        license: "valid",
       }).success
     ).toBe(false)
     expect(
@@ -110,7 +110,7 @@ describe("SnapshotResultSchema", () => {
         services: [],
         projects: [{ ...project, state: "sleeping" }],
         sessions: [],
-        entitlement: "valid",
+        license: "valid",
       }).success
     ).toBe(false)
   })

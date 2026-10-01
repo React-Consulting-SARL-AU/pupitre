@@ -1,5 +1,5 @@
 # Une fois les données revenues, la console apprend ce que la machine fait tourner.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","server_id":"srv-platform-1","capabilities":["hello","platform.sync"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":3}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","server_id":"srv-platform-1","capabilities":["hello","platform.sync"]}}
 > {"id":2,"cmd":"platform.sync","params":{}}
 < {"id":2,"ok":true,"result":{"synced_at":"2026-09-24T10:20:00Z","heartbeat_at":"2026-09-24T10:20:00Z"}}

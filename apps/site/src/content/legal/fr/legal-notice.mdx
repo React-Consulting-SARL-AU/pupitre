@@ -2,15 +2,23 @@
 title: "Mentions légales"
 description: "Qui publie pupitre.studio et app.pupitre.studio, qui les héberge, qui signe l’app, à qui écrire, et à qui appartiennent le nom et le contenu."
 locale: fr
-updated: 2026-09-24
+updated: 2026-10-01
 order: 11
 ---
 
+import { LEGAL_ENTITY } from "@pupitre/shared/legal"
+
 ## Éditeur
 
-Le site `pupitre.studio`, la console `app.pupitre.studio`, l’app desktop et l’agent Pupitre sont édités par Jordan Monier, personne physique résidant au Maroc, sous le nom commercial Pupitre. Il n’existe pas encore de société : aucune raison sociale, aucun numéro d’immatriculation et aucun numéro de TVA ne s’appliquent. Le jour où une société reprendra le projet, cette page le dira, comme le prévoient les [conditions d’utilisation](/fr/legal/terms/).
+Le site `pupitre.studio`, la console `app.pupitre.studio`, l’app desktop et l’agent Pupitre sont édités par {LEGAL_ENTITY.legalName}, société à responsabilité limitée à associé unique établie au Maroc, sous le nom commercial {LEGAL_ENTITY.tradingName}, représentée par son gérant, {LEGAL_ENTITY.owner}.
 
-Directeur de la publication : Jordan Monier.
+- siège social : {LEGAL_ENTITY.registeredAddress} ;
+- registre du commerce : RC {LEGAL_ENTITY.registrationNumber}, tribunal de commerce de Marrakech ;
+- identifiant commun de l’entreprise (ICE) : {LEGAL_ENTITY.ice} ;
+- identifiant fiscal (IF) : {LEGAL_ENTITY.taxId} ;
+- taxe professionnelle : {LEGAL_ENTITY.professionalTax}.
+
+Directeur de la publication : {LEGAL_ENTITY.publicationDirector}.
 
 ## Contact
 
@@ -27,11 +35,13 @@ Le site, la console, la plateforme et les téléchargements sont hébergés par 
 
 ## Signature de l’app
 
-Les versions macOS et Windows de l’app desktop sont signées avec des certificats détenus par React Consulting SARL AU, société établie au Maroc. Elle signe et ne fait rien d’autre, comme le dit la [licence](/fr/legal/licence/).
+Les versions macOS et Windows de l’app desktop sont signées avec des certificats détenus par React Consulting SARL AU, comme le dit la [licence](/fr/legal/licence/).
 
 ## Propriété intellectuelle
 
-Le nom Pupitre, son logo, le contenu de ce site, de la documentation et du blog, ainsi que le code de l’app, de l’agent, de la console et de la plateforme appartiennent à Jordan Monier. Toute reproduction, en tout ou partie, demande son accord écrit, sauf ce que la loi permet sans accord, comme une courte citation qui nomme sa source.
+Le nom Pupitre, son logo, le contenu de ce site, de la documentation et du blog, ainsi que le code de l’app, de l’agent, de la console et de la plateforme appartiennent à React Consulting SARL AU.
+
+Le code est public sous licence Apache 2.0 assortie de la Commons Clause, qui dit ce que vous pouvez en faire, comme le décrit la [licence](/fr/legal/licence/). Pour le reste — le nom, le logo, le contenu du site, de la documentation et du blog —, toute reproduction, en tout ou partie, demande son accord écrit, sauf ce que la loi permet sans accord, comme une courte citation qui nomme sa source.
 
 Vous pouvez employer le nom Pupitre pour parler du produit, le comparer ou dire que vous l’utilisez, à condition de ne laisser croire ni à un partenariat, ni à une recommandation, ni à un lien avec nous qui n’existe pas. N’employez pas le logo, et ne donnez le nom Pupitre à aucun produit, service, domaine ou compte qui ne soit pas le nôtre.
 

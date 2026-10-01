@@ -72,9 +72,9 @@ export const shell = {
     "shell.restricted.console": "Open the console",
     "shell.restricted.repair": "Re-enrol this server",
     "shell.restricted.message":
-      "This server no longer holds a valid usage right: it can be read, and refuses everything else. Nothing that was running on it has been stopped.",
+      "Licence required: this server can be read, and refuses everything else. Nothing that was running on it has been stopped.",
     "shell.restricted.fix":
-      "Settle this server's subscription in the console, then try the action again.",
+      "Pupitre is free up to {free} servers per organization, a licence is required beyond: re-enrol this server once the licence is back, or write to {support}.",
     "shell.firstRun.eyebrow": "First server",
     "shell.firstRun.title": "Take a machine in hand",
     "shell.firstRun.body":
@@ -179,9 +179,9 @@ export const shell = {
     "shell.restricted.console": "Ouvrir la console",
     "shell.restricted.repair": "Rattacher à nouveau ce serveur",
     "shell.restricted.message":
-      "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
+      "Licence requise : ce serveur se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
     "shell.restricted.fix":
-      "Régularisez l'abonnement de ce serveur dans la console, puis relancez l'action.",
+      "Pupitre est gratuit jusqu'à {free} serveurs par organisation, une licence est requise au-delà : rattachez ce serveur à nouveau une fois la licence rétablie, ou écrivez à {support}.",
     "shell.firstRun.eyebrow": "Premier serveur",
     "shell.firstRun.title": "Prenez une machine en main",
     "shell.firstRun.body":

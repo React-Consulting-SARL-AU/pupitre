@@ -54,9 +54,9 @@ func unknownCommand(cmd string) *Error {
 	return NewError(contract.ErrorUnknownCommand, i18n.T("protocol.command.unknown", cmd))
 }
 
-func EntitlementRequired() *Error {
-	return NewError(contract.ErrorEntitlementRequired, i18n.T("protocol.entitlement.required")).
-		WithFix(i18n.T("protocol.entitlement.required.fix", platform.Console("")))
+func LicenseRequired() *Error {
+	return NewError(contract.ErrorLicenseRequired, i18n.T("protocol.license.required")).
+		WithFix(i18n.T("protocol.license.required.fix", platform.Console("")))
 }
 
 func internalError(cause string) *Error {

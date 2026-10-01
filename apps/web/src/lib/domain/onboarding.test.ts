@@ -1,23 +1,34 @@
 import { describe, expect, it } from "bun:test"
 import {
-  entitlementNotice,
+  landingRoute,
+  licenseNotice,
   onboardingComplete,
   onboardingProgress,
   onboardingSteps,
 } from "./onboarding"
 
-const NOTHING = { entitlement: "suspended", devices: null, servers: null }
+const NOTHING = { devices: null, servers: null }
 
 function statesOf(input: Parameters<typeof onboardingSteps>[0]) {
   return onboardingSteps(input).map((step) => `${step.id}:${step.state}`)
 }
 
-describe("les quatre pas du démarrage", () => {
-  it("commence sur l'essai : le compte est déjà là", () => {
-    expect(statesOf({ ...NOTHING, devices: 0, servers: [] })).toEqual([
+describe("la page d'arrivée", () => {
+  it("ouvre les étapes tant que l'organisation n'a aucun serveur", () => {
+    expect(landingRoute({ used: 0 })).toBe("/dashboard/start")
+  })
+
+  it("ouvre la liste dès qu'un serveur occupe un siège, ou sans réponse", () => {
+    expect(landingRoute({ used: 1 })).toBe("/dashboard/servers")
+    expect(landingRoute(null)).toBe("/dashboard/servers")
+  })
+})
+
+describe("les trois pas du démarrage", () => {
+  it("commence sur l'app : le compte est déjà là", () => {
+    expect(statesOf({ devices: 0, servers: [] })).toEqual([
       "account:done",
-      "trial:current",
-      "app:ahead",
+      "app:current",
       "server:ahead",
     ])
   })
@@ -25,44 +36,26 @@ describe("les quatre pas du démarrage", () => {
   it("ne devine rien tant qu'une réponse manque", () => {
     expect(statesOf(NOTHING)).toEqual([
       "account:done",
-      "trial:current",
       "app:ahead",
       "server:ahead",
     ])
-
-    expect(
-      statesOf({ entitlement: "valid", devices: null, servers: null })
-    ).toEqual(["account:done", "trial:done", "app:ahead", "server:ahead"])
-  })
-
-  it("passe à l'app dès que l'essai est ouvert, en tolérance comme en cours", () => {
-    for (const entitlement of ["valid", "grace"]) {
-      expect(
-        statesOf({ entitlement, devices: 0, servers: [] }),
-        entitlement
-      ).toEqual(["account:done", "trial:done", "app:current", "server:ahead"])
-    }
   })
 
   it("passe au serveur dès qu'un appareil est lié", () => {
-    expect(statesOf({ entitlement: "valid", devices: 1, servers: [] })).toEqual(
-      ["account:done", "trial:done", "app:done", "server:current"]
-    )
+    expect(statesOf({ devices: 1, servers: [] })).toEqual([
+      "account:done",
+      "app:done",
+      "server:current",
+    ])
   })
 
   it("dit le serveur en cours tant qu'il s'enrôle, et sans point qui respire ailleurs", () => {
     const steps = onboardingSteps({
-      entitlement: "valid",
       devices: 1,
       servers: [{ status: "enrolling" }],
     })
 
-    expect(steps.map((step) => step.state)).toEqual([
-      "done",
-      "done",
-      "done",
-      "current",
-    ])
+    expect(steps.map((step) => step.state)).toEqual(["done", "done", "current"])
     expect(
       steps.filter((step) => step.inProgress).map((step) => step.id)
     ).toEqual(["server"])
@@ -83,41 +76,29 @@ describe("les quatre pas du démarrage", () => {
 
   it("termine la liste quand un serveur a été en ligne", () => {
     const steps = onboardingSteps({
-      entitlement: "valid",
       devices: 1,
       servers: [{ status: "revoked" }, { status: "active" }],
     })
 
     expect(steps.every((step) => step.state === "done")).toBe(true)
     expect(steps.some((step) => step.inProgress)).toBe(false)
-    expect(onboardingProgress(steps)).toEqual({ done: 4, total: 4 })
+    expect(onboardingProgress(steps)).toEqual({ done: 3, total: 3 })
   })
 
   it("dit un pas fait même quand un pas plus tôt reste inconnu", () => {
     expect(
-      statesOf({
-        entitlement: "valid",
-        devices: null,
-        servers: [{ status: "active" }],
-      })
-    ).toEqual(["account:done", "trial:done", "app:ahead", "server:done"])
+      statesOf({ devices: null, servers: [{ status: "active" }] })
+    ).toEqual(["account:done", "app:ahead", "server:done"])
   })
 
   it("compte les pas faits", () => {
     expect(onboardingProgress(onboardingSteps(NOTHING))).toEqual({
       done: 1,
-      total: 4,
+      total: 3,
     })
     expect(
-      onboardingProgress(
-        onboardingSteps({ entitlement: "valid", devices: 0, servers: [] })
-      )
-    ).toEqual({ done: 2, total: 4 })
-    expect(
-      onboardingProgress(
-        onboardingSteps({ entitlement: "valid", devices: 2, servers: [] })
-      )
-    ).toEqual({ done: 3, total: 4 })
+      onboardingProgress(onboardingSteps({ devices: 2, servers: [] }))
+    ).toEqual({ done: 2, total: 3 })
   })
 
   it("porte un libellé et une phrase par pas", () => {
@@ -128,131 +109,36 @@ describe("les quatre pas du démarrage", () => {
   })
 })
 
-describe("la pastille de droit d'usage", () => {
-  it("ne dit rien quand tout est en règle", () => {
+describe("la pastille de licence", () => {
+  it("ne dit rien quand tout est en règle, gratuité comprise", () => {
     expect(
-      entitlementNotice({
-        entitlement: "valid",
-        subscription: "trialing",
-        canManageBilling: true,
-      })
+      licenseNotice({ license: "valid", canManageBilling: true })
     ).toBeNull()
   })
 
-  it("nomme le lancement gratuit et sa fin plutôt qu'un essai", () => {
+  it("mène à la licence quand elle est requise et se gère", () => {
     expect(
-      entitlementNotice({
-        entitlement: "valid",
-        subscription: "trialing",
-        canManageBilling: true,
-        launch: { endsAt: "2026-12-31T00:00:00.000Z" },
-      })
+      licenseNotice({ license: "suspended", canManageBilling: true })
     ).toEqual({
-      label: "entitlement.launch",
+      label: "license.suspended",
       to: "/dashboard/billing",
-      look: { shape: "filled", tone: "ok", label: "entitlement.launch" },
+      look: { shape: "barred", tone: "danger", label: "license.suspended" },
     })
 
     expect(
-      entitlementNotice({
-        entitlement: "valid",
-        subscription: "trialing",
-        canManageBilling: false,
-        launch: { endsAt: null },
-      })
-    ).toMatchObject({ label: "billing.launchTitle", to: null })
+      licenseNotice({ license: "grace", canManageBilling: true })
+    ).toMatchObject({ label: "license.grace", to: "/dashboard/billing" })
   })
 
-  it("ne parle pas de lancement à un droit d'usage qui n'est plus en règle", () => {
+  it("ne mène nulle part quand la licence n'est pas la sienne", () => {
     expect(
-      entitlementNotice({
-        entitlement: "suspended",
-        subscription: "canceled",
-        canManageBilling: true,
-        launch: { endsAt: null },
-      })
-    ).toMatchObject({ label: "entitlement.suspended" })
-  })
-
-  it("ne dit jamais « suspendu » à un compte qui n'a rien souscrit", () => {
-    expect(
-      entitlementNotice({
-        entitlement: "suspended",
-        subscription: "none",
-        canManageBilling: true,
-      })
-    ).toEqual({
-      label: "entitlement.trialPending",
-      to: "/dashboard/start",
-      look: {
-        shape: "hollow",
-        tone: "muted",
-        label: "entitlement.trialPending",
-      },
-    })
-  })
-
-  it("dit l'attente à qui ne peut pas lire la facturation", () => {
-    expect(
-      entitlementNotice({
-        entitlement: "suspended",
-        subscription: "unknown",
-        canManageBilling: false,
-      })
-    ).toEqual({
-      label: "entitlement.waitingTrial",
-      to: "/dashboard/start",
-      look: {
-        shape: "hollow",
-        tone: "muted",
-        label: "entitlement.waitingTrial",
-      },
-    })
-  })
-
-  it("mène à la facturation quand un abonnement existe et se gère", () => {
-    expect(
-      entitlementNotice({
-        entitlement: "suspended",
-        subscription: "canceled",
-        canManageBilling: true,
-      })
-    ).toEqual({
-      label: "entitlement.suspended",
-      to: "/dashboard/billing",
-      look: {
-        shape: "barred",
-        tone: "danger",
-        label: "entitlement.suspended",
-      },
-    })
-
-    expect(
-      entitlementNotice({
-        entitlement: "grace",
-        subscription: "past_due",
-        canManageBilling: true,
-      })
-    ).toMatchObject({ label: "entitlement.grace", to: "/dashboard/billing" })
-  })
-
-  it("ne mène nulle part quand la facturation n'est pas la sienne", () => {
-    expect(
-      entitlementNotice({
-        entitlement: "grace",
-        subscription: "past_due",
-        canManageBilling: false,
-      })
-    ).toMatchObject({ label: "entitlement.grace", to: null })
+      licenseNotice({ license: "suspended", canManageBilling: false })
+    ).toMatchObject({ label: "license.suspended", to: null })
   })
 
   it("nomme l'absence d'organisation sans proposer de geste", () => {
     expect(
-      entitlementNotice({
-        entitlement: "none",
-        subscription: "unknown",
-        canManageBilling: true,
-      })
-    ).toMatchObject({ label: "entitlement.none", to: null })
+      licenseNotice({ license: "none", canManageBilling: true })
+    ).toMatchObject({ label: "license.none", to: null })
   })
 })

@@ -26,7 +26,7 @@ export const LLMS: LlmsContent = {
   title: "Pupitre",
   summary:
     "A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server. The customer brings the machine; Pupitre inspects it, installs the services they choose, hardens it, and becomes the window onto it.",
-  note: "Pupitre is a closed commercial product. Neither the platform nor support ever connects to a customer's server, no private key leaves their laptop, and when a subscription stops the server keeps running as an ordinary Ubuntu machine.",
+  note: "Pupitre is source-available under the Apache 2.0 licence with the Commons Clause: free to use, modify and self-host, never to be sold. The hosted platform is free up to {count} servers per organisation; beyond that, a licence is granted on request. Neither the platform nor support ever connects to a customer's server, no private key leaves their laptop, and when Pupitre is removed the server keeps running as an ordinary Ubuntu machine.",
   sections: {
     start: "Start here",
     documentation: "Documentation",
@@ -40,7 +40,7 @@ export const LLMS: LlmsContent = {
     {
       title: "Pricing",
       path: "/pricing/",
-      note: "One price per server, monthly or yearly, and what happens when it stops.",
+      note: "Free up to {count} servers per organisation, a licence on request beyond, what the source licence allows, and what stays when Pupitre is removed.",
     },
     {
       title: "Download",

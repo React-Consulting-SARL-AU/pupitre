@@ -1,4 +1,4 @@
-export const DEFAULT_CALLBACK_URL = "/dashboard/servers"
+export const DEFAULT_CALLBACK_URL = "/dashboard"
 
 const REWRITTEN_BY_BROWSERS = /[\p{Cc}\\]/u
 const MAX_DECODE_PASSES = 4

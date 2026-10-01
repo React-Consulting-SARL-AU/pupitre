@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import {
   Archive,
+  BadgeCheck,
   Building2,
-  CreditCard,
   Gauge,
   HardDrive,
   Inbox,
@@ -19,7 +19,7 @@ import { ConsoleBrand } from "@/components/dashboard/console-brand"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
 import { SidebarAccountMenu } from "@/components/dashboard/sidebar-account-menu"
 import { SidebarAppCard } from "@/components/dashboard/sidebar-app-card"
-import { SidebarEntitlement } from "@/components/dashboard/sidebar-entitlement"
+import { SidebarLicense } from "@/components/dashboard/sidebar-license"
 import { SidebarLink } from "@/components/dashboard/sidebar-link"
 import { SidebarSearchButton } from "@/components/dashboard/sidebar-search-button"
 import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
@@ -28,7 +28,7 @@ import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import { inboxCountsQueryOptions } from "@/lib/api/inbox-queries"
 import { isPlatformOrganization, platformOpen } from "@/lib/domain/admin"
-import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
+import { ADMIN_ROUTE, opensWithoutLicense } from "@/lib/domain/license-gate"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 interface SidebarEntry {
@@ -70,10 +70,10 @@ const AUDIT_LINK: SidebarEntry = {
   icon: ScrollText,
 }
 
-const BILLING_LINK: SidebarEntry = {
+const LICENSE_LINK: SidebarEntry = {
   to: "/dashboard/billing",
-  label: "nav.billing",
-  icon: CreditCard,
+  label: "nav.license",
+  icon: BadgeCheck,
 }
 
 const DEVICES_LINK: SidebarEntry = {
@@ -101,7 +101,7 @@ const PLATFORM_LINKS: SidebarEntry[] = [
   {
     to: `${ADMIN_ROUTE}/subscriptions`,
     label: "nav.adminSubscriptions",
-    icon: CreditCard,
+    icon: BadgeCheck,
   },
   {
     to: `${ADMIN_ROUTE}/affiliate-links`,
@@ -115,8 +115,7 @@ const PLATFORM_LINKS: SidebarEntry[] = [
 
 export function SidebarContent() {
   const t = useTranslations()
-  const { entitlement, platformRole, activeOrganization } =
-    useDashboardContext()
+  const { license, platformRole, activeOrganization } = useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
   const canManageOrganization = usePermission("organizations:manage")
@@ -127,7 +126,7 @@ export function SidebarContent() {
     enabled: onPlatform,
   })
   const open = (link: SidebarEntry) =>
-    entitlement !== "suspended" || opensWhileSuspended(link.to)
+    license !== "suspended" || opensWithoutLicense(link.to)
   const groups = [
     {
       label: t("nav.group.organization"),
@@ -136,7 +135,7 @@ export function SidebarContent() {
         BACKUPS_LINK,
         MEMBERS_LINK,
         ...(canReadAudit ? [AUDIT_LINK] : []),
-        ...(canManageBilling && !platform ? [BILLING_LINK] : []),
+        ...(canManageBilling && !platform ? [LICENSE_LINK] : []),
         ...(canManageOrganization ? [ORGANIZATION_LINK] : []),
       ].filter(open),
     },
@@ -192,7 +191,7 @@ export function SidebarContent() {
       </nav>
 
       <div className="flex flex-col gap-2 border-line border-t p-3">
-        <SidebarEntitlement />
+        <SidebarLicense />
         <SidebarAppCard />
         <SidebarAccountMenu />
       </div>

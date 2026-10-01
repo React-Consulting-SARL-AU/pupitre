@@ -100,15 +100,17 @@ describe("home content", () => {
     }
   })
 
-  it("keeps the placeholders of the pricing note identical across languages", () => {
+  it("keeps every placeholder identical across languages, and names only the free servers", () => {
     const placeholders = (text: string) =>
       [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort()
-    const [en, fr] = LOCALES.map((locale) => homeContent(locale).pricing)
+    const [en, fr] = LOCALES.map((locale) => leaves(homeContent(locale)))
 
-    expect(placeholders(fr.perServer)).toEqual(placeholders(en.perServer))
-    expect(placeholders(fr.annual)).toEqual(placeholders(en.annual))
-    expect(placeholders(fr.trial)).toEqual(placeholders(en.trial))
-    expect(placeholders(fr.hosted)).toEqual(placeholders(en.hosted))
-    expect(placeholders(en.perServer)).toContain("price")
+    for (const [index, [path, text]] of en.entries()) {
+      expect(placeholders(fr[index][1]), path).toEqual(placeholders(text))
+      for (const name of placeholders(text)) {
+        expect(name, path).toBe("count")
+      }
+    }
+    expect(placeholders(homeContent("en").pricing.title)).toEqual(["count"])
   })
 })

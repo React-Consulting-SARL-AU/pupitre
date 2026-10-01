@@ -12,25 +12,21 @@ export const account = {
     "account.devices.revokeQuestion":
       "{name} stops opening the servers of this account at the console's next push.",
     "account.usage.openConsole": "Open the console",
-    "account.usage.manageSubscription": "Manage the subscription",
-    "account.usage.choosePlan": "Choose a plan",
-    "account.subscription.status.trialing": "Trial in progress",
-    "account.subscription.status.active": "Subscription active",
-    "account.subscription.status.past_due": "Payment overdue",
-    "account.subscription.status.incomplete": "Payment not completed",
-    "account.subscription.status.paused": "Subscription paused",
-    "account.subscription.status.unpaid": "Subscription unpaid",
-    "account.subscription.status.canceled": "Subscription cancelled",
-    "account.subscription.trialLeft.one": "{count} day left",
-    "account.subscription.trialLeft.other": "{count} days left",
-    "account.subscription.trialOver": "The trial is over",
-    "account.subscription.trialEndingFix":
-      "Choose a plan in the console before it ends, or your servers lose Pupitre — never their projects.",
-    "account.subscription.servers": "Servers",
-    "account.subscription.serversOf": "{used} of {limit} servers in use",
-    "account.subscription.trialEndsOn": "Trial ends on",
-    "account.subscription.renewsOn": "Renews on",
-    "account.usage.title": "Subscription",
+    "account.usage.contactSupport": "Contact support",
+    "account.license.status.active": "Licence active",
+    "account.license.status.past_due": "Licence payment overdue",
+    "account.license.status.incomplete": "Licence payment not completed",
+    "account.license.status.paused": "Licence paused",
+    "account.license.status.unpaid": "Licence unpaid",
+    "account.license.status.canceled": "Licence cancelled",
+    "account.license.servers": "Servers",
+    "account.license.serversOf": "{used} of {limit} servers in use",
+    "account.license.freeTier":
+      "Free up to {free} servers per organization; a licence is required beyond. Contact {support}.",
+    "account.license.seats.one": "{count} server added to the free ones",
+    "account.license.seats.other": "{count} servers added to the free ones",
+    "account.license.endsOn": "Licence valid until",
+    "account.usage.title": "Licence",
     "account.identity.title": "Account",
     "account.identity.name": "Signed in as",
     "account.identity.organization": "Organization",
@@ -51,12 +47,12 @@ export const account = {
     "account.gate.platform": "Console",
     "account.gate.settings": "Open the settings",
     "account.gate.developmentSkip": "Continue without an account",
-    "account.gate.unsubscribed.title": "Choose a plan to open Pupitre",
-    "account.gate.unsubscribed.body":
-      "{org} has no subscription: Pupitre installs and updates the servers of a subscribed organization only. Choose a plan in the console, then refresh here.",
-    "account.gate.suspended.title": "Subscription suspended",
+    "account.gate.unlicensed.title": "Licence required",
+    "account.gate.unlicensed.body":
+      "{org} has {used} servers: Pupitre is free up to {free} servers, a licence is required beyond. Contact {support}, then refresh here.",
+    "account.gate.suspended.title": "Organization suspended",
     "account.gate.suspended.body":
-      "{org}'s subscription is suspended: its servers can no longer be installed or updated. Settle it in the console, then refresh here.",
+      "The platform has suspended {org}: its servers can no longer be installed or updated. Contact {support}, then refresh here.",
     "account.gate.signedInAs": "Signed in as {email}",
 
     "account.signIn.connect": "Sign in",
@@ -75,10 +71,10 @@ export const account = {
     "account.signIn.cancel": "Cancel signing in",
 
     "account.usage.look.development": "Development build",
-    "account.usage.look.valid": "Subscription active",
-    "account.usage.look.cached": "Subscription checked offline",
-    "account.usage.look.suspended": "Subscription suspended",
-    "account.usage.look.unsubscribed": "No subscription",
+    "account.usage.look.valid": "Licence valid",
+    "account.usage.look.cached": "Licence checked offline",
+    "account.usage.look.suspended": "Organization suspended",
+    "account.usage.look.unlicensed": "Licence required",
     "account.usage.look.stale": "Check expired",
     "account.usage.look.none": "No account connected",
     "account.usage.development":
@@ -88,11 +84,11 @@ export const account = {
     "account.usage.stale":
       "Last check {since}, beyond the seven days of tolerance.",
     "account.usage.stale.fix":
-      "Connect this computer to the internet, then refresh the account: the console checks the subscription again.",
+      "Connect this computer to the internet, then refresh the account: the console checks the licence again.",
     "account.usage.suspended":
-      "This organization's servers can no longer be installed or updated.",
-    "account.usage.unsubscribed":
-      "This organization's servers cannot be installed or updated until it holds a plan.",
+      "The platform has suspended this organization: its servers can no longer be installed or updated.",
+    "account.usage.unlicensed":
+      "This organization has {used} servers for {free} free: its servers cannot be installed or updated until it holds a licence. Contact {support}.",
     "account.usage.none":
       "No server can be installed or updated until an account is connected.",
     "account.usage.validUntil": "valid until {date}",
@@ -110,25 +106,21 @@ export const account = {
     "account.devices.revokeQuestion":
       "{name} cesse d'ouvrir les serveurs de ce compte au prochain push de la console.",
     "account.usage.openConsole": "Ouvrir la console",
-    "account.usage.manageSubscription": "Gérer l'abonnement",
-    "account.usage.choosePlan": "Choisir une offre",
-    "account.subscription.status.trialing": "Essai en cours",
-    "account.subscription.status.active": "Abonnement actif",
-    "account.subscription.status.past_due": "Paiement en retard",
-    "account.subscription.status.incomplete": "Paiement non abouti",
-    "account.subscription.status.paused": "Abonnement en pause",
-    "account.subscription.status.unpaid": "Abonnement impayé",
-    "account.subscription.status.canceled": "Abonnement résilié",
-    "account.subscription.trialLeft.one": "{count} jour restant",
-    "account.subscription.trialLeft.other": "{count} jours restants",
-    "account.subscription.trialOver": "L'essai est terminé",
-    "account.subscription.trialEndingFix":
-      "Choisissez une offre dans la console avant la fin, sinon vos serveurs perdent Pupitre — jamais leurs projets.",
-    "account.subscription.servers": "Serveurs",
-    "account.subscription.serversOf": "{used} sur {limit} serveurs utilisés",
-    "account.subscription.trialEndsOn": "Fin de l'essai le",
-    "account.subscription.renewsOn": "Renouvellement le",
-    "account.usage.title": "Abonnement",
+    "account.usage.contactSupport": "Écrire au support",
+    "account.license.status.active": "Licence active",
+    "account.license.status.past_due": "Paiement de la licence en retard",
+    "account.license.status.incomplete": "Paiement de la licence non abouti",
+    "account.license.status.paused": "Licence en pause",
+    "account.license.status.unpaid": "Licence impayée",
+    "account.license.status.canceled": "Licence résiliée",
+    "account.license.servers": "Serveurs",
+    "account.license.serversOf": "{used} sur {limit} serveurs utilisés",
+    "account.license.freeTier":
+      "Gratuit jusqu'à {free} serveurs par organisation ; une licence est requise au-delà. Écrivez à {support}.",
+    "account.license.seats.one": "{count} serveur ajouté aux gratuits",
+    "account.license.seats.other": "{count} serveurs ajoutés aux gratuits",
+    "account.license.endsOn": "Licence valable jusqu'au",
+    "account.usage.title": "Licence",
     "account.identity.title": "Compte",
     "account.identity.name": "Connecté en tant que",
     "account.identity.organization": "Organisation",
@@ -149,13 +141,12 @@ export const account = {
     "account.gate.platform": "Console",
     "account.gate.settings": "Ouvrir les réglages",
     "account.gate.developmentSkip": "Continuer sans compte",
-    "account.gate.unsubscribed.title":
-      "Choisissez une offre pour ouvrir Pupitre",
-    "account.gate.unsubscribed.body":
-      "{org} n'a pas d'abonnement : Pupitre n'installe et ne met à jour que les serveurs d'une organisation abonnée. Choisissez une offre dans la console, puis actualisez ici.",
-    "account.gate.suspended.title": "Abonnement suspendu",
+    "account.gate.unlicensed.title": "Licence requise",
+    "account.gate.unlicensed.body":
+      "{org} a {used} serveurs : Pupitre est gratuit jusqu'à {free} serveurs, une licence est requise au-delà. Écrivez à {support}, puis actualisez ici.",
+    "account.gate.suspended.title": "Organisation suspendue",
     "account.gate.suspended.body":
-      "L'abonnement de {org} est suspendu : ses serveurs ne peuvent plus être installés ni mis à jour. Régularisez-le dans la console, puis actualisez ici.",
+      "La plateforme a suspendu {org} : ses serveurs ne peuvent plus être installés ni mis à jour. Écrivez à {support}, puis actualisez ici.",
     "account.gate.signedInAs": "Connecté en tant que {email}",
 
     "account.signIn.connect": "Se connecter",
@@ -174,10 +165,10 @@ export const account = {
     "account.signIn.cancel": "Annuler la connexion",
 
     "account.usage.look.development": "Build de développement",
-    "account.usage.look.valid": "Abonnement actif",
-    "account.usage.look.cached": "Abonnement vérifié hors ligne",
-    "account.usage.look.suspended": "Abonnement suspendu",
-    "account.usage.look.unsubscribed": "Aucun abonnement",
+    "account.usage.look.valid": "Licence valide",
+    "account.usage.look.cached": "Licence vérifiée hors ligne",
+    "account.usage.look.suspended": "Organisation suspendue",
+    "account.usage.look.unlicensed": "Licence requise",
     "account.usage.look.stale": "Vérification expirée",
     "account.usage.look.none": "Aucun compte connecté",
     "account.usage.development":
@@ -187,11 +178,11 @@ export const account = {
     "account.usage.stale":
       "Dernière vérification {since}, au-delà des sept jours de tolérance.",
     "account.usage.stale.fix":
-      "Reconnectez cet ordinateur à internet, puis actualisez le compte : la console revérifie l'abonnement.",
+      "Reconnectez cet ordinateur à internet, puis actualisez le compte : la console revérifie la licence.",
     "account.usage.suspended":
-      "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.",
-    "account.usage.unsubscribed":
-      "Les serveurs de cette organisation ne pourront être installés ni mis à jour tant qu'elle n'a pas d'offre.",
+      "La plateforme a suspendu cette organisation : ses serveurs ne peuvent plus être installés ni mis à jour.",
+    "account.usage.unlicensed":
+      "Cette organisation a {used} serveurs pour {free} gratuits : ses serveurs ne pourront être installés ni mis à jour tant qu'elle n'a pas de licence. Écrivez à {support}.",
     "account.usage.none":
       "Aucun serveur ne peut être installé ni mis à jour tant qu'aucun compte n'est connecté.",
     "account.usage.validUntil": "valable jusqu'au {date}",
