@@ -2,6 +2,7 @@ import { agentCommand } from "./agent"
 import { appCommand } from "./app"
 import { checkCommand } from "./check"
 import { desktopCommand } from "./desktop"
+import { githubReleaseCommand } from "./github-release"
 import { mergeCommand } from "./merge"
 import { nextCommand } from "./next"
 import { notesCommand } from "./notes"
@@ -12,7 +13,7 @@ import { shipCommand } from "./ship"
 import { verifyCommand } from "./verify"
 
 const USAGE =
-  "usage: bun scripts/release/index.ts <next|resolve|notes|check|ship|agent|desktop|app|verify|merge|promote|secrets> [...] [--dry-run]"
+  "usage: bun scripts/release/index.ts <next|resolve|notes|check|ship|agent|desktop|app|verify|github-release|merge|promote|secrets> [...] [--dry-run]"
 
 async function main(argv: readonly string[]): Promise<void> {
   const [command, ...rest] = argv
@@ -47,6 +48,9 @@ async function main(argv: readonly string[]): Promise<void> {
       return
     case "merge":
       await mergeCommand(rest)
+      return
+    case "github-release":
+      await githubReleaseCommand(rest)
       return
     case "promote":
       await promoteCommand(rest)

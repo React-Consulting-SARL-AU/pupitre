@@ -19,6 +19,7 @@ import {
   windowsSigning,
   windowsSigningRequired,
 } from "../release/desktop"
+import { githubReleaseNotes } from "../release/github-release"
 import { ciVerdict, pullRequestTitle } from "../release/merge"
 import { nextVersion, partOf, writeAppVersion } from "../release/next"
 import { keys } from "../release/r2"
@@ -220,6 +221,55 @@ describe("what a customer can download once a version is published", () => {
     expect(verdictOf(200, "1234", 1234)).toBeNull()
     expect(verdictOf(404, null, 1234)).toBe("answers 404")
     expect(verdictOf(200, "12", 1234)).toBe("is 12 bytes, not 1234")
+  })
+})
+
+describe("the GitHub release of a version", () => {
+  const builds = [
+    {
+      os: "linux",
+      arch: "x64",
+      format: "deb",
+      url: "https://dl.example/app/2.0.0/pupitre_2.0.0_amd64.deb",
+      bytes: 102_036_640,
+    },
+    {
+      os: "macos",
+      arch: "arm64",
+      format: "dmg",
+      url: "https://dl.example/app/2.0.0/Pupitre-2.0.0-arm64.dmg",
+      bytes: 131_803_555,
+    },
+    {
+      os: "windows",
+      arch: "x64",
+      format: "exe",
+      url: "https://dl.example/app/2.0.0/Pupitre-Setup-2.0.0-x64.exe",
+      bytes: 119_199_700,
+    },
+  ]
+
+  it("opens on the release notes, then links every download from the bucket, macOS first", () => {
+    const notes = githubReleaseNotes("## The app\n\n- A change.\n", builds)
+    const rows = notes
+      .split("\n")
+      .filter((line) => line.startsWith("| ") && line.includes("]("))
+
+    expect(notes.startsWith("## The app\n\n- A change.\n\n## Downloads")).toBe(
+      true
+    )
+    expect(rows).toEqual([
+      "| macOS | arm64 | [Pupitre-2.0.0-arm64.dmg](https://dl.example/app/2.0.0/Pupitre-2.0.0-arm64.dmg) | 125.7 MB |",
+      "| Windows | x64 | [Pupitre-Setup-2.0.0-x64.exe](https://dl.example/app/2.0.0/Pupitre-Setup-2.0.0-x64.exe) | 113.7 MB |",
+      "| Linux | x64 | [pupitre_2.0.0_amd64.deb](https://dl.example/app/2.0.0/pupitre_2.0.0_amd64.deb) | 97.3 MB |",
+    ])
+  })
+
+  it("says why the agent is not attached and where every version lives", () => {
+    const notes = githubReleaseNotes("Notes", builds)
+
+    expect(notes).toContain("The agent is not attached")
+    expect(notes).toContain("https://pupitre.studio/download/")
   })
 })
 

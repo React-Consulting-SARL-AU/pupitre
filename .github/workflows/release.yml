@@ -276,6 +276,33 @@ jobs:
       - name: Verify what a customer downloads
         run: bun scripts/release/index.ts verify | tee -a "$GITHUB_STEP_SUMMARY"
 
+  github-release:
+    name: GitHub release
+    needs: [agent, publish]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      - name: Publish the GitHub release
+        run: bun scripts/release/index.ts github-release
+
   merge:
     name: Merge into main
     needs: [ci, agent, publish]
