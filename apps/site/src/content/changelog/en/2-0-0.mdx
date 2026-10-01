@@ -1,0 +1,62 @@
+---
+title: The code is public, and three servers are free
+description: Pupitre's source code is published under Apache 2.0 with the Commons Clause, every organization enrols three servers free of charge with no card and no trial, a licence is granted on request beyond them, and the subscription becomes the licence everywhere it shows.
+locale: en
+version: 2.0.0
+channel: stable
+date: 2026-10-01
+order: 24
+---
+
+This version is a step: a 2.0 app drives a 2.0 agent only. Update the app first; an agent of the previous generation refuses to answer it, and the app then offers to install the agent and puts the 2.0 binary in place with **Update**, migrations included.
+
+## Free up to three servers
+
+- **Every organization enrols three servers with nothing to pay**, no card, no trial, no subscription and no time limit. The whole catalogue and everything the app knows how to do come with them, members, roles and audit included.
+- Beyond three servers, an organization needs a **licence**, which adds seats to the free ones. Licences are granted on request: write to `support@pupitre.studio` with the name of the organization and the number of servers it needs. Nothing is sold, no payment is taken, and no price is set.
+- Servers are counted per organization, not per person: the members of an organization share its free servers, and a person in two organizations has the free servers of each.
+- The thirty-day trial, the launch mode and its seat kept for good, the Solo, Team and Hosted plans and their prices are gone. Affiliate links stay, for tracking only — clicks, sign-ups, and servers enrolled by the organizations they brought.
+- When a licence ends while the organization holds more servers than its free ones, those servers keep their right of use for seven days, then go into restricted mode: they can be read and refuse everything else. Nothing that runs on them is stopped, nothing is erased.
+
+## The source code is public
+
+- **The repository is published** under the Apache License 2.0 with the Commons Clause, licensed by React Consulting SARL AU. You may read, modify, compile and self-host Pupitre, including a platform of your own; nobody may sell it, nor sell a service whose value derives substantially from it — a host charging for a one-click install, for instance. It is source-available, not open source.
+- **The agent binary is no longer obfuscated.** Nothing about the security of a server ever rested on the secrecy of the code, and the security page now says so.
+- The site carries a link to the repository in its header, and the Licence page of the legal pages, rewritten, says what the licence allows and what it forbids.
+
+## The app
+
+- **"Subscription required" becomes "Licence required"**, from the account screen to each refusal: a server in restricted mode names the free servers and the address to write to, instead of sending you to the console to settle a payment.
+- The account screen shows the licence: the servers in use out of those allowed, the seats a licence adds to the free ones, the date it is valid until, and `support@pupitre.studio` to write to.
+- A server whose agent belongs to the previous generation now reads as out of date even before a session is open, so its update is offered where every other update is.
+
+## The console
+
+- **Billing becomes Licence.** The page states the free servers, the servers in use, and the licence when the organization holds one; checkout, the plan choice and the trial offer are gone.
+- An organization with no server lands on the starting steps, which are now three — create the account, download the app, enrol a server — and keeps them open until a server is enrolled.
+
+## The site
+
+- The home page, the pricing page and the docs say the same thing: free up to three servers, a licence granted on request beyond them, and the source code public. The Billing docs page becomes **Licence**, and its old address redirects.
+- The legal pages are rewritten around the licence and React Consulting SARL AU, whose trade register, ICE, tax identifier, professional tax and registered office are now printed in the legal notice.
+
+## The agent
+
+- **A published address really is behind the gate again.** On a server updated to 1.2.x, the daemon was the one asked to put `pupitre-gate` and the tunnel's ingress in place, and under its confinement it failed silently each turn: an address kept answering without a key until the services were updated or a published project's configuration was saved. `pupitred serve`, which the app opens, now does that resynchronisation itself when it starts and the gate is missing or out of date.
+- The agent's cache of the right to use Pupitre moves from `entitlement.json` to `license.json`, by a migration: an update reinstalls nothing.
+
+## Known limits
+
+- A licence beyond three servers is granted by hand, from the platform's console, after an email: there is nothing to buy and nothing self-service.
+- A process declared always public answers anyone who holds its address: keep that for a receiver that checks its own signature.
+- A key never expires and several people may share one: to tell two people apart, give them two keys.
+- A script on the server that calls its own project through `PUPITRE_PUBLIC_URL` needs a key like any client; `PUPITRE_LOCAL_URL` does not.
+- A key copied from another computer cannot be copied again here; create another one instead.
+- The published gallery keeps its own token and asks for no access key, so nothing secret belongs in a capture.
+- A server that has not yet accepted the sudo password keeps the old rule, without a password, until it is applied.
+- Lose every authorised device and access is put back only from the host's console, with `sudo pupitred keys reset`.
+- Docker volumes are not backed up; the app says so when the Docker runtime is installed.
+- Whoever can read the bucket reads the manifests, which are in clear: the server's name, the names of the projects, the databases and the folders, the address and branch of the repositories. Never a content, never a secret — those are sealed.
+- Whoever holds the S3 key can erase the backups: object versioning or object lock on the bucket is the answer, and the guide says so.
+- Lose the passphrase and the backups are unreadable — nobody can recover it.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
