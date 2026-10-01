@@ -5,6 +5,8 @@ Pupitre turns any Ubuntu VPS into a workshop for AI agents. A desktop app for ma
 - Site and documentation: [pupitre.studio](https://pupitre.studio)
 - Console: [app.pupitre.studio](https://app.pupitre.studio)
 
+Pupitre is sponsored and funded by [React Consulting](https://react-consulting.ma), which pays for the hosted platform so that it stays free.
+
 ## Source-available, not open source
 
 The code of this repository is public under the **Apache License 2.0 with the Commons Clause License Condition v1.0** ([`LICENSE`](./LICENSE), [`NOTICE`](./NOTICE)). The licensor is React Consulting SARL AU (Morocco).
