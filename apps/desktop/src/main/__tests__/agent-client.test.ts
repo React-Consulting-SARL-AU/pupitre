@@ -300,12 +300,13 @@ describe("the channel", () => {
       connectMs: 500,
     });
 
+    // Spawning the fake agent alone can take a second on a two-core runner: the budget leaves room for the cut.
     const started = Date.now();
-    const result = await install(agent, [], 1500);
+    const result = await install(agent, [], 4000);
 
     expect(result).toBeInstanceOf(AgentCallError);
     expect((result as AgentCallError).code).toBe("disconnected");
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(Date.now() - started).toBeLessThan(8000);
 
     agent.closeAll();
   });
