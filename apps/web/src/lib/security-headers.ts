@@ -1,8 +1,25 @@
+import {
+  WEB_ANALYTICS_REPORT_ORIGIN,
+  WEB_ANALYTICS_SCRIPT_ORIGIN,
+  webAnalyticsToken,
+} from "./config/web-analytics"
+
 const PRESIGNED_R2_ORIGIN = "https://*.r2.cloudflarestorage.com"
 
 const NONCE_BYTES = 16
 
-function documentContentSecurityPolicy(nonce: string): string {
+type SecurityEnv = Pick<
+  CloudflareEnv,
+  "PUPITRE_ENVIRONMENT" | "CF_WEB_ANALYTICS_TOKEN"
+>
+
+function documentContentSecurityPolicy(
+  nonce: string,
+  { analytics }: { analytics: boolean }
+): string {
+  const scriptSources = analytics ? ` ${WEB_ANALYTICS_SCRIPT_ORIGIN}` : ""
+  const connectSources = analytics ? ` ${WEB_ANALYTICS_REPORT_ORIGIN}` : ""
+
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -13,8 +30,8 @@ function documentContentSecurityPolicy(nonce: string): string {
     `frame-src 'self' ${PRESIGNED_R2_ORIGIN}`,
     "font-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    `script-src 'self' 'nonce-${nonce}'`,
-    `connect-src 'self' ${PRESIGNED_R2_ORIGIN}`,
+    `script-src 'self' 'nonce-${nonce}'${scriptSources}`,
+    `connect-src 'self' ${PRESIGNED_R2_ORIGIN}${connectSources}`,
     "upgrade-insecure-requests",
   ].join("; ")
 }
@@ -35,7 +52,7 @@ function isUpgrade(response: Response): boolean {
 
 export function withSecurityHeaders(
   response: Response,
-  env: Pick<CloudflareEnv, "PUPITRE_ENVIRONMENT">,
+  env: SecurityEnv,
   { nonce }: { nonce: string | null }
 ): Response {
   if (isUpgrade(response)) {
@@ -45,7 +62,12 @@ export function withSecurityHeaders(
   const headers = new Headers(response.headers)
 
   if (nonce) {
-    headers.set("content-security-policy", documentContentSecurityPolicy(nonce))
+    headers.set(
+      "content-security-policy",
+      documentContentSecurityPolicy(nonce, {
+        analytics: webAnalyticsToken(env) !== null,
+      })
+    )
     headers.set("x-frame-options", "DENY")
   }
 

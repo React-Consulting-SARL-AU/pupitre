@@ -187,16 +187,19 @@ export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
   { slug: "terms", order: 1, updated: "2026-10-01" },
   { slug: "licence", order: 2, updated: "2026-10-01" },
   { slug: "acceptable-use", order: 3, updated: "2026-09-24" },
-  { slug: "privacy", order: 4, updated: "2026-10-01" },
-  { slug: "data-processing", order: 5, updated: "2026-10-01" },
+  { slug: "privacy", order: 4, updated: "2026-10-02" },
+  { slug: "data-processing", order: 5, updated: "2026-10-02" },
   { slug: "billing", order: 6, updated: "2026-10-01" },
-  { slug: "cookies", order: 7, updated: "2026-10-01" },
-  { slug: "sub-processors", order: 8, updated: "2026-10-01" },
-  { slug: "security", order: 9, updated: "2026-09-24" },
+  { slug: "cookies", order: 7, updated: "2026-10-02" },
+  { slug: "sub-processors", order: 8, updated: "2026-10-02" },
+  { slug: "security", order: 9, updated: "2026-10-02" },
   { slug: "third-party", order: 10, updated: "2026-10-01" },
   { slug: "legal-notice", order: 11, updated: "2026-10-01" },
-  { slug: "changes", order: 12, updated: "2026-10-01" },
+  { slug: "changes", order: 12, updated: "2026-10-02" },
 ]
+
+// Bumped whenever what the consent screen says changes: an account that agreed to an older text is asked again.
+export const DATA_CONSENT_VERSION = "2026-10-02"
 
 export const SubProcessorSchema = z.object({
   name: z.string().min(1),
@@ -211,23 +214,12 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     name: "Cloudflare, Inc.",
     purpose: {
-      fr: "Hébergement du site et de la console, base de données de la plateforme (comptes, organisations, serveurs, abonnements, journal), stockage des binaires et des pièces jointes, réception et envoi des emails",
-      en: "Hosting of the site and the console, platform database (accounts, organisations, servers, subscriptions, journal), storage of binaries and attachments, inbound and outbound email",
+      fr: "Hébergement du site et de la console, base de données de la plateforme (comptes, organisations, serveurs, licences, journal), stockage des binaires et des pièces jointes, réception et envoi des emails, mesure d’audience sans cookie ni identifiant (Web Analytics)",
+      en: "Hosting of the site and the console, platform database (accounts, organisations, servers, licences, journal), storage of binaries and attachments, inbound and outbound email, audience measurement without a cookie or an identifier (Web Analytics)",
     },
     region: {
-      fr: "Société américaine, réseau mondial ; la base de données et les fichiers en Amérique du Nord",
-      en: "United States company, global network; the database and the files in North America",
-    },
-  },
-  {
-    name: "PostHog, Inc.",
-    purpose: {
-      fr: "Mesure d’audience et d’usage du site et de la console, sans cookie ni identifiant durable",
-      en: "Audience and usage measurement of the site and the console, without a cookie or a durable identifier",
-    },
-    region: {
-      fr: "Société américaine ; les événements sont stockés dans l’Union européenne",
-      en: "United States company; events are stored in the European Union",
+      fr: "Société américaine, réseau mondial ; la base de données et les fichiers dans l’est de l’Amérique du Nord",
+      en: "United States company, global network; the database and the files in eastern North America",
     },
   },
   {

@@ -286,6 +286,10 @@ export const refusals = {
       "Licence required: this organization has {used} servers, {free} of them free.",
     "refusal.account.required":
       "Installing a server asks for a Pupitre account.",
+    "refusal.account.consent":
+      "This account has not yet agreed to its data being stored by Cloudflare, in the United States.",
+    "refusal.account.consent.fix":
+      "Open the console to read what is stored and give your agreement: {console}",
     "refusal.signIn.denied": "The request was denied in the browser.",
     "refusal.signIn.denied.fix":
       "Start signing in again and approve the code shown.",
@@ -709,6 +713,10 @@ export const refusals = {
       "Licence requise : cette organisation a {used} serveurs, dont {free} gratuits.",
     "refusal.account.required":
       "Installer un serveur demande un compte Pupitre.",
+    "refusal.account.consent":
+      "Ce compte n'a pas encore accepté que ses données soient stockées chez Cloudflare, aux États-Unis.",
+    "refusal.account.consent.fix":
+      "Ouvrez la console pour lire ce qui est stocké et donner votre accord : {console}",
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",
     "refusal.signIn.denied.fix":
       "Relancez la connexion et approuvez le code affiché.",

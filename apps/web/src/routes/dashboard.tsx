@@ -13,8 +13,12 @@ import { RouteError } from "@/components/ui/route-error"
 import { useTranslations } from "@/hooks/use-locale"
 import { isUnauthenticated } from "@/lib/api/errors"
 import { meQueryOptions } from "@/lib/api/queries"
-import { readSessionOrSignIn } from "@/lib/auth/session-gate"
+import {
+  consentAndComeBack,
+  readSessionOrSignIn,
+} from "@/lib/auth/session-gate"
 import { consoleSection } from "@/lib/domain/chrome"
+import { sendsToConsent } from "@/lib/domain/consent-gate"
 import { LICENSE_ROUTE, sendsToLicense } from "@/lib/domain/license-gate"
 
 export const Route = createFileRoute("/dashboard")({
@@ -25,6 +29,15 @@ export const Route = createFileRoute("/dashboard")({
 
     if (!me) {
       return
+    }
+
+    if (
+      sendsToConsent({
+        consent: me.data_consent,
+        pathname: location.pathname,
+      })
+    ) {
+      throw consentAndComeBack(location.href)
     }
 
     if (sendsToLicense({ license: me.license, pathname: location.pathname })) {

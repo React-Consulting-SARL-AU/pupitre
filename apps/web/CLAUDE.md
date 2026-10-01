@@ -20,7 +20,7 @@ TanStack Start (React 19) on Cloudflare Workers via the Vite plugin · strict TS
 ## Architecture
 
 ```
-src/routes/      api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (members of the platform organization) · download
+src/routes/      api/auth/$ · auth/ (sign-in, consent, device, invitation) · dashboard/ · dashboard/admin/ (members of the platform organization) · download
 src/components/  ui/ (Base UI + shadcn, 1 component/file) · dashboard/ · admin/ (platform pages, admin/inbox/ for mail) · auth/
 src/lib/         api/ (Eden client) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
 src/workflows/   steps of ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace · PurgeDeletions, cron triggers, internal trigger

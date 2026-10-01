@@ -2,8 +2,7 @@
 
 interface ImportMetaEnv {
   readonly PUBLIC_RELEASES_URL?: string
-  readonly PUBLIC_POSTHOG_KEY?: string
-  readonly PUBLIC_POSTHOG_HOST?: string
+  readonly PUBLIC_CF_WEB_ANALYTICS_TOKEN?: string
 }
 
 interface ImportMeta {

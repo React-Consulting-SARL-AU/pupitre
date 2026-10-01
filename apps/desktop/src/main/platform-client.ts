@@ -200,9 +200,31 @@ export function offlineError(error: unknown, baseUrl?: string): AccountError {
   };
 }
 
-function failureOf(status: number, payload: unknown): AccountError {
+const CONSENT_PATH = "/auth/consent";
+
+// The consent is given in the console: the app names that page itself, in its own language.
+function consentRequired(message: string, baseUrl: string): AccountError {
+  return {
+    code: "consent_required",
+    message,
+    phrase: {
+      id: "refusal.account.consent",
+      values: { console: new URL(CONSENT_PATH, baseUrl).toString() },
+    },
+  };
+}
+
+function failureOf(
+  status: number,
+  payload: unknown,
+  baseUrl: string
+): AccountError {
   const body = payload as { error?: Partial<AccountError> } | null;
   const carried = body?.error;
+
+  if (carried?.code === "consent_required") {
+    return consentRequired(carried.message ?? "", baseUrl);
+  }
 
   if (carried?.message) {
     return {
@@ -335,7 +357,7 @@ export function createPlatformClient({
 
     return response.ok
       ? { ok: true, result: payload }
-      : { ok: false, error: failureOf(response.status, payload) };
+      : { ok: false, error: failureOf(response.status, payload, baseUrl) };
   }
 
   async function send(
@@ -395,7 +417,10 @@ export function createPlatformClient({
     if (redirect.status !== REDIRECT) {
       const payload = (await redirect.json().catch(() => null)) as unknown;
 
-      return { ok: false, error: failureOf(redirect.status, payload) };
+      return {
+        ok: false,
+        error: failureOf(redirect.status, payload, baseUrl),
+      };
     }
 
     const storage = redirect.headers.get(RELEASE_STORAGE_HEADER) ?? "r2";

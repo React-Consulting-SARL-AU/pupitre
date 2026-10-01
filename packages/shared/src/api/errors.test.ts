@@ -32,6 +32,7 @@ describe("API_ERROR_CODES", () => {
       "device_exists",
       "invalid_server_token",
       "license_required",
+      "consent_required",
       "stripe_signature_invalid",
     ]) {
       expect(API_ERROR_CODES as readonly string[]).toContain(code)

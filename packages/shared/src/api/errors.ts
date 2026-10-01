@@ -15,6 +15,7 @@ export const API_ERROR_CODES = [
   "device_exists",
   "invalid_server_token",
   "license_required",
+  "consent_required",
   "server_suspended",
   "release_not_found",
   "app_release_not_found",

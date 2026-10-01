@@ -32,7 +32,6 @@ export const en = {
   "footer.cookies": "Cookies",
   "footer.legalNotice": "Legal notice",
   "footer.allLegal": "All legal documents",
-  "footer.consent": "Audience measurement",
   "footer.status": "Status",
 
   "callout.info": "Note",
@@ -85,13 +84,6 @@ export const en = {
   "notFound.lead": "The link is wrong, or the page moved.",
   "notFound.home": "Home",
   "notFound.docs": "Read the docs",
-
-  "consent.title": "Audience measurement",
-  "consent.body":
-    "We would like to count page views, without a cookie and without identifying you. Nothing is stored until you accept.",
-  "consent.accept": "Accept",
-  "consent.decline": "Decline",
-  "consent.link": "Cookies",
 } as const
 
 export type Dictionary = Record<keyof typeof en, string>

@@ -14,6 +14,7 @@ interface CloudflareEnv {
   PURGE_DELETIONS: Workflow
   BETTER_AUTH_SECRET?: string
   BETTER_AUTH_URL?: string
+  CF_WEB_ANALYTICS_TOKEN?: string
   EMAIL_FROM?: string
   INTERNAL_WORKFLOW_SECRET?: string
   PUPITRE_ENVIRONMENT?: string

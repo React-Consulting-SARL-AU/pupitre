@@ -7,8 +7,10 @@ import {
 import { Elysia, status } from "elysia"
 import { formatDate } from "../../../emails/format"
 import { PIPELINE_ACTOR } from "../../audit/audit"
+import { appUrlFromEnv } from "../../billing/config"
 import { licenseRefusalFor } from "../../billing/license"
 import { type MessageKey, type MessageParams, translate } from "../../i18n"
+import { DATA_CONSENT_PATH } from "../../me/data-consent"
 import {
   isPublishToken,
   verifyPublishToken,
@@ -56,8 +58,37 @@ function unauthenticated(request: Request) {
   })
 }
 
+function consentRequired(request: Request) {
+  const locale = resolveLocale(request.headers)
+
+  return status(
+    403,
+    apiError(
+      "consent_required",
+      translate(locale, "consent_required"),
+      translate(locale, "consent_required_fix", {
+        url: `${appUrlFromEnv()}${DATA_CONSENT_PATH}`,
+      })
+    )
+  )
+}
+
 // A closed account gets its own refusal, not a 401, so the app can show the `fix` as is.
-function refuseSession(request: Request, auth: AuthContext) {
+function refuseSession(
+  request: Request,
+  auth: AuthContext,
+  { consent }: { consent: boolean } = { consent: true }
+) {
+  const refused = refuseAccount(request, auth)
+
+  if (refused) {
+    return refused
+  }
+
+  return consent && !auth.dataConsented ? consentRequired(request) : null
+}
+
+function refuseAccount(request: Request, auth: AuthContext) {
   const refusal = auth.accountRefusal
 
   if (refusal) {
@@ -81,6 +112,21 @@ export const requireAuth = new Elysia({ name: "requireAuth" }).resolve(
   async ({ request }) => {
     const auth = await resolveAuthContext(request)
     const refused = refuseSession(request, auth)
+
+    if (refused || !(auth.user && auth.session)) {
+      return refused ?? unauthenticated(request)
+    }
+
+    return { ...auth, user: auth.user, session: auth.session }
+  }
+)
+
+/** Only what giving, refusing or reading the consent needs: every other human route goes through `requireAuth`. */
+export const requireSession = new Elysia({ name: "requireSession" }).resolve(
+  { as: "scoped" },
+  async ({ request }) => {
+    const auth = await resolveAuthContext(request)
+    const refused = refuseSession(request, auth, { consent: false })
 
     if (refused || !(auth.user && auth.session)) {
       return refused ?? unauthenticated(request)

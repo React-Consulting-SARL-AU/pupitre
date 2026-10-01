@@ -10,6 +10,10 @@ const LANDING_URL_RE = {
   servers: /\/dashboard\/servers$/,
 } as const
 
+const CONSENT_PATH_RE = /^\/auth\/consent$/
+const CONSENT_URL_RE = /\/auth\/consent\?/
+const CONSENT_BOX_RE = /^J’accepte que mes données/
+
 export type Landing = keyof typeof LANDING_URL_RE
 
 export function harnessUrl(path: string): string {
@@ -68,7 +72,25 @@ export async function signIn(
   const url = await magicLinkFor(request, email)
 
   await page.goto(url ?? "/")
+  await page.waitForURL(
+    (address) =>
+      CONSENT_PATH_RE.test(address.pathname) ||
+      LANDING_URL_RE[landing].test(address.pathname)
+  )
+
+  if (CONSENT_PATH_RE.test(new URL(page.url()).pathname)) {
+    await agreeToDataStorage(page)
+  }
+
   await expect(page).toHaveURL(LANDING_URL_RE[landing])
+}
+
+// The first entry into the console asks for the consent; later sign-ins of the same account skip it.
+export async function agreeToDataStorage(page: Page): Promise<void> {
+  await expect(page).toHaveURL(CONSENT_URL_RE)
+  await page.getByRole("checkbox", { name: CONSENT_BOX_RE }).click()
+  await page.getByRole("button", { name: "Accepter et continuer" }).click()
+  await expect(page).not.toHaveURL(CONSENT_URL_RE)
 }
 
 export async function grantLicense(

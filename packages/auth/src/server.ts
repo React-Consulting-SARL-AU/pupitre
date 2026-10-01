@@ -36,6 +36,7 @@ import { freshDeviceApproval } from "./fresh-device-approval"
 import { accountHooks, organizationHooks } from "./hooks"
 import {
   ACCOUNT_DEACTIVATED_CODE,
+  DATA_CONSENT_FIELDS,
   isAccountClosed,
   LIFECYCLE_FIELDS,
   ORGANIZATION_LIFECYCLE_FIELDS,
@@ -252,6 +253,7 @@ export function createAuth({
           input: false,
         },
         ...LIFECYCLE_FIELDS,
+        ...DATA_CONSENT_FIELDS,
       },
     },
     advanced: {

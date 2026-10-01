@@ -66,6 +66,18 @@ describe("SignInForm", () => {
     expect(divider(container)).not.toBeNull()
   })
 
+  it("says in one quiet line where the account is hosted, linking the privacy policy", async () => {
+    const { container } = await mountWith([])
+    const notice = container.querySelector(
+      "[data-testid='sign-in-data-notice']"
+    )
+
+    expect(notice?.textContent).toContain("Cloudflare in the United States")
+    expect(notice?.querySelector("a")?.getAttribute("href")).toBe(
+      "https://pupitre.studio/legal/privacy/"
+    )
+  })
+
   it("keeps the magic link and the passkey when a provider is mounted", async () => {
     const { container } = await mountWith(["github"])
 

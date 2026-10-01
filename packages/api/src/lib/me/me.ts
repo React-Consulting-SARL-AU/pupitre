@@ -13,6 +13,7 @@ import {
   organizationReasonOf,
   organizationStateOf,
 } from "../platform/lifecycle"
+import { dataConsentOf } from "./data-consent"
 
 export interface MeInput {
   user: SessionUser
@@ -99,7 +100,7 @@ export async function loadMe({
     }),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { locale: true },
+      select: { locale: true, dataConsentVersion: true, dataConsentAt: true },
     }),
   ])
 
@@ -142,6 +143,7 @@ export async function loadMe({
     license,
     servers,
     license_grant: grant,
+    data_consent: stored ? dataConsentOf(stored) : null,
     entitlement: license,
     subscription: null,
   }

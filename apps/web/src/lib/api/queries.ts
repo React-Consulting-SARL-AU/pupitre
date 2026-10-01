@@ -145,6 +145,14 @@ export function updateLocale(locale: Locale): Promise<void> {
     })
 }
 
+export async function giveDataConsent(version: string) {
+  return unwrap(await api().api.v1.me.consent.post({ version })).data
+}
+
+export async function declineDataConsent(): Promise<void> {
+  unwrap(await api().api.v1.me.consent.decline.post())
+}
+
 async function readServers() {
   return unwrap(await api().api.v1.servers.get()).data
 }

@@ -21,6 +21,7 @@ function context(patch: Partial<AuthContext> = {}): AuthContext {
     isPlatformAdmin: true,
     accountRefusal: null,
     organizationState: null,
+    dataConsented: true,
     ...patch,
   }
 }
@@ -68,6 +69,15 @@ describe("who opens the inbox socket", () => {
     )
 
     expect(refused?.status).toBe(403)
+  })
+
+  it("refuses a team member who has not agreed to the data storage", async () => {
+    const refused = inboxSocketRefusal(context({ dataConsented: false }))
+
+    expect(refused?.status).toBe(403)
+    expect(await refused?.json()).toMatchObject({
+      error: { code: "consent_required" },
+    })
   })
 
   it("refuses with 401 without a session, with 403 outside the team", () => {

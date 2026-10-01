@@ -1,15 +1,27 @@
 import type { ReactNode } from "react"
+import { cn } from "@/lib/utils/cn"
 
 export interface AuthCardProps {
   title: string
   description: string
   children: ReactNode
+  width?: "narrow" | "wide"
 }
 
-export function AuthCard({ title, description, children }: AuthCardProps) {
+export function AuthCard({
+  title,
+  description,
+  children,
+  width = "narrow",
+}: AuthCardProps) {
   return (
     <main className="flex flex-1 items-center justify-center bg-base px-6 py-12">
-      <div className="w-full max-w-[380px]">
+      <div
+        className={cn(
+          "w-full",
+          width === "wide" ? "max-w-[560px]" : "max-w-[380px]"
+        )}
+      >
         <div className="mb-8 flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-md bg-inverse font-data text-[12px] text-inverse-ink">
             &gt;_

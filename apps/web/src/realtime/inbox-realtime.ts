@@ -161,6 +161,14 @@ export function inboxSocketRefusal(auth: AuthContext): Response | null {
     return refuse(401, "unauthenticated", "Authentication required.")
   }
 
+  if (!auth.dataConsented) {
+    return refuse(
+      403,
+      "consent_required",
+      "This account has not agreed to its data being stored: the console asks first."
+    )
+  }
+
   if (!auth.isPlatformAdmin) {
     return refuse(403, "forbidden", "Reserved for the Pupitre team.")
   }

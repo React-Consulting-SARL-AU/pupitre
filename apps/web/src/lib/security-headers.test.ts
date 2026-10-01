@@ -59,6 +59,37 @@ describe("withSecurityHeaders", () => {
     expect(response.headers.get("x-content-type-options")).toBe("nosniff")
   })
 
+  it("names no analytics origin while no Web Analytics token is set", () => {
+    const policy = directives(
+      withSecurityHeaders(
+        new Response(""),
+        { ...LOCAL, CF_WEB_ANALYTICS_TOKEN: " " },
+        { nonce: createCspNonce() }
+      )
+    )
+
+    expect(policy.get("script-src")).not.toContain("cloudflareinsights")
+    expect(policy.get("connect-src")).not.toContain("cloudflareinsights")
+  })
+
+  it("lets the Web Analytics beacon load and report once its token is set", () => {
+    const nonce = createCspNonce()
+    const policy = directives(
+      withSecurityHeaders(
+        new Response(""),
+        { ...LOCAL, CF_WEB_ANALYTICS_TOKEN: "public-token" },
+        { nonce }
+      )
+    )
+
+    expect(policy.get("script-src")).toBe(
+      `'self' 'nonce-${nonce}' https://static.cloudflareinsights.com`
+    )
+    expect(policy.get("connect-src")).toBe(
+      "'self' https://*.r2.cloudflarestorage.com https://cloudflareinsights.com"
+    )
+  })
+
   it("draws a fresh nonce every time", () => {
     const first = createCspNonce()
 

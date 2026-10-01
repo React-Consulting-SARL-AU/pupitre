@@ -1,32 +1,17 @@
-export const CONSENT_KEY = "pupitre_analytics"
+export const BEACON_SCRIPT_ORIGIN = "https://static.cloudflareinsights.com"
 
-export const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com"
+export const BEACON_SCRIPT_URL = `${BEACON_SCRIPT_ORIGIN}/beacon.min.js`
 
-export const CONSENT_VALUES = ["granted", "denied"] as const
+export const BEACON_REPORT_ORIGIN = "https://cloudflareinsights.com"
 
-export type Consent = (typeof CONSENT_VALUES)[number]
-
-export function parseConsent(value: unknown): Consent | null {
-  return CONSENT_VALUES.includes(value as Consent) ? (value as Consent) : null
+export function beaconConfig(token: string): string {
+  return JSON.stringify({ token })
 }
 
-export function readConsent(storage: Pick<Storage, "getItem">): Consent | null {
-  try {
-    return parseConsent(storage.getItem(CONSENT_KEY))
-  } catch {
-    return null
-  }
-}
+export function analyticsToken(
+  value: string | undefined = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN
+): string | null {
+  const token = value?.trim()
 
-// Memory persistence leaves no cookie nor stored id, so no identifier crosses pages.
-export function posthogOptions(host: string): Record<string, unknown> {
-  return {
-    api_host: host,
-    persistence: "memory",
-    autocapture: false,
-    capture_pageview: true,
-    capture_pageleave: false,
-    disable_session_recording: true,
-    disable_surveys: true,
-  }
+  return token ? token : null
 }

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { DESKTOP_CLIENT_ID } from "@pupitre/auth/client/desktop"
 import {
+  agreeToDataStorage,
   harnessUrl,
   magicLinkFor,
   openHydrated,
@@ -83,6 +84,7 @@ test.describe("console", () => {
       }
 
       await page.goto(url)
+      await agreeToDataStorage(page)
 
       await expect(page).toHaveURL(START_URL_RE)
       await expect(

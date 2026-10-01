@@ -294,22 +294,22 @@ describe("the channel", () => {
     agent.closeAll();
   });
 
+  // A loaded two-core runner can take more than half a second to answer hello, and the wait outlasts bun's 5 s default.
   it("gives up at the command deadline, with what ssh said last", async () => {
     const { agent } = client(["install-cut.jsonl", "dies-at-hello.jsonl"], {
       backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
-      connectMs: 500,
+      connectMs: 1500,
     });
 
-    // Spawning the fake agent alone can take a second on a two-core runner: the budget leaves room for the cut.
     const started = Date.now();
-    const result = await install(agent, [], 4000);
+    const result = await install(agent, [], 2500);
 
     expect(result).toBeInstanceOf(AgentCallError);
     expect((result as AgentCallError).code).toBe("disconnected");
-    expect(Date.now() - started).toBeLessThan(8000);
+    expect(Date.now() - started).toBeLessThan(7000);
 
     agent.closeAll();
-  });
+  }, 15_000);
 
   it("does not take the report of an earlier installation for its own", async () => {
     const { agent, fake } = client([

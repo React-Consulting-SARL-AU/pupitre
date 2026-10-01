@@ -92,10 +92,4 @@ describe("Footer", () => {
     expect(html).toContain('href="/fr/docs/"')
     expect(html).toContain("Mentions légales")
   })
-
-  it("offers no way back to the audience banner when nothing is measured", async () => {
-    const html = await render(Footer, { path: "/" })
-
-    expect(html).not.toContain("data-consent-reopen")
-  })
 })
