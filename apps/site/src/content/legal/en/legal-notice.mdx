@@ -6,11 +6,19 @@ updated: 2026-10-01
 order: 11
 ---
 
+import { LEGAL_ENTITY } from "@pupitre/shared/legal"
+
 ## Publisher
 
-The site `pupitre.studio`, the console `app.pupitre.studio`, the desktop app and the Pupitre agent are published by React Consulting SARL AU, a single-member limited company (SARL AU) established in Morocco, under the trading name Pupitre, represented by its manager, Jordan Monier.
+The site `pupitre.studio`, the console `app.pupitre.studio`, the desktop app and the Pupitre agent are published by {LEGAL_ENTITY.legalName}, a single-member limited company (SARL AU) established in Morocco, under the trading name {LEGAL_ENTITY.tradingName}, represented by its manager, {LEGAL_ENTITY.owner}.
 
-Publication director: Jordan Monier.
+- registered office: {LEGAL_ENTITY.registeredAddress};
+- trade register: RC {LEGAL_ENTITY.registrationNumber}, Marrakech commercial court;
+- common company identifier (ICE): {LEGAL_ENTITY.ice};
+- tax identifier (IF): {LEGAL_ENTITY.taxId};
+- professional tax: {LEGAL_ENTITY.professionalTax}.
+
+Publication director: {LEGAL_ENTITY.publicationDirector}.
 
 ## Contact
 

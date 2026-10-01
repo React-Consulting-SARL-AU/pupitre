@@ -104,8 +104,20 @@ describe("les pages légales", () => {
       const notice = read(locale, "legal-notice")
 
       expect(notice).toContain(copyrightHolder())
-      expect(notice).toContain(LEGAL_ENTITY.publicationDirector)
       expect(notice).toContain(CODE_SIGNING_ENTITY.name)
+      for (const field of [
+        "legalName",
+        "owner",
+        "publicationDirector",
+        "registeredAddress",
+        "registrationNumber",
+        "ice",
+        "taxId",
+        "professionalTax",
+      ] as const) {
+        expect(LEGAL_ENTITY[field], field).not.toBeNull()
+        expect(notice, field).toContain(`{LEGAL_ENTITY.${field}}`)
+      }
 
       for (const contact of Object.values(LEGAL_CONTACTS)) {
         expect(notice, contact).toContain(contact)

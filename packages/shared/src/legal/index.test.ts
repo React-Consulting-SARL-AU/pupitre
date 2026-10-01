@@ -19,15 +19,18 @@ import {
 } from "./index"
 
 describe("l'éditeur", () => {
-  it("est la société qui concède la licence du code, sans numéro inventé", () => {
+  it("est la société qui concède la licence du code, avec ses identifiants publiés", () => {
     expect(LegalEntitySchema.parse(LEGAL_ENTITY)).toEqual(LEGAL_ENTITY)
     expect(LEGAL_ENTITY.status).toBe("incorporated")
     expect(isIncorporated()).toBe(true)
     expect(LEGAL_ENTITY.legalName).toBe("React Consulting SARL AU")
     expect(LEGAL_ENTITY.jurisdiction).toBe("Morocco")
     expect(LEGAL_ENTITY.publicationDirector).toBe(LEGAL_ENTITY.owner)
-    expect(LEGAL_ENTITY.registrationNumber).toBeNull()
-    expect(LEGAL_ENTITY.registeredAddress).toBeNull()
+    expect(LEGAL_ENTITY.registrationNumber).toBe("144445")
+    expect(LEGAL_ENTITY.taxId).toBe("60198624")
+    expect(LEGAL_ENTITY.ice).toBe("003399449000060")
+    expect(LEGAL_ENTITY.professionalTax).toBe("45112803")
+    expect(LEGAL_ENTITY.registeredAddress).toContain("40000 Marrakech")
   })
 
   it("détient les droits du code, la société qui signe aussi l'app", () => {

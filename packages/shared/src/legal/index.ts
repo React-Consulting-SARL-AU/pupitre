@@ -14,7 +14,9 @@ export const LegalEntitySchema = z.object({
   form: z.string().min(1).nullable(),
   registrationNumber: z.string().min(1).nullable(),
   taxId: z.string().min(1).nullable(),
-  vatNumber: z.string().min(1).nullable(),
+  // Morocco's common company identifier and the professional tax number.
+  ice: z.string().min(1).nullable(),
+  professionalTax: z.string().min(1).nullable(),
   registeredAddress: z.string().min(1).nullable(),
 })
 
@@ -29,10 +31,12 @@ export const LEGAL_ENTITY: LegalEntity = {
   publicationDirector: "Jordan Monier",
   legalName: "React Consulting SARL AU",
   form: "SARL AU",
-  registrationNumber: null,
-  taxId: null,
-  vatNumber: null,
-  registeredAddress: null,
+  registrationNumber: "144445",
+  taxId: "60198624",
+  ice: "003399449000060",
+  professionalTax: "45112803",
+  registeredAddress:
+    "Boulevard My Hassan 1er, Imm Sibam Block A 3e N°10, 40000 Marrakech, Maroc",
 }
 
 export const CODE_SIGNING_ENTITY = {

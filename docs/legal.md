@@ -8,7 +8,7 @@ Depuis le 1er octobre 2026 ([décision 0018](./decisions/0018-source-disponible-
 
 Ce que la source partagée fixe :
 
-- `LEGAL_ENTITY.status` vaut `incorporated`, `legalName` « React Consulting SARL AU », `form` « SARL AU », `jurisdiction` le Maroc — le droit qui régit les conditions et les tribunaux compétents —, `owner` et `publicationDirector` « Jordan Monier ». `copyrightHolder()` rend la raison sociale. **Les numéros restent `null`** : `registrationNumber` (RC), `taxId` (IF), `vatNumber` (ICE ou TVA) et `registeredAddress` (siège) attendent le propriétaire ; les mentions légales n'en écrivent aucun tant qu'ils manquent, et n'en inventent aucun.
+- `LEGAL_ENTITY.status` vaut `incorporated`, `legalName` « React Consulting SARL AU », `form` « SARL AU », `jurisdiction` le Maroc — le droit qui régit les conditions et les tribunaux compétents —, `owner` et `publicationDirector` « Jordan Monier ». `copyrightHolder()` rend la raison sociale. Ses identifiants sont ceux que publient les mentions légales de `react-consulting.ma` : `registrationNumber` (RC 144445, tribunal de commerce de Marrakech), `taxId` (IF), `ice` (ICE), `professionalTax` (taxe professionnelle) et `registeredAddress` (siège, Marrakech) ; les mentions légales de Pupitre les lisent de `LEGAL_ENTITY`, jamais écrits à la main.
 - `CODE_SIGNING_ENTITY` nomme la même société, dont les certificats signent les builds macOS et Windows de l'app.
 - `LEGAL_DOCUMENTS` porte les douze documents, leur ordre et leur date. Ils sont publiés, sans brouillon ni passage à compléter.
 - `SUB_PROCESSORS` ne nomme que ceux qui touchent une donnée personnelle : Cloudflare (hébergement, base de données et fichiers en Amérique du Nord, emails), PostHog (mesure d'audience, événements stockés dans l'Union européenne) et Stripe, listé pour le jour où des licences se vendraient, à qui rien n'est envoyé aujourd'hui.
@@ -67,6 +67,5 @@ Les tests de `apps/site/src/content/legal.test.ts` vérifient que chaque documen
 
 ## Ce qui reste à faire
 
-1. Remplir dans `LEGAL_ENTITY` le siège, le RC, l'IF et l'ICE de React Consulting SARL AU, puis les écrire dans les mentions légales des deux langues, avec le capital.
-2. Annoncer par email aux comptes actifs le changement d'éditeur et de conditions du 1er octobre 2026 — la place gardée du lancement disparaît au profit des trois serveurs gratuits —, comme les conditions le promettent pour un changement défavorable.
-3. Le jour où des licences se vendent : décrire l'offre dans `billing` et la politique de confidentialité, annoncer trente jours avant, puis passer `BILLING_MODE` à `stripe`.
+1. Ajouter le capital social de React Consulting SARL AU aux mentions légales, quand le propriétaire le donne.
+2. Le jour où des licences se vendent : décrire l'offre dans `billing` et la politique de confidentialité, annoncer trente jours avant, puis passer `BILLING_MODE` à `stripe`.
