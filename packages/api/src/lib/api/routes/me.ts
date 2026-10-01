@@ -1,17 +1,32 @@
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
+import { appUrlFromEnv } from "../../billing/config"
 import { translate } from "../../i18n"
+import {
+  ACCOUNT_SETTINGS_PATH,
+  AccountHoldsDataError,
+  DataConsentVersionError,
+  declineDataConsent,
+  recordDataConsent,
+} from "../../me/data-consent"
 import { loadMe, setActiveOrganization, setUserLocale } from "../../me/me"
 import { listServersForUser } from "../../servers/servers"
 import { apiError } from "../errors"
-import { errorResponse } from "../openapi-models"
+import { dataResponse, errorResponse } from "../openapi-models"
 import { memberRole } from "../plugins/auth"
-import { requireAuth } from "../plugins/guards"
+import { requireAuth, requireSession } from "../plugins/guards"
 import { serializeData } from "../prisma"
-import { meInputBody, meSchema, serverForUserSchema } from "./me-schemas"
+import {
+  dataConsentBody,
+  dataConsentSchema,
+  meInputBody,
+  meSchema,
+  serverForUserSchema,
+} from "./me-schemas"
 
+// Reading the account and agreeing to the data consent must work before that consent exists.
 export const meRoutes = new Elysia({ name: "me-routes", tags: ["Me"] })
-  .use(requireAuth)
+  .use(requireSession)
   .get(
     "/me",
     async ({ user, organizationId, role, platformRole }) =>
@@ -88,6 +103,87 @@ export const meRoutes = new Elysia({ name: "me-routes", tags: ["Me"] })
       },
     }
   )
+  .post(
+    "/me/consent",
+    async ({ user, body, request, set }) => {
+      try {
+        return {
+          data: serializeData(await recordDataConsent(user.id, body.version)),
+        }
+      } catch (error) {
+        if (error instanceof DataConsentVersionError) {
+          const locale = resolveLocale(request.headers)
+
+          set.status = 409
+          return apiError(
+            "conflict",
+            translate(locale, "consent_version_outdated"),
+            translate(locale, "consent_version_outdated_fix")
+          )
+        }
+
+        throw error
+      }
+    },
+    {
+      body: dataConsentBody,
+      detail: {
+        summary:
+          "Consentir au stockage des données du compte, dans la version du texte affiché",
+      },
+      response: {
+        200: dataResponse(dataConsentSchema),
+        401: errorResponse,
+        403: errorResponse,
+        409: errorResponse,
+        422: errorResponse,
+      },
+    }
+  )
+
+  .post(
+    "/me/consent/decline",
+    async ({ user, request, set }) => {
+      try {
+        await declineDataConsent(user.id)
+
+        set.status = 204
+      } catch (error) {
+        if (error instanceof AccountHoldsDataError) {
+          const locale = resolveLocale(request.headers)
+
+          set.status = 409
+          return apiError(
+            "conflict",
+            translate(locale, "consent_decline_held"),
+            translate(locale, "consent_decline_held_fix", {
+              url: `${appUrlFromEnv()}${ACCOUNT_SETTINGS_PATH}`,
+            })
+          )
+        }
+
+        throw error
+      }
+    },
+    {
+      detail: {
+        summary:
+          "Refuser le consentement : efface sur-le-champ un compte qui ne tient que son inscription",
+      },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        409: errorResponse,
+      },
+    }
+  )
+
+export const meServersRoutes = new Elysia({
+  name: "me-servers-routes",
+  tags: ["Me"],
+})
+  .use(requireAuth)
   .get(
     "/me/servers",
     async ({ user }) => ({

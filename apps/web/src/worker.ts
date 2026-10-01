@@ -17,6 +17,7 @@ import { withPrismaClient } from "@pupitre/db/scope"
 import { MAIL_MAX_BYTES } from "@pupitre/shared/legal"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
+import { webAnalyticsToken } from "./lib/config/web-analytics"
 import { createCspNonce, withSecurityHeaders } from "./lib/security-headers"
 import {
   configureRateLimits,
@@ -195,9 +196,10 @@ function route(
   }
 
   const nonce = createCspNonce()
+  const analyticsToken = webAnalyticsToken(env)
 
   return Promise.resolve(
-    serverEntry.fetch(request, { context: { nonce } })
+    serverEntry.fetch(request, { context: { nonce, analyticsToken } })
   ).then((response: Response) => ({ response, nonce }))
 }
 

@@ -211,7 +211,10 @@
         "EMAIL_FROM": "no-reply@pupitre.studio",
         "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio",
         "R2_MAIL_BUCKET_NAME": "ppt-mail",
-        "BILLING_MODE": "off"
+        "BILLING_MODE": "off",
+        // Public: it ends up in the console's HTML. Absent locally, so only
+        // production loads the beacon and widens the CSP for it.
+        "CF_WEB_ANALYTICS_TOKEN": "cd7fdbd137094d10aadb6f727d3443fe"
       },
       "secrets": {
         "required": [

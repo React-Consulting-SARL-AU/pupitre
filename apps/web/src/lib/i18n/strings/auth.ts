@@ -18,6 +18,41 @@ export const auth = {
       "No passkey answered. Use the sign-in link instead.",
     "auth.signIn.google": "Continue with Google",
     "auth.signIn.github": "Continue with GitHub",
+    "auth.signIn.dataNotice":
+      "Your account is stored by Cloudflare, in the United States, outside Morocco and the European Union. You will be asked to agree before using Pupitre.",
+    "auth.signIn.dataNoticeLink": "Privacy policy",
+
+    "auth.consent.title": "Where your data is kept",
+    "auth.consent.description":
+      "Pupitre asks your agreement before storing anything beyond your sign-in.",
+    "auth.consent.whatLabel": "What is stored",
+    "auth.consent.what":
+      "Your account (email address, name), your organisations and their members, your servers' metadata and heartbeats, the audit log, and the mail you exchange with the platform.",
+    "auth.consent.whereLabel": "Where",
+    "auth.consent.where":
+      "At Cloudflare, Inc., a United States company: the database and the files sit in eastern North America. This is a transfer outside Morocco and outside the European Union.",
+    "auth.consent.whyLabel": "Why",
+    "auth.consent.why":
+      "Only to run the service: sign you in, show your servers and send the platform's mail.",
+    "auth.consent.othersLabel": "Other recipients",
+    "auth.consent.others":
+      "GitHub or Google receive data only if you sign in with them. Stripe receives nothing today. Audience is measured with Cloudflare Web Analytics, without a cookie.",
+    "auth.consent.withdrawLabel": "Withdrawing",
+    "auth.consent.withdraw":
+      "You withdraw this agreement by deleting your account:",
+    "auth.consent.withdrawLink": "account settings",
+    "auth.consent.privacyLink": "Read the privacy policy",
+    "auth.consent.agree":
+      "I agree to my data being stored and processed by Cloudflare in the United States, as described above.",
+    "auth.consent.accept": "Agree and continue",
+    "auth.consent.failed": "The agreement could not be recorded.",
+    "auth.consent.decline": "Refuse and delete my account",
+    "auth.consent.declineTitle": "Delete this account?",
+    "auth.consent.declineLead":
+      "Without your agreement, Pupitre keeps nothing: the account, its sessions and its personal organisation are erased now. You can sign up again later.",
+    "auth.consent.declineConfirm": "Delete my account",
+    "auth.consent.declinePending": "Deleting…",
+    "auth.consent.declineFailed": "The account could not be deleted.",
 
     "auth.device.title": "Confirm a device",
     "auth.device.description": "Enter the code the app shows, then confirm.",
@@ -89,6 +124,41 @@ export const auth = {
       "Aucune clé d'accès n'a répondu. Utilisez le lien de connexion.",
     "auth.signIn.google": "Continuer avec Google",
     "auth.signIn.github": "Continuer avec GitHub",
+    "auth.signIn.dataNotice":
+      "Votre compte est stocké chez Cloudflare, aux États-Unis, hors du Maroc et de l’Union européenne. Votre accord vous sera demandé avant d’utiliser Pupitre.",
+    "auth.signIn.dataNoticeLink": "Politique de confidentialité",
+
+    "auth.consent.title": "Où sont gardées vos données",
+    "auth.consent.description":
+      "Pupitre demande votre accord avant de stocker quoi que ce soit au-delà de votre connexion.",
+    "auth.consent.whatLabel": "Ce qui est stocké",
+    "auth.consent.what":
+      "Votre compte (adresse email, nom), vos organisations et leurs membres, les métadonnées et les battements de vos serveurs, le journal d’audit, et les emails échangés avec la plateforme.",
+    "auth.consent.whereLabel": "Où",
+    "auth.consent.where":
+      "Chez Cloudflare, Inc., une société américaine : la base de données et les fichiers sont dans l’est de l’Amérique du Nord. C’est un transfert hors du Maroc et hors de l’Union européenne.",
+    "auth.consent.whyLabel": "Pourquoi",
+    "auth.consent.why":
+      "Uniquement pour faire fonctionner le service : vous connecter, afficher vos serveurs et envoyer les emails de la plateforme.",
+    "auth.consent.othersLabel": "Autres destinataires",
+    "auth.consent.others":
+      "GitHub ou Google ne reçoivent des données que si vous vous connectez avec eux. Stripe ne reçoit rien aujourd’hui. L’audience est mesurée par Cloudflare Web Analytics, sans cookie.",
+    "auth.consent.withdrawLabel": "Retirer son accord",
+    "auth.consent.withdraw":
+      "Vous retirez cet accord en supprimant votre compte :",
+    "auth.consent.withdrawLink": "réglages du compte",
+    "auth.consent.privacyLink": "Lire la politique de confidentialité",
+    "auth.consent.agree":
+      "J’accepte que mes données soient stockées et traitées par Cloudflare aux États-Unis, comme décrit ci-dessus.",
+    "auth.consent.accept": "Accepter et continuer",
+    "auth.consent.failed": "L’accord n’a pas pu être enregistré.",
+    "auth.consent.decline": "Refuser et supprimer mon compte",
+    "auth.consent.declineTitle": "Supprimer ce compte ?",
+    "auth.consent.declineLead":
+      "Sans votre accord, Pupitre ne garde rien : le compte, ses sessions et son organisation personnelle sont effacés maintenant. Vous pourrez vous réinscrire plus tard.",
+    "auth.consent.declineConfirm": "Supprimer mon compte",
+    "auth.consent.declinePending": "Suppression…",
+    "auth.consent.declineFailed": "Le compte n’a pas pu être supprimé.",
 
     "auth.device.title": "Confirmer un appareil",
     "auth.device.description":

@@ -1,5 +1,7 @@
 import { LOCALES } from "@pupitre/shared/i18n"
 import {
+  DataConsentRequestSchema,
+  DataConsentSchema,
   MeSchema,
   ServerForUserSchema,
 } from "@pupitre/shared/platform-api/account"
@@ -14,6 +16,12 @@ export const meInputBody = t.Object({
 })
 
 export const meSchema = fromContract(MeSchema, { $id: "Me" })
+
+export const dataConsentBody = fromContract(DataConsentRequestSchema)
+
+export const dataConsentSchema = fromContract(DataConsentSchema, {
+  $id: "DataConsent",
+})
 
 export const serverForUserSchema = fromContract(ServerForUserSchema, {
   $id: "ServerForUser",

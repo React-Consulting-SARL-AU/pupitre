@@ -9,6 +9,7 @@ import {
   PLATFORM_ORGANIZATION_ID,
 } from "@pupitre/shared/platform"
 import { Elysia } from "elysia"
+import { hasCurrentDataConsent } from "../../me/data-consent"
 import { isBanned, organizationStateOf } from "../../platform/lifecycle"
 import { isPublishToken } from "../../releases/publish-token"
 import { isServerToken } from "../../servers/tokens"
@@ -32,6 +33,7 @@ export interface AuthContext {
   isPlatformAdmin: boolean
   accountRefusal: SessionRefusal | null
   organizationState: OrganizationState | null
+  dataConsented: boolean
 }
 
 const ANONYMOUS: AuthContext = {
@@ -43,6 +45,7 @@ const ANONYMOUS: AuthContext = {
   isPlatformAdmin: false,
   accountRefusal: null,
   organizationState: null,
+  dataConsented: false,
 }
 
 const BEARER_RE = /^Bearer\s+(.+)$/i
@@ -172,6 +175,7 @@ async function loadAuthContext(request: Request): Promise<AuthContext> {
     isPlatformAdmin: platformRole !== null,
     accountRefusal: refusalFor(resolved.user),
     organizationState: active?.state ?? null,
+    dataConsented: hasCurrentDataConsent(resolved.user),
   }
 }
 

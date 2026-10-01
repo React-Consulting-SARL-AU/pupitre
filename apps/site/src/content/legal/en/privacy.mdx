@@ -2,7 +2,7 @@
 title: "Privacy"
 description: "What Pupitre collects, what it never collects, where it lives, how long it stays, and how to get it back or have it deleted."
 locale: en
-updated: 2026-10-01
+updated: 2026-10-02
 order: 4
 ---
 
@@ -44,18 +44,19 @@ No code, no project file, no service secret, no application log, no terminal con
 - **To protect the service and the organisations**, on the basis of our legitimate interest: the IP address and the device of each session, the journal of each organisation, the journaling of readings of sensitive threads.
 - **To answer you**, on the basis of our legitimate interest, or to prepare the contract you ask us for: the emails you write to us.
 - **To know which link brought you**, on the basis of our legitimate interest: the affiliate code and the visit count of a link.
-- **To measure the site's audience**, with your consent, which you can withdraw at any time.
+- **To count the visits of the site and the console**, on the basis of our legitimate interest, without a cookie, without an identifier and without telling one visitor from another, as described under *Audience measurement*.
+- **To store and process all of the above at Cloudflare, in the United States**, on the basis of your explicit consent, given when you create your account, as described under *Where your data goes* and *Transfers outside Morocco and the European Union*.
 - **To comply with the law**: keeping what the law obliges us to keep, and answering the authorities that may lawfully ask.
 
 No decision about you is made by automated processing alone, except what the contract itself provides: a machine without a valid right of use enters restricted mode.
 
-## Audience and usage measurement
+## Audience measurement
 
-We use PostHog to measure how the site is used.
+**On the site**, visits are counted with Cloudflare Web Analytics. Each page loads a small script from Cloudflare, which sends Cloudflare the address of the page, the page you came from, the type of your browser and of your device, and how long the page took to display. The script writes nothing to your browser — no cookie, no local storage — and carries no identifier: a visit cannot be tied to the next one, nor to you, nor to your account. Cloudflare receives, like any server, the IP address of the request; it may derive the country from it, then discards it in the data centre that received it, without storing it. We only see totals: pages viewed, countries, referring sites, browsers. Since nothing is written to your browser and nobody is identified, the site shows no consent banner for it.
 
-**On the site**, page views are counted only after you accept it in the banner. The measurement runs without a cookie and without a durable identifier: the only thing written to your browser is your answer to the banner, and a view is not tied to the next one. PostHog receives, like any server, the IP address of the request; the project is set not to keep it. Declining takes nothing away from the site, and you can change your answer at any time through the "Audience measurement" link at the foot of every page.
+**The console** counts its page views with the same Cloudflare Web Analytics, on the same terms: nothing written to your browser, no identifier, never joined to your account, never what a page shows.
 
-**The console and the desktop app** send nothing to a measurement tool today. If a version starts measuring which screens are opened and which actions are taken, it will be on the same terms — event names and technical context, never a content, never anything from your machines, never a durable identifier without your consent — and this page will say so with its date.
+**The desktop app** sends nothing to a measurement tool today. If the console or the app starts measuring which actions are taken, it will be on the same terms — event names and technical context, never a content, never anything from your machines, never an identifier without your consent — and this page will say so with its date.
 
 We use no advertising network, no advertising cookie, and we never sell or share data with a third party for its own purposes.
 
@@ -71,15 +72,25 @@ Nothing is paid, and no payment data exists. Should paid licences be offered one
 
 <SubProcessors />
 
-The platform runs on Cloudflare, a United States company, on its global network; its database and its files are stored in Cloudflare's Eastern North America region, and the team reads them from Morocco. Adding a sub-processor is announced by email to the owners of every organisation before it happens, and the [list of sub-processors](/legal/sub-processors/) records it with its date.
+Adding a sub-processor is announced by email to the owners of every organisation before it happens, and the [list of sub-processors](/legal/sub-processors/) records it with its date.
 
-## Transfers
+## Where your data goes
 
-Your data is therefore processed outside the European Union: by the controller in Morocco, and by sub-processors established in the United States. When you entrust your data to us yourself from the European Union or the United Kingdom, the data protection law of those countries applies to us directly. When an organisation established in the European Union or the United Kingdom entrusts it to us, the transfer relies on the standard contractual clauses the [data processing agreement](/legal/data-processing/) incorporates. The transfer to each sub-processor relies on the clauses and the guarantees that sub-processor publishes.
+In plain words: everything the platform keeps is stored and processed by Cloudflare, a company of the United States. That means your account and your sessions, your devices and their public keys, your organisation, its members and its journal, the metadata of your machines and every heartbeat they send, the references of your backups, your licence, the emails you send us and those we send you, and the platform's technical logs. The database and the files are stored in Cloudflare's Eastern North America region; each request first goes through the Cloudflare data centre nearest to you. The site you are reading and the console are served by Cloudflare too, and their audience is measured by Cloudflare. The team reads the platform's data from Morocco.
+
+Two other companies receive something only if you choose them: GitHub or Google, when you sign in through one of them. They then learn that you signed in to Pupitre, and process it under their own policies. Stripe receives nothing today. No other company receives your data.
+
+## Transfers outside Morocco and the European Union
+
+Storing your data at Cloudflare, in the United States, is a transfer of your data outside Morocco and outside the European Union, to a country whose law does not give it the same protection as Moroccan law 09-08 or the European Union's General Data Protection Regulation.
+
+That transfer rests on your explicit consent. The sign-in page says where your data goes before you type your email address. Your account is created when you first open your sign-in link, or come back from GitHub or Google; before you can use anything, the console asks you to agree that your data is stored and processed by Cloudflare in the United States, as this page describes. We record that consent with its date and the version of the text you agreed to; when the text changes, you are asked again. If you decline, the account that sign-in just created is deleted at once, because the platform has no other place to run. You withdraw it by deleting your account from the console: everything is then deleted as *Retention* describes, and your machines keep running. Withdrawing does not make unlawful what was done before.
+
+When an organisation established in the European Union or the United Kingdom entrusts its members' data to us, the transfer also relies on the standard contractual clauses the [data processing agreement](/legal/data-processing/) incorporates. Between us and Cloudflare, the transfer is also covered by the data processing terms and the clauses Cloudflare publishes.
 
 ## Retention
 
-Your account and your organisation are kept while the account exists. Deleting the account from the console deletes it immediately, with your devices and their public keys; a deletion we perform at your request or as a sanction is scheduled seven days ahead, so that a mistake can be undone, then carried out. Sign-in sessions expire after sixty days. Machine metrics are a sliding window of seven days. The journal of an organisation is kept with the organisation; when an account is deleted, its lines lose their author. Emails you sent us are kept as long as the exchange may still be needed to help you, and deleted on request. Audience measurement is kept for twelve months, and is never joined to your account.
+Your account and your organisation are kept while the account exists. Deleting the account from the console deletes it immediately, with your devices and their public keys; a deletion we perform at your request or as a sanction is scheduled seven days ahead, so that a mistake can be undone, then carried out. Sign-in sessions expire after sixty days. Machine metrics are a sliding window of seven days. The journal of an organisation is kept with the organisation; when an account is deleted, its lines lose their author. Emails you sent us are kept as long as the exchange may still be needed to help you, and deleted on request. The audience measurement holds no IP address and no identifier; Cloudflare keeps its detailed counts for seven days, then only a sample of them, and they are never joined to your account.
 
 ## Your rights
 

@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ConsoleFooter } from "@/components/ui/console-footer"
+import { WebAnalyticsBeacon } from "@/components/ui/web-analytics-beacon"
 import { LocaleProvider } from "@/hooks/use-locale"
 import { sidebarCarriesChrome } from "@/lib/domain/chrome"
 import { readLocale } from "@/lib/i18n/locale"
@@ -64,6 +65,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col">{children}</div>
           {sidebarCarriesChrome(pathname) ? null : <ConsoleFooter />}
         </LocaleProvider>
+        <WebAnalyticsBeacon />
         <Scripts />
       </body>
     </html>

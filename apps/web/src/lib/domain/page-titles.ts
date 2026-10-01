@@ -113,6 +113,7 @@ const TITLES: Record<string, PageTitle> = {
   "/auth/sign-in": { title: "auth.signIn.title", parents: [] },
   "/auth/device": { title: "auth.device.title", parents: [] },
   "/auth/two-factor": { title: "auth.twoFactor.title", parents: [] },
+  "/auth/consent": { title: "auth.consent.title", parents: [] },
   "/auth/invitation/$id": { title: "auth.invitation.title", parents: [] },
 }
 

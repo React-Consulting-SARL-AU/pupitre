@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import {
   CODE_SIGNING_ENTITY,
   copyrightHolder,
+  DATA_CONSENT_VERSION,
   isBlockedAttachment,
   isIncorporated,
   isPreviewableMailType,
@@ -17,6 +18,8 @@ import {
   SUB_PROCESSORS,
   SubProcessorSchema,
 } from "./index"
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 describe("the publisher", () => {
   it("is the company that grants the code licence, with its published identifiers", () => {
@@ -99,9 +102,22 @@ describe("the sub-processors", () => {
   it("name only those that touch personal data", () => {
     const names = SUB_PROCESSORS.map((processor) => processor.name)
 
-    expect(names).toContain("Cloudflare, Inc.")
-    expect(names).toContain("PostHog, Inc.")
-    expect(names).not.toContain("GitHub")
+    expect(names).toEqual(["Cloudflare, Inc.", "Stripe, Inc."])
+  })
+
+  it("let Cloudflare carry the audience measurement, without a cookie", () => {
+    const cloudflare = SUB_PROCESSORS.find(
+      (processor) => processor.name === "Cloudflare, Inc."
+    )
+
+    expect(cloudflare?.purpose.en).toContain("Web Analytics")
+    expect(cloudflare?.purpose.en).toContain("without a cookie")
+  })
+})
+
+describe("the data consent", () => {
+  it("is dated, so a changed text asks every account again", () => {
+    expect(DATA_CONSENT_VERSION).toMatch(ISO_DATE_RE)
   })
 })
 

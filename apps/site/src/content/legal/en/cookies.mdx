@@ -1,8 +1,8 @@
 ---
 title: "Cookies"
-description: "Every cookie and every value the site and the console write to your browser, why, for how long, and how to change your mind about audience measurement."
+description: "Every cookie and every value the site and the console write to your browser, why, and for how long; the audience measurement writes none."
 locale: en
-updated: 2026-10-01
+updated: 2026-10-02
 order: 7
 ---
 
@@ -11,7 +11,6 @@ This page completes the [privacy policy](/legal/privacy/). It says everything `p
 ## On the site
 
 - **`pupitre_theme`**, cookie, one year: the light or dark theme you chose. Set only if you choose one.
-- **`pupitre_analytics`**, browser local storage, until you clear it: your answer to the audience measurement banner, so it is not asked again.
 - **`pupitre_ref`**, cookie shared by the site and the console, ninety days: the code of the affiliate link you arrived through, and nothing else. Set only when the address carries `?ref=`.
 - **`pupitre_ref_hit`**, browser session storage, until the tab is closed: the mark that a visit of that link has already been counted.
 
@@ -24,11 +23,13 @@ This page completes the [privacy policy](/legal/privacy/). It says everything `p
 
 ## Audience measurement
 
-The site's audience measurement sets no cookie and writes no identifier: PostHog, which receives it, keeps everything in memory for the time of the page. It only starts after you accept it in the banner. You change your answer at any time through the "Audience measurement" link at the foot of every page of the site; declining after accepting stops the measurement at once. The console and the desktop app measure nothing today.
+The site and the console count their visits with Cloudflare Web Analytics, which writes nothing to your browser: no cookie, no local storage, no identifier. That is why neither shows a consent banner. The [privacy policy](/legal/privacy/) says what the measurement sends to Cloudflare. The desktop app measures nothing today.
+
+Before 2 October 2026, the site kept your answer to a measurement banner under `pupitre_analytics`, in your browser's local storage. Nothing reads it any more; you can clear it.
 
 ## What your browser asks of others
 
-To display the site and the console, your browser downloads nothing from a third party: their fonts are served by our own servers.
+To display the site and the console, your browser downloads their fonts from our own servers. The only script it loads from elsewhere is Cloudflare's audience measurement, from `static.cloudflareinsights.com`, which reports to `cloudflareinsights.com`.
 
 ## The desktop app
 

@@ -251,7 +251,7 @@ The build migrates D1 **before** building, and the deployment refuses to go if a
 | Build command | `bun install --frozen-lockfile && bun --cwd=apps/site run build:production` |
 | Deploy command | `bun --cwd=apps/site run deploy:production` |
 
-The build script carries `PUBLIC_RELEASES_URL` — the list of versions the download page reads — and sets `PUPITRE_ENV=production`, which makes the legal guard refuse a `TODO` in a legal page. If the API does not answer, the build does not fail: the page goes out with a list written in the repository and a warning. The redirects and the security headers are in `apps/site/public/`, read by the asset layer; `www` is redirected to the apex by `apps/site/worker/index.ts`, the only thing that layer cannot express.
+The build script carries `PUBLIC_RELEASES_URL` — the list of versions the download page reads — and `PUBLIC_CF_WEB_ANALYTICS_TOKEN` — the public site token of Cloudflare Web Analytics for `pupitre.studio`, created in the dashboard under *Web Analytics* → *Add a site*, manual setup (JS snippet), never the automatic one — and sets `PUPITRE_ENV=production`, which makes the legal guard refuse a `TODO` in a legal page. If the API does not answer, the build does not fail: the page goes out with a list written in the repository and a warning. The redirects and the security headers are in `apps/site/public/`, read by the asset layer; `www` is redirected to the apex by `apps/site/worker/index.ts`, the only thing that layer cannot express.
 
 The site's first deployment is done by hand, with no secret to supply:
 

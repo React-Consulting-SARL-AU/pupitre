@@ -62,7 +62,6 @@ PUPITRE_PUBLISH_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_PUBLISH_TOKEN"
 # `dev:tunnel` says so and stops on its own.
 PUPITRE_TUNNEL_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_TUNNEL_TOKEN"
 
-# --- Site. When absent, the site builds without audience measurement.
+# --- Site. Public values, set by `build:production` in apps/site/package.json
+# (release list, Cloudflare Web Analytics token); nothing to inject here.
 # PUBLIC_RELEASES_URL="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_RELEASES_URL"
-# PUBLIC_POSTHOG_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_POSTHOG_KEY"
-# PUBLIC_POSTHOG_HOST="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_POSTHOG_HOST"

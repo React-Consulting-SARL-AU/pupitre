@@ -45,6 +45,8 @@ export interface AuthPrisma {
         name: string
         emailVerified: boolean
         role: string
+        dataConsentVersion?: string | null
+        dataConsentAt?: Date | null
       }
     }): Promise<AuthUserRecord>
   }

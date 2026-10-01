@@ -44,6 +44,8 @@ export type UserMinAggregateOutputType = {
   deletionAt: Date | null
   deletionReason: string | null
   deletionByUserId: string | null
+  dataConsentVersion: string | null
+  dataConsentAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -66,6 +68,8 @@ export type UserMaxAggregateOutputType = {
   deletionAt: Date | null
   deletionReason: string | null
   deletionByUserId: string | null
+  dataConsentVersion: string | null
+  dataConsentAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -88,6 +92,8 @@ export type UserCountAggregateOutputType = {
   deletionAt: number
   deletionReason: number
   deletionByUserId: number
+  dataConsentVersion: number
+  dataConsentAt: number
   _all: number
 }
 
@@ -112,6 +118,8 @@ export type UserMinAggregateInputType = {
   deletionAt?: true
   deletionReason?: true
   deletionByUserId?: true
+  dataConsentVersion?: true
+  dataConsentAt?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -134,6 +142,8 @@ export type UserMaxAggregateInputType = {
   deletionAt?: true
   deletionReason?: true
   deletionByUserId?: true
+  dataConsentVersion?: true
+  dataConsentAt?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -156,6 +166,8 @@ export type UserCountAggregateInputType = {
   deletionAt?: true
   deletionReason?: true
   deletionByUserId?: true
+  dataConsentVersion?: true
+  dataConsentAt?: true
   _all?: true
 }
 
@@ -251,6 +263,8 @@ export type UserGroupByOutputType = {
   deletionAt: Date | null
   deletionReason: string | null
   deletionByUserId: string | null
+  dataConsentVersion: string | null
+  dataConsentAt: Date | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -294,6 +308,8 @@ export type UserWhereInput = {
   deletionAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   deletionReason?: Prisma.StringNullableFilter<"User"> | string | null
   deletionByUserId?: Prisma.StringNullableFilter<"User"> | string | null
+  dataConsentVersion?: Prisma.StringNullableFilter<"User"> | string | null
+  dataConsentAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   members?: Prisma.MemberListRelationFilter
@@ -326,6 +342,8 @@ export type UserOrderByWithRelationInput = {
   deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
   deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  dataConsentVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  dataConsentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   members?: Prisma.MemberOrderByRelationAggregateInput
@@ -361,6 +379,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   deletionAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   deletionReason?: Prisma.StringNullableFilter<"User"> | string | null
   deletionByUserId?: Prisma.StringNullableFilter<"User"> | string | null
+  dataConsentVersion?: Prisma.StringNullableFilter<"User"> | string | null
+  dataConsentAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   members?: Prisma.MemberListRelationFilter
@@ -393,6 +413,8 @@ export type UserOrderByWithAggregationInput = {
   deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
   deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  dataConsentVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  dataConsentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -421,6 +443,8 @@ export type UserScalarWhereWithAggregatesInput = {
   deletionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   deletionReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   deletionByUserId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  dataConsentVersion?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  dataConsentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
 }
 
 export type UserCreateInput = {
@@ -443,6 +467,8 @@ export type UserCreateInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -475,6 +501,8 @@ export type UserUncheckedCreateInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -507,6 +535,8 @@ export type UserUpdateInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -539,6 +569,8 @@ export type UserUncheckedUpdateInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -571,6 +603,8 @@ export type UserCreateManyInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -593,6 +627,8 @@ export type UserUpdateManyMutationInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -615,6 +651,8 @@ export type UserUncheckedUpdateManyInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -637,6 +675,8 @@ export type UserCountOrderByAggregateInput = {
   deletionAt?: Prisma.SortOrder
   deletionReason?: Prisma.SortOrder
   deletionByUserId?: Prisma.SortOrder
+  dataConsentVersion?: Prisma.SortOrder
+  dataConsentAt?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -659,6 +699,8 @@ export type UserMaxOrderByAggregateInput = {
   deletionAt?: Prisma.SortOrder
   deletionReason?: Prisma.SortOrder
   deletionByUserId?: Prisma.SortOrder
+  dataConsentVersion?: Prisma.SortOrder
+  dataConsentAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -681,6 +723,8 @@ export type UserMinOrderByAggregateInput = {
   deletionAt?: Prisma.SortOrder
   deletionReason?: Prisma.SortOrder
   deletionByUserId?: Prisma.SortOrder
+  dataConsentVersion?: Prisma.SortOrder
+  dataConsentAt?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -883,6 +927,8 @@ export type UserCreateWithoutSessionsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -914,6 +960,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -961,6 +1009,8 @@ export type UserUpdateWithoutSessionsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -992,6 +1042,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -1023,6 +1075,8 @@ export type UserCreateWithoutAccountsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -1054,6 +1108,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -1101,6 +1157,8 @@ export type UserUpdateWithoutAccountsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -1132,6 +1190,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -1163,6 +1223,8 @@ export type UserCreateWithoutMembersInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -1194,6 +1256,8 @@ export type UserUncheckedCreateWithoutMembersInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -1241,6 +1305,8 @@ export type UserUpdateWithoutMembersInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -1272,6 +1338,8 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -1303,6 +1371,8 @@ export type UserCreateWithoutInvitationsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1334,6 +1404,8 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1381,6 +1453,8 @@ export type UserUpdateWithoutInvitationsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1412,6 +1486,8 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1443,6 +1519,8 @@ export type UserCreateWithoutPasskeysInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1474,6 +1552,8 @@ export type UserUncheckedCreateWithoutPasskeysInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1521,6 +1601,8 @@ export type UserUpdateWithoutPasskeysInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1552,6 +1634,8 @@ export type UserUncheckedUpdateWithoutPasskeysInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1583,6 +1667,8 @@ export type UserCreateWithoutTwoFactorsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1614,6 +1700,8 @@ export type UserUncheckedCreateWithoutTwoFactorsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1661,6 +1749,8 @@ export type UserUpdateWithoutTwoFactorsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1692,6 +1782,8 @@ export type UserUncheckedUpdateWithoutTwoFactorsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1723,6 +1815,8 @@ export type UserCreateWithoutDevicesInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1754,6 +1848,8 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1801,6 +1897,8 @@ export type UserUpdateWithoutDevicesInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1832,6 +1930,8 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1863,6 +1963,8 @@ export type UserCreateWithoutAssignedServersInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1894,6 +1996,8 @@ export type UserUncheckedCreateWithoutAssignedServersInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1941,6 +2045,8 @@ export type UserUpdateWithoutAssignedServersInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1972,6 +2078,8 @@ export type UserUncheckedUpdateWithoutAssignedServersInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -2003,6 +2111,8 @@ export type UserCreateWithoutKeyApprovalsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -2034,6 +2144,8 @@ export type UserUncheckedCreateWithoutKeyApprovalsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -2081,6 +2193,8 @@ export type UserUpdateWithoutKeyApprovalsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -2112,6 +2226,8 @@ export type UserUncheckedUpdateWithoutKeyApprovalsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -2143,6 +2259,8 @@ export type UserCreateWithoutEventsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -2174,6 +2292,8 @@ export type UserUncheckedCreateWithoutEventsInput = {
   deletionAt?: Date | string | null
   deletionReason?: string | null
   deletionByUserId?: string | null
+  dataConsentVersion?: string | null
+  dataConsentAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -2221,6 +2341,8 @@ export type UserUpdateWithoutEventsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -2252,6 +2374,8 @@ export type UserUncheckedUpdateWithoutEventsInput = {
   deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dataConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -2395,6 +2519,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   deletionAt?: boolean
   deletionReason?: boolean
   deletionByUserId?: boolean
+  dataConsentVersion?: boolean
+  dataConsentAt?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   members?: boolean | Prisma.User$membersArgs<ExtArgs>
@@ -2428,6 +2554,8 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   deletionAt?: boolean
   deletionReason?: boolean
   deletionByUserId?: boolean
+  dataConsentVersion?: boolean
+  dataConsentAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2450,6 +2578,8 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   deletionAt?: boolean
   deletionReason?: boolean
   deletionByUserId?: boolean
+  dataConsentVersion?: boolean
+  dataConsentAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -2472,9 +2602,11 @@ export type UserSelectScalar = {
   deletionAt?: boolean
   deletionReason?: boolean
   deletionByUserId?: boolean
+  dataConsentVersion?: boolean
+  dataConsentAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "role" | "banned" | "banReason" | "banExpires" | "twoFactorEnabled" | "locale" | "deactivatedAt" | "deactivatedReason" | "deactivatedByUserId" | "deletionAt" | "deletionReason" | "deletionByUserId", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "role" | "banned" | "banReason" | "banExpires" | "twoFactorEnabled" | "locale" | "deactivatedAt" | "deactivatedReason" | "deactivatedByUserId" | "deletionAt" | "deletionReason" | "deletionByUserId" | "dataConsentVersion" | "dataConsentAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -2525,6 +2657,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     deletionAt: Date | null
     deletionReason: string | null
     deletionByUserId: string | null
+    dataConsentVersion: string | null
+    dataConsentAt: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2977,6 +3111,8 @@ export interface UserFieldRefs {
   readonly deletionAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly deletionReason: Prisma.FieldRef<"User", 'String'>
   readonly deletionByUserId: Prisma.FieldRef<"User", 'String'>
+  readonly dataConsentVersion: Prisma.FieldRef<"User", 'String'>
+  readonly dataConsentAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 

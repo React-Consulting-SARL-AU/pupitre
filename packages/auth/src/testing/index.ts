@@ -1,3 +1,4 @@
+import { DATA_CONSENT_VERSION } from "@pupitre/shared/legal"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import {
   PLATFORM_ORGANIZATION_ID,
@@ -30,6 +31,8 @@ export interface TestUserInput {
   email?: string
   name?: string
   role?: string
+  /** Defaults to the current text, since almost every test exercises an account that already agreed. */
+  dataConsent?: boolean
 }
 
 export async function createTestUser(
@@ -39,6 +42,7 @@ export async function createTestUser(
   userCounter += 1
 
   const email = input.email ?? `user-${userCounter}@test.local`
+  const consented = input.dataConsent ?? true
   const user = await prisma.user.create({
     data: {
       id: crypto.randomUUID(),
@@ -46,6 +50,8 @@ export async function createTestUser(
       name: input.name ?? email.split("@")[0],
       emailVerified: true,
       role: input.role ?? "user",
+      dataConsentVersion: consented ? DATA_CONSENT_VERSION : null,
+      dataConsentAt: consented ? new Date() : null,
     },
   })
   const organization = await createPersonalOrganization(prisma, user)

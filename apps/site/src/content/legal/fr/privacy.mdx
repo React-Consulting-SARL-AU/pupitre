@@ -2,7 +2,7 @@
 title: "Confidentialité"
 description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, où ça vit, combien de temps ça reste, et comment le récupérer ou le faire supprimer."
 locale: fr
-updated: 2026-10-01
+updated: 2026-10-02
 order: 4
 ---
 
@@ -44,18 +44,19 @@ Aucun code, aucun fichier de projet, aucun secret de service, aucun log applicat
 - **Pour protéger le service et les organisations**, au titre de notre intérêt légitime : l’adresse IP et l’appareil de chaque session, le journal de chaque organisation, la journalisation des lectures de fils sensibles.
 - **Pour vous répondre**, au titre de notre intérêt légitime, ou pour préparer le contrat que vous nous demandez : les emails que vous nous écrivez.
 - **Pour savoir quel lien vous a amené**, au titre de notre intérêt légitime : le code d’affiliation et le compte des visites d’un lien.
-- **Pour mesurer l’audience du site**, avec votre consentement, que vous retirez à tout moment.
+- **Pour compter les visites du site et de la console**, au titre de notre intérêt légitime, sans cookie, sans identifiant et sans distinguer un visiteur d’un autre, comme le décrit *Mesure d’audience*.
+- **Pour stocker et traiter tout ce qui précède chez Cloudflare, aux États-Unis**, sur la base de votre consentement explicite, donné à la création de votre compte, comme le décrivent *Où vont vos données* et *Transferts hors du Maroc et de l’Union européenne*.
 - **Pour respecter la loi** : garder ce que la loi nous oblige à garder, et répondre aux autorités qui peuvent légalement le demander.
 
 Aucune décision qui vous concerne n’est prise par un traitement automatisé seul, hormis ce que le contrat prévoit lui-même : une machine sans droit d’usage valide passe en mode restreint.
 
-## Mesure d’audience et d’usage
+## Mesure d’audience
 
-Nous utilisons PostHog pour mesurer comment le site est utilisé.
+**Sur le site**, les visites sont comptées avec Cloudflare Web Analytics. Chaque page charge un petit script de Cloudflare, qui envoie à Cloudflare l’adresse de la page, la page d’où vous venez, le type de votre navigateur et de votre appareil, et le temps que la page a mis à s’afficher. Le script n’écrit rien dans votre navigateur — ni cookie, ni stockage local — et ne porte aucun identifiant : une visite ne peut être reliée ni à la suivante, ni à vous, ni à votre compte. Cloudflare reçoit, comme tout serveur, l’adresse IP de la requête ; il peut en déduire le pays, puis l’écarte dans le centre de données qui l’a reçue, sans la stocker. Nous ne voyons que des totaux : pages vues, pays, sites d’origine, navigateurs. Puisque rien n’est écrit dans votre navigateur et que personne n’est identifié, le site n’affiche aucun bandeau de consentement pour elle.
 
-**Sur le site**, les pages vues ne sont comptées qu’après votre accord dans le bandeau. La mesure fonctionne sans cookie et sans identifiant durable : la seule chose écrite dans votre navigateur est votre réponse au bandeau, et une visite n’est pas reliée à la suivante. PostHog reçoit, comme tout serveur, l’adresse IP de la requête ; le projet est réglé pour ne pas la garder. Refuser ne retire rien au site, et vous changez votre réponse à tout moment par le lien « Mesure d’audience » en bas de chaque page.
+**La console** compte ses pages vues avec le même Cloudflare Web Analytics, aux mêmes conditions : rien d’écrit dans votre navigateur, aucun identifiant, jamais relié à votre compte, jamais ce qu’une page affiche.
 
-**La console et l’app desktop** n’envoient rien à un outil de mesure aujourd’hui. Si une version se met à mesurer quels écrans sont ouverts et quelles actions sont faites, ce sera aux mêmes conditions — des noms d’événements et un contexte technique, jamais un contenu, jamais rien de vos machines, jamais un identifiant durable sans votre accord — et cette page le dira avec sa date.
+**L’app desktop** n’envoie rien à un outil de mesure aujourd’hui. Si la console ou l’app se met à mesurer quelles actions sont faites, ce sera aux mêmes conditions — des noms d’événements et un contexte technique, jamais un contenu, jamais rien de vos machines, jamais un identifiant sans votre accord — et cette page le dira avec sa date.
 
 Nous n’utilisons aucun réseau publicitaire, aucun cookie publicitaire, et nous ne vendons ni ne partageons jamais de données avec un tiers pour ses propres fins.
 
@@ -71,15 +72,25 @@ Rien n’est payé, et aucune donnée de paiement n’existe. Si des licences pa
 
 <SubProcessors />
 
-La plateforme tourne chez Cloudflare, société américaine, sur son réseau mondial ; sa base de données et ses fichiers sont stockés dans la région Est de l’Amérique du Nord de Cloudflare, et l’équipe les lit depuis le Maroc. L’ajout d’un sous-traitant est annoncé par email aux propriétaires de chaque organisation avant d’avoir lieu, et la [liste des sous-traitants](/fr/legal/sub-processors/) le dit avec sa date.
+L’ajout d’un sous-traitant est annoncé par email aux propriétaires de chaque organisation avant d’avoir lieu, et la [liste des sous-traitants](/fr/legal/sub-processors/) le dit avec sa date.
 
-## Transferts
+## Où vont vos données
 
-Vos données sont donc traitées hors de l’Union européenne : par le responsable du traitement au Maroc, et par des sous-traitants établis aux États-Unis. Quand vous nous confiez vos données vous-même depuis l’Union européenne ou le Royaume-Uni, le droit de la protection des données de ces pays s’applique à nous directement. Quand c’est une organisation établie dans l’Union européenne ou au Royaume-Uni qui nous les confie, le transfert repose sur les clauses contractuelles types que l’[accord de traitement des données](/fr/legal/data-processing/) incorpore. Le transfert vers chaque sous-traitant repose sur les clauses et les garanties que ce sous-traitant publie.
+En clair : tout ce que la plateforme garde est stocké et traité par Cloudflare, une société des États-Unis. Cela comprend votre compte et vos sessions, vos appareils et leurs clés publiques, votre organisation, ses membres et son journal, les métadonnées de vos machines et chaque heartbeat qu’elles envoient, les références de vos sauvegardes, votre licence, les emails que vous nous envoyez et ceux que nous vous envoyons, et les journaux techniques de la plateforme. La base de données et les fichiers sont stockés dans la région Est de l’Amérique du Nord de Cloudflare ; chaque requête passe d’abord par le centre de données Cloudflare le plus proche de vous. Le site que vous lisez et la console sont eux aussi servis par Cloudflare, et leur audience est mesurée par Cloudflare. L’équipe lit les données de la plateforme depuis le Maroc.
+
+Deux autres sociétés ne reçoivent quelque chose que si vous les choisissez : GitHub ou Google, quand vous vous connectez par l’un d’eux. Ils apprennent alors que vous vous êtes connecté à Pupitre, et le traitent selon leurs propres politiques. Stripe ne reçoit rien aujourd’hui. Aucune autre société ne reçoit vos données.
+
+## Transferts hors du Maroc et de l’Union européenne
+
+Stocker vos données chez Cloudflare, aux États-Unis, est un transfert de vos données hors du Maroc et hors de l’Union européenne, vers un pays dont le droit ne leur donne pas la même protection que la loi marocaine 09-08 ou le règlement général sur la protection des données de l’Union européenne.
+
+Ce transfert repose sur votre consentement explicite. La page de connexion dit où vont vos données avant que vous saisissiez votre adresse email. Votre compte est créé quand vous ouvrez votre lien de connexion pour la première fois, ou revenez de GitHub ou de Google ; avant que vous puissiez utiliser quoi que ce soit, la console vous demande d’accepter que vos données soient stockées et traitées par Cloudflare aux États-Unis, comme cette page le décrit. Nous enregistrons ce consentement avec sa date et la version du texte que vous avez accepté ; quand le texte change, il vous est redemandé. Si vous refusez, le compte que la connexion vient de créer est supprimé aussitôt, car la plateforme n’a pas d’autre endroit où tourner. Vous le retirez en supprimant votre compte depuis la console : tout est alors supprimé comme le décrit *Conservation*, et vos machines continuent de fonctionner. Le retrait ne rend pas illicite ce qui a été fait avant.
+
+Quand une organisation établie dans l’Union européenne ou au Royaume-Uni nous confie les données de ses membres, le transfert repose aussi sur les clauses contractuelles types que l’[accord de traitement des données](/fr/legal/data-processing/) incorpore. Entre nous et Cloudflare, le transfert est aussi couvert par les conditions de traitement des données et les clauses que Cloudflare publie.
 
 ## Conservation
 
-Votre compte et votre organisation sont gardés tant que le compte existe. Supprimer le compte depuis la console le supprime immédiatement, avec vos appareils et leurs clés publiques ; une suppression que nous faisons à votre demande ou en sanction est programmée sept jours à l’avance, pour qu’une erreur puisse être rattrapée, puis exécutée. Les sessions de connexion expirent après soixante jours. Les mesures des machines sont une fenêtre glissante de sept jours. Le journal d’une organisation est gardé avec l’organisation ; quand un compte est supprimé, ses lignes perdent leur auteur. Les emails que vous nous avez envoyés sont gardés tant que l’échange peut encore servir à vous aider, et supprimés sur demande. La mesure d’audience est gardée douze mois, et n’est jamais reliée à votre compte.
+Votre compte et votre organisation sont gardés tant que le compte existe. Supprimer le compte depuis la console le supprime immédiatement, avec vos appareils et leurs clés publiques ; une suppression que nous faisons à votre demande ou en sanction est programmée sept jours à l’avance, pour qu’une erreur puisse être rattrapée, puis exécutée. Les sessions de connexion expirent après soixante jours. Les mesures des machines sont une fenêtre glissante de sept jours. Le journal d’une organisation est gardé avec l’organisation ; quand un compte est supprimé, ses lignes perdent leur auteur. Les emails que vous nous avez envoyés sont gardés tant que l’échange peut encore servir à vous aider, et supprimés sur demande. La mesure d’audience ne contient ni adresse IP ni identifiant ; Cloudflare garde ses comptes détaillés sept jours, puis seulement un échantillon, et ils ne sont jamais reliés à votre compte.
 ## Vos droits
 
 Vous pouvez voir, corriger, exporter et faire supprimer vos données, en limiter le traitement, vous opposer à un traitement fondé sur notre intérêt légitime, et retirer à tout moment un consentement donné, sans que cela remette en cause ce qui a été fait avant. La suppression du compte se fait depuis la console et emporte vos appareils ; vos machines continuent de fonctionner. Pour tout le reste, écrivez à `privacy@pupitre.studio` ; nous pouvons vous demander de prouver que l’adresse est la vôtre avant d’y donner suite.

@@ -39,7 +39,7 @@ The catalogue's module pages are **generated** from `src/content/site/catalog.ts
 
 The site has no changelog page: `src/content/changelog/` remains the source of the release pipeline's release notes (see [`docs/monorepo.md`](../../docs/monorepo.md#the-changelog)), with no Astro collection and no route.
 
-Two build variables, absent locally: `PUBLIC_RELEASES_URL` (list of releases, otherwise the static fallback and a warning) and `PUBLIC_POSTHOG_KEY` (without it, no analytics and no consent banner).
+Two build variables, set by `build:production` and absent locally: `PUBLIC_RELEASES_URL` (list of releases, otherwise the static fallback and a warning) and `PUBLIC_CF_WEB_ANALYTICS_TOKEN` (the public Cloudflare Web Analytics site token; without it, `<Analytics />` loads no beacon). Web Analytics writes nothing to the browser, so the site has no consent banner; anything that would write to the browser or identify a visitor goes into the cookie policy first.
 
 ## Tests
 

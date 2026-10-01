@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as AuthConsentRouteImport } from './routes/auth/consent'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthTwoFactorRouteImport } from './routes/auth/two-factor'
@@ -68,6 +69,11 @@ const DownloadRoute = DownloadRouteImport.update({
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConsentRoute = AuthConsentRouteImport.update({
+  id: '/auth/consent',
+  path: '/auth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthDeviceRoute = AuthDeviceRouteImport.update({
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/download': typeof DownloadRoute
   '/status': typeof StatusRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/download': typeof DownloadRoute
   '/status': typeof StatusRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
@@ -349,6 +357,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/download': typeof DownloadRoute
   '/status': typeof StatusRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/download'
     | '/status'
+    | '/auth/consent'
     | '/auth/device'
     | '/auth/sign-in'
     | '/auth/two-factor'
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/'
     | '/download'
     | '/status'
+    | '/auth/consent'
     | '/auth/device'
     | '/auth/sign-in'
     | '/auth/two-factor'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/download'
     | '/status'
+    | '/auth/consent'
     | '/auth/device'
     | '/auth/sign-in'
     | '/auth/two-factor'
@@ -517,6 +529,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   DownloadRoute: typeof DownloadRoute
   StatusRoute: typeof StatusRoute
+  AuthConsentRoute: typeof AuthConsentRoute
   AuthDeviceRoute: typeof AuthDeviceRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
@@ -552,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/consent': {
+      id: '/auth/consent'
+      path: '/auth/consent'
+      fullPath: '/auth/consent'
+      preLoaderRoute: typeof AuthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/device': {
@@ -906,6 +926,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   DownloadRoute: DownloadRoute,
   StatusRoute: StatusRoute,
+  AuthConsentRoute: AuthConsentRoute,
   AuthDeviceRoute: AuthDeviceRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,

@@ -27,6 +27,18 @@ const ActiveOrganizationSchema = OrganizationSummarySchema.extend({
   reason: z.string().nullable(),
 })
 
+export const DataConsentSchema = z.object({
+  version: z.string().min(1),
+  accepted_at: InstantSchema,
+})
+
+export type DataConsent = z.infer<typeof DataConsentSchema>
+
+// What `POST /me/consent` records: the version the screen showed, refused unless it is the current one.
+export const DataConsentRequestSchema = z.object({
+  version: z.string().min(1),
+})
+
 export const MeSchema = z.object({
   user: z.object({
     id: z.string(),
@@ -46,6 +58,8 @@ export const MeSchema = z.object({
   // Null without an active organization.
   servers: MeServersSchema.nullable(),
   license_grant: MeLicenseGrantSchema.nullable(),
+  // The text the account last agreed to, with its date; null until then. Absent from an older platform.
+  data_consent: DataConsentSchema.nullable().default(null),
   // For apps older than the licence, which read these instead of `license` and `license_grant`.
   entitlement: AccountLicenseSchema,
   subscription: z.null(),

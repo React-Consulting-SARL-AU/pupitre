@@ -17,4 +17,6 @@ regexes = [
   '''pupitre-key-approval-v\d+''',
   '''2596A99EAAB33821893C0A79458CA832957F5868''',
   '''5f0c2a9e41d7b3386e2c1f0a9b8d7e6c''',
+  '''cd7fdbd137094d10aadb6f727d3443fe''',
+  '''75b815eb5e7143d6b93ddee34763ef0f''',
 ]

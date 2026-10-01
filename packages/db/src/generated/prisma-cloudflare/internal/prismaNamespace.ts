@@ -3021,7 +3021,9 @@ export const UserScalarFieldEnum = {
   deactivatedByUserId: 'deactivatedByUserId',
   deletionAt: 'deletionAt',
   deletionReason: 'deletionReason',
-  deletionByUserId: 'deletionByUserId'
+  deletionByUserId: 'deletionByUserId',
+  dataConsentVersion: 'dataConsentVersion',
+  dataConsentAt: 'dataConsentAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]

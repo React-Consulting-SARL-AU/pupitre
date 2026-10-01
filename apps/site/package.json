@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "astro dev --port 4321",
     "build": "astro build",
-    "build:production": "PUPITRE_ENV=production PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app astro build",
+    "build:production": "PUPITRE_ENV=production PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app PUBLIC_CF_WEB_ANALYTICS_TOKEN=75b815eb5e7143d6b93ddee34763ef0f astro build",
     "deploy:production": "wrangler deploy --env production",
     "preview": "astro preview --port 4321",
     "lint": "ultracite check && bun run check:content",
@@ -24,7 +24,6 @@
     "@pupitre/shared": "workspace:*",
     "@resvg/resvg-js": "catalog:",
     "astro": "^5.18.2",
-    "posthog-js": "^1.427.2",
     "satori": "catalog:"
   },
   "devDependencies": {

@@ -1,46 +1,45 @@
-import { describe, expect, it } from "vitest"
-import {
-  CONSENT_KEY,
-  parseConsent,
-  posthogOptions,
-  readConsent,
-} from "./analytics"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import Analytics from "../components/Analytics.astro"
+import { render } from "../test/render"
+import { analyticsToken, BEACON_SCRIPT_URL, beaconConfig } from "./analytics"
 
-const storage = (value: string | null) => ({ getItem: () => value })
-
-describe("consent", () => {
-  it("reads only the two answers it wrote", () => {
-    expect(parseConsent("granted")).toBe("granted")
-    expect(parseConsent("denied")).toBe("denied")
-    expect(parseConsent("maybe")).toBeNull()
-    expect(parseConsent(null)).toBeNull()
-  })
-
-  it("treats a browser that refuses storage as undecided", () => {
-    expect(readConsent(storage("granted"))).toBe("granted")
-    expect(readConsent(storage(null))).toBeNull()
-    expect(
-      readConsent({
-        getItem: () => {
-          throw new Error("blocked")
-        },
-      })
-    ).toBeNull()
-  })
-
-  it("names its key once", () => {
-    expect(CONSENT_KEY).toBe("pupitre_analytics")
+describe("analyticsToken", () => {
+  it("measures nothing without a token", () => {
+    expect(analyticsToken(undefined)).toBeNull()
+    expect(analyticsToken("")).toBeNull()
+    expect(analyticsToken("  ")).toBeNull()
+    expect(analyticsToken(" abc123 ")).toBe("abc123")
   })
 })
 
-describe("posthogOptions", () => {
-  it("keeps page views anonymous and writes no cookie", () => {
-    const options = posthogOptions("https://eu.i.posthog.com")
+describe("beaconConfig", () => {
+  it("hands the beacon its token as JSON", () => {
+    expect(JSON.parse(beaconConfig("abc123"))).toEqual({ token: "abc123" })
+  })
+})
 
-    expect(options.persistence).toBe("memory")
-    expect(options.autocapture).toBe(false)
-    expect(options.capture_pageview).toBe(true)
-    expect(options.disable_session_recording).toBe(true)
-    expect(options.api_host).toBe("https://eu.i.posthog.com")
+describe("Analytics", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("loads no script when the build carries no token", async () => {
+    vi.stubEnv("PUBLIC_CF_WEB_ANALYTICS_TOKEN", "")
+
+    const html = await render(Analytics, { path: "/" })
+
+    expect(html).not.toContain("cloudflareinsights")
+  })
+
+  it("loads the Cloudflare beacon, deferred, when the build carries a token", async () => {
+    vi.stubEnv("PUBLIC_CF_WEB_ANALYTICS_TOKEN", "abc123")
+
+    const html = await render(Analytics, { path: "/" })
+
+    expect(html).toContain(`src="${BEACON_SCRIPT_URL}"`)
+    expect(html).toContain("defer")
+    expect(html).toContain("data-cf-beacon")
+    expect(html).toContain("abc123")
+    expect(html).not.toContain("consent")
   })
 })

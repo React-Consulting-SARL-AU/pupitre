@@ -1,8 +1,8 @@
 ---
 title: "Cookies"
-description: "Chaque cookie et chaque valeur que le site et la console écrivent dans votre navigateur, pourquoi, pour combien de temps, et comment changer d’avis sur la mesure d’audience."
+description: "Chaque cookie et chaque valeur que le site et la console écrivent dans votre navigateur, pourquoi, et pour combien de temps ; la mesure d’audience n’en écrit aucun."
 locale: fr
-updated: 2026-10-01
+updated: 2026-10-02
 order: 7
 ---
 
@@ -11,7 +11,6 @@ Cette page complète la [politique de confidentialité](/fr/legal/privacy/). Ell
 ## Sur le site
 
 - **`pupitre_theme`**, cookie, un an : le thème clair ou sombre que vous avez choisi. Posé seulement si vous en choisissez un.
-- **`pupitre_analytics`**, stockage local du navigateur, jusqu’à ce que vous l’effaciez : votre réponse au bandeau de mesure d’audience, pour ne pas vous la redemander.
 - **`pupitre_ref`**, cookie partagé par le site et la console, quatre-vingt-dix jours : le code du lien d’affiliation par lequel vous êtes arrivé, et rien d’autre. Posé seulement quand l’adresse porte `?ref=`.
 - **`pupitre_ref_hit`**, stockage de session du navigateur, jusqu’à la fermeture de l’onglet : la marque qu’une visite de ce lien a déjà été comptée.
 
@@ -24,11 +23,13 @@ Cette page complète la [politique de confidentialité](/fr/legal/privacy/). Ell
 
 ## Mesure d’audience
 
-La mesure d’audience du site ne pose aucun cookie et n’écrit aucun identifiant : PostHog, qui la reçoit, garde tout en mémoire le temps de la page. Elle ne démarre qu’après votre accord dans le bandeau. Vous changez de réponse à tout moment par le lien « Mesure d’audience » en bas de chaque page du site ; refuser après avoir accepté arrête la mesure aussitôt. La console et l’app desktop ne mesurent rien aujourd’hui.
+Le site et la console comptent leurs visites avec Cloudflare Web Analytics, qui n’écrit rien dans votre navigateur : ni cookie, ni stockage local, ni identifiant. C’est pourquoi aucun des deux n’affiche de bandeau de consentement. La [politique de confidentialité](/fr/legal/privacy/) dit ce que la mesure envoie à Cloudflare. L’app desktop ne mesure rien aujourd’hui.
+
+Avant le 2 octobre 2026, le site gardait votre réponse à un bandeau de mesure sous `pupitre_analytics`, dans le stockage local de votre navigateur. Plus rien ne la lit ; vous pouvez l’effacer.
 
 ## Ce que votre navigateur demande à d’autres
 
-Pour afficher le site et la console, votre navigateur ne télécharge rien chez un tiers : leurs polices sont servies par nos propres serveurs.
+Pour afficher le site et la console, votre navigateur télécharge leurs polices depuis nos propres serveurs. Le seul script qu’il charge ailleurs est la mesure d’audience de Cloudflare, depuis `static.cloudflareinsights.com`, qui rend compte à `cloudflareinsights.com`.
 
 ## L’app desktop
 

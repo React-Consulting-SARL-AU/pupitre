@@ -16,6 +16,11 @@ export const LIFECYCLE_FIELDS = {
   deletionByUserId: nullableString,
 }
 
+export const DATA_CONSENT_FIELDS = {
+  dataConsentVersion: nullableString,
+  dataConsentAt: nullableDate,
+}
+
 export const ORGANIZATION_LIFECYCLE_FIELDS = {
   suspendedAt: nullableDate,
   suspendedReason: nullableString,

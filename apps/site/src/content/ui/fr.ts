@@ -34,7 +34,6 @@ export const fr: Dictionary = {
   "footer.cookies": "Cookies",
   "footer.legalNotice": "Mentions légales",
   "footer.allLegal": "Tous les documents légaux",
-  "footer.consent": "Mesure d’audience",
   "footer.status": "Statut",
 
   "callout.info": "Note",
@@ -88,11 +87,4 @@ export const fr: Dictionary = {
   "notFound.lead": "Le lien est faux, ou la page a bougé.",
   "notFound.home": "Accueil",
   "notFound.docs": "Lire la doc",
-
-  "consent.title": "Mesure d’audience",
-  "consent.body":
-    "Nous aimerions compter les pages vues, sans cookie et sans vous identifier. Rien n’est enregistré tant que vous n’avez pas accepté.",
-  "consent.accept": "Accepter",
-  "consent.decline": "Refuser",
-  "consent.link": "Cookies",
 }

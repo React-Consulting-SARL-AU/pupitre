@@ -283,6 +283,18 @@ const FR = {
     "Choisissez une boîte existante, ou laissez la réponse type sans boîte.",
   license_required: `Licence requise : cette organisation dépasse les ${FREE_SERVERS} serveurs gratuits sans licence en cours.`,
   license_required_fix: `Supprimez des serveurs pour revenir à ${FREE_SERVERS}, ou écrivez à ${LEGAL_CONTACTS.support} pour obtenir une licence.`,
+  consent_required:
+    "Votre accord sur le stockage de vos données chez Cloudflare, aux États-Unis, est requis avant d'utiliser Pupitre.",
+  consent_required_fix:
+    "Ouvrez {url} pour lire ce qui est stocké, où et pourquoi, puis donner votre accord.",
+  consent_version_outdated:
+    "Ce texte n'est plus celui en vigueur : votre accord ne peut pas être enregistré.",
+  consent_version_outdated_fix:
+    "Rechargez la page pour lire le texte en vigueur, puis donnez votre accord.",
+  consent_decline_held:
+    "Ce compte a déjà donné son accord, ou tient des serveurs, des appareils ou des membres : il ne s'efface pas d'un simple refus.",
+  consent_decline_held_fix:
+    "Supprimez le compte depuis {url}, qui dit ce qui l'en empêche encore.",
   server_suspended: "Cette organisation est suspendue par l'équipe Pupitre.",
   server_suspended_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour en connaître la raison.`,
   organization_not_found: "Cette organisation n'existe pas.",
@@ -601,6 +613,18 @@ const EN: Record<MessageKey, string> = {
     "Pick an existing mailbox, or leave the canned reply without one.",
   license_required: `Licence required: this organization holds more than the ${FREE_SERVERS} free servers without a live licence.`,
   license_required_fix: `Delete servers to get back to ${FREE_SERVERS}, or write to ${LEGAL_CONTACTS.support} to get a licence.`,
+  consent_required:
+    "Your agreement to your data being stored by Cloudflare, in the United States, is required before using Pupitre.",
+  consent_required_fix:
+    "Open {url} to read what is stored, where and why, then give your agreement.",
+  consent_version_outdated:
+    "This text is no longer the current one: your agreement cannot be recorded.",
+  consent_version_outdated_fix:
+    "Reload the page to read the current text, then give your agreement.",
+  consent_decline_held:
+    "This account already agreed once, or holds servers, devices or members: a refusal alone does not erase it.",
+  consent_decline_held_fix:
+    "Delete the account from {url}, which says what still holds it back.",
   server_suspended: "The Pupitre team suspended this organization.",
   server_suspended_fix: `Write to ${LEGAL_CONTACTS.support} to learn why.`,
   organization_not_found: "This organization does not exist.",

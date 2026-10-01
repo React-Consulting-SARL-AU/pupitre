@@ -87,6 +87,9 @@ model User {
   deletionReason      String?
   deletionByUserId    String?
 
+  dataConsentVersion String?
+  dataConsentAt      DateTime?
+
   sessions        Session[]
   accounts        Account[]
   members         Member[]
