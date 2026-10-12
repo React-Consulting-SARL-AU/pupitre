@@ -1,0 +1,31 @@
+---
+title: Un projet bloqué au démarrage s'arrête
+description: Un projet dont le démarrage ne finit pas, ou en échec avec son processus encore ouvert, s'arrête et redémarre désormais depuis l'app, et chaque compte consent à ce que ses données passent par Cloudflare.
+locale: fr
+version: 2.0.1
+channel: stable
+date: 2026-10-12
+order: 25
+---
+
+Un correctif dans l'app, et un consentement demandé à chaque compte de la plateforme.
+
+## L'app
+
+- **Un projet bloqué au démarrage s'arrête.** Jusqu'ici, un projet dont le démarrage ne finissait pas n'offrait que **Démarrer**, sans effet puisque son processus était déjà là : rien dans l'app ne permettait de l'arrêter. Un projet qui démarre, ou en échec avec son processus encore ouvert, offre maintenant **Redémarrer** et **Arrêter** — sur la carte du tableau de bord, sur la page du projet et sur chacun de ses processus.
+- **Tout arrêter**, sur le tableau de bord, n'est plus grisé quand les projets ne font que démarrer.
+- Quand la plateforme attend votre consentement avant de répondre, l'app le dit et vous envoie le donner dans la console, au lieu d'un refus sans explication.
+
+## La console
+
+- **Chaque compte consent à ce que ses données passent par Cloudflare**, à sa première entrée, quel que soit le chemin. La page de connexion dit où vont les données avant que l'e-mail soit saisi. Tant que le consentement n'est pas donné, la console et les requêtes de l'app à la plateforme sont refusées ; refuser efface la connexion qui vient d'être créée.
+- L'audience du site et de la console est désormais mesurée par Cloudflare Web Analytics, sans cookie ; PostHog et son bandeau de consentement disparaissent. Cloudflare est le seul sous-traitant actif.
+
+## Le site
+
+- Les pages légales disent clairement que tout est stocké et traité par Cloudflare aux États-Unis, un transfert hors du Maroc et de l'Union européenne qui repose sur ce consentement.
+- Chaque version a désormais sa release GitHub, avec les liens vers chaque installeur.
+
+## Limites connues
+
+- L'installeur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

@@ -1,0 +1,31 @@
+---
+title: A project stuck starting can be stopped
+description: A project whose start hangs, or that failed with its process still open, can now be stopped and restarted from the app, and every account consents to its data going through Cloudflare.
+locale: en
+version: 2.0.1
+channel: stable
+date: 2026-10-12
+order: 25
+---
+
+A fix in the app, and a consent asked of every account on the platform.
+
+## The app
+
+- **A project stuck starting can be stopped.** Until now, a project whose start never finished only offered **Start**, which did nothing since its process was already there: there was no way to stop it from the app. A project left starting, or failed with its process still open, now offers **Restart** and **Stop** — on the dashboard card, on the project page and on each of its processes.
+- **Stop all** on the dashboard is no longer greyed out when the projects are only starting.
+- When the platform asks for your consent before answering, the app says so and sends you to the console to give it, instead of an unexplained refusal.
+
+## The console
+
+- **Every account is asked to consent to its data going through Cloudflare**, on its first entry, whatever the way in. The sign-in page says where the data goes before the email is typed. Until the consent is given, the console and the app's requests to the platform are refused; declining erases the sign-in just created.
+- The audience of the site and the console is now measured by Cloudflare Web Analytics, without cookies; PostHog and its consent banner are gone. Cloudflare is the only active sub-processor.
+
+## The site
+
+- The legal pages say plainly that everything is stored and processed by Cloudflare in the United States, a transfer outside Morocco and the European Union that rests on that consent.
+- Each version now has its GitHub release, with links to every installer.
+
+## Known limits
+
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
