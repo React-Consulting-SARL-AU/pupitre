@@ -9,7 +9,7 @@ import { runtimeModuleOf } from "@renderer/lib/modules";
 import { liveAddresses } from "@renderer/lib/project-addresses";
 import { memoryOf } from "@renderer/lib/project-ports";
 import {
-  isRunning,
+  isStoppable,
   PROCESS_LOOK,
   PROJECT_LOOK,
 } from "@renderer/lib/project-state";
@@ -32,7 +32,7 @@ export function DashboardProjectCard({
 }) {
   const t = useTranslations();
 
-  const running = isRunning(project.state);
+  const stoppable = isStoppable(project.state);
   const main = project.processes[0];
   const several = project.processes.length > 1;
   const published = main?.routes.find((route) => route.hostname)?.hostname;
@@ -103,15 +103,15 @@ export function DashboardProjectCard({
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Button
           disabled={busy}
-          icon={running ? RotateCw : Play}
+          icon={stoppable ? RotateCw : Play}
           onClick={() =>
-            onAct(running ? "project.restart" : "project.up", project.name)
+            onAct(stoppable ? "project.restart" : "project.up", project.name)
           }
           size="sm"
         >
-          {running ? t("dashboard.card.restart") : t("dashboard.card.start")}
+          {stoppable ? t("dashboard.card.restart") : t("dashboard.card.start")}
         </Button>
-        {running ? (
+        {stoppable ? (
           <Button
             disabled={busy}
             icon={Square}

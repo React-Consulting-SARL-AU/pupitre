@@ -139,7 +139,14 @@ const RUNNING: readonly ProjectState[] = [
   "partial",
 ];
 
+const STOPPABLE: readonly ProjectState[] = [...RUNNING, "starting", "failed"];
+
 /** A partial project counts: it has processes to stop and a restart to offer. */
 export function isRunning(state: ProjectState): boolean {
   return RUNNING.includes(state);
+}
+
+/** A start can hang and a failed process can keep its window open: both still hold something to stop. */
+export function isStoppable(state: ProjectState): boolean {
+  return STOPPABLE.includes(state);
 }

@@ -157,6 +157,11 @@ describe("the dashboard", () => {
     expect(panel()).not.toMatch(disabled("Tout arrêter"));
     expect(withProjects(halted)).toMatch(disabled("Tout arrêter"));
     expect(withProjects(halted)).not.toMatch(disabled("Tout démarrer"));
+    expect(
+      withProjects(
+        halted.map((project) => ({ ...project, state: "starting" as const }))
+      )
+    ).not.toMatch(disabled("Tout arrêter"));
     expect(text(withProjects([]))).not.toContain("Tout démarrer");
     expect(text(withProjects([]))).not.toContain("Tout arrêter");
   });
@@ -381,6 +386,20 @@ describe("a project card", () => {
 
     expect(html.split("Ouvrir</button>").length - 1).toBe(1);
     expect(html).not.toContain('data-open="menu"');
+  });
+
+  it("offers to stop or restart a project left starting", () => {
+    const html = text(
+      card({
+        ...FLYLEAF,
+        processes: [{ ...MAIN, state: "starting" }],
+        state: "starting",
+      })
+    );
+
+    expect(html).toContain("Redémarrer");
+    expect(html).toContain("Arrêter");
+    expect(html).not.toContain("Démarrer");
   });
 
   it("does not offer to open a stopped project", () => {
