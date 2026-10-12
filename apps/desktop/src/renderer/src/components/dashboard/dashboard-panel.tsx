@@ -11,7 +11,7 @@ import { Screen } from "@renderer/components/ui/screen";
 import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memoryOf } from "@renderer/lib/project-ports";
-import { isRunning } from "@renderer/lib/project-state";
+import { isRunning, isStoppable } from "@renderer/lib/project-state";
 import type { SecuringNeed } from "@renderer/lib/server-security";
 import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
@@ -68,6 +68,7 @@ export function DashboardPanel({
 
   const projects = snapshot.projects;
   const up = projects.filter((project) => isRunning(project.state));
+  const stoppable = projects.some((project) => isStoppable(project.state));
   const broken = projects.filter(
     (project) => project.state === "failed" || project.state === "down"
   );
@@ -107,7 +108,7 @@ export function DashboardPanel({
               </Button>
               <ConfirmButton
                 confirmLabel={t("dashboard.panel.stopAll")}
-                disabled={busy !== null || up.length === 0}
+                disabled={busy !== null || !stoppable}
                 icon={Square}
                 onConfirm={() => onAct("project.down", "all")}
                 question={t("dashboard.panel.stopAllQuestion")}

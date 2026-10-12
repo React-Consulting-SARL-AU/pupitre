@@ -4,7 +4,7 @@ import { Fact, FactList } from "@renderer/components/ui/fact";
 import { StatePill } from "@renderer/components/ui/state-pill";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
-import { isRunning, PROCESS_LOOK } from "@renderer/lib/project-state";
+import { isStoppable, PROCESS_LOOK } from "@renderer/lib/project-state";
 import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RotateCw, Square } from "lucide-react";
@@ -22,7 +22,7 @@ export function ProjectProcessRow({
 }) {
   const t = useTranslations();
 
-  const running = isRunning(process.state);
+  const stoppable = isStoppable(process.state);
 
   return (
     <li
@@ -42,15 +42,17 @@ export function ProjectProcessRow({
         <span className="ml-auto flex items-center gap-1.5">
           <Button
             disabled={busy}
-            icon={running ? RotateCw : Play}
+            icon={stoppable ? RotateCw : Play}
             onClick={() =>
-              onAct(running ? "project.restart" : "project.up", process.id)
+              onAct(stoppable ? "project.restart" : "project.up", process.id)
             }
             size="sm"
           >
-            {running ? t("project.header.restart") : t("project.header.start")}
+            {stoppable
+              ? t("project.header.restart")
+              : t("project.header.start")}
           </Button>
-          {running ? (
+          {stoppable ? (
             <Button
               disabled={busy}
               icon={Square}

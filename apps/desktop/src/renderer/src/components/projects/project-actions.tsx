@@ -2,7 +2,7 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { isRunning } from "@renderer/lib/project-state";
+import { isStoppable } from "@renderer/lib/project-state";
 import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RefreshCw, RotateCw, Square, Trash2 } from "lucide-react";
@@ -28,22 +28,22 @@ export function ProjectActions({
 }) {
   const t = useTranslations();
 
-  const running = isRunning(project.state);
+  const stoppable = isStoppable(project.state);
 
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button
           disabled={busy}
-          icon={running ? RotateCw : Play}
+          icon={stoppable ? RotateCw : Play}
           onClick={() =>
-            onAct(running ? "project.restart" : "project.up", project.name)
+            onAct(stoppable ? "project.restart" : "project.up", project.name)
           }
           variant="inverse"
         >
-          {running ? t("project.header.restart") : t("project.header.start")}
+          {stoppable ? t("project.header.restart") : t("project.header.start")}
         </Button>
-        {running ? (
+        {stoppable ? (
           <Button
             disabled={busy}
             icon={Square}

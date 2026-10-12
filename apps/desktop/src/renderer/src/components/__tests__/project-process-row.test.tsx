@@ -15,6 +15,28 @@ function declared() {
   return process;
 }
 
+describe("a process left starting", () => {
+  it("can be stopped or restarted", async () => {
+    const view = await mount(
+      <ul>
+        <ProjectProcessRow
+          busy={false}
+          onAct={NEVER}
+          process={{ ...declared(), state: "starting" }}
+        />
+      </ul>
+    );
+
+    const labels = [...view.container.querySelectorAll("button")].map(
+      (button) => button.textContent
+    );
+
+    view.unmount();
+
+    expect(labels).toEqual(["Redémarrer", "Arrêter"]);
+  });
+});
+
 describe("a process whose environment changed", () => {
   it("says a restart applies the new values", async () => {
     const view = await mount(

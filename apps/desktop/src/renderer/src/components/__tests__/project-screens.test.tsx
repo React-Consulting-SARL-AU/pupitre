@@ -95,6 +95,25 @@ describe("a project header", () => {
     expect(html).toContain("Démarrer");
     expect(html).not.toContain("Arrêter");
   });
+
+  for (const state of ["starting", "failed"] as const) {
+    it(`offers to stop or restart a project left ${state}`, () => {
+      const html = renderToStaticMarkup(
+        <ProjectActions
+          busy={false}
+          editors={null}
+          onAct={NOOP}
+          onRemove={() => Promise.resolve()}
+          onSync={NOOP}
+          project={{ ...PROJECT, state }}
+          syncing={false}
+        />
+      );
+
+      expect(html).toContain("Redémarrer");
+      expect(html).toContain("Arrêter");
+    });
+  }
 });
 
 describe("a project's tabs", () => {
