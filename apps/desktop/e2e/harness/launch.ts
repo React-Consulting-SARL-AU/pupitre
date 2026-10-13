@@ -91,20 +91,6 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
     answer("transfer:pick-save", () => null);
     answer("transfer:pick-folder", () => null);
 
-    const saves = globalThis as {
-      savedShots?: { path: unknown; bytes: number }[];
-    };
-
-    saves.savedShots = [];
-    answer("shots:save", (path: unknown, bytes: unknown) => {
-      saves.savedShots?.push({
-        bytes: bytes instanceof Uint8Array ? bytes.byteLength : -1,
-        path,
-      });
-
-      return { ok: true, result: { path } };
-    });
-
     // The keys live in the harness: a real draw would reach for the agent over SSH.
     answer("access:held", () => ({
       ok: true,
@@ -183,16 +169,6 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       window.setContentSize(fixtures.width, fixtures.height);
     }
   }, harness);
-}
-
-export function savedShots(
-  app: ElectronApplication
-): Promise<{ path: unknown; bytes: number }[]> {
-  return app.evaluate(
-    () =>
-      (globalThis as { savedShots?: { path: unknown; bytes: number }[] })
-        .savedShots ?? []
-  );
 }
 
 export function snapshotReads(app: ElectronApplication): Promise<number> {

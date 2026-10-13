@@ -30,7 +30,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/selfupdate"
-	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
@@ -114,16 +113,14 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runProbe(probeOptions(newEngine()), args[1:], stdout, stderr)
 	case devcli.Command:
 		return runDev(newEngine(), args[1:], stdout, stderr)
-	case shots.Command:
-		return runShotCommand(newEngine(), args[1:], stdout, stderr)
+	case mcpCommand:
+		return runMCP(newEngine(), stdin, stdout, stderr)
 	case "resume":
 		engine := newEngine()
 		migrator := newMigrator(engine)
 
 		brought(migrator, engine)
 		return runResume(state.FromEngine(engine, stateOptions()), migrator.State(), stdout)
-	case "gallery":
-		return runGallery(args[1:], stderr)
 	case gateCommand:
 		return runGate(args[1:], stderr)
 	case "backup":
@@ -144,7 +141,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|env|dev|shot|gallery|gate|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|env|dev|mcp|gate|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
 }
 
 // The agent that upgrades to this binary asks it which protocol to greet it in.

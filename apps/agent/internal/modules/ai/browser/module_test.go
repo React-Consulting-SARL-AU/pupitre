@@ -1,16 +1,33 @@
 package browser
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
-	"pupitre.studio/agent/internal/registry"
-	"pupitre.studio/agent/internal/shots"
-	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sudo"
 )
+
+// amd64 unless a test says otherwise: the test binary's own architecture must not choose the path under test.
+func TestMain(m *testing.M) {
+	Arch = "amd64"
+
+	os.Exit(m.Run())
+}
+
+func onArm(t *testing.T, fake *modtest.FakeSys) {
+	t.Helper()
+
+	previous, pinned := Arch, headlessDigest
+	Arch, headlessDigest = "arm64", modtest.Digest(modtest.Downloaded)
+	t.Cleanup(func() { Arch, headlessDigest = previous, pinned })
+
+	fake.Archives["/var/lib/pupitre/downloads/"+headlessArchive] = []string{"chrome-headless-shell-linux-arm64/chrome-headless-shell", "chrome-headless-shell-linux-arm64/libvulkan.so.1"}
+}
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	t.Helper()
@@ -40,7 +57,16 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return ctx
 }
 
-func TestFirstInstallLaysDownTheBrowserTheCommandAndTheGallery(t *testing.T) {
+// What an agent before 2.1.0 left: the gallery's service, its public address and the shot command.
+func withGallery(fake *modtest.FakeSys) {
+	fake.Files[retiredUnitPath] = []byte("[Service]\nExecStart=" + sudo.Binary + " gallery\n")
+	fake.Units[retiredUnit] = modtest.UnitActive
+	fake.Files[retiredExposure] = []byte("PUPITRE_SHOTS_HOSTNAME=shots.flyleaf.dev\nPUPITRE_SHOTS_TOKEN=abc\n")
+	fake.Links[RetiredLink] = sudo.Binary
+	fake.Files["/home/dev/shots/web/2026-09-04/login.png"] = []byte("image")
+}
+
+func TestFirstInstallLaysDownTheBrowserAndItsLibraries(t *testing.T) {
 	fake := modtest.NewFakeSys()
 
 	install(t, fake)
@@ -55,17 +81,9 @@ func TestFirstInstallLaysDownTheBrowserTheCommandAndTheGallery(t *testing.T) {
 		}
 	}
 
-	if fake.Links[shots.Link] != shots.Binary {
-		t.Fatalf("shot must be a link on the agent, got %q", fake.Links[shots.Link])
-	}
-
-	unit := string(fake.Files[unitPath])
-	if !strings.Contains(unit, "gallery --dir="+shots.Dir) || !strings.Contains(unit, "User="+shots.User) {
-		t.Fatalf("the gallery unit must serve the folder as dev:\n%s", unit)
-	}
-
-	if fake.Units[Unit] != modtest.UnitActive || !fake.Dirs[shots.Dir] {
-		t.Fatalf("the gallery must exist and run: units=%v dirs=%v", fake.Units, fake.Dirs)
+	status, err := (Module{}).Status(newContext(t, fake))
+	if err != nil || !status.Installed || !status.Configured || status.Unit != "" || status.Port != 0 {
+		t.Fatalf("the browser runs no service of its own: %+v, %v", status, err)
 	}
 }
 
@@ -87,6 +105,59 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
+func TestAnUpgradeRetiresTheGalleryButKeepsTheCaptures(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	install(t, fake)
+	withGallery(fake)
+
+	if status, _ := (Module{}).Check(newContext(t, fake)); status.Configured {
+		t.Fatal("a machine still holding the gallery is not configured as this agent wants it")
+	}
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, kept := fake.Files[retiredUnitPath]; kept || fake.Units[retiredUnit] == modtest.UnitActive {
+		t.Errorf("the gallery service must stop and go: units=%v", fake.Units)
+	}
+
+	if _, kept := fake.Files[retiredExposure]; kept {
+		t.Error("the gallery's public address and token must go")
+	}
+
+	if _, kept := fake.Links[RetiredLink]; kept {
+		t.Error("the shot command must go")
+	}
+
+	if len(fake.Files["/home/dev/shots/web/2026-09-04/login.png"]) == 0 {
+		t.Fatal("the earlier captures belong to the client")
+	}
+
+	if status, _ := (Module{}).Check(newContext(t, fake)); !status.Configured {
+		t.Fatal("once retired, the module is configured")
+	}
+
+	fake.Mutations = nil
+	if err := (Module{}).Configure(newContext(t, fake)); err != nil || len(fake.Mutations) != 0 {
+		t.Fatalf("a replay has nothing left to retire: %v\n  %s", err, strings.Join(fake.Mutations, "\n  "))
+	}
+}
+
+func TestAShotCommandThatIsNotTheAgentIsLeftAlone(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	install(t, fake)
+	fake.Links[RetiredLink] = "/opt/shot/bin/shot"
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Links[RetiredLink] != "/opt/shot/bin/shot" {
+		t.Fatal("someone else's shot is not ours to remove")
+	}
+}
+
 func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage(chromePackage, "E: Unable to locate package google-chrome-stable")
@@ -100,7 +171,7 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	warned := false
 
 	for _, line := range ctx.Output() {
-		warned = warned || strings.Contains(line, "shot <file> works")
+		warned = warned || strings.Contains(line, "headless browser")
 	}
 
 	if !warned {
@@ -120,27 +191,32 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	}
 }
 
-func TestUninstallGivesBackTheCommandAndTheServiceButKeepsTheCaptures(t *testing.T) {
+func TestUninstallRemovesTheBrowserAndWhatTheGalleryLeft(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	install(t, fake)
-	fake.Files[shots.Dir+"/2026-09-04/login.png"] = []byte("image")
+	withGallery(fake)
 
 	if err := (Module{}).Uninstall(newContext(t, fake)); err != nil {
 		t.Fatal(err)
 	}
 
-	if len(fake.Files[unitPath]) != 0 || installedPackage(newContext(t, fake)) != "" {
-		t.Error("the unit and the browser must go")
+	if installedPackage(newContext(t, fake)) != "" {
+		t.Error("the browser must go")
 	}
 
-	if len(fake.Files[shots.Dir+"/2026-09-04/login.png"]) == 0 {
+	if _, kept := fake.Files[retiredUnitPath]; kept {
+		t.Error("the gallery service must go")
+	}
+
+	if len(fake.Files["/home/dev/shots/web/2026-09-04/login.png"]) == 0 {
 		t.Fatal("the captures belong to the client")
 	}
 }
 
-func TestFailedGalleryStepCarriesItsReplayCommand(t *testing.T) {
+func TestAFailedRetirementCarriesItsReplayCommand(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.FailProgram("ln", "ln: cannot create symbolic link")
+	withGallery(fake)
+	fake.FailProgram("rm", "rm: cannot remove")
 
 	err := (Module{}).Configure(newContext(t, fake))
 	if err == nil {
@@ -148,7 +224,7 @@ func TestFailedGalleryStepCarriesItsReplayCommand(t *testing.T) {
 	}
 
 	step, ok := err.(*modules.StepError)
-	if !ok || step.Step != "link-shot-command" || step.Replay != "sudo pupitred install --only="+ID {
+	if !ok || step.Step != "retire-shot-command" || step.Replay != "sudo pupitred install --only="+ID {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }
@@ -235,7 +311,7 @@ func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
 		for _, event := range ctx.Events() {
 			if event.Step == "install-browser" {
 				status = event.Status
-				warned = warned || strings.Contains(event.Message, "shot <file> works")
+				warned = warned || strings.Contains(event.Message, "headless browser")
 			}
 		}
 
@@ -249,80 +325,99 @@ func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
 	}
 }
 
-func withSubdomain(t *testing.T, fake *modtest.FakeSys, subdomain string) *modules.Context {
-	t.Helper()
-
-	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: subdomain}})
-	if err := (Module{}).Configure(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	return ctx
-}
-
-func TestASubdomainPublishesTheGalleryUnderASecretToken(t *testing.T) {
+func TestOnArmTheHeadlessShellOfChromeForTestingIsUnpacked(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Files[env.Path] = []byte(env.DomainKey + "=flyleaf.dev\n")
+	onArm(t, fake)
+
 	install(t, fake)
 
-	if file := fake.Files[unitPath]; !strings.Contains(string(file), "EnvironmentFile=-"+shots.ExposurePath) {
-		t.Fatalf("the gallery reads its token from the exposure file:\n%s", file)
+	if len(fake.Files[headlessBinary]) == 0 || strings.TrimSpace(string(fake.Files[headlessVersionPath])) != headlessVersion {
+		t.Fatalf("the headless shell must sit at its pinned version: %v", fake.Commands())
 	}
 
-	fake.Units[Unit] = modtest.UnitActive
-	restarts := len(fake.Mutations)
-
-	withSubdomain(t, fake, "captures")
-
-	exposure := shots.ReadExposure(modtest.NewSysContext(fake))
-	if exposure.Hostname != "captures.flyleaf.dev" || len(exposure.Token) != 32 || fake.Modes[shots.ExposurePath] != 0o600 {
-		t.Fatalf("exposure = %+v, mode %o", exposure, fake.Modes[shots.ExposurePath])
+	if installedPackage(newContext(t, fake)) != "" || fake.Files[sourcePath] != nil {
+		t.Fatal("arm64 asks nothing of apt for the browser: Google's repository has no arm64 build and chromium is a snap")
 	}
 
-	if !strings.Contains(strings.Join(fake.Mutations[restarts:], "\n"), "restart "+Unit) {
-		t.Fatalf("a new token restarts the gallery:\n%s", strings.Join(fake.Mutations[restarts:], "\n"))
+	if !strings.Contains(strings.Join(fake.Commands(), "\n"), headlessURL) {
+		t.Fatalf("the archive comes from Chrome for Testing:\n%s", strings.Join(fake.Commands(), "\n"))
 	}
 
-	withSubdomain(t, fake, "galerie")
-	if moved := shots.ReadExposure(modtest.NewSysContext(fake)); moved.Token != exposure.Token || moved.Hostname != "galerie.flyleaf.dev" {
-		t.Fatalf("a new subdomain keeps the token: %+v", moved)
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Installed || status.Version != headlessVersion {
+		t.Fatalf("status = %+v, %v", status, err)
 	}
 
 	fake.Mutations = nil
-	withSubdomain(t, fake, "galerie")
+	install(t, fake)
 
 	if len(fake.Mutations) != 0 {
 		t.Fatalf("a replay must not touch the machine:\n  %s", strings.Join(fake.Mutations, "\n  "))
 	}
+}
 
-	withSubdomain(t, fake, "")
-	if _, kept := fake.Files[shots.ExposurePath]; kept {
-		t.Fatal("an empty subdomain withdraws the gallery and forgets the token")
+func TestOnArmAGalleryLeftWithoutABrowserIsUpgradedIntoOne(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	onArm(t, fake)
+	withGallery(fake)
+
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Installed || status.Configured {
+		t.Fatalf("the gallery's leftovers make the module installed and owed an upgrade: %+v, %v", status, err)
+	}
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fake.Files[headlessBinary]) == 0 || fake.Files[retiredUnitPath] != nil {
+		t.Fatalf("the upgrade lays down the browser and retires the gallery: %v", fake.Commands())
+	}
+
+	if status, _ := (Module{}).Check(newContext(t, fake)); !status.Configured || status.Version != headlessVersion {
+		t.Fatalf("status = %+v", status)
 	}
 }
 
-func TestASubdomainNeedsADomainAndAFreeName(t *testing.T) {
+func TestOnArmAnArchiveThatIsNotTheOnePinnedIsRefused(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: "shop"}})
+	onArm(t, fake)
+	headlessDigest = strings.Repeat("0", 64)
 
-	if problems := (Module{}).Preflight(ctx); len(problems) != 1 || problems[0].Field != SubdomainKey {
-		t.Fatalf("no exposed domain, no name for the gallery: %+v", problems)
+	ctx := newContext(t, fake)
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
 	}
 
-	if err := (Module{}).Configure(ctx); err == nil {
-		t.Fatal("the exposure step refuses without a domain")
+	if len(fake.Files[headlessBinary]) != 0 {
+		t.Fatal("nothing is unpacked from an archive whose digest differs")
 	}
 
-	fake.Files[env.Path] = []byte(env.DomainKey + "=flyleaf.dev\n")
-	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.flyleaf.dev"}],"cmd":"bun run dev"}]}]}`)
+	if !strings.Contains(strings.Join(ctx.Output(), "\n"), "headless browser") {
+		t.Fatalf("the missing browser must be a warning:\n%s", strings.Join(ctx.Output(), "\n"))
+	}
+}
 
-	problems := (Module{}).Preflight(ctx)
-	if len(problems) != 1 || !strings.Contains(problems[0].Message, "shop") {
-		t.Fatalf("a name a project already holds is refused: %+v", problems)
+func TestOnArmAnUpgradeReplacesAnOlderHeadlessShell(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	onArm(t, fake)
+	fake.Files[headlessBinary] = []byte("old")
+	fake.Files[headlessVersionPath] = []byte("150.0.7800.1\n")
+	fake.Files[capture.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] = []byte("old")
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
 	}
 
-	free := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: "shots"}})
-	if problems := (Module{}).Preflight(free); len(problems) != 0 {
-		t.Fatalf("a free name passes: %+v", problems)
+	if strings.TrimSpace(string(fake.Files[headlessVersionPath])) != headlessVersion || fake.Files[capture.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] != nil {
+		t.Fatalf("the folder is replaced whole by the pinned version: %v", fake.Commands())
+	}
+
+	if err := (Module{}).Uninstall(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fake.Files[headlessBinary]) != 0 {
+		t.Fatal("the uninstall removes the headless shell")
 	}
 }

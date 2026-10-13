@@ -38,10 +38,6 @@ import { useNavigation } from "./navigation";
 import { useTransfers } from "./transfers";
 import { useTunnel } from "./tunnel";
 
-const GALLERY_MODULE = "ai.browser";
-const GALLERY_SUBDOMAIN = "subdomain";
-const GALLERY_ROUTE = "shots";
-
 /** Holds credential labels only: values stay in the main process, revealed one at a time. */
 export type DetailState =
   | { status: "idle" }
@@ -310,39 +306,15 @@ export const useServices = create<ServicesStore>((set, get) => {
     });
   }
 
-  // The gallery is served beside the projects, under a name no project holds.
-  async function galleryNames(serverId: string): Promise<string[]> {
-    await useTunnel.getState().read(serverId);
-
-    const { tunnel } = useTunnel.getState();
-
-    if (tunnel.status !== "ready" || tunnel.tunnel.provider !== "cloudflare") {
-      return [];
-    }
-
-    return tunnel.tunnel.routes
-      .filter((route) => route.project === GALLERY_ROUTE)
-      .map((route) => route.hostname);
-  }
-
-  // null when the change moves no public name: neither the exposure's domain nor the gallery's subdomain.
+  // null when the change leaves the exposure's domain, and so every public name, where it was.
   async function publishedNames(
     serverId: string,
     moduleId: string,
     values: Record<string, unknown>
   ): Promise<string[] | null> {
     const { config } = get();
-    const answered = config.status === "ready" ? config.answered : {};
-
-    if (moduleId === GALLERY_MODULE) {
-      const kept = answered[GALLERY_SUBDOMAIN] ?? "";
-
-      return kept === (values[GALLERY_SUBDOMAIN] ?? "")
-        ? null
-        : await galleryNames(serverId);
-    }
-
-    const kept = config.status === "ready" ? answered.domain : values.domain;
+    const kept =
+      config.status === "ready" ? config.answered.domain : values.domain;
 
     if (!moduleId.startsWith("exposure.") || kept === values.domain) {
       return null;
@@ -354,13 +326,11 @@ export const useServices = create<ServicesStore>((set, get) => {
       return [];
     }
 
-    const projects = listed.result.projects.flatMap((project) =>
+    return listed.result.projects.flatMap((project) =>
       project.processes.flatMap((process) =>
         process.routes.flatMap((route) => route.hostname ?? [])
       )
     );
-
-    return [...projects, ...(await galleryNames(serverId))];
   }
 
   // The agent moves the routes; the DNS records are the app's to release and rewrite.

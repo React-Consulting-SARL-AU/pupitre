@@ -1,0 +1,34 @@
+---
+title: Serveur MCP
+description: Les outils que Claude Code et Codex reçoivent sur le serveur pour démarrer les projets, lire les logs et regarder une page, et ce qu’ils ne peuvent pas en faire.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 7
+---
+
+Un agent IA sur le serveur pilote vos projets par Pupitre plutôt que par le shell. `ai.claude` et `ai.codex` déclarent le serveur MCP de Pupitre dans leur outil à l’installation, sous le nom `pupitre`, avec la commande `mcp add` de l’outil lui-même. Vous n’avez rien à régler. Les autres agents gardent la commande `dev`, qui fait la même chose depuis un terminal.
+
+## Ce que font les outils
+
+- **Démarrer, arrêter, redémarrer** un projet ou l’un de ses processus. Un démarrage attend que le processus soit en ligne ou en échec, 45 secondes par défaut, et un échec revient avec la fin de son log.
+- **Logs** : les dernières lignes de chaque processus d’un projet, ou d’un service.
+- **Services** : démarrer, arrêter, redémarrer un service déjà installé.
+- **État et diagnostic** : la machine, ses services, chaque projet et l’état de chaque processus ; les vérifications de la machine, avec la correction de chaque échec.
+- **Capture** : ouvre une page dans le navigateur headless d’`ai.browser` et rend l’image à l’agent, qui regarde ainsi la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait. Un projet est capturé sur son adresse locale : la [clé d’accès](/fr/docs/daily/access/) ne se met pas en travers.
+
+Une capture est prise dans un dossier temporaire privé, relue puis supprimée. Rien n’est gardé sur le serveur, et aucune adresse n’y mène.
+
+## Ce qu’il ne peut pas faire
+
+Le serveur MCP tourne en `dev`, par la même session limitée que la commande `dev`. Installer ou configurer un service, révéler un secret, ouvrir un projet au web, exporter ou importer une base restent vos gestes, dans l’app, derrière votre mot de passe sudo. Quand l’agent en demande un, l’outil répond par le refus et par ce qu’il faut faire à la place.
+
+C’est pourquoi Claude Code peut se servir de ces outils sans vous le demander à chaque fois : `ai.claude` ajoute la règle `mcp__pupitre` aux permissions de `~/.claude/settings.json`, à côté de vos propres règles. Retirez-la de ce fichier pour être de nouveau consulté ; la prochaine mise à jour du module la remet.
+
+Il n’ouvre aucun port : l’agent le lance et lui parle par son entrée et sa sortie standard.
+
+## Sur un serveur déjà installé
+
+Mettez à jour l’agent depuis l’app. Une fois l’agent à jour, l’app met à jour les modules d’agents IA installés : ils déclarent le serveur MCP et réécrivent le contexte de la machine et les skills, qui renvoient désormais d’abord à ces outils.
+
+Les captures prises avant, dans `~/shots`, restent où elles sont.

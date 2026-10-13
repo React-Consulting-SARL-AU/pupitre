@@ -28,4 +28,8 @@ func TestDevAnswersThroughItsLink(t *testing.T) {
 	if got := arguments([]string{"/usr/local/bin/dev", "status"}); !reflect.DeepEqual(got, []string{"dev", "status"}) {
 		t.Fatalf("a call through the link is a dev command: %v", got)
 	}
+
+	if got := arguments([]string{"/usr/local/bin/pupitred", "serve"}); !reflect.DeepEqual(got, []string{"serve"}) {
+		t.Fatalf("a call by its own name is unchanged: %v", got)
+	}
 }

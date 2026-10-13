@@ -6,14 +6,6 @@ import {
   ProcessKillParamsSchema,
   SessionsCleanResultSchema,
   SessionsListResultSchema,
-  SHOT_MAX_BYTES,
-  ShotEventSchema,
-  ShotsCleanParamsSchema,
-  ShotsCleanResultSchema,
-  ShotsListResultSchema,
-  ShotsReadParamsSchema,
-  ShotsReadResultSchema,
-  ShotsUrlResultSchema,
 } from "./processes"
 
 describe("AgentOpenParamsSchema and AgentOpenResultSchema", () => {
@@ -84,82 +76,5 @@ describe("sessions and processes", () => {
     expect(ProcessKillParamsSchema.safeParse({ force: true }).success).toBe(
       false
     )
-  })
-})
-
-describe("shots", () => {
-  it("accept a gallery listing, its url and a clean count", () => {
-    expect(
-      ShotsListResultSchema.safeParse({
-        shots: [
-          {
-            name: "2026-09-04-10-00-00.png",
-            path: "/home/dev/shots/2026-09-04-10-00-00.png",
-            size_bytes: 120_000,
-            created_at: "2026-09-04T10:00:00Z",
-          },
-        ],
-      }).success
-    ).toBe(true)
-    expect(
-      ShotsUrlResultSchema.safeParse({ url: "http://127.0.0.1:7777/" }).success
-    ).toBe(true)
-    expect(ShotsCleanResultSchema.safeParse({ removed: 3 }).success).toBe(true)
-  })
-
-  it("sweep the gallery, or take one capture by its listed path", () => {
-    expect(ShotsCleanParamsSchema.safeParse({}).success).toBe(true)
-    expect(
-      ShotsCleanParamsSchema.safeParse({ path: "2026-09-04/login.png" }).success
-    ).toBe(true)
-    expect(ShotsCleanParamsSchema.safeParse({ path: "" }).success).toBe(false)
-    expect(ShotsCleanParamsSchema.safeParse({ all: true }).success).toBe(false)
-  })
-
-  it("reject a shot without path", () => {
-    expect(
-      ShotsListResultSchema.safeParse({ shots: [{ name: "a.png" }] }).success
-    ).toBe(false)
-  })
-})
-
-describe("shots.read", () => {
-  const result = {
-    path: "2026-09-04/login.png",
-    media_type: "image/png",
-    size_bytes: 98_304,
-    sha256: "a".repeat(64),
-    chunks: 2,
-  }
-
-  it("accepts the acknowledgement of a read and its chunks", () => {
-    expect(ShotsReadParamsSchema.safeParse({ path: "a/b.png" }).success).toBe(
-      true
-    )
-    expect(ShotsReadResultSchema.safeParse(result).success).toBe(true)
-    expect(
-      ShotEventSchema.safeParse({
-        id: 21,
-        event: "shot",
-        seq: 0,
-        bytes: "iVBORw0KGgo=",
-      }).success
-    ).toBe(true)
-  })
-
-  it("rejects a media type outside the gallery, a bad digest and a capture beyond the cap", () => {
-    expect(
-      ShotsReadResultSchema.safeParse({ ...result, media_type: "text/plain" })
-        .success
-    ).toBe(false)
-    expect(
-      ShotsReadResultSchema.safeParse({ ...result, sha256: "NOTHEX" }).success
-    ).toBe(false)
-    expect(
-      ShotsReadResultSchema.safeParse({
-        ...result,
-        size_bytes: SHOT_MAX_BYTES + 1,
-      }).success
-    ).toBe(false)
   })
 })

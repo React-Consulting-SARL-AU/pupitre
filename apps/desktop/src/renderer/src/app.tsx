@@ -33,7 +33,6 @@ import { ServerRestrictedNotice } from "./components/shell/server-restricted-not
 import { ServerTerminalsScreen } from "./components/shell/server-terminals-screen";
 import { ShortcutsDialog } from "./components/shell/shortcuts-dialog";
 import { SignOutDialog } from "./components/shell/sign-out-dialog";
-import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalCloseDialog } from "./components/terminals/terminal-close-dialog";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { WindowBand } from "./components/ui/window-band";
@@ -380,7 +379,6 @@ export function App() {
         services={snapshot.services}
       />
     ),
-    shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
     access: (
       <AccessScreen
         projects={snapshot.projects}

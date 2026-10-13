@@ -10,8 +10,8 @@ import (
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/modules/ai/browser"
 	"pupitre.studio/agent/internal/modules/modtest"
-	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys/env"
 )
@@ -43,7 +43,7 @@ func installedMachine(t *testing.T, uid int) *modtest.FakeSys {
 
 	fake.Files[agentBinary] = []byte("pupitred binary")
 	fake.Links[devcli.Link] = agentBinary
-	fake.Files[shots.Link] = []byte("pupitred binary")
+	fake.Files[browser.RetiredLink] = []byte("pupitred binary")
 	fake.Files["/usr/local/bin/mailpit"] = []byte("mailpit binary")
 
 	fake.Files[sudo.Path] = []byte(sudo.Restricted)
@@ -91,7 +91,7 @@ func TestUninstallRemovesTheAgentAndKeepsTheClientsServer(t *testing.T) {
 
 	for _, gone := range []string{
 		daemon.UnitPath, daemon.ResumeUnitPath, galleryUnitPath,
-		agentBinary, shots.Link,
+		agentBinary, browser.RetiredLink,
 		"/etc/pupitre/install.json", "/etc/pupitre/demo/tool.demo.conf", "/etc/pupitre/server.token",
 		"/var/lib/pupitre/report.json", "/var/lib/pupitre/license.json",
 		"/var/log/pupitre.log", "/var/log/pupitre.log.1", logRotationPath,

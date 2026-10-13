@@ -46,8 +46,8 @@ var warningCatalog = map[string]Message{
 		EN: "bundler was not installed, the one shipped with Ruby stays in place: %s",
 	},
 	"warn.browser.none": {
-		FR: "aucun navigateur headless : shot <url> restera indisponible, shot <fichier> marche",
-		EN: "no headless browser: shot <url> stays unavailable, shot <file> works",
+		FR: "aucun navigateur headless : l'outil screenshot de Pupitre restera indisponible",
+		EN: "no headless browser: Pupitre's screenshot tool stays unavailable",
 	},
 	"warn.browser.libraries.missing": {
 		FR: "bibliothèques Playwright absentes de cette version d'Ubuntu : %s",

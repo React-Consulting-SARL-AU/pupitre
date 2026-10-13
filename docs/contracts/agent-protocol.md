@@ -260,9 +260,6 @@ A route's `subdomain` accepts **several labels separated by dots**. A single one
 | `sessions.clean` | — |
 | `processes.list` | — |
 | `process.kill` | `{ pid, force? }` |
-| `shots.list` / `shots.url` | — |
-| `shots.clean` | `{ path? }` → `{ removed }`: without `path`, the gallery cleanup; with it, that one capture only; see [The content of a screenshot](#the-content-of-a-screenshot) |
-| `shots.read` | `{ path }`: the content of a capture; see [The content of a screenshot](#the-content-of-a-screenshot) |
 
 ### Files
 
@@ -390,7 +387,7 @@ The limited session answers the commands of `LIMITED_COMMANDS` (`packages/shared
 | Limited session | Why |
 | --- | --- |
 | `hello`, `ping`, `probe`, `catalog`, `report`, `snapshot`, `status`, `service.status`, `module.config`, `completions`, `doctor`, `diag`, `backup.status`, `backup.contents`, `keys.list`, `tunnel.status`, `db.url`, `db.shell` | reads that return no secret root holds: `module.config` omits the secret fields, `service.status` names only variables, `db.url` and `db.shell` return an address without a password and a line to type |
-| `project.*`, `agent.open`, `sessions.*`, `processes.list`, `process.kill`, `shots.*`, `fs.*`, `secrets.sync` | `dev`'s work on what belongs to `dev`: processes run as `dev`, `fs.*` sees only its folder through `os.Root`, `process.kill` targets only a `dev` process, the templates are read in the project root, the 1Password token is also in `dev`'s environment |
+| `project.*`, `agent.open`, `sessions.*`, `processes.list`, `process.kill`, `fs.*`, `secrets.sync` | `dev`'s work on what belongs to `dev`: processes run as `dev`, `fs.*` sees only its folder through `os.Root`, `process.kill` targets only a `dev` process, the templates are read in the project root, the 1Password token is also in `dev`'s environment |
 | `service.start`, `service.stop`, `service.restart`, `service.logs`, `tunnel.sync`, `tunnel.restart` | an already configured unit, stopped or relaunched; the tunnel publishes only the registry's routes, under the server's domain |
 | `platform.sync`, `keys.sync` | what the daemon does every 30 seconds: a key enters only on a signed approval |
 | `agent.upgrade`, `agent.migrate` | an Ed25519-signed binary above the floor, a forward migration — without `allow_downgrade`, which makes the command privileged |
@@ -415,6 +412,8 @@ exec sudo -S -p 'pupitre-sudo:' pupitred serve --privileged
 and writes on the first line of standard input the password kept in the keychain — an empty line when the computer holds none —, then the protocol. `sudo -S` reads this line byte by byte and leaves the rest to `pupitred`. Under the earlier rule, sudo asks nothing and the line would go to `pupitred` as a request: the shell reads it first. The password is never an argument, an environment variable or a log line. `pupitre-sudo:` is the prompt sudo writes before each read: a second one on the error output means the password was refused — and `hello` read as the next attempt —, the app cuts the channel and says so (`privilege_required`, "refused" or "absent from this computer") without retrying with the same password. The privileged channel closes after one minute without use.
 
 **On the machine.** `pupitred dev` likewise speaks to `sudo -n pupitred serve` when the account typing it does not read the attachment; a privileged verb — `dev db dump`, `dev db import`, `dev backup now` — opens `sudo pupitred serve --privileged`, for which sudo asks the password on the terminal, and refuses without a terminal.
+
+`pupitred mcp`, the MCP server an AI agent launches as `dev`, goes through the same limited session and never through the privileged one: each of its tools maps to a command of `LimitedCommands`. See [the MCP server on the VPS](./mcp.md).
 
 ## A service is driven through its unit
 
@@ -495,40 +494,6 @@ Every published name goes through `pupitre-gate` (decision [0017](../decisions/0
 - An incoming `Pupitre-Identity` header is always removed. The site receives the key's name, encoded, in `Pupitre-Identity`, `X-Forwarded-Host` and its own `Host`.
 - More than twenty refused keys in ten minutes from the same address answer `429` (`access_throttled`).
 
-## The content of a screenshot
-
-`shots.list` names the captures, `shots.url` gives the address of the gallery served on the server. Neither puts an image in front of the app's eyes: `shots.read { path }` does, and it returns the content, not an address.
-
-**Why not an address per capture.** The gallery is a read-only server on `127.0.0.1:8099`, reachable from the server and from nowhere else. An address per capture on this loopback would be usable by the app only by opening an `ssh -L` — and bringing a server port to the laptop is precisely what the protocol [leaves to the app](#a-ports-local-tunnel-is-not-part-of-the-protocol). A truly reachable address would mean publishing it, through the tunnel or through a port: that would be one more listener, reachable by whoever does not have the customer's key, whereas the rule is that no inbound connection reaches the server and the only open port is SSH. A capture shows an application screen, often an open session: it deserves exactly the door of the other commands, and not one more.
-
-**What crosses the channel.** The bytes go out in base64 on `shot` events, as a credential's value goes out on a `secret` event: what is heavy or what compromises does not go in `result`, the unit that a request and response recorder captures whole.
-
-```jsonc
-// request
-{ "id": 21, "cmd": "shots.read", "params": { "path": "2026-09-04/login.png" } }
-
-// shot events, one per chunk, in order
-{ "id": 21, "event": "shot", "seq": 0, "bytes": "iVBORw0KGgoAAAANSUhEUg…" }
-{ "id": 21, "event": "shot", "seq": 1, "bytes": "…" }
-
-// response: what is needed to verify what has just gone through
-{ "id": 21, "ok": true, "result": { "path": "2026-09-04/login.png", "media_type": "image/png", "size_bytes": 98304, "sha256": "…", "chunks": 2 } }
-```
-
-`path` is the one `shots.list` returns, taken as is. `sha256` is the fingerprint of the file's bytes, in lowercase hexadecimal: the app glues the chunks back together, compares, and knows without ambiguity whether the image is whole. `chunks` says how many events were emitted, so a truncated stream shows in the acknowledgement.
-
-**What keeps the channel usable.** A capture is cut into chunks of 48 KiB, that is a line of about 64 KiB: the channel stays a sequence of bounded lines, never a single multi-megabyte line that a fixed-buffer reader could not read again. The cut falls on a multiple of three, so base64 pads only the last chunk: each `bytes` decodes on its own, and their concatenation decodes too. Beyond 16 MiB the file is refused with `bad_request` before any read, on the size `shots.list` reports: a capture does not monopolise the channel. Like any long command, a read blocks the channel it goes through; an app that reads a gallery while it refreshes a dashboard opens a second channel, exactly as for `install`.
-
-**What the command opens, and nothing else.** It reads only what `shots.list` names: the `path` is looked up in the gallery's listing, not resolved on disk. An absolute path, a `..`, a file outside the gallery or an entry that is not an ordinary file are not in it and return `bad_request`. The only types returned are `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif` and `image/svg+xml`; everything else is refused. No port is opened, no listener is added: the command goes through the SSH session the app already holds, so it gives access to nothing more than a client that already has the server's key.
-
-**A capture is filed under its project.** The gallery holds `~/shots/<project>/<day>/<name>`, and `~/shots/_unfiled/<day>/<name>` for what has no project — no project name starts with `_`. Each `Shot` carries `project`: the project's name, `null` outside a project; an agent that predates the field does not return it. `shot` chooses the project in this order: the one `--project` names (refused if it is not declared), the one whose folder contains the current folder, the one whose process serves the captured URL — by its public name or by its host and port —, otherwise none. The projects belong to root: `shot`, launched by `dev`, asks `sudo -n pupitred serve` for them through `project.list`, like the `dev` verbs. Earlier captures, filed by day at the root, move under `_unfiled` at the next capture and the next `Configure` of `ai.browser`.
-
-**The gallery is published only if the owner asks for it.** The app keeps showing a capture through `shots.read`, for the reasons above. But a capture that an agent must show to a human outside the app — Claude on the web, a link pasted into a review — needs an address. The `subdomain` field of `ai.browser` provides it: the agent draws a 128-bit token, writes `/etc/pupitre/shots.env` (0600, read by systemd as the `EnvironmentFile` of `pupitre-shots` before dropping to `dev`, never on a command line), and the installed exposure — Cloudflare Tunnel or Caddy, which are mutually exclusive — serves `https://<subdomain>.<domain>` to `127.0.0.1:8099`. The gallery then answers only under `/<token>/`: any other path is a 404, the list included, and every response says `X-Robots-Tag: noindex` and `Referrer-Policy: no-referrer`. Nothing more listens: the route goes through the tunnel's outbound connection or through the Caddy the customer chose. A moved domain takes the name with it, token kept; changing the subdomain keeps the token; emptying the field removes the route and forgets the token, so putting it back draws a new one and cuts every address given before.
-
-`shots.url` returns `{ url, exposed }`. `exposed` is true when the name is published under the server's domain and an exposure serves it: `url` is then `https://<subdomain>.<domain>/<token>`, which `shot` prefixes to each capture. Otherwise `url` is `http://127.0.0.1:8099`, which opens only on the server, and `shot` says so on the error output.
-
-**A capture deletes itself alone.** `shots.clean` without a parameter does the gallery cleanup — what has exceeded its retention goes away — and answers `{ removed }`, the number of captures gone. `shots.clean { path }` deletes that one capture, and answers `{ removed: 1 }`. The `path` goes through the same door as `shots.read`: it is looked up in the `shots.list` listing, never resolved on disk. An absolute path, a `..`, an entry the gallery does not name — or no longer names, because it has just been deleted — return `bad_request` with the remedy that says to take a `path` from the listing again.
-
 ## Files
 
 The seven `fs.*` commands open the customer's working tree: list a folder, describe an entry, read a file, write one, create a folder, move an entry, delete one.
@@ -537,7 +502,7 @@ The seven `fs.*` commands open the customer's working tree: list a folder, descr
 
 **Everything belongs to the projects account.** `pupitred serve` runs as root and drops privileges command by command; a file or folder created by these commands therefore belongs to that account, never to root, and a rewritten file keeps the owner and mode it had. A tree where root had sown files would be a tree the customer can no longer modify from their own terminal.
 
-**What crosses the channel, and what will not.** `fs.read` returns the bytes on `file` events, cut into chunks of 48 KiB and cut on a multiple of three, like `shots.read`: each `bytes` decodes on its own, their concatenation decodes too, and the response's `sha256` says without ambiguity whether the file is whole. The read is capped at 1 MiB for text and 16 MiB for an image, and the refusal falls **before** the read, on the size the file system announces. The type is guessed by the extension then by the content: a file without an extension whose bytes are valid UTF-8 is text. Everything else — a PDF, an archive, a binary — is refused with `bad_request` with a `fix` that says to download it. This is deliberate: the channel serves to show what one reads and to modify what one writes, not to carry files. A real transfer would require a throughput, a resume and a progress that a sequence of JSON lines over an SSH session will never render well; it is not part of the protocol (see below), and `fs.stat { hash: true }` exists for that — it is the fingerprint a transfer compares on arrival, and it is returned even for a type the read refuses.
+**What crosses the channel, and what will not.** `fs.read` returns the bytes in base64 on `file` events, as a credential's value goes out on a `secret` event, never in `result`. They are cut into chunks of 48 KiB, a line of about 64 KiB, so the channel stays a sequence of bounded lines that a fixed-buffer reader can always read; the cut falls on a multiple of three, so each `bytes` decodes on its own, their concatenation decodes too, and the response's `sha256` says without ambiguity whether the file is whole. The read is capped at 1 MiB for text and 16 MiB for an image, and the refusal falls **before** the read, on the size the file system announces. The type is guessed by the extension then by the content: a file without an extension whose bytes are valid UTF-8 is text. Everything else — a PDF, an archive, a binary — is refused with `bad_request` with a `fix` that says to download it. This is deliberate: the channel serves to show what one reads and to modify what one writes, not to carry files. A real transfer would require a throughput, a resume and a progress that a sequence of JSON lines over an SSH session will never render well; it is not part of the protocol (see below), and `fs.stat { hash: true }` exists for that — it is the fingerprint a transfer compares on arrival, and it is returned even for a type the read refuses.
 
 **Why a write carries a fingerprint.** `fs.write` takes the content in base64 — text is not the only case, and a JSON line does not carry a null byte — and `sha256`, the fingerprint of the version the reader read. If the file has changed since, the write is refused with a `fix` that says to read again: on this server, an agent can write to the same file between the read and the write, and a blind write would erase what it has just done. A write **without** `sha256` creates a file that did not exist, and nothing else: if the file is there, it is refused. The write is atomic — the file is written alongside then renamed — and capped at 1 MiB.
 

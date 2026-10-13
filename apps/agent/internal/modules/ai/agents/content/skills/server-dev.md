@@ -1,13 +1,35 @@
 ---
 name: server-dev
-description: Drive the projects of this development server with `dev` — see what runs, start and stop, read the logs, sync a repository, reach the local database, check backups — and the rules a start command, a port and a host have to respect. Load it as soon as it is a matter of running, configuring or troubleshooting a project here, or of anything that would need root.
+description: Drive the projects of this development server with the `pupitre` MCP server or `dev` — see what runs, start and stop, read the logs, look at a page, sync a repository, reach the local database, check backups — and the rules a start command, a port and a host have to respect. Load it as soon as it is a matter of running, configuring or troubleshooting a project here, or of anything that would need root.
 ---
 
-This server carries every development project, and `dev` is the only way to
+This server carries every development project, and Pupitre is the only way to
 drive them. A `bun run dev` launched by hand duplicates the process and holds the
-port; `dev` starts each process in its own tmux window, with its log.
+port; Pupitre starts each process in its own tmux window, with its log.
 
-Every `dev` command takes `--json`.
+## The `pupitre` MCP server
+
+When your tools include the `pupitre` MCP server, use it first:
+
+| Tool | What it does |
+|---|---|
+| `status` | the machine, its services, every project and the state of each process |
+| `project_list` | the projects with their processes, commands, hosts, ports and routes |
+| `project_start` | starts a project, or one process, and waits until it is online or failed |
+| `project_restart` | the same after a restart, with the environment Pupitre gives now |
+| `project_stop` | stops a project, or one process |
+| `project_logs` | the last lines of every process of a project, or of one |
+| `service_start`, `service_stop`, `service_restart`, `service_logs` | a service by its id, as `status` lists it |
+| `doctor` | the machine's checks, with the fix of each failure |
+| `screenshot` | opens a page in a headless browser here and hands you the image |
+
+A start that fails comes back with the end of the process's log: read it before
+anything else. To look at your work, call `screenshot` with the project's name
+(and a `path`), not its public address: the access gate asks a key of whoever
+opens that one. The image comes to you; to show it to the user, describe it.
+
+Without the MCP server, `dev` below does the same from the shell. Every `dev`
+command takes `--json`.
 
 ## Seeing what runs
 

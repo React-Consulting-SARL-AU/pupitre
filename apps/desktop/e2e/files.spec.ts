@@ -285,7 +285,7 @@ test.describe("a project's files", () => {
             if (text === undefined) {
               return refused(
                 "type de fichier non pris en charge : archive",
-                "Téléchargez ce fichier : la lecture ne rend que du texte et les images de la galerie."
+                "Téléchargez ce fichier : la lecture ne rend que du texte et des images."
               );
             }
 

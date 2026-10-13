@@ -461,12 +461,16 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Claude Code sous la forme du binaire natif publié par Anthropic, téléchargé pour cette architecture et refusé si son checksum ne correspond pas à celui qu’annonce le manifeste de la version.",
       },
       {
-        en: "The machine context in ~/.claude/CLAUDE.md: this is a Linux server and not a workstation, where the projects live, and that servers are driven with the dev command rather than started by hand.",
-        fr: "Le contexte machine dans ~/.claude/CLAUDE.md : cette machine est un serveur Linux et non un poste de travail, où vivent les projets, et que les serveurs se pilotent avec la commande dev plutôt qu’en les lançant à la main.",
+        en: "The machine context in ~/.claude/CLAUDE.md: this is a Linux server and not a workstation, where the projects live, and that servers are driven with the tools of the pupitre MCP server, or the dev command, rather than started by hand.",
+        fr: "Le contexte machine dans ~/.claude/CLAUDE.md : cette machine est un serveur Linux et non un poste de travail, où vivent les projets, et que les serveurs se pilotent avec les outils du serveur MCP pupitre, ou la commande dev, plutôt qu’en les lançant à la main.",
       },
       {
-        en: "The Pupitre skills — server-dev, capture, branch, pr, ship — in ~/.agents/skills and in the tool’s own folder, plus the git-shipper subagent.",
-        fr: "Les skills Pupitre — server-dev, capture, branch, pr, ship — dans ~/.agents/skills et dans le dossier propre à l’outil, ainsi que le sous-agent git-shipper.",
+        en: "The Pupitre skills — server-dev, project-env, branch, pr, ship — in ~/.agents/skills and in the tool’s own folder, plus the git-shipper subagent.",
+        fr: "Les skills Pupitre — server-dev, project-env, branch, pr, ship — dans ~/.agents/skills et dans le dossier propre à l’outil, ainsi que le sous-agent git-shipper.",
+      },
+      {
+        en: "Pupitre’s MCP server, declared with claude mcp add under the name pupitre: tools to start a project and wait for it, read its logs, restart a service and take a screenshot, through the same limited session as the dev command.",
+        fr: "Le serveur MCP de Pupitre, déclaré par claude mcp add sous le nom pupitre : des outils pour démarrer un projet et l’attendre, lire ses logs, redémarrer un service et prendre une capture, par la même session limitée que la commande dev.",
       },
     ],
     asks: [],
@@ -482,8 +486,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Codex via mise, qui l’épingle et le met à jour comme un runtime et le place sur le PATH de tous les shells — y compris le shell non interactif qu’ouvre un client distant.",
       },
       {
-        en: "The same machine context, in ~/.codex/AGENTS.md, and the same Pupitre skills.",
-        fr: "Le même contexte machine, dans ~/.codex/AGENTS.md, et les mêmes skills Pupitre.",
+        en: "The same machine context, in ~/.codex/AGENTS.md, the same Pupitre skills, and the same MCP server, declared with codex mcp add.",
+        fr: "Le même contexte machine, dans ~/.codex/AGENTS.md, les mêmes skills Pupitre, et le même serveur MCP, déclaré par codex mcp add.",
       },
     ],
     asks: [],
@@ -615,19 +619,11 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "Google Chrome on amd64, the distribution’s Chromium elsewhere, and the libraries Playwright needs that Ubuntu does not ship.",
         fr: "Google Chrome sur amd64, le Chromium de la distribution ailleurs, et les bibliothèques dont Playwright a besoin et qu’Ubuntu ne fournit pas.",
       },
-      {
-        en: "The shot command, linked to the agent binary: it captures a page or files an image under ~/shots, in a folder per day, desktop or mobile viewport.",
-        fr: "La commande shot, liée au binaire de l’agent : elle capture une page ou range une image sous ~/shots, dans un dossier par jour, en fenêtre bureau ou mobile.",
-      },
-      {
-        en: "A read-only gallery served on the loopback alone, as a systemd unit, so a capture has a URL an agent can hand back instead of a local path nobody else can open.",
-        fr: "Une galerie en lecture seule servie sur localhost uniquement, en unité systemd, pour qu’une capture ait une URL qu’un agent peut rendre plutôt qu’un chemin local que personne d’autre ne peut ouvrir.",
-      },
     ],
     asks: [],
     notes: {
-      en: "This is what lets an agent look at the page it just changed instead of guessing. The gallery answers on 127.0.0.1 and nowhere else: the app reaches it through the SSH session it already holds, and no port is opened on the server.",
-      fr: "C’est ce qui permet à un agent de regarder la page qu’il vient de modifier au lieu de la deviner. La galerie répond sur 127.0.0.1 et nulle part ailleurs : l’app l’atteint par la session SSH qu’elle tient déjà, et aucun port n’est ouvert sur le serveur.",
+      en: "The screenshot tool of Pupitre’s MCP server drives this browser: an agent looks at the page it just changed instead of guessing. The image goes back to the agent and is not kept on the server; no service runs and no port is opened. Updating the module removes what the screenshot gallery of earlier versions left, and keeps the captures in ~/shots.",
+      fr: "L’outil de capture du serveur MCP de Pupitre pilote ce navigateur : un agent regarde la page qu’il vient de modifier au lieu de la deviner. L’image revient à l’agent et n’est pas gardée sur le serveur ; aucun service ne tourne et aucun port n’est ouvert. Mettre à jour le module retire ce que la galerie de captures des versions précédentes avait laissé, et garde les captures de ~/shots.",
     },
   },
   "editor.jetbrains": {

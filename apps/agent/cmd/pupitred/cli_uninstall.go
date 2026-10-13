@@ -15,8 +15,8 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/migrate"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/ai/browser"
 	"pupitre.studio/agent/internal/selfupdate"
-	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
@@ -162,7 +162,7 @@ func uninstallPlan(ctx sys.Context) ([]removal, *removal) {
 	}
 }
 
-// Found by what they run rather than by name: pupitre-mailpit is a client's service, pupitre-shots is the agent.
+// Found by what they run rather than by name: pupitre-mailpit is a client's service, pupitre-gate is the agent.
 func agentUnits(ctx sys.Context) []removal {
 	nodes, err := ctx.Sys().ListIn(unitDir, ".")
 	if err != nil {
@@ -242,7 +242,7 @@ func disableUnit(ctx sys.Context, unit string, stop bool) error {
 func agentCommands(ctx sys.Context) []removal {
 	var removals []removal
 
-	for _, link := range []string{devcli.Link, shots.Link} {
+	for _, link := range []string{devcli.Link, browser.RetiredLink} {
 		if !isAgent(ctx, link) {
 			continue
 		}

@@ -1,6 +1,7 @@
 package catalog_test
 
 import (
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	_ "pupitre.studio/agent/internal/modules/ai"
+	"pupitre.studio/agent/internal/modules/ai/browser"
 	_ "pupitre.studio/agent/internal/modules/core"
 	_ "pupitre.studio/agent/internal/modules/db"
 	"pupitre.studio/agent/internal/modules/download"
@@ -19,6 +21,13 @@ import (
 )
 
 const secret = "s3cret-de-test"
+
+// The headless browser's arm64 archive is pinned by a digest the fake's downloads never match: every machine replays amd64.
+func TestMain(m *testing.M) {
+	browser.Arch = "amd64"
+
+	os.Exit(m.Run())
+}
 
 // The fake machine has no service, archive or API to read state back from, so these are proven by test/staging.
 var provenOnStaging = map[string]string{

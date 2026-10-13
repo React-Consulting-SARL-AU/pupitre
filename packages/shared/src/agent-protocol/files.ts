@@ -1,6 +1,5 @@
 import { z } from "zod"
 import { RequestIdSchema } from "./envelope"
-import { SHOT_MEDIA_TYPES } from "./processes"
 
 // A folder of ten thousand entries is not read on a channel.
 export const FILE_LIST_LIMIT = 2000
@@ -11,8 +10,20 @@ export const FILE_WRITE_MAX_BYTES = 1024 * 1024
 
 const FILE_TEXT_MEDIA_TYPE = "text/plain"
 
+export const FILE_IMAGE_MEDIA_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "image/svg+xml",
+] as const
+
 // Anything else is downloaded, not read.
-const FILE_MEDIA_TYPES = [FILE_TEXT_MEDIA_TYPE, ...SHOT_MEDIA_TYPES] as const
+const FILE_MEDIA_TYPES = [
+  FILE_TEXT_MEDIA_TYPE,
+  ...FILE_IMAGE_MEDIA_TYPES,
+] as const
 
 const FileMediaTypeSchema = z.enum(FILE_MEDIA_TYPES)
 

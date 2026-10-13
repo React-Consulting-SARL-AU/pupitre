@@ -91,9 +91,9 @@ func TestFirstInstallLaysDownTheCliTheContextAndTheSkills(t *testing.T) {
 	}
 
 	for _, path := range []string{
-		agents.SkillsDir + "/capture/SKILL.md",
+		agents.SkillsDir + "/project-env/SKILL.md",
 		agents.SkillsDir + "/ship/SKILL.md",
-		configDir + "/skills/capture/SKILL.md",
+		configDir + "/skills/project-env/SKILL.md",
 		configDir + "/agents/git-shipper.md",
 	} {
 		if len(fake.Files[path]) == 0 {

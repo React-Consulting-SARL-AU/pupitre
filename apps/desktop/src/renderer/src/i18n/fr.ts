@@ -27,7 +27,6 @@ import { servers } from "./strings/servers";
 import { services } from "./strings/services";
 import { settings } from "./strings/settings";
 import { shell } from "./strings/shell";
-import { shots } from "./strings/shots";
 import { state } from "./strings/state";
 import { sudo } from "./strings/sudo";
 import { terminals } from "./strings/terminals";
@@ -65,7 +64,6 @@ export const fr: Dictionary = {
   ...services.fr,
   ...settings.fr,
   ...shell.fr,
-  ...shots.fr,
   ...sudo.fr,
   ...terminals.fr,
   ...transfers.fr,

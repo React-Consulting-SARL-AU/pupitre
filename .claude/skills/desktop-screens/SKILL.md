@@ -7,7 +7,7 @@ description: "Add or rework a screen of the Electron app `apps/desktop` — an a
 
 The app is a client of the agent: it displays what `pupitred` returns and has no second model. A screen starts with the protocol command it reads, reuses the primitives of `components/ui/`, and ends with its tests. **Read [`apps/desktop/CLAUDE.md`](../../../apps/desktop/CLAUDE.md) first**: this skill says how a screen is built, the guide says what the app never does.
 
-The existing code is the reference: before writing, open the screen closest to what you are asked for (`shots/` for a list read from the agent, `services/` for a sheet with a form, `files/` for a view that holds its own height, `onboarding/` for a step of a flow) and copy its shape.
+The existing code is the reference: before writing, open the screen closest to what you are asked for (`access/` for a list read from the agent, `services/` for a sheet with a form, `files/` for a view that holds its own height, `onboarding/` for a step of a flow) and copy its shape.
 
 ## Where things live
 
@@ -72,160 +72,182 @@ component ──► store ──► agentCall(serverId, cmd, params) ──► p
 - **Base UI + shadcn, `render` prop**, never `asChild`, never Radix. Lucide only, 1.5 px stroke, never coloured. An action button carries its icon before its label.
 - No shadow, no gradient, no illustration, no description that narrates the screen.
 
-## Example: the gallery, as it is written
+## Example: the Access page, as it is written
 
-Excerpts from `stores/shots.ts`, `components/shots/shots-screen.tsx` and their tests — open the files for the rest.
+A server's access keys: the list comes from the agent (`access.list` on `agent:call`), what touches this computer — drawing a key, keeping it sealed, revoking it — goes through dedicated channels. Excerpts from `stores/access.ts`, `components/access/` and their tests — open the files for the rest.
 
-### The store — `src/renderer/src/stores/shots.ts`
+### The store — `src/renderer/src/stores/access.ts`
 
 ```ts
-import type { Shot, ShotsListResult } from "@pupitre/shared/agent-protocol/processes";
-import { agentCall as call } from "@renderer/lib/agent-call";
-import type { AgentError } from "@shared/agent";
-import { create } from "zustand";
-
-export type ShotsState =
+export type AccessState =
   | { status: "idle" }
   | { status: "loading"; serverId: string }
-  | { status: "read"; serverId: string; shots: Shot[] }
+  | { status: "read"; serverId: string; keys: AccessKey[]; held: AccessHeld }
   | { status: "failed"; serverId: string; error: AgentError };
 
-interface ShotsStore {
-  state: ShotsState;
-  removing: string | null;
+/** The last gesture's outcome, shown where it was made. */
+export type AccessGesture =
+  | { status: "idle" }
+  | { status: "copied"; id: string; form: AccessCopyForm }
+  | { status: "failed"; id: string | null; error: AgentError };
+
+interface AccessStore {
+  state: AccessState;
+  gesture: AccessGesture;
+  revoking: string | null;
   read: (serverId: string) => Promise<void>;
-  remove: (serverId: string, path: string) => Promise<void>;
+  revoke: (serverId: string, id: string) => Promise<void>;
+  …
   forget: () => void;
 }
 
-export const useShots = create<ShotsStore>((set, get) => ({
-  state: { status: "idle" },
-  removing: null,
+export const useAccess = create<AccessStore>((set, get) => {
+  …
+  return {
+    async read(serverId) {
+      const current = get().state;
 
-  async read(serverId) {
-    set({ state: { status: "loading", serverId } });
+      if (!("serverId" in current && current.serverId === serverId)) {
+        set({ state: { serverId, status: "loading" } });
+      }
 
-    const answer = await call<ShotsListResult>(serverId, "shots.list");
+      const answer = await call<AccessListResult>(serverId, "access.list");
 
-    set({
-      state: answer.ok
-        ? { status: "read", serverId, shots: answer.result.shots }
-        : { status: "failed", serverId, error: answer.error },
-    });
-  },
+      if (!answer.ok) {
+        set({ state: { error: answer.error, serverId, status: "failed" } });
 
-  async remove(serverId, path) {
-    set({ removing: path });
+        return;
+      }
 
-    const answer = await call(serverId, "shots.clean", { path });
+      const held = await window.pupitre.heldAccessKeys(
+        serverId,
+        answer.result.keys.map((key) => key.id)
+      );
 
-    set({ removing: null });
+      set({
+        state: {
+          held: held.ok ? held.result : NOTHING_HELD,
+          keys: answer.result.keys,
+          serverId,
+          status: "read",
+        },
+      });
+    },
 
-    if (answer.ok) {
+    async revoke(serverId, id) {
+      set({ gesture: { status: "idle" }, revoking: id });
+
+      const answer = await window.pupitre.revokeAccessKey(serverId, id);
+
+      set({ revoking: null });
+
+      if (!answer.ok) {
+        failed(id, answer.error);
+
+        return;
+      }
+
       await get().read(serverId);
-    }
-  },
-
-  forget() {
-    set({ state: { status: "idle" }, removing: null });
-  },
-}));
+    },
+    …
+  };
+});
 ```
 
-### The screen — `src/renderer/src/components/shots/shots-screen.tsx`
+A reread keeps the list on screen (`loading` only when the server changes); the refusal of a gesture lands in `gesture`, beside the row that made it, not in `state`.
+
+### The screen — `src/renderer/src/components/access/access-screen.tsx` · `access-keys.tsx`
 
 ```tsx
-export function ShotsScreen({ serverId, serverName }: { serverId: string; serverName: string }) {
+export function AccessScreen({ serverId, serverName, projects }: { … }) {
   const t = useTranslations();
-  const state = useShots((s) => s.state);
-  const read = useShots((s) => s.read);
-  const clean = useShots((s) => s.clean);
+
+  const read = useAccess((s) => s.read);
 
   useEffect(() => {
     read(serverId);
   }, [serverId, read]);
 
   return (
-    <Screen
-      actions={
-        <ConfirmButton
-          confirmLabel={t("shots.clearConfirm")}
-          icon={Trash2}
-          onConfirm={() => clean(serverId)}
-          question={t("shots.clearQuestion")}
-        >
-          {t("shots.clear")}
-        </ConfirmButton>
-      }
-      eyebrow={serverName}
-      title={t("shots.title")}
-    >
-      {state.status === "loading" ? <SkeletonRows rows={3} /> : null}
-
-      {state.status === "failed" ? (
-        <ErrorNotice error={state.error} onRetry={() => read(serverId)} />
-      ) : null}
-
-      {state.status === "read"
-        ? shotsByDay(state.shots).map((group) => (
-            <Section key={group.day} title={dayLabel(group.day)}>
-              …
-            </Section>
-          ))
-        : null}
+    <Screen eyebrow={serverName} title={t("access.title")}>
+      <AccessKeys project={null} projects={projects} serverId={serverId} title={t("access.keys.title")} />
+      <AccessUsage />
     </Screen>
   );
 }
 ```
 
+`AccessKeys` is a `Section` — its count in `aside`, "Nouvelle clé" in `actions` — that draws each state of the store: `SkeletonRows` while loading, `ErrorNotice` with `onRetry` on a failure, `EmptyState` in a `Panel inset="lg"` when there is no key, otherwise a `Panel as="ul" list` of `AccessKeyRow`s. A row revokes through a `ConfirmButton` whose `onConfirm` returns the store's promise, so the button waits on its own; creating a key opens a `Dialog` (`AccessKeyCreateDialog`). The same section is reused on a project's configuration, narrowed by `project`.
+
 A page reads on `useEffect` on arrival. An **onboarding step** does not: it is `stores/onboarding-machine.ts` that says what entering a step triggers, and the store runs the effect.
 
-### The store test — `stores/__tests__/shots.test.ts`
+### The store test — `stores/__tests__/access.test.ts`
 
 ```ts
-function agent(answers: Partial<Record<CommandName, unknown>>): void {
+function agent(keys: AccessKey[], listed: string[][] = []): void {
   stubPupitre({
     agentCall: (_serverId: string, cmd: CommandName) =>
       Promise.resolve(
-        answers[cmd] === undefined
-          ? { error: { code: "internal", message: "nothing" }, ok: false }
-          : { ok: true, result: answers[cmd] }
+        cmd === "access.list"
+          ? { ok: true, result: { keys } }
+          : { error: { code: "internal", message: "rien" }, ok: false }
       ),
+    heldAccessKeys: (_serverId, ids) => {
+      listed.push(ids);
+
+      return Promise.resolve({ ok: true, result: { device: "device000001", held: ["device000001"] } });
+    },
+    …
   });
 }
 
-it("lists the screenshots the server named", async () => {
-  agent({ "shots.list": { shots: SHOTS } });
+it("reads the keys, then what this computer holds of them", async () => {
+  const listed: string[][] = [];
+  agent(KEYS, listed);
 
-  await useShots.getState().read(SERVER);
+  await useAccess.getState().read(SERVER);
 
-  expect(useShots.getState().state).toMatchObject({ status: "read", shots: SHOTS });
+  expect(useAccess.getState().state).toMatchObject({ keys: KEYS, status: "read" });
+  expect(listed).toEqual([["device000001", "review000001"]]);
 });
 ```
 
-### A dedicated channel and its flow — `src/main/shots.ts` · `shots-run.ts`
+### Dedicated channels and their flow — `src/main/access.ts` · `access-run.ts`
 
 ```ts
-export function registerShots(): void {
-  ipcMain.handle("shots:save", (_e, path: unknown, bytes: unknown) =>
-    saveShot(path, bytes, { picked: pickedPath, write: writeFile })
+export function registerAccess(): void {
+  handle("access:revoke", shape(anything, anything), (_event, serverId, id) =>
+    revokeKey(serverId, id, deps)
   );
+  …
 }
 
-export async function saveShot(path: unknown, bytes: unknown, deps: Deps): Promise<AgentResponse<{ path: string }>> {
-  if (!deps.picked(path)) {
-    return refuseWith("bad_request", "refusal.shots.savePath");
+export async function revokeKey(serverId: unknown, id: unknown, deps: AccessDeps): Promise<AgentResponse<{ id: string }>> {
+  if (typeof serverId !== "string" || !deps.knows(serverId)) {
+    return refuseWith("bad_request", "refusal.server.unknown");
   }
 
-  …
+  if (typeof id !== "string") {
+    return refuseWith("bad_request", "refusal.access.invalid");
+  }
+
+  const answer = await deps.request(serverId, "access.revoke", { id });
+
+  if (!answer.ok) {
+    return answer;
+  }
+
+  deps.vault.forget(serverId, id);
+
+  return { ok: true, result: { id } };
 }
 ```
 
-The flow receives its dependencies and is tested without Electron (`__tests__/shots-save.test.ts`); what talks to the agent is tested on a transcript (`fakeAgent("shots-read.jsonl")`, `__tests__/shots-read.test.ts`).
+The flow receives its dependencies — `request`, the sealed `vault`, `copy`, `open` — and is tested without Electron in `__tests__/access-run.test.ts`, on a vault in a temporary folder and a `request` that records what was sent. A flow whose interest is the conversation with the agent is tested on transcripts instead: `__tests__/agent-update.test.ts` hands `fakeAgent` the `.jsonl` files of `fixtures/` (`agent-upgrade-ok.jsonl`, `agent-migrate-ok.jsonl`…) as the spawned `pupitred serve`.
 
-### The Playwright scenario — `e2e/shots.spec.ts`
+### The Playwright scenario — `e2e/access.spec.ts`
 
-The harness launches the app (`launchPupitre()`), replaces `agent:call` with `answer("agent:call", …)` on the fixtures of `ANSWERS`, and the test reads the screen like a reader: `getByRole`, `getByText`, then `assertAccessible(page, "shots")`.
+The harness launches the app (`launchPupitre()`) and answers the dedicated channels itself (`answer("access:held", …)`, `answer("access:create", …)` in `e2e/harness/launch.ts`), so no key is drawn and no agent is reached. The test reads the screen like a reader — `getByRole("button", { name: "Nouvelle clé" })`, `getByRole("heading", { name: "Accès" })` — then `assertAccessible(page, "access")`.
 
 ## Before handing back
 

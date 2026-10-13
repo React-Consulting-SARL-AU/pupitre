@@ -37,7 +37,7 @@ A backup is a bucket prefix, one object per part, and a `manifest.json` written 
 
 A project folder or an `extra_paths` path that is itself a link is followed if it leads to a folder of `/home/dev`: the part carries what it finds there, under the link's name, and the restore puts it back where the link leads, the link kept. Links met inside are never followed. A link that leads outside `/home/dev`, or nowhere, leaves the part aside with a warning, never an empty archive.
 
-What is never in it: `server.token`, `platform.url`, `license.json`, SSH host keys, `authorized_keys`, binaries, packages, runtimes, project dependencies, logs, the screenshot gallery, Docker volumes.
+What is never in it: `server.token`, `platform.url`, `license.json`, SSH host keys, `authorized_keys`, binaries, packages, runtimes, project dependencies, logs, the earlier screenshots of `~/shots`, Docker volumes.
 
 ## Encryption
 

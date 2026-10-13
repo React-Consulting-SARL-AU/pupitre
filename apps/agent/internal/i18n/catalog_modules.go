@@ -2,32 +2,20 @@ package i18n
 
 var moduleCatalog = map[string]Message{
 	"module.ai.browser.summary": {
-		FR: "Chrome headless et les bibliothèques dont Playwright a besoin, la commande shot qui range ses captures par projet dans ~/shots, et la galerie qui les sert, en local ou par l'exposition du serveur.",
-		EN: "Headless Chrome and the libraries Playwright needs, the shot command that files its captures by project under ~/shots, and the gallery that serves them, locally or through the server's exposure.",
+		FR: "Chrome headless et les bibliothèques dont il a besoin : l'outil screenshot du serveur MCP Pupitre s'en sert pour montrer une page à l'agent IA.",
+		EN: "Headless Chrome and the libraries it needs: the screenshot tool of the Pupitre MCP server uses it to show a page to the AI agent.",
 	},
-	"module.ai.browser.subdomain.label": {
-		FR: "Sous-domaine de la galerie",
-		EN: "Gallery subdomain",
+	"module.ai.mcp.unregistered": {
+		FR: "le serveur MCP pupitre n'apparaît pas dans ~/%s après son ajout",
+		EN: "the pupitre MCP server does not show in ~/%s after it was added",
 	},
-	"module.ai.browser.subdomain.help": {
-		FR: "Publie la galerie sous ce nom du domaine exposé, par le tunnel installé : shot rend alors une URL qu'un agent ou un navigateur ouvre de partout. Chaque adresse porte un jeton secret ; vider le champ retire la galerie et oublie le jeton. Vide, la galerie ne répond que sur le serveur.",
-		EN: "Publishes the gallery under this name of the exposed domain, through the installed tunnel: shot then returns a URL an agent or a browser opens from anywhere. Every address carries a secret token; emptying the field withdraws the gallery and forgets the token. Empty, the gallery answers on the server only.",
-	},
-	"module.ai.browser.subdomain.noDomain": {
-		FR: "aucun domaine exposé : la galerie n'a pas de nom sous lequel se publier",
-		EN: "no exposed domain: the gallery has no name to be published under",
-	},
-	"module.ai.browser.subdomain.noDomain.fix": {
-		FR: "Installez Cloudflare Tunnel ou Caddy avec un domaine, puis reprenez ce réglage.",
-		EN: "Install Cloudflare Tunnel or Caddy with a domain, then apply this setting again.",
-	},
-	"module.ai.browser.subdomain.taken": {
-		FR: "%s est déjà l'adresse du projet %s",
-		EN: "%s is already the address of project %s",
+	"module.ai.settings.unreadable": {
+		FR: "%s n'est pas du JSON lisible, il est laissé tel quel : %s",
+		EN: "%s is not readable JSON and is left as it is: %s",
 	},
 	"module.ai.browser.name": {
-		FR: "Navigateur et galerie",
-		EN: "Browser and gallery",
+		FR: "Navigateur headless",
+		EN: "Headless browser",
 	},
 	"module.ai.claude.summary": {
 		FR: "Claude Code installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion se fait par l'URL que l'outil affiche au premier lancement.",

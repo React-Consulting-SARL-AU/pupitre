@@ -26,8 +26,8 @@ import {
   under,
   within,
 } from "@renderer/lib/files";
+import { type ImageSize, imageSize } from "@renderer/lib/image-size";
 import { readNavigation, writeNavigation } from "@renderer/lib/memory";
-import { type ShotSize, shotSize } from "@renderer/lib/shot-image";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 
@@ -59,7 +59,7 @@ export type PreviewState =
       url: string;
       mediaType: FileMediaType;
       sha256: string;
-      size: ShotSize | null;
+      size: ImageSize | null;
     }
   | {
       status: "unreadable";
@@ -348,7 +348,7 @@ export const useFiles = create<FilesStore>((set, get) => {
     }
 
     const blob = new Blob([bytes], { type: mediaType });
-    const size = await shotSize(blob);
+    const size = await imageSize(blob);
 
     if (shownPath(get().preview) !== path) {
       return;

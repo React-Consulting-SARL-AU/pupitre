@@ -142,32 +142,6 @@ func TestSessionsCleanLeavesTheYoungOnesAlone(t *testing.T) {
 	}
 }
 
-func TestShotsAreListedUnderTheGalleryAddress(t *testing.T) {
-	host := stagingHost(t)
-
-	ssh(t, host, "su", "-", "dev", "-c", "'mkdir -p /home/dev/shots/2026-09-04 && head -c 2048 /dev/urandom > /home/dev/shots/2026-09-04/fixture.png'")
-	t.Cleanup(func() { sshCommand(host, "rm", "-rf", "/home/dev/shots/2026-09-04").Run() })
-
-	address := decode[struct {
-		URL string `json:"url"`
-	}](t, agent(t, host, request{Cmd: "shots.url"})[0].Result).URL
-	if !strings.HasPrefix(address, "http") {
-		t.Fatalf("unexpected gallery address %q", address)
-	}
-
-	shots := decode[struct {
-		Shots []contract.Shot `json:"shots"`
-	}](t, agent(t, host, request{Cmd: "shots.list"})[0].Result).Shots
-
-	for _, shot := range shots {
-		if shot.Path == "2026-09-04/fixture.png" && shot.SizeBytes == 2048 {
-			return
-		}
-	}
-
-	t.Fatalf("the capture is missing from the gallery: %+v", shots)
-}
-
 func TestDoctorAndDiagAnswerWithoutTouchingAnything(t *testing.T) {
 	host := stagingHost(t)
 

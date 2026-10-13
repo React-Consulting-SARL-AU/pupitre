@@ -1,0 +1,29 @@
+---
+title: Les agents IA pilotent le serveur par Pupitre
+description: Claude Code et Codex reçoivent sur le serveur le serveur MCP de Pupitre pour démarrer les projets, lire leurs logs et regarder une page, les serveurs déjà installés le reçoivent avec la mise à jour de l'agent, et la galerie de captures lui laisse la place.
+locale: fr
+version: 2.1.0
+channel: stable
+date: 2026-10-13
+order: 26
+---
+
+Un agent IA qui travaille sur votre serveur pilote désormais vos projets par Pupitre, et voit les pages qu'il modifie.
+
+## L'agent
+
+- **Le serveur MCP de Pupitre.** Claude Code et Codex trouvent parmi leurs outils un serveur nommé `pupitre` : démarrer, arrêter et redémarrer un projet ou l'un de ses processus, lire ses logs, démarrer ou redémarrer un service, lire l'état de la machine et ses vérifications. Un démarrage attend que le processus soit en ligne ou en échec, et un échec revient avec la fin de son log — l'agent ne lance plus un second `bun run dev` à la main.
+- **L'agent voit ce qu'il a changé.** L'outil `screenshot` ouvre la page dans un navigateur headless sur le serveur et remet l'image à l'agent. En nommant le projet, la capture se fait sur son adresse locale, sans passer par la clé d'accès. Rien n'est gardé sur le serveur, et aucune adresse ne mène à l'image.
+- **Claude Code se sert de ces outils sans demander à chaque fois** : la règle `mcp__pupitre` est ajoutée aux permissions de `~/.claude/settings.json`, à côté des vôtres. Le serveur tourne en `dev`, par la même session limitée que la commande `dev` : installer, révéler un secret, ouvrir un projet au web ou toucher à un export de base restent vos gestes, dans l'app.
+- Le contexte machine et le skill `server-dev` écrits pour les agents mènent d'abord à ces outils ; `dev` reste l'accès depuis un terminal.
+- **Sur arm64**, le navigateur headless s'installe enfin : le `chromium` d'Ubuntu n'est qu'un renvoi vers un snap, l'agent dépose donc le Chrome Headless Shell de Google, à une version figée et vérifiée par son empreinte.
+
+## L'app
+
+- **Après une mise à jour de l'agent, les agents IA installés sont mis à jour aussi**, ce qui déclare le serveur MCP et réécrit leur contexte et leurs skills sur les serveurs déjà installés — rien à réinstaller.
+- **La galerie de captures disparaît**, avec la commande `shot`, son service et son adresse publique : l'agent regarde désormais la page lui-même. La mise à jour les retire du serveur et laisse vos captures précédentes dans `~/shots`. *Navigateur et galerie* devient *Navigateur headless*.
+
+## Limites connues
+
+- Une app antérieure à 2.1.0 connectée à cet agent affiche une erreur sur son écran Galerie : mettez l'app à jour.
+- L'installeur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

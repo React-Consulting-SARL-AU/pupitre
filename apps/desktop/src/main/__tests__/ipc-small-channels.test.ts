@@ -5,15 +5,13 @@ recordChannels();
 
 const { registerAppearance } = await import("../appearance");
 const { registerHelp } = await import("../help");
-const { registerShots } = await import("../shots");
 const { registerSignInCancel } = await import("../sign-in-cancel");
 
 registerAppearance(() => null);
 registerHelp();
-registerShots();
 registerSignInCancel();
 
-describe("the appearance, help, capture and sign-in channels", () => {
+describe("the appearance, help and sign-in channels", () => {
   it("refuse a frame other than the app's page", () => {
     expect(refused("help:open", OTHER_PAGE, "docs", "fr")).toBe(true);
     expect(refused("account:sign-in-cancel", OTHER_PAGE)).toBe(true);
@@ -38,11 +36,6 @@ describe("the appearance, help, capture and sign-in channels", () => {
   it("refuse an unknown help link or a missing language", () => {
     expect(refused("help:open", OWN_PAGE, "nowhere", "fr")).toBe(true);
     expect(refused("help:open", OWN_PAGE, "docs")).toBe(true);
-  });
-
-  it("refuse a capture without a path or without bytes", () => {
-    expect(refused("shots:save", OWN_PAGE, 3, new Uint8Array(1))).toBe(true);
-    expect(refused("shots:save", OWN_PAGE, "/tmp/a.png", "bytes")).toBe(true);
   });
 
   it("refuse one argument too many", () => {

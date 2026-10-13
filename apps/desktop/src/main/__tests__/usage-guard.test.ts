@@ -128,9 +128,6 @@ describe("what the usage right lets through", () => {
           "service.secret",
           "service.status",
           "sessions.list",
-          "shots.list",
-          "shots.read",
-          "shots.url",
           "snapshot",
           "status",
           "tunnel.status",
@@ -152,7 +149,6 @@ describe("what the usage right lets through", () => {
     expect(mutates("service.start")).toBe(true);
     expect(mutates("service.stop")).toBe(true);
     expect(mutates("service.restart")).toBe(true);
-    expect(mutates("shots.clean")).toBe(true);
   });
 });
 

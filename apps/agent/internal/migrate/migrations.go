@@ -68,7 +68,33 @@ func All() []Migration {
 			Touches: []Target{TargetEntitlement, TargetLicense},
 			Apply:   licenseCache,
 		},
+		{
+			ID:      9,
+			Slug:    "browser-without-gallery",
+			Since:   "2.1.0",
+			Touches: []Target{TargetInstall},
+			Apply:   browserWithoutGallery,
+		},
 	}
+}
+
+// The screenshot gallery is gone, and with it the name it was published under.
+func browserWithoutGallery(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetInstall)
+	if err != nil || !present {
+		return err
+	}
+
+	config, _ := document["config"].(map[string]any)
+	values, _ := config["ai.browser"].(map[string]any)
+
+	if _, held := values["subdomain"]; !held {
+		return nil
+	}
+
+	delete(values, "subdomain")
+
+	return ctx.SetJSON(TargetInstall, document)
 }
 
 // Carried over rather than awaited from the platform: an offline server keeps its seven days of tolerance.

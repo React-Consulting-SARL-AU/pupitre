@@ -132,11 +132,6 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Dirs[rest] = true })
 	case "process":
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Spawn(parseProc(fields, rest)) })
-	case "shot":
-		f.prepare = append(f.prepare, func(fake *FakeSys) {
-			fake.Files[fields[2]] = make([]byte, atoi(fields[1]))
-			fake.Times[fields[2]] = time.Unix(int64(atoi(fields[0])), 0)
-		})
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })

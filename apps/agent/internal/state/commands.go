@@ -92,11 +92,6 @@ type urlResult struct {
 	URL string `json:"url"`
 }
 
-type shotsURLResult struct {
-	URL     string `json:"url"`
-	Exposed bool   `json:"exposed"`
-}
-
 type secretResult struct {
 	Key string `json:"key"`
 }
@@ -120,22 +115,6 @@ type killedResult struct {
 
 type processesResult struct {
 	Processes []contract.Process `json:"processes"`
-}
-
-type shotsResult struct {
-	Shots []contract.Shot `json:"shots"`
-}
-
-type shotReadResult struct {
-	Path      string `json:"path"`
-	MediaType string `json:"media_type"`
-	SizeBytes int64  `json:"size_bytes"`
-	SHA256    string `json:"sha256"`
-	Chunks    int    `json:"chunks"`
-}
-
-type removedResult struct {
-	Removed int `json:"removed"`
 }
 
 type doctorResult struct {
@@ -441,63 +420,6 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		return doneResult{Done: true}, nil
-	})
-
-	server.Register("shots.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		return shotsResult{Shots: reader.Shots()}, nil
-	})
-
-	server.Register("shots.url", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		address, exposed := reader.ShotsURL()
-
-		return shotsURLResult{URL: address, Exposed: exposed}, nil
-	})
-
-	server.Register("shots.read", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
-		params, err := decode[struct {
-			Path string `json:"path"`
-		}](raw)
-		if err != nil {
-			return nil, err
-		}
-
-		shot, err := reader.ReadShot(params.Path)
-		if err != nil {
-			return nil, err
-		}
-
-		chunks := ChunkShot(shot.Bytes)
-
-		for seq, encoded := range chunks {
-			ctx.Emit("shot", map[string]any{"seq": seq, "bytes": encoded})
-		}
-
-		return shotReadResult{
-			Path:      shot.Path,
-			MediaType: shot.MediaType,
-			SizeBytes: shot.SizeBytes,
-			SHA256:    shot.Digest,
-			Chunks:    len(chunks),
-		}, nil
-	})
-
-	server.Register("shots.clean", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
-		params, err := decode[struct {
-			Path string `json:"path"`
-		}](raw)
-		if err != nil {
-			return nil, err
-		}
-
-		if params.Path == "" {
-			return removedResult{Removed: reader.CleanShots()}, nil
-		}
-
-		if err := reader.RemoveShot(params.Path); err != nil {
-			return nil, err
-		}
-
-		return removedResult{Removed: 1}, nil
 	})
 
 	server.Register("fs.list", func(_ *protocol.Context, raw json.RawMessage) (any, error) {

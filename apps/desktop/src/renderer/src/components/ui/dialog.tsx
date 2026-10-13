@@ -1,7 +1,7 @@
 import { Dialog as Base } from "@base-ui-components/react/dialog";
 import type { ReactNode, RefObject } from "react";
 
-// Above the gallery's full-screen viewer (z-20), below menus and tooltips (z-50).
+// Below menus and tooltips (z-50), which a dialog opens over itself.
 export const DIALOG_BACKDROP =
   "fixed inset-0 z-30 bg-base/60 transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 

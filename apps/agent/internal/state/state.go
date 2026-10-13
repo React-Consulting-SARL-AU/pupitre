@@ -58,7 +58,6 @@ type Options struct {
 	// Runs a module action under the run lock and license, the same door the engine's install takes.
 	Command    func(id string, sink modules.Sink, fn func(*modules.Context) error) error
 	Follow     FollowOptions
-	Shots      ShotOptions
 	Detect     DetectOptions
 	Self       func() int
 	Sleep      func(time.Duration)
@@ -84,7 +83,6 @@ func New(options Options) *Reader {
 		options.Tmux.Now = options.Now
 	}
 	options.Tmux = options.Tmux.Resolved()
-	options.Shots = options.Shots.resolved(options.Tmux.User)
 	options.Detect = options.Detect.resolved(options.Tmux.User)
 	if options.Self == nil {
 		options.Self = os.Getpid

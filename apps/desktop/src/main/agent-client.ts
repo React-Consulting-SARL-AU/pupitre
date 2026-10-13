@@ -156,7 +156,6 @@ const FOLLOW_CHANNEL_COMMANDS: readonly CommandName[] = [
 
 /** Quick to answer but channel-holding: a file transfer, or a git fetch from a far remote. */
 const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
-  "shots.read",
   "fs.read",
   "project.git_status",
 ];

@@ -240,10 +240,10 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "ai.browser",
-        name: { en: "Browser and gallery", fr: "Navigateur et galerie" },
+        name: { en: "Headless browser", fr: "Navigateur headless" },
         detail: {
-          en: "Headless Chrome and the Playwright libraries, the shot command, and a gallery served on the loopback.",
-          fr: "Chrome headless et les bibliothèques Playwright, la commande shot, et une galerie servie sur localhost.",
+          en: "Headless Chrome and the libraries it needs, which the screenshot tool of Pupitre’s MCP server uses to show a page to the AI agent.",
+          fr: "Chrome headless et les bibliothèques dont il a besoin, dont l’outil de capture du serveur MCP de Pupitre se sert pour montrer une page à l’agent IA.",
         },
       },
     ],

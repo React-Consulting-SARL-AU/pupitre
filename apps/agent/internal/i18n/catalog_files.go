@@ -62,8 +62,8 @@ var filesCatalog = map[string]Message{
 		EN: "unsupported file type: %s",
 	},
 	"files.unsupported.fix": {
-		FR: "Téléchargez ce fichier : la lecture ne rend que du texte et les images de la galerie.",
-		EN: "Download this file: a read carries text and the gallery's images only.",
+		FR: "Téléchargez ce fichier : la lecture ne rend que du texte et des images png, jpeg, gif, webp, avif ou svg.",
+		EN: "Download this file: a read carries text and png, jpeg, gif, webp, avif or svg images only.",
 	},
 	"files.unreadable": {
 		FR: "fichier illisible : %s",

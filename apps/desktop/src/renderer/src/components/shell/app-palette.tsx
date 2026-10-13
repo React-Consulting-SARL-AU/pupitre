@@ -14,7 +14,6 @@ const VIEWS: readonly { view: View; label: DictionaryKey }[] = [
   { label: "shell.sidebar.dashboard", view: "dashboard" },
   { label: "shell.sidebar.services", view: "services" },
   { label: "shell.sidebar.activity", view: "activity" },
-  { label: "shell.sidebar.gallery", view: "shots" },
   { label: "shell.sidebar.files", view: "files" },
   { label: "shell.sidebar.help", view: "help" },
   { label: "shell.sidebar.settings", view: "settings" },

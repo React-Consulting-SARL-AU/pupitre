@@ -294,6 +294,10 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 		return f.claudeInstall(cmd.User)
 	}
 
+	if len(cmd.Argv) > 2 && cmd.Argv[1] == "mcp" {
+		return f.mcp(cmd)
+	}
+
 	switch base(program) {
 	case "dpkg-query":
 		return f.dpkgQuery(cmd.Argv[1:])
@@ -331,6 +335,8 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 		return f.tar(cmd)
 	case "gunzip":
 		return f.gunzip(cmd.Argv[1:])
+	case "unzip":
+		return f.unzip(cmd.Argv[1:])
 	case "gzip":
 		return f.gzip(cmd)
 	case "sysctl":
@@ -594,6 +600,32 @@ func (f *FakeSys) tar(cmd sys.Command) (sys.Output, error) {
 
 		for made := dest + "/" + entry; made != dest && strings.HasPrefix(made, dest+"/"); made = path.Dir(made) {
 			f.Owners[made] = cmd.User + ":" + cmd.User
+		}
+	}
+
+	return sys.Output{}, nil
+}
+
+// Lays down the entries a test declared for the archive, under -d.
+func (f *FakeSys) unzip(args []string) (sys.Output, error) {
+	var archive, dest string
+
+	for index, arg := range args {
+		switch {
+		case arg == "-d":
+			dest = next(args, index)
+		case !strings.HasPrefix(arg, "-") && archive == "" && (index == 0 || args[index-1] != "-d"):
+			archive = arg
+		}
+	}
+
+	if _, err := f.ReadFile(archive); err != nil || dest == "" {
+		return f.fail("unzip", "unzip: cannot find or open "+archive)
+	}
+
+	for _, entry := range f.Archives[archive] {
+		if err := f.WriteFile(dest+"/"+entry, []byte("extrait de "+archive), 0o755); err != nil {
+			return f.fail("unzip", err.Error())
 		}
 	}
 
