@@ -1,0 +1,29 @@
+---
+title: AI agents drive the server through Pupitre
+description: Claude Code and Codex on the server get Pupitre's MCP server to start projects, read their logs and look at a page, servers already installed receive it with the agent's update, and the screenshot gallery makes way for it.
+locale: en
+version: 2.1.0
+channel: stable
+date: 2026-10-13
+order: 26
+---
+
+An AI agent working on your server now drives your projects through Pupitre, and sees the pages it changes.
+
+## The agent
+
+- **Pupitre's MCP server.** Claude Code and Codex find a server named `pupitre` among their tools: start, stop and restart a project or one of its processes, read its logs, start or restart a service, read the machine's state and its checks. A start waits until the process is online or has failed, and a failure comes back with the end of its log — the agent no longer launches a second `bun run dev` by hand.
+- **The agent sees what it changed.** The `screenshot` tool opens the page in a headless browser on the server and hands the image to the agent. Naming the project captures it on its local address, past the access key. Nothing is kept on the server, and no address points at the image.
+- **Claude Code uses these tools without asking each time**: the rule `mcp__pupitre` is added to the permissions of `~/.claude/settings.json`, beside your own. The server runs as `dev`, through the same limited session as the `dev` command: installing, revealing a secret, opening a project to the web or touching a database dump stay your gestures, in the app.
+- The machine context and the `server-dev` skill written for the agents point to these tools first; `dev` remains the way in from a terminal.
+- **On arm64**, the headless browser is now installed: Ubuntu's `chromium` is only a pointer to a snap, so the agent unpacks Google's Chrome Headless Shell, at a pinned version checked by its fingerprint.
+
+## The app
+
+- **After an agent update, the installed AI agents are updated too**, which declares the MCP server and rewrites their context and skills on servers already installed — nothing to reinstall.
+- **The screenshot gallery is gone**, with the `shot` command, its service and its public address: the agent now looks at the page itself. The update removes them from the server and leaves your earlier captures in `~/shots`. *Browser and gallery* becomes *Headless browser*.
+
+## Known limits
+
+- An app older than 2.1.0 connected to this agent shows an error on its gallery screen: update the app.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
