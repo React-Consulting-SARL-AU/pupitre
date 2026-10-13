@@ -115,10 +115,6 @@ func answerCases(platformURL string) []answerCase {
 		{cmd: "processes.list"},
 		{cmd: "process.kill", params: map[string]any{"pid": 5200}},
 		{cmd: "sessions.clean"},
-		{cmd: "shots.list"},
-		{cmd: "shots.url"},
-		{cmd: "shots.read", params: map[string]any{"path": "2026-09-04/login.png"}},
-		{cmd: "shots.clean", params: map[string]any{"path": "2026-09-04/login.png"}},
 		{cmd: "fs.list", params: map[string]any{"path": "notes"}},
 		{cmd: "fs.stat", params: map[string]any{"path": "notes/readme.md", "hash": true}},
 		{cmd: "fs.read", params: map[string]any{"path": "notes/readme.md"}},
@@ -266,7 +262,6 @@ func seedMachine(fake *modtest.FakeSys) {
 
 	fake.Dirs["/home/dev/notes"] = true
 	fake.Files["/home/dev/notes/readme.md"] = []byte("# notes\n")
-	fake.Files["/home/dev/shots/2026-09-04/login.png"] = []byte("\x89PNG\r\n\x1a\n")
 	fake.Files["/home/dev/.local/bin/claude"] = []byte("claude\n")
 	fake.Replies["claude"] = "2.1.263 (Claude Code)\n"
 	fake.Spawn(modtest.Proc{PID: 5200, PPID: 1, User: "dev", CPU: 1.5, RSS: 262144, Etimes: 30, Args: "/home/dev/.local/bin/codex exec"})

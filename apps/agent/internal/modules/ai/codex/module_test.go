@@ -55,9 +55,9 @@ func TestFirstInstallLaysDownTheCliTheContextAndTheSkills(t *testing.T) {
 	}
 
 	for _, path := range []string{
-		agents.SkillsDir + "/capture/SKILL.md",
+		agents.SkillsDir + "/project-env/SKILL.md",
 		agents.SkillsDir + "/ship/SKILL.md",
-		configDir + "/skills/capture/SKILL.md",
+		configDir + "/skills/project-env/SKILL.md",
 	} {
 		if len(fake.Files[path]) == 0 {
 			t.Errorf("%s was not laid down", path)

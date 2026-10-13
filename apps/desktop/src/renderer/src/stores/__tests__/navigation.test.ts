@@ -172,10 +172,10 @@ describe("the navigation history", () => {
 
     expect(where().cursor).toBe(0);
 
-    useNavigation.getState().goTo("shots");
+    useNavigation.getState().goTo("backups");
     useNavigation.getState().forward();
 
-    expect(where()).toMatchObject({ cursor: 1, view: "shots" });
+    expect(where()).toMatchObject({ cursor: 1, view: "backups" });
   });
 
   it("forgets what was ahead when restarting from a point in the past", () => {
@@ -184,13 +184,13 @@ describe("the navigation history", () => {
     nav.goTo("services");
     nav.goTo("activity");
     useNavigation.getState().back();
-    useNavigation.getState().goTo("shots");
+    useNavigation.getState().goTo("backups");
 
-    expect(where()).toMatchObject({ cursor: 2, length: 3, view: "shots" });
+    expect(where()).toMatchObject({ cursor: 2, length: 3, view: "backups" });
 
     useNavigation.getState().forward();
 
-    expect(where().view).toBe("shots");
+    expect(where().view).toBe("backups");
   });
 
   it("does not write the same page twice", () => {

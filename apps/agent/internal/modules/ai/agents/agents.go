@@ -18,7 +18,6 @@ const (
 
 	SkillsDir    = Home + "/.agents/skills"
 	ProjectsDir  = Home + "/projects"
-	GalleryDir   = Home + "/shots"
 	contextMode  = 0o644
 	skillsSuffix = ".md"
 )
@@ -32,6 +31,7 @@ type Target struct {
 	ContextFile string
 	Skills      bool
 	Subagents   bool
+	MCP         *MCP
 }
 
 func (t Target) contextPath() string {
@@ -43,14 +43,34 @@ func Deploy(ctx *modules.Context, target Target) error {
 		return err
 	}
 
+	if err := retireSkills(ctx, target); err != nil {
+		return err
+	}
+
 	if err := writeSkills(ctx, target); err != nil {
 		return err
 	}
 
-	return writeSubagents(ctx, target)
+	if err := writeSubagents(ctx, target); err != nil {
+		return err
+	}
+
+	if err := registerMCP(ctx, target); err != nil {
+		return err
+	}
+
+	return allowTools(ctx, target)
 }
 
 func Configured(ctx *modules.Context, target Target) bool {
+	if target.MCP != nil && (!mcpRegistered(ctx, target.MCP) || !toolsAllowed(ctx, target)) {
+		return false
+	}
+
+	if target.Skills && len(retiredLeft(ctx, target)) > 0 {
+		return false
+	}
+
 	if target.ContextFile == "" {
 		return skillsPresent(ctx, target)
 	}

@@ -1,13 +1,13 @@
 import type { FsStatResult } from "@pupitre/shared/agent-protocol/files";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { nameOf } from "@renderer/lib/files";
-import { type ShotSize, shotSize } from "@renderer/lib/shot-image";
+import { type ImageSize, imageSize } from "@renderer/lib/image-size";
 import { useEffect, useState } from "react";
 import { FileSheet } from "./file-sheet";
 
 interface Drawing {
   url: string;
-  size: ShotSize | null;
+  size: ImageSize | null;
 }
 
 export function FileSvgView({
@@ -28,7 +28,7 @@ export function FileSvgView({
     const url = URL.createObjectURL(blob);
     let current = true;
 
-    shotSize(blob).then((size) => {
+    imageSize(blob).then((size) => {
       if (current) {
         setDrawing({ size, url });
       }

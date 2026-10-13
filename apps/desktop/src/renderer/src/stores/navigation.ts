@@ -28,7 +28,6 @@ export const VIEWS = [
   "project-add",
   "services",
   "activity",
-  "shots",
   "files",
   "backups",
   "access",

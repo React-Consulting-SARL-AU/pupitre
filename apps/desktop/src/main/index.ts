@@ -43,7 +43,6 @@ import { registerReenroll } from "./reenroll";
 import { registerServerChannels } from "./server-channels";
 import { sshPathsWritten } from "./servers";
 import { forgetServiceCredentials, registerServices } from "./services";
-import { registerShots } from "./shots";
 import { registerSignInCancel } from "./sign-in-cancel";
 import { registerSudo } from "./sudo";
 import { registerTerminalChannels } from "./terminal-channels";
@@ -245,7 +244,6 @@ function registerChannels(): void {
   registerServerChannels(settle);
   registerTerminalChannels();
   registerTransfers({ root: workRoot });
-  registerShots();
   registerHelp();
   registerSignInCancel();
   registerKeyApprovals();

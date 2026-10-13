@@ -77,29 +77,6 @@ describe("what the renderer can ask the agent", () => {
     ).toBe("refusal.bridge.command");
   });
 
-  it("deletes a capture by its listed path, or the whole gallery", () => {
-    expect(checkedCall("srv-1", "shots.clean", undefined, knows)).toEqual({
-      serverId: "srv-1",
-      cmd: "shots.clean",
-      params: {},
-    });
-    expect(
-      checkedCall(
-        "srv-1",
-        "shots.clean",
-        { path: "2026-09-04/login.png" },
-        knows
-      )
-    ).toEqual({
-      serverId: "srv-1",
-      cmd: "shots.clean",
-      params: { path: "2026-09-04/login.png" },
-    });
-    expect(refusalOf("srv-1", "shots.clean", { path: "" })?.id).toBe(
-      "refusal.params.invalid"
-    );
-  });
-
   it("refuses a server the configuration does not know", () => {
     expect(refusalOf("srv-9", "snapshot")).toEqual({
       code: "bad_request",

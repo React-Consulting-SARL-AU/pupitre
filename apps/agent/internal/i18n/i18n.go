@@ -29,6 +29,7 @@ func init() {
 		moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog,
 		cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog,
 		migrateCatalog, loginCatalog, backupCatalog, keysCatalog, sudoCatalog, uninstallCatalog, gateCatalog, accessCatalog,
+		mcpCatalog,
 	}
 
 	for _, part := range parts {

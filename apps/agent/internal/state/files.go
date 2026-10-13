@@ -16,7 +16,6 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
-	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -30,6 +29,20 @@ const (
 
 	MediaTypeText = "text/plain"
 )
+
+var imageMediaTypes = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif":  "image/gif",
+	".webp": "image/webp",
+	".avif": "image/avif",
+	".svg":  "image/svg+xml",
+}
+
+func imageMediaType(name string) string {
+	return imageMediaTypes[strings.ToLower(path.Ext(name))]
+}
 
 // What the reader creates belongs to the projects user, never to root, which pupitred runs as.
 func (r *Reader) work() (root, owner string) {
@@ -401,7 +414,7 @@ func (r *Reader) contents(relative string) ([]byte, error) {
 }
 
 func (r *Reader) sniff(relative string, node sys.Node) string {
-	if image := shots.MediaType(relative); image != "" {
+	if image := imageMediaType(relative); image != "" {
 		return image
 	}
 
@@ -418,7 +431,7 @@ func (r *Reader) sniff(relative string, node sys.Node) string {
 }
 
 func mediaTypeOf(relative string, content []byte) string {
-	if image := shots.MediaType(relative); image != "" {
+	if image := imageMediaType(relative); image != "" {
 		return image
 	}
 
@@ -430,7 +443,7 @@ func mediaTypeOf(relative string, content []byte) string {
 }
 
 func readLimit(relative string) int64 {
-	if shots.MediaType(relative) != "" {
+	if imageMediaType(relative) != "" {
 		return FileImageMaxBytes
 	}
 

@@ -649,14 +649,6 @@ type Process struct {
 	Project string  `json:"project"`
 }
 
-type Shot struct {
-	Name      string  `json:"name"`
-	Path      string  `json:"path"`
-	SizeBytes int64   `json:"size_bytes"`
-	CreatedAt string  `json:"created_at"`
-	Project   *string `json:"project"`
-}
-
 const (
 	FileKindFile    = "file"
 	FileKindDir     = "dir"

@@ -1,26 +1,21 @@
 package browser
 
 import (
-	"fmt"
 	"runtime"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
-	"pupitre.studio/agent/internal/modules/exposure/routes"
-	"pupitre.studio/agent/internal/protocol"
-	"pupitre.studio/agent/internal/shots"
+	"pupitre.studio/agent/internal/modules/exposure"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
-	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 const (
-	Unit = "pupitre-shots"
-
 	chromePackage   = "google-chrome-stable"
 	chromiumPackage = "chromium"
 
@@ -28,25 +23,16 @@ const (
 	keyringPath = "/usr/share/keyrings/google-chrome.gpg"
 	sourcePath  = "/etc/apt/sources.list.d/google-chrome.list"
 	sourceLine  = "deb [arch=amd64 signed-by=" + keyringPath + "] https://dl.google.com/linux/chrome/deb/ stable main\n"
-
-	unitPath = "/etc/systemd/system/" + Unit + ".service"
 )
 
-const unitTemplate = `[Unit]
-Description=Galerie de captures Pupitre
-After=network.target
+// What the screenshot gallery left on a machine before 2.1.0: its service, its public address and the shot command.
+const (
+	retiredUnit     = "pupitre-shots"
+	retiredUnitPath = "/etc/systemd/system/" + retiredUnit + ".service"
+	retiredExposure = "/etc/pupitre/shots.env"
 
-[Service]
-Type=simple
-User=` + shots.User + `
-EnvironmentFile=-` + shots.ExposurePath + `
-ExecStart=` + shots.Binary + ` gallery --dir=` + shots.Dir + ` --port=%d
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-`
+	RetiredLink = "/usr/local/bin/shot"
+)
 
 var playwrightLibraries = []string{
 	"libnss3", "libnspr4", "libdrm2",
@@ -58,6 +44,9 @@ var playwrightLibraries = []string{
 var renamedIn2404 = []string{"libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libasound2"}
 
 const osReleasePath = "/etc/os-release"
+
+// The machine's architecture; a test sets it so its transcript does not depend on the machine it runs on.
+var Arch = runtime.GOARCH
 
 func playwrightPackages(ctx *modules.Context) []string {
 	suffix := ""
@@ -99,22 +88,36 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+// What the gallery left counts as installed: an arm64 server had it without a browser, and its upgrade must still run.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	pkg := installedPackage(ctx)
-	if pkg == "" {
-		return modules.Status{}, nil
-	}
-
-	version, err := apt.Version(ctx, pkg)
+	version, err := installedVersion(ctx)
 	if err != nil {
 		return modules.Status{}, err
+	}
+
+	left := galleryLeft(ctx)
+	if version == "" && !left {
+		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Version:    version,
-		Configured: file.Exists(ctx, unitPath) && file.Exists(ctx, shots.Link),
+		Configured: version != "" && !left,
 	}, nil
+}
+
+func installedVersion(ctx *modules.Context) (string, error) {
+	if version := headlessInstalled(ctx); version != "" {
+		return version, nil
+	}
+
+	pkg := installedPackage(ctx)
+	if pkg == "" {
+		return "", nil
+	}
+
+	return apt.Version(ctx, pkg)
 }
 
 func (Module) Install(ctx *modules.Context) error {
@@ -125,18 +128,26 @@ func (Module) Install(ctx *modules.Context) error {
 	return installPlaywrightLibraries(ctx)
 }
 
-// The chromium snap cannot write into ~/shots and its apt stub exits 0: Google's build on amd64, and a check by name.
+// Ubuntu's chromium is a snap behind an apt stub that exits 0: Google's apt build on amd64, Chrome for Testing's headless shell on arm64.
 func installBrowser(ctx *modules.Context) error {
 	return ctx.Step("install-browser", func() (modules.Outcome, error) {
-		if installedPackage(ctx) != "" {
+		if installedPackage(ctx) != "" || headlessInstalled(ctx) != "" {
 			return modules.Skipped, nil
 		}
 
-		if runtime.GOARCH == "amd64" {
-			if err := addGoogleRepository(ctx); err == nil {
-				if err := apt.Install(ctx, chromePackage); err == nil {
-					return modules.Done, nil
-				}
+		if Arch == "arm64" {
+			if err := installHeadless(ctx); err != nil {
+				ctx.Warn(i18n.T("warn.browser.none"))
+
+				return modules.Skipped, nil
+			}
+
+			return modules.Done, nil
+		}
+
+		if err := addGoogleRepository(ctx); err == nil {
+			if err := apt.Install(ctx, chromePackage); err == nil {
+				return modules.Done, nil
 			}
 		}
 
@@ -193,192 +204,25 @@ func installPlaywrightLibraries(ctx *modules.Context) error {
 	})
 }
 
-func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
-	subdomain := ctx.String(SubdomainKey)
-	if subdomain == "" {
-		return []contract.FieldProblem{}
-	}
-
-	domain, _, _ := env.Get(ctx, env.DomainKey)
-	if domain == "" {
-		return []contract.FieldProblem{subdomainProblem(ctx, i18n.T("module.ai.browser.subdomain.noDomain"))}
-	}
-
-	if project := routeHolder(ctx, subdomain+"."+domain); project != "" {
-		return []contract.FieldProblem{subdomainProblem(ctx, i18n.T("module.ai.browser.subdomain.taken", subdomain+"."+domain, project))}
-	}
-
-	return []contract.FieldProblem{}
-}
-
-func subdomainProblem(ctx *modules.Context, message string) contract.FieldProblem {
-	return contract.FieldProblem{
-		Module:   ctx.Module(),
-		Field:    SubdomainKey,
-		Code:     contract.ProblemFormat,
-		Expected: contract.FormatHostname,
-		Message:  message,
-	}
-}
-
-func routeHolder(ctx *modules.Context, hostname string) string {
-	for _, project := range routes.Declared(ctx) {
-		for _, process := range project.Processes {
-			for _, route := range process.Routes {
-				if route.Hostname == hostname {
-					return project.Name
-				}
-			}
-		}
-	}
-
-	return ""
-}
-
 func (Module) Configure(ctx *modules.Context) error {
-	if err := createGallery(ctx); err != nil {
-		return err
-	}
-
-	if err := fileLooseCaptures(ctx); err != nil {
-		return err
-	}
-
-	if err := linkShot(ctx); err != nil {
-		return err
-	}
-
-	exposed, err := exposeGallery(ctx)
-	if err != nil {
-		return err
-	}
-
-	return enableGallery(ctx, exposed)
+	return retireGallery(ctx)
 }
 
-func fileLooseCaptures(ctx *modules.Context) error {
-	return ctx.Step("file-loose-captures", func() (modules.Outcome, error) {
-		moved, err := shots.FileLoose(ctx, shots.Dir)
-		if err != nil {
-			return modules.Failed, err
-		}
-
-		if moved == 0 {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	})
-}
-
-// The token outlives a change of subdomain; only withdrawing the exposure forgets it.
-func exposeGallery(ctx *modules.Context) (bool, error) {
-	changed := false
-
-	err := ctx.Step("write-gallery-exposure", func() (modules.Outcome, error) {
-		subdomain := ctx.String(SubdomainKey)
-		if subdomain == "" {
-			removed, err := file.Remove(ctx, shots.ExposurePath)
-			if err != nil || !removed {
-				return modules.Skipped, err
-			}
-
-			changed = true
-
-			return modules.Done, nil
-		}
-
-		domain, _, err := env.Get(ctx, env.DomainKey)
-		if err != nil || domain == "" {
-			return modules.Failed, protocol.NewError(contract.ErrorBadRequest, i18n.T("module.ai.browser.subdomain.noDomain")).
-				WithFix(i18n.T("module.ai.browser.subdomain.noDomain.fix"))
-		}
-
-		exposure := shots.ReadExposure(ctx)
-		exposure.Hostname = subdomain + "." + domain
-
-		if exposure.Token == "" {
-			token, err := shots.NewToken()
-			if err != nil {
-				return modules.Failed, err
-			}
-
-			exposure.Token = token
-		}
-
-		if file.SameAt(ctx, shots.ExposurePath, exposure.Content(), 0o600) {
-			return modules.Skipped, nil
-		}
-
-		changed = true
-
-		return modules.Done, shots.WriteExposure(ctx, exposure)
-	})
-
-	return changed, err
-}
-
-func createGallery(ctx *modules.Context) error {
-	return ctx.Step("create-gallery", func() (modules.Outcome, error) {
-		if file.Exists(ctx, shots.Dir) {
-			return modules.Skipped, nil
-		}
-
-		if err := ctx.Sys().MkdirAll(shots.Dir, 0o755); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.Chown(ctx, shots.Dir, shots.User, shots.User)
-	})
-}
-
-// A link to the agent's own binary, never a readable script left on the client's disk.
-func linkShot(ctx *modules.Context) error {
-	return ctx.Step("link-shot-command", func() (modules.Outcome, error) {
-		if target(ctx) == shots.Binary {
-			return modules.Skipped, nil
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "-sfn", shots.Binary, shots.Link}}); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, nil
-	})
-}
-
-// The gallery reads its token once, at start: a new exposure restarts it.
-func enableGallery(ctx *modules.Context, exposed bool) error {
-	content := []byte(fmt.Sprintf(unitTemplate, shots.Port))
-	changed := exposed
-
-	if err := ctx.Step("write-gallery-service", func() (modules.Outcome, error) {
-		if file.Same(ctx, unitPath, content) {
-			return modules.Skipped, nil
-		}
-
-		changed = true
-
-		return modules.Done, systemd.WriteUnit(ctx, Unit, content)
-	}); err != nil {
-		return err
-	}
-
-	return ctx.Step("enable-gallery-service", func() (modules.Outcome, error) {
-		if systemd.Active(ctx, Unit) && !changed {
-			return modules.Skipped, nil
-		}
-
-		if err := systemd.Enable(ctx, Unit); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, systemd.Restart(ctx, Unit)
-	})
-}
-
+// A server whose install found no browser gets one now: arm64 had none before the headless shell.
 func (m Module) Upgrade(ctx *modules.Context) error {
+	if err := m.Install(ctx); err != nil {
+		return err
+	}
+
 	if err := ctx.Step("upgrade-browser", func() (modules.Outcome, error) {
+		if held := headlessInstalled(ctx); held != "" {
+			if held == headlessVersion {
+				return modules.Skipped, nil
+			}
+
+			return modules.Done, installHeadless(ctx)
+		}
+
 		pkg := installedPackage(ctx)
 		if pkg == "" {
 			return modules.Skipped, nil
@@ -401,18 +245,28 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// ~/shots holds the client's captures and survives an uninstall.
-func (Module) Uninstall(ctx *modules.Context) error {
-	if err := ctx.Step("stop-gallery-service", func() (modules.Outcome, error) {
-		if !file.Exists(ctx, unitPath) {
+// ~/shots holds the client's earlier captures: it is theirs, and stays.
+func retireGallery(ctx *modules.Context) error {
+	if err := ctx.Step("retire-gallery-service", func() (modules.Outcome, error) {
+		if !file.Exists(ctx, retiredUnitPath) {
 			return modules.Skipped, nil
 		}
 
-		if err := systemd.Disable(ctx, Unit); err != nil {
+		if err := systemd.Disable(ctx, retiredUnit); err != nil {
 			return modules.Failed, err
 		}
 
-		removed, err := file.Remove(ctx, unitPath)
+		if _, err := file.Remove(ctx, retiredUnitPath); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
+	if err := ctx.Step("retire-gallery-address", func() (modules.Outcome, error) {
+		removed, err := file.Remove(ctx, retiredExposure)
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -421,28 +275,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, nil
-	}); err != nil {
-		return err
-	}
-
-	if err := ctx.Step("forget-gallery-exposure", func() (modules.Outcome, error) {
-		removed, err := file.Remove(ctx, shots.ExposurePath)
-		if err != nil || !removed {
-			return modules.Skipped, err
-		}
-
-		return modules.Done, nil
-	}); err != nil {
-		return err
-	}
-
-	if err := ctx.Step("unlink-shot-command", func() (modules.Outcome, error) {
-		if target(ctx) == "" {
-			return modules.Skipped, nil
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-f", shots.Link}}); err != nil {
+		if _, err := exposure.Resync(ctx.Sibling); err != nil {
 			return modules.Failed, err
 		}
 
@@ -451,7 +284,29 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
+	return ctx.Step("retire-shot-command", func() (modules.Outcome, error) {
+		if !shotLinked(ctx) {
+			return modules.Skipped, nil
+		}
+
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-f", RetiredLink}}); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func (Module) Uninstall(ctx *modules.Context) error {
+	if err := retireGallery(ctx); err != nil {
+		return err
+	}
+
 	return ctx.Step("remove-browser", func() (modules.Outcome, error) {
+		if headlessInstalled(ctx) != "" {
+			return modules.Done, removeHeadless(ctx)
+		}
+
 		pkg := installedPackage(ctx)
 		if pkg == "" {
 			return modules.Skipped, nil
@@ -467,9 +322,10 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, err
 	}
 
-	status.State = systemd.State(ctx, Unit)
-	status.Port = shots.Port
-	status.Unit = Unit
+	status.State = contract.ServiceStopped
+	if status.Installed {
+		status.State = contract.ServiceRunning
+	}
 
 	return status, nil
 }
@@ -484,11 +340,13 @@ func installedPackage(ctx *modules.Context) string {
 	return ""
 }
 
-func target(ctx *modules.Context) string {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", shots.Link}})
-	if err != nil {
-		return ""
-	}
+func galleryLeft(ctx *modules.Context) bool {
+	return file.Exists(ctx, retiredUnitPath) || file.Exists(ctx, retiredExposure) || shotLinked(ctx)
+}
 
-	return strings.TrimSpace(out.Stdout)
+// Only a link to the agent is ours to remove; any other program under that name is someone else's.
+func shotLinked(ctx *modules.Context) bool {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", RetiredLink}})
+
+	return err == nil && strings.TrimSpace(out.Stdout) == sudo.Binary
 }

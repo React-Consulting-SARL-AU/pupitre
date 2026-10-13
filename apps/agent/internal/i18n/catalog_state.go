@@ -177,38 +177,6 @@ var stateCatalog = map[string]Message{
 		FR: "Enregistrez la valeur avec secrets.set, ou réinstallez %s.",
 		EN: "Store the value with secrets.set, or reinstall %s.",
 	},
-	"state.shot.unknown": {
-		FR: "capture inconnue : %s",
-		EN: "unknown capture: %s",
-	},
-	"state.shot.unknown.fix": {
-		FR: "Appelez shots.list et reprenez le path d'une de ses entrées, tel quel.",
-		EN: "Call shots.list and take the path of one of its entries, as it is.",
-	},
-	"state.shot.notImage": {
-		FR: "ce fichier n'est pas une image : %s",
-		EN: "this file is not an image: %s",
-	},
-	"state.shot.notImage.fix": {
-		FR: "La galerie ne rend que png, jpeg, gif, webp, avif et svg.",
-		EN: "The gallery serves png, jpeg, gif, webp, avif and svg only.",
-	},
-	"state.shot.tooLarge": {
-		FR: "capture trop lourde : %d octets pour un maximum de %d",
-		EN: "the capture is too heavy: %d bytes for a maximum of %d",
-	},
-	"state.shot.tooLarge.fix": {
-		FR: "Ouvrez la galerie sur le serveur pour cette capture, ou reprenez-en une plus légère.",
-		EN: "Open the gallery on the server for this capture, or take a lighter one.",
-	},
-	"state.shot.unreadable": {
-		FR: "capture illisible : %s",
-		EN: "the capture cannot be read: %s",
-	},
-	"state.shot.removeFailed": {
-		FR: "la capture %s n'a pas pu être supprimée : %s",
-		EN: "the capture %s could not be removed: %s",
-	},
 	"state.reboot.refused": {
 		FR: "le redémarrage a été refusé",
 		EN: "the restart was refused",

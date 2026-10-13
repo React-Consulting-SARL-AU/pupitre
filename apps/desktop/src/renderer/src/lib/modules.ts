@@ -31,6 +31,15 @@ export function installedModules(services: readonly Service[]): string[] {
   return services.map((service) => service.id);
 }
 
+const AI_MODULE_PREFIX = "ai.";
+
+/** Their `upgrade` lays the agent's machine context, skills and MCP server into the AI agents. */
+export function aiModulesOf(services: readonly Service[]): string[] {
+  return installedModules(services).filter((id) =>
+    id.startsWith(AI_MODULE_PREFIX)
+  );
+}
+
 export interface AgentModule {
   agent: TerminalAgent;
   moduleId: string;

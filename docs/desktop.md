@@ -7,7 +7,7 @@ What the main process of `apps/desktop` does and why. The one-line rules are in 
 `src/main/agent-client.ts` holds, per server, SSH sessions that launch `pupitred serve`; requests are serialized, with an increasing `id`. Five channels — four on the session that sudo opens without a password, one privileged:
 
 - **control**: the gestures.
-- **work**: long commands and bounded reads (`project.sync`, `fs.read`, `shots.read`).
+- **work**: long commands and bounded reads (`project.sync`, `fs.read`).
 - **beat**: the reads a screen makes on a timer (`agentPoll`: `snapshot`, `processes.list`), so that a click never waits behind the dashboard's read.
 - **follow**: followed logs (`project.logs`, `service.logs`), which hold their channel as long as the reader stays — a service's panel shows its log next to the form, and the `install` that applies the form must not wait for the reader to close the panel. Lines go through `lib/journal-buffer.ts`, which holds them like a terminal — carriage return, cursor moved up, line erase — instead of gluing each Gradle redraw end to end, and `ui/journal-pane.tsx` draws them: clickable addresses, the agent's `=== pupitre up|down … ===` marks rendered as rules, tail-following dropped as soon as you scroll up or put the pointer down to select.
 - **privileged**: what the contract reserves for `pupitred serve --privileged` (`requiresPrivilege` in `@pupitre/shared/agent-protocol`: `install`, `harden`, `service.secret`, `backup.*` that write, `enroll`, `keys.trust`…), opened on demand and closed after a minute without use. As `dev`, it launches `privilegedServeAs` and writes the sudo password that `sudo-held.ts` keeps on the first line of standard input, where `sudo -S` reads it — the shell reads it in its place under the earlier rule; as root, plain `pupitred serve --privileged`. A second sudo prompt (`pupitre-sudo:`) on the error output is the password being refused: the channel cuts off, answers `privilege_required` (`refusal.sudo.refused`, or `refusal.sudo.absent` with no password on this computer) and does not retry it until `resetPrivileged` has released it. See [two sessions](./contracts/agent-protocol.md#two-sessions-passwordless-and-privileged).
@@ -38,7 +38,7 @@ A development build talks to the local console — `http://localhost:3000`, the 
 
 ## Updating the agent
 
-Three gestures, in this order: `agent.upgrade`, closing the channel — the `serve` that answers still holds the old binary, replaced by a `rename` — then `agent.migrate`, and only afterwards `upgrade` on the modules. A server whose configuration is not the shape its agent reads refuses everything else itself; the banner says so and offers only the migration.
+Three gestures, in this order: `agent.upgrade`, closing the channel — the `serve` that answers still holds the old binary, replaced by a `rename` — then `agent.migrate`, and only afterwards `upgrade` on the modules. Once the configuration comes back `current`, `upgradeAgent` itself replays `upgrade` on the installed `ai.*` modules, read from the snapshot: the new agent's machine context, skills and MCP server reach Claude Code, Codex and the other agents that way, and the progress shows in the services screen's module-upgrade section; the other modules wait for "upgrade all". A server whose configuration is not the shape its agent reads refuses everything else itself; the banner says so and offers only the migration.
 
 ## The files the app keeps
 
@@ -94,14 +94,13 @@ src/renderer/src/
   components/terminals/   xterm, tabs, status bars, completion
   components/activity/    sessions and processes
   components/fleet/       the organizations and their servers
-  components/shots/       the gallery
   components/backups/     a server's backups: step-by-step setup, state, settings, list, immediate backup, return to a backup
   components/files/       the file browser and the basic editor: a folder's list, breadcrumb, an entry's menu, preview, CodeMirror on the terminal's ANSI palette
   components/updates/     banner and notes for the agent's update, migration of its configuration, module upgrade
   components/account/     sign-in, identity, usage, licence (servers used against the quota, seats granted)
   components/settings/    appearance, connections, terminal, notifications, startup, about (version, channel, app update)
   components/help/        the "Aide" view (bottom of the sidebar): how ssh, Claude Code, Codex and the editors reach the driven server, with its values read from the app's SSH file (`ssh-share:state`) and the snapshot's modules
-  stores/                 one Zustand store per subject: servers · snapshot · onboarding and onboarding-machine (the order, pure) · install · harden · sudo-password · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · shots · backups · backup-connection · restore · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
+  stores/                 one Zustand store per subject: servers · snapshot · onboarding and onboarding-machine (the order, pure) · install · harden · sudo-password · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · backups · backup-connection · restore · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
   lib/                    pure functions and hooks: format, duration, memory (navigation), completion, terminals, remedy, refusals, roles, use-pending, use-history-shortcuts…
   i18n/strings/           the texts, one file per subject, `en` and `fr`
 ```

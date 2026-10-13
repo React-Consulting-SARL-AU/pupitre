@@ -17,14 +17,14 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return modtest.NewContext(t, fake, modtest.Options{Module: "ai.claude"})
 }
 
-func TestTheFiveSkillsAndTheSubagentAreLaidDown(t *testing.T) {
+func TestTheSkillsAndTheSubagentAreLaidDown(t *testing.T) {
 	fake := modtest.NewFakeSys()
 
 	if err := Deploy(newContext(t, fake), demo); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, skill := range []string{"branch", "capture", "pr", "server-dev", "ship"} {
+	for _, skill := range []string{"branch", "pr", "project-env", "server-dev", "ship"} {
 		body := fake.Files[SkillsDir+"/"+skill+"/SKILL.md"]
 		if len(body) == 0 {
 			t.Errorf("the skill %s is missing", skill)
@@ -66,7 +66,7 @@ func TestTheContextNamesWhatTheAgentNeedsToKnow(t *testing.T) {
 
 	written := string(fake.Files[demo.ConfigDir+"/DEMO.md"])
 
-	for _, want := range []string{ProjectsDir, SkillsDir, GalleryDir, "`dev`", "serveur Linux"} {
+	for _, want := range []string{ProjectsDir, SkillsDir, "`dev`", "`" + MCPName + "`", "`screenshot`", "serveur Linux"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("the context lacks %q:\n%s", want, written)
 		}

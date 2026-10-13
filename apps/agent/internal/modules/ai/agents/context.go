@@ -8,8 +8,12 @@ const machineHeader = `# Contexte machine — serveur de développement distant
   ni construction d'application de bureau ici.
 - Les projets vivent dans ` + ProjectsDir + `. Shell : zsh.
 - Avant d'écrire une commande, lis les scripts du package.json.
-- Pilote les projets avec ` + "`dev`" + ` (` + "`dev status`" + `, ` + "`dev up <projet>`" + `, ` + "`dev logs <projet>`" + `),
-  jamais avec un ` + "`bun run dev`" + ` lancé à la main : cela double les processus et bloque les ports.
+- Pilote les projets avec les outils du serveur MCP ` + "`" + MCPName + "`" + ` (` + "`status`" + `, ` + "`project_start`" + `,
+  ` + "`project_logs`" + `, ` + "`project_restart`" + `…), ou à défaut avec ` + "`dev`" + ` (` + "`dev status`" + `, ` + "`dev up <projet>`" + `,
+  ` + "`dev logs <projet>`" + `), jamais avec un ` + "`bun run dev`" + ` lancé à la main : cela double les
+  processus et bloque les ports.
+- Pour voir une page, appelle l'outil ` + "`screenshot`" + ` du serveur MCP ` + "`" + MCPName + "`" + ` : l'image te
+  revient directement. Nomme le projet plutôt que son adresse publique, que protège une clé.
 - Ports, hôtes, adresses et domaine d'un projet sont dans son environnement, en ` + "`PUPITRE_*`" + ` :
   lis-les, ne les écris jamais en dur (skill ` + "`project-env`" + `).
 - Les secrets d'un projet sont dans son ` + "`.env.local`" + `, écrit par l'agent : jamais dans un
@@ -22,13 +26,10 @@ const machineHeader = `# Contexte machine — serveur de développement distant
 
 Ils vivent dans ` + SkillsDir + `, et couvrent ce qui revient sans cesse :
 
-- ` + "`server-dev`" + ` — démarrer, diagnostiquer, synchroniser un projet avec ` + "`dev`" + ` ; ce qui
-  demande root.
+- ` + "`server-dev`" + ` — démarrer, diagnostiquer, synchroniser un projet avec le serveur MCP
+  ` + "`" + MCPName + "`" + ` ou ` + "`dev`" + ` ; ce qui demande root.
 - ` + "`project-env`" + ` — les variables ` + "`PUPITRE_*`" + ` que reçoit chaque projet : port, adresses
   locale et publique, routes, voisins, domaine.
-- ` + "`capture`" + ` — montrer une image : ` + "`shot`" + ` écrit l'URL de la capture, et la réponse se
-  termine par cette URL, jamais par un chemin local que personne ne peut ouvrir d'ici.
-  Les captures sont rangées dans ` + GalleryDir + `.
 - ` + "`ship`" + `, ` + "`branch`" + `, ` + "`pr`" + ` — commiter, pusher, ouvrir une pull request, dans la
   convention du dépôt.
 `

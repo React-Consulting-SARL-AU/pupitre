@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { announces, ofServer, useAgentUpdate } from "../agent-update";
+import { useSnapshot } from "../snapshot";
 
 const SERVER = "srv-1";
 
@@ -158,6 +160,153 @@ describe("the agent update", () => {
         fix: "Relance la mise à jour depuis l'app.",
       },
     });
+  });
+});
+
+describe("the AI agents' integration after an agent update", () => {
+  const UPGRADE = {
+    previous_version: "0.3.0",
+    restarting: true,
+    version: "0.4.0",
+  };
+
+  function migrated(state: "current" | "pending" | "failed" | "ahead") {
+    return {
+      applied: [],
+      expected: 2,
+      pending: [],
+      restored: false,
+      revision: 2,
+      state,
+    };
+  }
+
+  function onServer(ids: readonly string[]): void {
+    useSnapshot.setState({
+      state: {
+        serverId: SERVER,
+        snapshot: {
+          ...SNAPSHOT,
+          services: ids.map((id) => ({
+            configured: true,
+            id,
+            name: id,
+            runs: false,
+            state: "running" as const,
+          })),
+        },
+        status: "ready",
+      },
+    });
+  }
+
+  function upgradingTo(
+    migration: ReturnType<typeof migrated> | null,
+    asked: string[][]
+  ): void {
+    stubPupitre({
+      agentUpdateState: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: "0.4.0",
+            offer: null,
+            order: "same",
+            platform: true,
+          },
+        }),
+      upgradeAgent: () =>
+        Promise.resolve({ ok: true, result: { migration, upgrade: UPGRADE } }),
+      upgradeModules: (_serverId, modules, onEvent) => {
+        asked.push([...modules]);
+        onEvent(step("ai.claude", "ok"));
+
+        return Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r", warned: [] },
+        });
+      },
+    });
+  }
+
+  beforeEach(() => {
+    useSnapshot.setState({ state: { status: "idle" } });
+  });
+
+  it("upgrades every installed ai.* module once the configuration is current", async () => {
+    const asked: string[][] = [];
+
+    onServer(["db.postgres", "ai.claude", "runtime.node", "ai.browser"]);
+    upgradingTo(migrated("current"), asked);
+
+    await useAgentUpdate.getState().upgradeAgent(SERVER);
+
+    const state = useAgentUpdate.getState();
+
+    expect(asked).toEqual([["ai.claude", "ai.browser"]]);
+    expect(state.modules).toMatchObject({ serverId: SERVER, status: "done" });
+    expect(state.steps.map((module) => [module.id, module.status])).toEqual([
+      ["ai.claude", "ok"],
+      ["ai.browser", "pending"],
+    ]);
+  });
+
+  it("upgrades them too for an agent with nothing to migrate", async () => {
+    const asked: string[][] = [];
+
+    onServer(["ai.codex"]);
+    upgradingTo(null, asked);
+
+    await useAgentUpdate.getState().upgradeAgent(SERVER);
+
+    expect(asked).toEqual([["ai.codex"]]);
+  });
+
+  it("leaves the modules alone while the configuration is not current", async () => {
+    for (const state of ["pending", "failed", "ahead"] as const) {
+      const asked: string[][] = [];
+
+      useAgentUpdate.getState().forget();
+      onServer(["ai.claude"]);
+      upgradingTo(migrated(state), asked);
+
+      await useAgentUpdate.getState().upgradeAgent(SERVER);
+
+      expect(asked).toEqual([]);
+      expect(useAgentUpdate.getState().modules).toEqual({ status: "idle" });
+    }
+  });
+
+  it("asks nothing when no AI module is installed", async () => {
+    const asked: string[][] = [];
+
+    onServer(["db.postgres", "runtime.node"]);
+    upgradingTo(migrated("current"), asked);
+
+    await useAgentUpdate.getState().upgradeAgent(SERVER);
+
+    expect(asked).toEqual([]);
+    expect(useAgentUpdate.getState().modules).toEqual({ status: "idle" });
+  });
+
+  it("asks nothing when the agent update failed", async () => {
+    const asked: string[][] = [];
+
+    onServer(["ai.claude"]);
+    upgradingTo(migrated("current"), asked);
+    stubPupitre({
+      ...window.pupitre,
+      upgradeAgent: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "busy", message: "une installation est en cours" },
+        }),
+    });
+
+    await useAgentUpdate.getState().upgradeAgent(SERVER);
+
+    expect(asked).toEqual([]);
   });
 });
 

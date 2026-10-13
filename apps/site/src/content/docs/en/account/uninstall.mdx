@@ -45,8 +45,8 @@ It removes:
 
 - the `pupitred` service: stopped, disabled, its unit deleted. It is the agent's own service — the platform reads, the keys, the scheduled backups; they stop with it;
 - the `pupitre-resume` service: disabled and its unit deleted, but not stopped. It brings projects back after a boot, and the projects it started live in its `tmux` server: they keep running until the next reboot, after which nothing starts them;
-- `pupitre-shots`, the screenshot gallery, when it is there: stopped, disabled, its unit deleted;
-- `/usr/local/bin/pupitred`, and the `dev` and `shot` commands in `/usr/local/bin`, which are links to it;
+- every other service that runs the agent's binary, such as `pupitre-gate`, the access gate: stopped, disabled, its unit deleted;
+- `/usr/local/bin/pupitred`, and the `dev` command in `/usr/local/bin`, which is a link to it, as is the `shot` command a version before 2.1.0 left there;
 - in `/etc/sudoers.d/90-dev`, the two lines that let `pupitred` run without a password: `dev` keeps `sudo` on its password. The new rule is checked by `visudo` before it replaces the old one. A server hardened before the password keeps its passwordless rule as it is;
 - `/etc/pupitre`, except `/etc/pupitre/env`;
 - `/var/lib/pupitre`, the agent's state: the cached licence, the last install report, where the backups stand, the copies taken before a configuration migration;

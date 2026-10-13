@@ -25,7 +25,7 @@ const (
 var (
 	cli = mise.CLI{Tool: tool, Program: Program}
 
-	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true}
+	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true, MCP: agents.CodexMCP(cli.Path())}
 )
 
 type Module struct{}
@@ -67,8 +67,12 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// Conversations, credentials and the client's own skills stay; only the CLI and our context go.
+// Conversations, credentials and the client's own skills stay; only the CLI, our server and our context go.
 func (Module) Uninstall(ctx *modules.Context) error {
+	if err := agents.Unregister(ctx, target); err != nil {
+		return err
+	}
+
 	if err := cli.Remove(ctx); err != nil {
 		return err
 	}

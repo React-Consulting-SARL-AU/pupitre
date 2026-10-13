@@ -25,13 +25,12 @@ All seven land in the `dev` account, on the same machine, and can live side by s
 
 ## The context they read
 
-Every agent module writes the same machine context, under the name its tool reads — `CLAUDE.md` for Claude Code, `GEMINI.md` for Gemini, `copilot-instructions.md` for Copilot, `AGENTS.md` for Codex, OpenCode and Hermes. Cursor is the exception: it has no global rules file, your rules live in your account, and the skills carry what the machine has to say. It says the plain things an agent working here needs to know: that this is a Linux server and not a workstation, where the projects live, that servers are driven with the `dev` command rather than started by hand, and that secrets come from the machine's own secret store rather than from a committed file.
+Every agent module writes the same machine context, under the name its tool reads — `CLAUDE.md` for Claude Code, `GEMINI.md` for Gemini, `copilot-instructions.md` for Copilot, `AGENTS.md` for Codex, OpenCode and Hermes. Cursor is the exception: it has no global rules file, your rules live in your account, and the skills carry what the machine has to say. It says the plain things an agent working here needs to know: that this is a Linux server and not a workstation, where the projects live, that servers are driven with the tools of the `pupitre` MCP server, or the `dev` command, rather than started by hand, and that secrets come from the machine's own secret store rather than from a committed file.
 
 Beside it come the Pupitre skills, in `~/.agents/skills` and in the tool's own folder:
 
-- `server-dev` — register, start and diagnose a project with `dev`;
+- `server-dev` — start and diagnose a project with the MCP server or `dev`;
 - `project-env` — read a project's port, addresses and domain from its [`PUPITRE_*` variables](/docs/daily/projects/#variables-from-pupitre) instead of hardcoding them;
-- `capture` — take a screenshot and answer with a URL somebody else can open, not a local path;
 - `branch`, `pr`, `ship` — commit, push, open a pull request, in the repository's own convention.
 
 Claude Code also gets the `git-shipper` subagent. Updating a module rewrites the context and the skills; uninstalling takes back what the module wrote and leaves your conversations, your credentials and the skills you added yourself.
@@ -44,9 +43,9 @@ You do not have to open an agent from Pupitre. The Claude desktop app takes an S
 
 The app opens an agent in the project folder, not in a home directory. The project's own instruction files are there, and so are the skills above.
 
-## Screenshots
+## The MCP server
 
-With `ai.browser` installed, an agent can drive headless Chrome, file the image under `~/shots` and hand back a URL served on the loopback. That is what lets it look at the page it just changed instead of describing what it thinks it did. See [gallery](/docs/daily/gallery/).
+Claude Code and Codex also get Pupitre's MCP server: tools to start a project and wait for it, read its logs, restart a service, and, with `ai.browser` installed, take a screenshot of a page and see the image. That is what lets an agent look at the page it just changed instead of describing what it thinks it did. See [MCP server](/docs/daily/mcp/).
 
 ## Running overnight
 

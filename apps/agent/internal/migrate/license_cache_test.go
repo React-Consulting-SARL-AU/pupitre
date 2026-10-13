@@ -39,8 +39,8 @@ func TestLicenseCacheMovesTheLastReadOfThePlatformUnderItsNewName(t *testing.T) 
 	}
 
 	result, err := runner(machine, migrate.All()...).Run()
-	if err != nil || result.Failure != nil || len(result.Applied) != 1 || result.Applied[0].ID != 8 {
-		t.Fatalf("result = %+v, err = %v, want the eighth migration alone", result, err)
+	if err != nil || result.Failure != nil || len(result.Applied) != 2 || result.Applied[0].ID != 8 {
+		t.Fatalf("result = %+v, err = %v, want the eighth migration first", result, err)
 	}
 
 	if got := string(machine.Files[license.DefaultCachePath]); got != cachedRead {
@@ -86,7 +86,7 @@ func TestLicenseCacheLeavesAServerThatNeverReadThePlatformAlone(t *testing.T) {
 	atRevisionSeven(machine)
 
 	result, err := runner(machine, migrate.All()...).Run()
-	if err != nil || len(result.Applied) != 1 {
+	if err != nil || len(result.Applied) != 2 {
 		t.Fatalf("result = %+v, err = %v", result, err)
 	}
 

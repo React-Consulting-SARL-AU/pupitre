@@ -732,12 +732,6 @@ const api = {
     ipcRenderer.invoke("transfer:pick-save", name),
   pickFolder: (): Promise<string | null> =>
     ipcRenderer.invoke("transfer:pick-folder"),
-  /** Only the path `pickSavePath` just returned is accepted. */
-  saveShot: (
-    path: string,
-    bytes: Uint8Array
-  ): Promise<AgentResponse<{ path: string }>> =>
-    ipcRenderer.invoke("shots:save", path, bytes),
 
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
     ipcRenderer.invoke("install:report", serverId),

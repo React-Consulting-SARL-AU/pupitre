@@ -1,6 +1,7 @@
 package ai_test
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -13,6 +14,13 @@ import (
 	"pupitre.studio/agent/internal/modules/ai/hermes"
 	"pupitre.studio/agent/internal/modules/modtest"
 )
+
+// The transcript is amd64's on every machine that runs it.
+func TestMain(m *testing.M) {
+	browser.Arch = "amd64"
+
+	os.Exit(m.Run())
+}
 
 func registry(t *testing.T) *modules.Registry {
 	t.Helper()
@@ -38,7 +46,7 @@ func TestTheFourManifestsMatchTheCatalog(t *testing.T) {
 		claude.ID:  {},
 		codex.ID:   {},
 		hermes.ID:  {"providers", "always_on"},
-		browser.ID: {"subdomain"},
+		browser.ID: {},
 	}
 
 	for _, module := range registry(t).All() {

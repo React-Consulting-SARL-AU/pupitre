@@ -158,15 +158,15 @@ A module whose CLI connects to an account also implements `Login`: it asks the C
 
 | Id | Does | Fields |
 | --- | --- | --- |
-| `ai.claude` | Claude Code, login through the URL displayed in the app's terminal, project context, Pupitre skills (capture, branch, PR, ship) | — |
-| `ai.codex` | Codex, same | — |
+| `ai.claude` | Claude Code, login through the URL displayed in the app's terminal, project context, Pupitre skills (server-dev, project-env, branch, PR, ship), the `pupitre` [MCP server](./mcp.md) declared with `claude mcp add` | — |
+| `ai.codex` | Codex, same, the MCP server declared with `codex mcp add` | — |
 | `ai.cursor` | Cursor CLI (`cursor-agent`), Cursor's archive under `~/.local/share/cursor-agent/versions`, `agent` and `cursor-agent` links in `~/.local/bin`, Pupitre skills in `~/.cursor/skills`; no machine context, Cursor has no global rules file | — |
 | `ai.gemini` | Gemini CLI through mise, machine context in `~/.gemini/GEMINI.md`, Pupitre skills in `~/.gemini/skills` | — |
 | `ai.copilot` | GitHub Copilot CLI through mise, machine context in `~/.copilot/copilot-instructions.md`, Pupitre skills in `~/.copilot/skills` | — |
 | `ai.opencode` | OpenCode, binary of the GitHub release verified by the sum GitHub publishes, `~/.local/bin/opencode`, machine context in `~/.config/opencode/AGENTS.md`, Pupitre skills | — |
 | `ai.hermes` | Hermes Agent (Nous Research) through Python, model provider configuration, systemd service if always on, restarted when a key changes | `providers` (list of secrets), `always_on` (boolean) |
 | `ai.openclaw` | OpenClaw through mise on the Node of `runtime.node` (24.16 or later, checked before installation), model providers in `~/.openclaw/providers.env` under the names the gateway reads, `openclaw gateway` gateway as the `pupitre-openclaw` systemd service on 127.0.0.1:18789 if always on — restarted when a key changes —, Pupitre skills; channels are plugged in through `openclaw onboard` in a terminal | `providers` (list of secrets), `always_on` (boolean) |
-| `ai.browser` | headless Chrome, Playwright dependencies, `shot` command that files images by project in the gallery (`~/shots/<project>/<day>/`, `~/shots/_unfiled/<day>/` outside a project), `pupitre-shots` gallery on 127.0.0.1:8099; with a subdomain, the gallery is published by the installed exposure under `https://<subdomain>.<domain>/<token>/`, the token drawn by the agent in `/etc/pupitre/shots.env` (0600, read by systemd) | `subdomain` (text, a DNS label, empty = local gallery) |
+| `ai.browser` | Headless browser: headless Chrome (Chromium on arm64) and the Playwright libraries, used by the `screenshot` tool of the [MCP server](./mcp.md); no service, no port. Its `upgrade` retires what the screenshot gallery left before 2.1.0 (`pupitre-shots`, `/etc/pupitre/shots.env` and its route, the `shot` link) and keeps `~/shots`, the customer's captures | — |
 
 ### Remote editors
 

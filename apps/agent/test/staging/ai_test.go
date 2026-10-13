@@ -50,7 +50,7 @@ func TestTheSevenAgentsAnswerForDev(t *testing.T) {
 
 	skills := ssh(t, dev, "ls ~/.agents/skills")
 
-	for _, skill := range []string{"branch", "capture", "pr", "server-dev", "ship"} {
+	for _, skill := range []string{"branch", "pr", "project-env", "server-dev", "ship"} {
 		if !strings.Contains(skills, skill) {
 			t.Errorf("the skill %s is missing:\n%s", skill, skills)
 		}
@@ -93,37 +93,79 @@ func TestReplayingTheInstallChangesNothing(t *testing.T) {
 	}
 }
 
-func TestAShotShowsUpInTheGallery(t *testing.T) {
+func TestClaudeAndCodexAreGivenThePupitreServer(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
 	installAgents(t, host)
 
-	printed := ssh(t, dev, "shot https://example.org")
-	lines := strings.Fields(strings.TrimSpace(printed))
-	if len(lines) == 0 || !strings.HasPrefix(lines[len(lines)-1], "http") {
-		t.Fatalf("the last line printed is the URL:\n%s", printed)
+	if out := ssh(t, dev, "claude mcp get pupitre"); !strings.Contains(out, "/usr/local/bin/pupitred") {
+		t.Errorf("Claude Code does not know the server:\n%s", out)
 	}
 
-	listed := agent(t, host, request{Cmd: "shots.list"})[0]
-	shots := decode[struct {
-		Shots []contract.Shot `json:"shots"`
-	}](t, listed.Result)
-
-	if len(shots.Shots) == 0 || !strings.Contains(shots.Shots[0].Name, "example-org") {
-		t.Fatalf("shots.list must show the capture: %+v", shots.Shots)
+	if out := ssh(t, dev, "codex mcp get pupitre"); !strings.Contains(out, "/usr/local/bin/pupitred") {
+		t.Errorf("Codex does not know the server:\n%s", out)
 	}
 
-	if shots.Shots[0].Project != nil || !strings.HasPrefix(shots.Shots[0].Path, "_unfiled/") {
-		t.Fatalf("a capture taken outside any project is filed apart: %+v", shots.Shots[0])
+	if out := ssh(t, dev, "ls ~/.agents/skills ~/.claude/skills"); strings.Contains(out, "capture") {
+		t.Errorf("the retired capture skill must be gone:\n%s", out)
+	}
+}
+
+func TestTheMCPServerAnswersDevAndHandsBackAScreenshot(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+
+	installAgents(t, host)
+
+	session := sshCommand(dev, "pupitred", "mcp")
+	session.Stdin = strings.NewReader(strings.Join([]string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"staging","version":"1"}}}`,
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"status","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"screenshot","arguments":{"url":"https://example.org"}}}`,
+	}, "\n") + "\n")
+
+	out, err := session.Output()
+	if err != nil {
+		t.Fatalf("pupitred mcp: %v\n%s", err, out)
 	}
 
-	served := ssh(t, dev, "curl", "-fsS", "http://127.0.0.1:8099/")
-	if !strings.Contains(served, `href="/_unfiled"`) {
-		t.Fatalf("the gallery must list the folder of the capture:\n%s", served)
+	replies := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(replies) != 4 {
+		t.Fatalf("four requests, four replies, the notification unanswered:\n%s", out)
 	}
 
-	ssh(t, dev, "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8099/"+shots.Shots[0].Path)
+	type toolResult struct {
+		Result struct {
+			Content []struct {
+				Type     string `json:"type"`
+				Text     string `json:"text"`
+				MimeType string `json:"mimeType"`
+				Data     string `json:"data"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+
+	if !strings.Contains(replies[1], `"project_start"`) || !strings.Contains(replies[1], `"screenshot"`) {
+		t.Errorf("tools/list lacks the tools:\n%s", replies[1])
+	}
+
+	status := decode[toolResult](t, []byte(replies[2]))
+	if status.Result.IsError || len(status.Result.Content) == 0 || !strings.Contains(status.Result.Content[0].Text, `"services"`) {
+		t.Errorf("status went through the limited session:\n%s", replies[2])
+	}
+
+	shot := decode[toolResult](t, []byte(replies[3]))
+	if shot.Result.IsError || len(shot.Result.Content) == 0 || shot.Result.Content[0].Type != "image" || shot.Result.Content[0].MimeType != "image/png" || len(shot.Result.Content[0].Data) < 1000 {
+		t.Fatalf("the screenshot comes back as an image:\n%.400s", replies[3])
+	}
+
+	if left := ssh(t, dev, "ls -d /tmp/pupitre-capture-* 2>/dev/null || true"); strings.TrimSpace(left) != "" {
+		t.Errorf("the server leaves nothing behind:\n%s", left)
+	}
 }
 
 func TestOpeningAnAgentGivesTheTmuxCommand(t *testing.T) {

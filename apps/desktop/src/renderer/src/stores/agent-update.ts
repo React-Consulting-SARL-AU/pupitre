@@ -14,6 +14,8 @@ import {
   record,
   stepOf,
 } from "../lib/module-progress";
+import { aiModulesOf } from "../lib/modules";
+import { snapshotOf, useSnapshot } from "./snapshot";
 
 export type UpdateState =
   | { status: "idle" }
@@ -186,8 +188,23 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
           : { error: answer.error, serverId, status: "failed" },
       });
 
-      if (answer.ok) {
-        await reread(serverId);
+      if (!answer.ok) {
+        return;
+      }
+
+      await reread(serverId);
+
+      // The agent refuses `upgrade` on a configuration it could not carry.
+      if (owesMigration(answer.result.migration)) {
+        return;
+      }
+
+      const integrations = aiModulesOf(
+        snapshotOf(useSnapshot.getState().state, serverId)?.services ?? []
+      );
+
+      if (integrations.length > 0) {
+        await get().upgradeModules(serverId, integrations);
       }
     },
 

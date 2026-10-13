@@ -16,6 +16,7 @@ Everything an agent must read before touching the code, and everything the proje
 | [`security.md`](./security.md) | Threat model with no code secrecy, licence, tokens | web, desktop, agent |
 | [`legal.md`](./legal.md) | The publisher, the code's licence, the published legal pages, what remains to be filled in | everyone |
 | [`contracts/agent-protocol.md`](./contracts/agent-protocol.md) | The JSON protocol between the app and the agent, over SSH | desktop, agent |
+| [`contracts/mcp.md`](./contracts/mcp.md) | `pupitred mcp`, the stdio MCP server AI agents on the VPS drive projects through, over the limited session | agent |
 | [`contracts/platform-api.md`](./contracts/platform-api.md) | The `/api/v1` API consumed by the console, the app and the agent | web, desktop, agent |
 | [`contracts/service-catalog.md`](./contracts/service-catalog.md) | The catalogue's modules, their manifests, their fields | desktop, agent |
 | [`contracts/config-migrations.md`](./contracts/config-migrations.md) | How a configuration goes from one version to the next, on the VPS and on the laptop | desktop, agent |

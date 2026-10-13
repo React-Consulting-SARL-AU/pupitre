@@ -19,7 +19,6 @@ import {
   DatabaseBackup,
   Files,
   FolderPlus,
-  Images,
   KeyRound,
   LayoutDashboard,
   Plus,
@@ -34,12 +33,7 @@ import { SidebarGroup } from "./sidebar-group";
 import { SidebarMore } from "./sidebar-more";
 import { TransfersPanel } from "./transfers-panel";
 
-const FOLDED_VIEWS: readonly View[] = [
-  "activity",
-  "shots",
-  "backups",
-  "access",
-];
+const FOLDED_VIEWS: readonly View[] = ["activity", "backups", "access"];
 
 interface Props {
   view: View;
@@ -123,13 +117,6 @@ export function AppSidebar({
             onClick={() => onView("activity")}
           >
             {t("shell.sidebar.activity")}
-          </SidebarEntry>
-          <SidebarEntry
-            active={view === "shots"}
-            bullet={<Images size={14} strokeWidth={1.5} />}
-            onClick={() => onView("shots")}
-          >
-            {t("shell.sidebar.gallery")}
           </SidebarEntry>
           <SidebarEntry
             active={view === "backups"}

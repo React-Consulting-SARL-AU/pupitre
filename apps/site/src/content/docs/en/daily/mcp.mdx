@@ -1,0 +1,34 @@
+---
+title: MCP server
+description: The tools Claude Code and Codex get on the server to start projects, read logs and look at a page, and what they cannot do with them.
+locale: en
+section: daily
+sectionOrder: 2
+order: 7
+---
+
+An AI agent on the server drives your projects through Pupitre rather than through the shell. `ai.claude` and `ai.codex` declare Pupitre's MCP server in their tool on install, under the name `pupitre`, with the tool's own `mcp add` command. You have nothing to set up. The other agents keep the `dev` command, which does the same from a terminal.
+
+## What the tools do
+
+- **Start, stop, restart** a project or one of its processes. A start waits until the process is online or has failed, 45 seconds by default, and a failure comes back with the end of its log.
+- **Logs**: the last lines of each process of a project, or of a service.
+- **Services**: start, stop, restart a service already installed.
+- **Status and doctor**: the machine, its services, every project and the state of each process; the machine's checks with the fix of each failure.
+- **Screenshot**: opens a page in the headless browser of `ai.browser` and hands the image to the agent, so it looks at the page it just changed instead of describing what it thinks it did. A project is captured on its local address, so the [access key](/docs/daily/access/) does not get in the way.
+
+A screenshot is taken in a private temporary folder, read back and removed. Nothing is kept on the server, and no address points at it.
+
+## What it cannot do
+
+The MCP server runs as `dev`, through the same limited session as the `dev` command. Installing or configuring a service, revealing a secret, opening a project to the web, dumping or importing a database stay your gestures, in the app, behind your sudo password. When the agent asks for one of them, the tool answers with the refusal and what to do instead.
+
+That is why Claude Code may use these tools without asking you each time: `ai.claude` adds the rule `mcp__pupitre` to the permissions of `~/.claude/settings.json`, beside your own rules. Remove it there to be asked again; the next update of the module puts it back.
+
+It opens no port: the agent launches it and talks to it over its standard input and output.
+
+## On a server already installed
+
+Update the agent from the app. Once the agent is up to date, the app updates the installed AI agent modules: they declare the MCP server and rewrite the machine context and the skills, which now point to these tools first.
+
+Screenshots taken before that, in `~/shots`, stay where they are.

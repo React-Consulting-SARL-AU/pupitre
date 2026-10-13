@@ -45,8 +45,8 @@ Elle retire :
 
 - le service `pupitred` : arrêté, désactivé, son unité supprimée. C’est le service propre de l’agent — les lectures de la plateforme, les clés, les sauvegardes programmées ; elles s’arrêtent avec lui ;
 - le service `pupitre-resume` : désactivé et son unité supprimée, mais pas arrêté. Il relance les projets après un redémarrage, et les projets qu’il a lancés vivent dans son serveur `tmux` : ils continuent de tourner jusqu’au prochain redémarrage, après quoi plus rien ne les lance ;
-- `pupitre-shots`, la galerie de captures, s’il est là : arrêté, désactivé, son unité supprimée ;
-- `/usr/local/bin/pupitred`, et les commandes `dev` et `shot` de `/usr/local/bin`, qui sont des liens vers lui ;
+- tout autre service qui lance le binaire de l’agent, comme `pupitre-gate`, la passerelle d’accès : arrêté, désactivé, son unité supprimée ;
+- `/usr/local/bin/pupitred`, et la commande `dev` de `/usr/local/bin`, qui est un lien vers lui, comme la commande `shot` qu’une version antérieure à 2.1.0 y a laissée ;
 - dans `/etc/sudoers.d/90-dev`, les deux lignes qui laissent `pupitred` tourner sans mot de passe : `dev` garde `sudo` sur son mot de passe. La nouvelle règle est vérifiée par `visudo` avant de remplacer l’ancienne. Un serveur sécurisé avant le mot de passe garde sa règle sans mot de passe telle quelle ;
 - `/etc/pupitre`, sauf `/etc/pupitre/env` ;
 - `/var/lib/pupitre`, l’état de l’agent : la licence en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration ;

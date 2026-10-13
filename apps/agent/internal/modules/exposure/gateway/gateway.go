@@ -7,7 +7,7 @@ import (
 	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
-	"pupitre.studio/agent/internal/shots"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
@@ -22,7 +22,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=` + shots.Binary + ` gate --dir=` + gate.Dir + ` --listen=` + gate.Address + `
+ExecStart=` + sudo.Binary + ` gate --dir=` + gate.Dir + ` --listen=` + gate.Address + `
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=2

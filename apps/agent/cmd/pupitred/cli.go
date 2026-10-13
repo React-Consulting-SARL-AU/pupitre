@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,6 +19,19 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys/lock"
 )
+
+// A symlink named dev makes the binary itself the driving command, never a script laid on the client's disk.
+func arguments(argv []string) []string {
+	if len(argv) == 0 {
+		return nil
+	}
+
+	if name := filepath.Base(argv[0]); name == devcli.Command {
+		return append([]string{name}, argv[1:]...)
+	}
+
+	return argv[1:]
+}
 
 // The verbs reach a root server when this account cannot read what the answer depends on.
 func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {

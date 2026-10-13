@@ -26,8 +26,9 @@ Go 1.26 (the version in `go.mod`), standard library first. Static binary (`CGO_E
 ## Architecture
 
 ```
-cmd/pupitred/            main.go: version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · env · backup open · binary install · keys reset · uninstall; one cli_*.go per subcommand
+cmd/pupitred/            main.go: version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · dev · mcp · env · backup open · binary install · keys reset · uninstall; one cli_*.go per subcommand
 internal/backup/         backups and restoration: streamed parts, manifest, pruning, scheduling, backup.* commands; seal/ the encrypted container and the passphrase key, archive/ the dev account's tars and their safe extraction
+internal/capture/        a page captured by the headless browser and handed back as bytes, nothing kept
 internal/contract/       schema.json exported from packages/shared, error codes, field rules, compatibility sheet
 internal/daemon/         pupitred daemon: reading /agent/state, keys, heartbeat, systemd unit, enrolment, keys.list
 internal/devcli/         grammar and rendering of pupitred dev; in dev, the verbs go to sudo -n pupitred serve (remote.go), and to serve --privileged, password asked on the terminal, for a privileged verb; the same grammar that completions renders
@@ -35,6 +36,7 @@ internal/golden/         records what a test transcript produced, instead of fai
 internal/i18n/           all the agent's sentences, in French and English, one catalogue per domain
 internal/keys/           marked authorized_keys block, atomic write; signers (/etc/pupitre/signers.json) and SSHSIG approvals of decision 0014; keys reset, the rescue from the host's console
 internal/license/        licence, cache, restricted mode; build_dev.go carries the dev tag's licence
+internal/mcp/            the stdio MCP server for AI agents on the VPS: JSON-RPC, tools over the limited session; see docs/contracts/mcp.md
 internal/migrate/        the configuration migrations registry: revision, backups, replay, restoration; migrations.go is the list
 internal/modules/        Module interface, engine, validation, preflight, journal, lock; one folder per category: core/, runtime/, db/, ai/, editor/, exposure/, tool/; modtest/ for tests
 internal/platform/       the platform's HTTPS client, server token
@@ -45,7 +47,6 @@ internal/s3/             S3 client on the standard library: SigV4, streamed mult
 internal/release/        signing and publication of binaries by the release pipeline; none of it is linked into pupitred
 internal/selfupdate/     agent.upgrade: download, checksum and signature, version floor, replacement; Place for binary install, the binary pushed by the app in dev
 internal/sudo/           dev's sudoers rule (decision 0015): Open from before, Restricted to the two exact lines serve and binary install, Password which uninstall leaves, Write which goes through visudo, and the state that snapshot reads from it
-internal/shots/          the screenshot gallery and its read-only server
 internal/state/          snapshot, status, projects, git, agents, completions, repository detection
 internal/sys/            apt, systemd, files, network, users, environment; sys.Real and the test fake
 internal/tmux/           session, one <project>/<process> window per process, logs

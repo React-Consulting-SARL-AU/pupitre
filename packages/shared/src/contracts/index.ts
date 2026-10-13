@@ -26,7 +26,6 @@ import {
   InstallSecretsSchema,
 } from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
-import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
 import { ProjectSchema } from "../agent-protocol/state"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
@@ -126,7 +125,6 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   LogEvent: LogEventSchema,
   StepEvent: StepEventSchema,
   SecretEvent: SecretEventSchema,
-  ShotEvent: ShotEventSchema,
   FileEvent: FileEventSchema,
   Response: ResponseSchema,
   ProtocolError: ProtocolErrorSchema,
