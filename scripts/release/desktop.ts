@@ -1,4 +1,5 @@
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -14,7 +15,7 @@ import {
 } from "../../apps/desktop/scripts/release-artefacts"
 import { AGENT_DIST, ARCHES } from "./agent"
 import { hasFlag, say, variable } from "./cli"
-import { type Bucket, bucket, get, keys, put } from "./r2"
+import { type Bucket, bucket, get, keys } from "./r2"
 import { run } from "./shell"
 
 // One system per host: node-pty, notarization and Trusted Signing cannot cross-build.
@@ -24,15 +25,16 @@ const DESKTOP_DIR = path.join(ROOT, "apps/desktop")
 
 const DESKTOP_DIST = path.join(DESKTOP_DIR, "dist")
 
-export const SYSTEMS = {
+// The release workflow hands this folder to the publish job as a run artifact.
+const STAGE_DIR = path.join(DESKTOP_DIST, "stage")
+
+const SYSTEMS = {
   darwin: "macos",
   linux: "linux",
   win32: "windows",
 } as const
 
 export type System = (typeof SYSTEMS)[keyof typeof SYSTEMS]
-
-export const WORK_INDEX = "index.json"
 
 const FEED_OF: Record<System, string> = {
   linux: "latest-linux.yml",
@@ -265,38 +267,22 @@ function build(system: System, env: NodeJS.ProcessEnv, dryRun: boolean): void {
   run(["bun", "run", "build:linux"], { cwd: DESKTOP_DIR, dryRun, env: shared })
 }
 
-async function stage(
-  system: System,
-  version: string,
-  vault: Bucket
-): Promise<void> {
-  const files = publishable(
-    system,
-    vault.dryRun ? [] : readdirSync(DESKTOP_DIST)
-  )
+function stage(system: System, dryRun: boolean): void {
+  const files = publishable(system, dryRun ? [] : readdirSync(DESKTOP_DIST))
 
-  if (files.length === 0 && !vault.dryRun) {
+  if (files.length === 0 && !dryRun) {
     throw new Error(
       `${DESKTOP_DIST} holds nothing publishable: the build produced no installer.`
     )
   }
 
-  const index = path.join(DESKTOP_DIST, WORK_INDEX)
-
-  if (!vault.dryRun) {
-    writeFileSync(index, `${JSON.stringify(files, null, 2)}\n`)
-  }
+  mkdirSync(STAGE_DIR, { recursive: true })
 
   for (const file of files) {
-    await put(
-      vault,
-      keys.work(version, system, file),
-      path.join(DESKTOP_DIST, file)
-    )
+    copyFileSync(path.join(DESKTOP_DIST, file), path.join(STAGE_DIR, file))
   }
 
-  await put(vault, keys.work(version, system, WORK_INDEX), index)
-  say(`${system}: ${files.length} files staged for ${version}`)
+  say(`${system}: ${files.length} files staged in ${STAGE_DIR}`)
 }
 
 export async function desktopCommand(
@@ -311,5 +297,5 @@ export async function desktopCommand(
 
   await fetchAgent(version, vault)
   build(system, env, dryRun)
-  await stage(system, version, vault)
+  stage(system, dryRun)
 }

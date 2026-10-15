@@ -80,7 +80,7 @@ The second pass is run without a flag: `next` keeps the version the first wrote 
 | `ci` | `ci.yml` called on the tagged commit: gitleaks on `origin/main..HEAD`, migrations, lint, typecheck, tests, build outside desktop. Red, nothing else leaves: no signature, no bucket, no declaration |
 | `agent build` | build, signature, binary test — embedded public key, `version` and `hello` on the machine of each architecture — amd64 on the building runner, arm64 on an arm64 runner (`agent smoke`), never under emulation; or resumed from the bucket if the version is already there, because the platform holds the checksums of the first declaration |
 | `agent publish` | `agent/<version>/` of the **private** bucket — binaries, `release.json`, `publications.json` — then `POST /admin/releases` to the platform |
-| `desktop` | one job per system: macOS signed and notarized in arm64 and x64, Windows signed by Azure Trusted Signing, Linux — in `stable`, a missing signing value stops the job, electron-builder receives `forceCodeSigning`; the agent resumed from the bucket and embedded; installers, blockmaps and feeds under `work/<version>/<system>/` of the private bucket |
+| `desktop` | one job per system: macOS signed and notarized in arm64 and x64, Windows signed by Azure Trusted Signing, Linux — in `stable`, a missing signing value stops the job, electron-builder receives `forceCodeSigning`; the agent resumed from the bucket and embedded; installers, blockmaps and feeds handed to `app publish` as the run artifact `app-<version>-<system>`, kept a day |
 | `app publish` | each installer and each macOS update `.zip` signed with the release key — the installed app puts nothing in place without that `.sig`, on the three systems —, files and `.sig` on the **public** bucket, `latest*.yml` feeds rewritten with absolute URLs under `app/<version>/` and `app/<channel>/`, `POST /admin/app-releases` per file — sending its **key** in the bucket, never an address — and the rows kept in `app/<version>/publications.json` |
 | `verify` | from the outside: the platform describes the version, each file it names is served whole by the public bucket, the channel's feeds name it and each file they name has its `.sig` — the report is the run's summary |
 | `github-release` | once `verify` passed: the GitHub release of the tag, titled by the changelog entry, its English body followed by a table linking every installer the platform describes on `dl.pupitre.studio` — no file attached, the bucket stays the only source; `--latest` in `stable`, `--prerelease` otherwise; a release that already exists is edited, never duplicated |
@@ -88,7 +88,7 @@ The second pass is run without a flag: `next` keeps the version the first wrote 
 
 If the protocol changed, before the second pass: one more line in `packages/shared/src/compat`, then `bun --cwd=packages/shared run contracts:export`, committed beforehand.
 
-A failing job reruns on its own from GitHub (*Re-run failed jobs*) — what is already in the bucket is rewritten identically, what is already declared answers 200, and the merge gets to the end. A `merge` that refuses for lack of a check on `staging`'s head means commits arrived after the tag: the version is published, but `main` waits — the pull request left open is checked by hand (approve its pending run, or open a new one from the owner's account) then merged with a merge commit once green. A version to republish without a new tag: `gh workflow run release.yml --ref vX.Y.Z`. The `merge` job requires the repository to allow GitHub Actions to open pull requests (`docs/deploy.md`, step 8).
+A failing job reruns on its own from GitHub (*Re-run failed jobs*) — what is already in the bucket is rewritten identically, what is already declared answers 200, and the merge gets to the end. After a day the app's run artifacts are gone: a `publish` rerun then needs the `desktop` jobs rerun with it. A `merge` that refuses for lack of a check on `staging`'s head means commits arrived after the tag: the version is published, but `main` waits — the pull request left open is checked by hand (approve its pending run, or open a new one from the owner's account) then merged with a merge commit once green. A version to republish without a new tag: `gh workflow run release.yml --ref vX.Y.Z`. The `merge` job requires the repository to allow GitHub Actions to open pull requests (`docs/deploy.md`, step 8).
 
 ### 3 bis. The release key, once and for all
 
@@ -130,7 +130,7 @@ gh workflow run promote.yml -f version=X.Y.Z -f channel=stable
 
 - Agent: agents already updated stay on the new version until a more recent version is published (the agent does not downgrade without an explicit gesture from the owner).
 - App: `electron-updater` does not go back down, an already updated app waits for the fixed version.
-- The artifacts of a published version are never deleted from the bucket: a link written elsewhere keeps resolving.
+- Only a version still in both buckets can be promoted: older versions are deleted by hand to free space, which breaks the download links of their GitHub releases.
 - A fix ships on a new tag `vX.Y.Z+1`, never by rewriting the tag.
 
 ## What a release does not do
