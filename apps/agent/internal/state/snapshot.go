@@ -117,7 +117,9 @@ func (r *Reader) projects() []contract.Project {
 func (r *Reader) list(collected tmux.Collection, table processTable) []contract.Project {
 	ctx := r.ctx()
 	file := r.registry()
-	memory := table.ram(collected.Panes())
+	panes := collected.Panes()
+	memory := table.ram(panes)
+	held := r.holders(table, panes)
 	branches := map[string]string{}
 
 	projects := make([]contract.Project, 0, len(file.Projects))
@@ -130,8 +132,18 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 
 		for at, process := range declared.Processes {
 			window := declared.Window(process.ID)
+
+			holder := elsewhere(held, process.Port, window)
+
+			seen := collected
+			if holder != "" {
+				seen = collected.Without(process.Port)
+			}
+
+			project.Processes[at].HeldBy = holder
+
 			project.Processes[at].EnvChanged = collected.EnvChanged(window, declared.ProcessEnvironment(root, file.Domain, process).List())
-			project.Processes[at].State = tmux.State(ctx, r.options.Tmux, window, process.PkgMgr, process.Port, collected)
+			project.Processes[at].State = tmux.State(ctx, r.options.Tmux, window, process.PkgMgr, process.Port, seen)
 			project.Processes[at].URL = process.URL()
 			project.Processes[at].PID = collected.PID(window)
 			project.Processes[at].RAMMB = memory[window]

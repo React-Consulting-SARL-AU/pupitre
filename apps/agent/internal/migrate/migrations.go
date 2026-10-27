@@ -75,7 +75,48 @@ func All() []Migration {
 			Touches: []Target{TargetInstall},
 			Apply:   browserWithoutGallery,
 		},
+		{
+			ID:      10,
+			Slug:    "processes-port-span",
+			Since:   "2.2.0",
+			Touches: []Target{TargetProjects},
+			Apply:   processesPortSpan,
+		},
 	}
+}
+
+// A process held one port; it now names how many it holds from that one on.
+func processesPortSpan(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetProjects)
+	if err != nil || !present {
+		return err
+	}
+
+	entries, _ := document["projects"].([]any)
+	changed := false
+
+	for _, entry := range entries {
+		project, _ := entry.(map[string]any)
+		processes, _ := project["processes"].([]any)
+
+		for _, process := range processes {
+			fields, _ := process.(map[string]any)
+			if fields == nil {
+				continue
+			}
+
+			if _, named := fields["port_span"]; !named {
+				fields["port_span"] = 1
+				changed = true
+			}
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetJSON(TargetProjects, document)
 }
 
 // The screenshot gallery is gone, and with it the name it was published under.

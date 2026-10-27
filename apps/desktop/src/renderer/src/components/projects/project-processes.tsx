@@ -3,6 +3,7 @@ import type { RowProblem } from "@renderer/lib/project-ports";
 import type {
   ProcessDraft,
   ProcessProblem,
+  SpanProblem,
 } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import { Plus } from "lucide-react";
@@ -15,6 +16,7 @@ export function ProjectProcesses({
   processes,
   problems,
   rowProblems,
+  spanProblems = null,
   exposure,
   placeholder,
   folded = false,
@@ -23,6 +25,8 @@ export function ProjectProcesses({
   processes: readonly ProcessDraft[];
   problems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
+  /** Null for an agent that predates spans: the field stays hidden. */
+  spanProblems?: readonly (SpanProblem | null)[] | null;
   exposure: Exposure | null;
   placeholder: string;
   folded?: boolean;
@@ -64,6 +68,8 @@ export function ProjectProcesses({
             problem={problems[index] ?? null}
             removable={processes.length > 1}
             rowProblems={rowProblems[index] ?? []}
+            spanProblem={spanProblems?.[index] ?? null}
+            spans={spanProblems !== null}
           />
         ))}
       </ul>

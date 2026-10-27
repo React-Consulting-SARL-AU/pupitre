@@ -5,11 +5,12 @@ import type {
 } from "@pupitre/shared/agent-protocol/projects";
 import {
   type PackageManager,
+  PORT_SPAN_MAX,
   PROJECT_ROOT_DIR,
   type ProcessRegistration,
   type Project,
 } from "@pupitre/shared/agent-protocol/state";
-import { FIRST_PORT, freePort, startCommand } from "./project-draft";
+import { FIRST_PORT, freePort, LAST_PORT, startCommand } from "./project-draft";
 import {
   firstRow,
   followName,
@@ -22,6 +23,7 @@ import {
   rowsFromDetection,
   rowsFromProcess,
   rowsReady,
+  spanPorts,
   validLabel,
 } from "./project-ports";
 
@@ -44,6 +46,8 @@ export interface ProcessDraft {
   /** The loopback, or the `.localhost` name a start script freezes. */
   host: string;
   rows: PortRow[];
+  /** How many ports from the main one the process hands out itself. */
+  span: number;
   /** Set once the reader typed `cmd`: it stops following the port. */
   ownCmd: boolean;
   /** The agent's command and the port it was written for, rewritten when the port moves. */
@@ -72,6 +76,8 @@ function protectionOf(draft: ProcessDraft): { protected?: boolean } {
 
 export type ProcessProblem = "id" | "idTaken" | "dir" | "cmd";
 
+export type SpanProblem = "span" | "spanTaken";
+
 let keys = 0;
 
 function nextKey(): string {
@@ -94,6 +100,7 @@ function draftOf(
     ownCmd: false,
     pkgmgr: "bun",
     proposed: {},
+    span: 1,
     ...partial,
   };
 }
@@ -136,6 +143,16 @@ export function commandOf(draft: ProcessDraft): string {
   );
 }
 
+/** Its span, then the lines that point outside it. */
+function portsHeldBy(draft: ProcessDraft): number[] {
+  const span = spanPorts(mainPort(draft), draft.span);
+
+  return [
+    ...span,
+    ...draft.rows.map((row) => row.port).filter((port) => !span.includes(port)),
+  ];
+}
+
 export function heldAround(
   processes: readonly ProcessDraft[],
   index: number,
@@ -145,11 +162,46 @@ export function heldAround(
 
   return {
     hostnames: held.hostnames,
-    ports: [
-      ...held.ports,
-      ...others.flatMap((other) => other.rows.map((row) => row.port)),
-    ],
+    ports: [...held.ports, ...others.flatMap(portsHeldBy)],
   };
+}
+
+export function spanRange(draft: ProcessDraft): string {
+  const first = mainPort(draft);
+
+  return draft.span > 1 ? `${first} – ${first + draft.span - 1}` : `${first}`;
+}
+
+/** The main port is the lines' to judge; the span answers for the ports after it. */
+export function spanProblem(
+  processes: readonly ProcessDraft[],
+  index: number,
+  held: Held
+): SpanProblem | null {
+  const current = processes[index];
+
+  if (!current) {
+    return null;
+  }
+
+  const first = mainPort(current);
+
+  if (
+    !Number.isInteger(current.span) ||
+    current.span < 1 ||
+    current.span > PORT_SPAN_MAX ||
+    first + current.span - 1 > LAST_PORT
+  ) {
+    return "span";
+  }
+
+  const around = heldAround(processes, index, held).ports;
+
+  return spanPorts(first, current.span)
+    .slice(1)
+    .some((port) => around.includes(port))
+    ? "spanTaken"
+    : null;
 }
 
 export function addedProcess(
@@ -234,6 +286,7 @@ export function processesFromProject(project: Project): ProcessDraft[] {
       ownCmd: true,
       pkgmgr: declared.pkgmgr,
       rows: rowsFromProcess(declared),
+      span: declared.port_span ?? 1,
     })
   );
 }
@@ -321,6 +374,7 @@ export function processesReady(
     processes.every(
       (current, index) =>
         processProblem(processes, index) === null &&
+        spanProblem(processes, index, held) === null &&
         rowsReady(current.rows, heldAround(processes, index, held), exposure)
     )
   );
@@ -330,6 +384,11 @@ function dirOf(draft: ProcessDraft): string {
   const dir = draft.dir.trim();
 
   return dir.length > 0 ? dir : PROJECT_ROOT_DIR;
+}
+
+/** Left out at one: an agent that predates spans refuses a key it does not know. */
+function spanOf(draft: ProcessDraft): { port_span?: number } {
+  return draft.span > 1 ? { port_span: draft.span } : {};
 }
 
 export function processRequests(
@@ -347,6 +406,7 @@ export function processRequests(
       pkgmgr: current.pkgmgr,
       port: mainPort(current),
       routes: routeRequests(current.rows, exposure),
+      ...spanOf(current),
       ...(install ? { install } : {}),
       ...protectionOf(current),
     };
@@ -367,6 +427,7 @@ export function processPatches(
     pkgmgr: current.pkgmgr,
     port: mainPort(current),
     routes: routePatches(current.rows, exposure),
+    ...spanOf(current),
     ...protectionOf(current),
   }));
 }

@@ -215,6 +215,16 @@ describe("what a line refuses before the agent does", () => {
     ]);
   });
 
+  it("counts every port of a span as held", () => {
+    const [main, worker] = OTHER.processes;
+    const spanning: Project = {
+      ...OTHER,
+      processes: [{ ...(main as Process), port_span: 3 }, worker as Process],
+    };
+
+    expect(heldBy([spanning]).ports).toEqual([4000, 4001, 4002, 4000, 4010]);
+  });
+
   it("names the label, port or name at fault", () => {
     const rows = [
       row({ port: 3000, web: "shop" }),

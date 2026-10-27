@@ -39,7 +39,7 @@ func TestLicenseCacheMovesTheLastReadOfThePlatformUnderItsNewName(t *testing.T) 
 	}
 
 	result, err := runner(machine, migrate.All()...).Run()
-	if err != nil || result.Failure != nil || len(result.Applied) != 2 || result.Applied[0].ID != 8 {
+	if err != nil || result.Failure != nil || len(result.Applied) != 3 || result.Applied[0].ID != 8 {
 		t.Fatalf("result = %+v, err = %v, want the eighth migration first", result, err)
 	}
 
@@ -86,7 +86,7 @@ func TestLicenseCacheLeavesAServerThatNeverReadThePlatformAlone(t *testing.T) {
 	atRevisionSeven(machine)
 
 	result, err := runner(machine, migrate.All()...).Run()
-	if err != nil || len(result.Applied) != 2 {
+	if err != nil || len(result.Applied) != 3 {
 		t.Fatalf("result = %+v, err = %v", result, err)
 	}
 

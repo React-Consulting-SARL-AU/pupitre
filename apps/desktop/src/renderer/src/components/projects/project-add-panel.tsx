@@ -5,7 +5,10 @@ import type {
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
-import type { ProcessProblem } from "@renderer/lib/project-processes";
+import type {
+  ProcessProblem,
+  SpanProblem,
+} from "@renderer/lib/project-processes";
 import {
   ArrowRight,
   FolderPlus,
@@ -56,6 +59,7 @@ export function ProjectAddPanel({
   ready,
   processProblems,
   rowProblems,
+  spanProblems = null,
   edit,
   onDetect,
   onSkipReading,
@@ -88,6 +92,8 @@ export function ProjectAddPanel({
   ready: boolean;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
+  /** Null for an agent that predates spans. */
+  spanProblems?: readonly (SpanProblem | null)[] | null;
   edit: DraftEdits;
   /** Return the reading's promise so the button stays pending on it. */
   onDetect: () => Promise<void> | void;
@@ -209,6 +215,7 @@ export function ProjectAddPanel({
           processProblems={processProblems}
           repos={repos}
           rowProblems={rowProblems}
+          spanProblems={spanProblems}
           step={step}
         />
       ) : null}

@@ -23,6 +23,7 @@ export function ProjectProcessRow({
   const t = useTranslations();
 
   const stoppable = isStoppable(process.state);
+  const span = process.port_span ?? 1;
 
   return (
     <li
@@ -37,6 +38,7 @@ export function ProjectProcessRow({
         <StatePill look={PROCESS_LOOK[process.state]} name={process.state} />
         <span className="font-data text-ink-3 text-small tabular-nums">
           {process.host}:{process.port}
+          {span > 1 ? `–${process.port + span - 1}` : ""}
           {process.dir === "." ? "" : ` · ${process.dir}`}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
@@ -68,6 +70,15 @@ export function ProjectProcessRow({
       {process.env_changed ? (
         <p className="text-small text-warn" data-env-changed="">
           {t("project.overview.envChanged")}
+        </p>
+      ) : null}
+
+      {process.held_by ? (
+        <p className="text-small text-warn" data-held-by="">
+          {t("project.overview.heldBy", {
+            holder: process.held_by,
+            port: String(process.port),
+          })}
         </p>
       ) : null}
 

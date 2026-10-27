@@ -178,6 +178,14 @@ export const ProcessDirSchema = z
 
 export const PROJECT_ROOT_DIR = "."
 
+export const PORT_SPAN_MAX = 100
+
+// Announced in hello's capabilities by an agent that reads port_span.
+export const PORT_SPAN_CAPABILITY = "port_span"
+
+// The ports a process holds from its main one on, which nothing else may declare.
+export const PortSpanSchema = z.int().min(1).max(PORT_SPAN_MAX)
+
 const ProcessBaseSchema = z.object({
   id: ProcessIdSchema,
   pkgmgr: PackageManagerSchema,
@@ -191,6 +199,8 @@ const ProcessBaseSchema = z.object({
 const ProcessRegistrationSchema = ProcessBaseSchema.extend({
   dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
   host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
+  // Absent is 1, and the app omits it there so an agent that predates spans still accepts the call.
+  port_span: PortSpanSchema.optional(),
   routes: z.array(RouteRequestSchema),
   // Absent follows the project; a webhook receiver says false and trusts its own signature.
   protected: z.boolean().optional(),
@@ -213,6 +223,10 @@ export const ProcessSchema = ProcessBaseSchema.extend({
   env_changed: z.boolean().optional(),
   // Absent follows the project.
   protected: z.boolean().optional(),
+  // Absent from an agent that predates spans, which holds one port per process.
+  port_span: PortSpanSchema.optional(),
+  // The `<project>/<process>` window of another project listening on this main port right now.
+  held_by: z.string().min(1).optional(),
 })
 
 export type Process = z.infer<typeof ProcessSchema>

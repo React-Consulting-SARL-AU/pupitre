@@ -56,6 +56,9 @@ export function ProjectAddScreen({
   const setProcessPkgmgr = useProjectAdd((state) => state.setProcessPkgmgr);
   const setProcessCmd = useProjectAdd((state) => state.setProcessCmd);
   const setProcessInstall = useProjectAdd((state) => state.setProcessInstall);
+  const setProcessSpan = useProjectAdd((state) => state.setProcessSpan);
+  const spans = useProjectAdd((state) => state.spans);
+  const spanProblem = useProjectAdd((state) => state.spanProblem);
   const addProcess = useProjectAdd((state) => state.addProcess);
   const removeProcess = useProjectAdd((state) => state.removeProcess);
   const setRowLabel = useProjectAdd((state) => state.setRowLabel);
@@ -129,6 +132,7 @@ export function ProjectAddScreen({
         processId: setProcessId,
         processInstall: setProcessInstall,
         processPkgmgr: setProcessPkgmgr,
+        processSpan: setProcessSpan,
         removeProcess,
         removeRow,
         rowLabel: setRowLabel,
@@ -170,6 +174,11 @@ export function ProjectAddScreen({
       repos={repos}
       rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
+      spanProblems={
+        spans()
+          ? draft.processes.map((_process, index) => spanProblem(index))
+          : null
+      }
       state={liveState}
       step={step}
     />

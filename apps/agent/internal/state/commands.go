@@ -36,6 +36,7 @@ type processRequest struct {
 	PkgMgr    string         `json:"pkgmgr"`
 	Host      string         `json:"host"`
 	Port      int            `json:"port"`
+	PortSpan  int            `json:"port_span"`
 	Cmd       string         `json:"cmd"`
 	Install   string         `json:"install"`
 	Routes    []routeRequest `json:"routes"`
@@ -48,8 +49,8 @@ func processes(requests []processRequest) []ProcessRequest {
 	for _, request := range requests {
 		process := ProcessRequest{
 			ID: request.ID, Dir: request.Dir, PkgMgr: request.PkgMgr, Host: request.Host,
-			Port: request.Port, Cmd: request.Cmd, Install: request.Install, Routes: requested(request.Routes),
-			Protected: request.Protected,
+			Port: request.Port, PortSpan: max(request.PortSpan, 1), Cmd: request.Cmd, Install: request.Install,
+			Routes: requested(request.Routes), Protected: request.Protected,
 		}
 
 		if process.Dir == "" {

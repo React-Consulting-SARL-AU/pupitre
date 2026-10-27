@@ -9,6 +9,7 @@ import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import {
   type ProcessProblem,
   processesFromProject,
+  type SpanProblem,
 } from "../../lib/project-processes";
 import type { ConfigState } from "../../stores/project-config";
 import {
@@ -30,6 +31,7 @@ const EDIT = {
   processInstall: () => undefined,
   processAccess: () => undefined,
   processPkgmgr: () => undefined,
+  processSpan: () => undefined,
   protected: () => undefined,
   removeProcess: () => undefined,
   removeRow: () => undefined,
@@ -78,6 +80,7 @@ interface Extra {
   part?: ConfigPart;
   guarded?: boolean;
   gated?: boolean;
+  spanProblems?: (SpanProblem | null)[] | null;
 }
 
 function element(run: ConfigState, extra: Extra = {}) {
@@ -109,6 +112,7 @@ function element(run: ConfigState, extra: Extra = {}) {
       run={run}
       serverId="srv-1"
       services={extra.services ?? [...SNAPSHOT.services, ...RUNTIMES]}
+      spanProblems={extra.spanProblems}
     />
   );
 }
@@ -187,6 +191,31 @@ describe("a project's configuration", () => {
 
     expect(text(open)).toContain("Comme le projet : public");
     expect(text(open)).toContain("récepteur de webhooks");
+  });
+
+  it("reserves a span of ports for an agent that takes one, with the range it covers", () => {
+    const html = panel(
+      { status: "idle" },
+      { part: "processes", spanProblems: [null] }
+    );
+
+    expect(text(html)).toContain("Ports réservés");
+    expect(text(html)).toContain("PUPITRE_PORT_RANGE");
+    expect(
+      text(panel({ status: "idle" }, { part: "processes" }))
+    ).not.toContain("Ports réservés");
+  });
+
+  it("refuses a span another process overlaps, on the process to fix", () => {
+    const html = panel(
+      { status: "idle" },
+      { part: "processes", spanProblems: ["spanTaken"] }
+    );
+
+    expect(text(html)).toContain(
+      "Un autre processus tient déjà un port de cette plage."
+    );
+    expect(html).toContain('aria-invalid="true"');
   });
 
   it("offers nothing about protection to an agent without a gate", () => {

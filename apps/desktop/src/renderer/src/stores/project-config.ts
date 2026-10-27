@@ -30,6 +30,8 @@ import {
   processPatches,
   processProblem,
   rowProblems,
+  type SpanProblem,
+  spanProblem,
 } from "../lib/project-processes";
 import { useSnapshot } from "./snapshot";
 import { useTunnel } from "./tunnel";
@@ -81,6 +83,9 @@ interface ProjectConfigStore {
   setProcessAccess: (process: number, value: ProcessAccess) => void;
   /** False for an agent that has no access gate: nothing about protection is sent to it. */
   gated: () => boolean;
+  /** False for an agent that predates spans: the field stays hidden and nothing is sent. */
+  spans: () => boolean;
+  setProcessSpan: (process: number, value: number) => void;
   setRowLabel: (process: number, row: number, value: string) => void;
   setRowPort: (process: number, row: number, value: number) => void;
   setRowPublish: (process: number, row: number, value: boolean) => void;
@@ -95,6 +100,7 @@ interface ProjectConfigStore {
 
   patch: () => ProjectPatch;
   processProblem: (process: number) => ProcessProblem | null;
+  spanProblem: (process: number) => SpanProblem | null;
   rowProblems: (process: number) => (RowProblem | null)[];
   ready: () => boolean;
   restarts: () => string[];
@@ -252,6 +258,18 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
     gated() {
       return get().project?.protected !== undefined;
+    },
+
+    spans() {
+      return (
+        get().project?.processes.some(
+          (process) => process.port_span !== undefined
+        ) === true
+      );
+    },
+
+    setProcessSpan(process, value) {
+      editProcesses(atProcess(get().draft.processes, process, { span: value }));
     },
 
     setRowLabel(process, row, value) {
@@ -423,6 +441,12 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
     processProblem(process) {
       return processProblem(get().draft.processes, process);
+    },
+
+    spanProblem(process) {
+      const { draft, held } = get();
+
+      return spanProblem(draft.processes, process, held);
     },
 
     rowProblems(process) {

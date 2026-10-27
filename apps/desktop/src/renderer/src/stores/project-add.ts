@@ -8,10 +8,11 @@ import type {
   ProjectDetectResult,
   ProjectListResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type {
-  PackageManager,
-  Project,
-  ProjectState,
+import {
+  type PackageManager,
+  PORT_SPAN_CAPABILITY,
+  type Project,
+  type ProjectState,
 } from "@pupitre/shared/agent-protocol/state";
 import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
@@ -46,6 +47,8 @@ import {
   processRequests,
   publishedSubdomains,
   rowProblems,
+  type SpanProblem,
+  spanProblem,
 } from "../lib/project-processes";
 import { useTunnel } from "./tunnel";
 
@@ -151,7 +154,13 @@ interface Edited {
 export type KnownState =
   | { status: "idle" }
   | { status: "loading"; serverId: string }
-  | { status: "ready"; serverId: string; projects: readonly Project[] }
+  /** `spans`: the agent announced port spans in its hello; an older one is sent none. */
+  | {
+      status: "ready";
+      serverId: string;
+      projects: readonly Project[];
+      spans: boolean;
+    }
   | { status: "failed"; serverId: string; error: AgentError };
 
 export type DetectionState =
@@ -223,6 +232,7 @@ interface ProjectAddStore {
   setProcessPkgmgr: (process: number, value: PackageManager) => void;
   setProcessCmd: (process: number, value: string) => void;
   setProcessInstall: (process: number, value: string) => void;
+  setProcessSpan: (process: number, value: number) => void;
   setRowLabel: (process: number, row: number, value: string) => void;
   setRowPort: (process: number, row: number, value: number) => void;
   setRowPublish: (process: number, row: number, value: boolean) => void;
@@ -251,6 +261,8 @@ interface ProjectAddStore {
   declared: () => Project | null;
   ready: () => boolean;
   processProblem: (process: number) => ProcessProblem | null;
+  spans: () => boolean;
+  spanProblem: (process: number) => SpanProblem | null;
   rowProblems: (process: number) => (RowProblem | null)[];
 }
 
@@ -852,10 +864,13 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         return;
       }
 
+      const session = await window.pupitre.agentSession(serverId);
+
       set({
         known: {
           projects: answer.result.projects,
           serverId,
+          spans: session?.capabilities.includes(PORT_SPAN_CAPABILITY) === true,
           status: "ready",
         },
       });
@@ -951,6 +966,17 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         {
           processes: atProcess(get().draft.processes, process, {
             install: value,
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    setProcessSpan(process, value) {
+      refresh(
+        {
+          processes: atProcess(get().draft.processes, process, {
+            span: value,
           }),
         },
         { processes: true }
@@ -1301,6 +1327,18 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
     processProblem(process) {
       return processProblem(get().draft.processes, process);
+    },
+
+    spans() {
+      const { known } = get();
+
+      return known.status === "ready" && known.spans;
+    },
+
+    spanProblem(process) {
+      const { draft, known } = get();
+
+      return spanProblem(draft.processes, process, heldOf(known));
     },
 
     // A declared project is refused as a whole: its rows are not weighed against itself.

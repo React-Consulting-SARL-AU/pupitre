@@ -46,6 +46,12 @@ export const projectAdd = {
     "projectAdd.processes.dir":
       "A folder inside the project: no leading slash, no “..”.",
     "projectAdd.processes.cmd": "A start command is needed.",
+    "projectAdd.processes.spanLabel": "Reserved ports",
+    "projectAdd.processes.spanHelp":
+      "{range}: no other process can declare them; the process reads them in PUPITRE_PORT_RANGE.",
+    "projectAdd.processes.span": "From 1 to {max} ports, not past port 65535.",
+    "projectAdd.processes.spanTaken":
+      "Another process already holds a port of this range.",
     "projectAdd.processes.main": "main",
     "projectAdd.processes.unnamed": "Unnamed process",
     "projectAdd.processes.remove": "Remove the process {id}",
@@ -213,6 +219,13 @@ export const projectAdd = {
     "projectAdd.processes.dir":
       "Un dossier dans le projet : pas de slash en tête, pas de « .. ».",
     "projectAdd.processes.cmd": "Il faut une commande de démarrage.",
+    "projectAdd.processes.spanLabel": "Ports réservés",
+    "projectAdd.processes.spanHelp":
+      "{range} : aucun autre processus ne peut les déclarer ; le processus les lit dans PUPITRE_PORT_RANGE.",
+    "projectAdd.processes.span":
+      "De 1 à {max} ports, sans dépasser le port 65535.",
+    "projectAdd.processes.spanTaken":
+      "Un autre processus tient déjà un port de cette plage.",
     "projectAdd.processes.main": "principal",
     "projectAdd.processes.unnamed": "Processus sans nom",
     "projectAdd.processes.remove": "Retirer le processus {id}",

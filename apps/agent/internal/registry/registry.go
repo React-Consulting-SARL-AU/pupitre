@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,8 @@ const (
 	FirstPort = 3000
 	LastPort  = 65535
 )
+
+var PortSpanMax = contract.ProjectRules.PortSpanMax
 
 const (
 	subLabel = `[a-z0-9](?:[a-z0-9-]*[a-z0-9])?`
@@ -84,6 +87,8 @@ type Process struct {
 	Install string  `json:"install,omitempty"`
 	// Nil follows the project.
 	Protected *bool `json:"protected,omitempty"`
+	// The ports from Port on that the process hands out itself: nothing else may declare them.
+	PortSpan int `json:"port_span"`
 }
 
 type Project struct {
@@ -147,11 +152,24 @@ func (p Process) Hostnames() []string {
 	return names
 }
 
+func (p Process) SpanEnd() int {
+	return p.Port + max(p.PortSpan, 1) - 1
+}
+
+func (p Process) Spans(port int) bool {
+	return port >= p.Port && port <= p.SpanEnd()
+}
+
+// Its whole span, then the routes that point outside it.
 func (p Process) Ports() []int {
-	ports := []int{p.Port}
+	ports := make([]int, 0, max(p.PortSpan, 1)+len(p.Routes))
+
+	for port := p.Port; port <= p.SpanEnd(); port++ {
+		ports = append(ports, port)
+	}
 
 	for _, route := range p.Routes {
-		if route.Port != p.Port {
+		if !p.Spans(route.Port) && !slices.Contains(ports, route.Port) {
 			ports = append(ports, route.Port)
 		}
 	}
@@ -308,6 +326,7 @@ func (p Process) Contract(projectPath string) contract.ProjectProcess {
 		Cmd:       p.Cmd,
 		Install:   p.InstallCommand(),
 		Protected: p.Protected,
+		PortSpan:  p.PortSpan,
 	}
 }
 
@@ -617,14 +636,15 @@ func Group(rows []Row) ([]Project, map[string]string) {
 			windows[row.Name] = Window(project.Name, id)
 
 			project.Processes = append(project.Processes, Process{
-				ID:      id,
-				Dir:     rest,
-				PkgMgr:  row.PkgMgr,
-				Host:    row.Host,
-				Port:    row.Port,
-				Routes:  append([]Route{}, row.Routes...),
-				Cmd:     row.Cmd,
-				Install: value(row.Install),
+				ID:       id,
+				Dir:      rest,
+				PkgMgr:   row.PkgMgr,
+				Host:     row.Host,
+				Port:     row.Port,
+				Routes:   append([]Route{}, row.Routes...),
+				Cmd:      row.Cmd,
+				Install:  value(row.Install),
+				PortSpan: 1,
 			})
 		}
 
@@ -725,6 +745,9 @@ func parseRows(raw []byte) ([]localRow, error) {
 				if row.project.Processes[at].Dir == "" {
 					row.project.Processes[at].Dir = RootDir
 				}
+				if row.project.Processes[at].PortSpan == 0 {
+					row.project.Processes[at].PortSpan = 1
+				}
 			}
 		}
 
@@ -765,11 +788,24 @@ func (f *File) Ports() map[int]bool {
 }
 
 func (f *File) FreePort(from int, busy map[int]bool) int {
+	return f.FreeSpan(from, 1, busy)
+}
+
+// The first port from which span ports in a row are neither declared nor listening; 0 when none is left.
+func (f *File) FreeSpan(from, span int, busy map[int]bool) int {
 	taken := f.Ports()
+	run := 0
 
 	for port := max(from, FirstPort); port <= LastPort; port++ {
-		if !taken[port] && !busy[port] {
-			return port
+		if taken[port] || busy[port] {
+			run = 0
+
+			continue
+		}
+
+		run++
+		if run == max(span, 1) {
+			return port - run + 1
 		}
 	}
 
@@ -991,6 +1027,9 @@ func cleaned(project Project) Project {
 		if process.Routes == nil {
 			process.Routes = []Route{}
 		}
+		if process.PortSpan == 0 {
+			process.PortSpan = 1
+		}
 
 		processes = append(processes, process)
 	}
@@ -1095,9 +1134,13 @@ func (f *File) validateProcess(ctx sys.Context, process Process) error {
 		return bad(i18n.T("registry.process.dir.invalid", process.ID, process.Dir), i18n.T("registry.process.dir.invalid.fix"))
 	}
 
+	if process.PortSpan < 1 || process.PortSpan > PortSpanMax {
+		return bad(i18n.T("registry.span.invalid", process.ID, process.PortSpan), i18n.T("registry.span.invalid.fix", PortSpanMax))
+	}
+
 	for _, port := range process.Ports() {
 		if port < 1024 || port > LastPort {
-			return bad(i18n.T("registry.port.invalid", port), i18n.T("registry.port.invalid.fix", LastPort, f.FreePort(FirstPort, net.Listening(ctx))))
+			return bad(i18n.T("registry.port.invalid", port), i18n.T("registry.port.invalid.fix", LastPort, f.FreeSpan(FirstPort, process.PortSpan, net.Listening(ctx))))
 		}
 	}
 
@@ -1199,8 +1242,17 @@ func (f *File) checkUnique(ctx sys.Context, project Project, rewritten string) e
 	return nil
 }
 
+// A port of a span asks room for the whole span, from its main port on.
 func (f *File) portTaken(ctx sys.Context, project Project, port int, existing Project) error {
-	free := f.FreePort(port, net.Listening(ctx))
+	from, span := port, 1
+
+	for _, process := range project.Processes {
+		if process.Spans(port) {
+			from, span = process.Port, process.PortSpan
+		}
+	}
+
+	free := f.FreeSpan(from, span, net.Listening(ctx))
 
 	failure := protocol.NewError(contract.ErrorBadRequest, i18n.T("registry.port.taken", port, existing.Name)).
 		WithFix(i18n.T("registry.port.taken.fix", project.Name, free))

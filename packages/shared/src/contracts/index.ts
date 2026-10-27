@@ -27,7 +27,11 @@ import {
 } from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
 import { SecretEventSchema } from "../agent-protocol/secrets"
-import { ProjectSchema } from "../agent-protocol/state"
+import {
+  PORT_SPAN_CAPABILITY,
+  PORT_SPAN_MAX,
+  ProjectSchema,
+} from "../agent-protocol/state"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
 import {
   BACKUP_BUCKET_PATTERN,
@@ -204,6 +208,14 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
       excluded_dirs: BACKUP_EXCLUDED_DIRS,
       home_paths: BACKUP_HOME_PATHS,
       home_excluded: BACKUP_HOME_EXCLUDED,
+    },
+  },
+  // How many ports a process may reserve, and the capability an agent that reads it announces.
+  ProjectRules: {
+    type: "object",
+    const: {
+      port_span_max: PORT_SPAN_MAX,
+      port_span_capability: PORT_SPAN_CAPABILITY,
     },
   },
   // No namespace nor header: they name the product, so the agent holds them itself, checked against the fixtures.

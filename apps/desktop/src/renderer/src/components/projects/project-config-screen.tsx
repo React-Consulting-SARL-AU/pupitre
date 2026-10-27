@@ -39,6 +39,9 @@ export function ProjectConfigScreen({
   const setProcessPkgmgr = useProjectConfig((s) => s.setProcessPkgmgr);
   const setProcessCmd = useProjectConfig((s) => s.setProcessCmd);
   const setProcessInstall = useProjectConfig((s) => s.setProcessInstall);
+  const setProcessSpan = useProjectConfig((s) => s.setProcessSpan);
+  const spans = useProjectConfig((s) => s.spans);
+  const spanProblem = useProjectConfig((s) => s.spanProblem);
   const setProtected = useProjectConfig((s) => s.setProtected);
   const setProcessAccess = useProjectConfig((s) => s.setProcessAccess);
   const gated = useProjectConfig((s) => s.gated);
@@ -88,6 +91,7 @@ export function ProjectConfigScreen({
         processAccess: setProcessAccess,
         processInstall: setProcessInstall,
         processPkgmgr: setProcessPkgmgr,
+        processSpan: setProcessSpan,
         protected: setProtected,
         removeProcess,
         removeRow,
@@ -112,6 +116,11 @@ export function ProjectConfigScreen({
       run={run}
       serverId={serverId}
       services={services}
+      spanProblems={
+        spans()
+          ? draft.processes.map((_process, index) => spanProblem(index))
+          : null
+      }
     />
   );
 }

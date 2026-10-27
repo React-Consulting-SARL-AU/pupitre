@@ -37,6 +37,7 @@ In a project:
     PUPITRE_PROJECT_DIR            its absolute folder
     PUPITRE_PROJECT_URL            its address: the first published process's, else the first's local one
     PUPITRE_PROCESS_<ID>_PORT      each process's main port
+    PUPITRE_PROCESS_<ID>_PORT_RANGE  each process's reserved ports, 3000-3009
     PUPITRE_PROCESS_<ID>_URL       each process's address, public when published
 
 In a process:
@@ -44,6 +45,8 @@ In a process:
     PUPITRE_PROCESS                the process's id
     PUPITRE_PROCESS_DIR            its absolute folder
     PUPITRE_HOST, PUPITRE_PORT     where the server must listen
+    PUPITRE_PORT_RANGE             the ports the process reserves, 3000-3009; one port: 3000-3000
+    PUPITRE_PORT_LAST              the last of them
     PUPITRE_URL                    its address: public when published, local otherwise
     PUPITRE_LOCAL_URL              http://<host>:<port>
     PUPITRE_PUBLIC_URL             https://<hostname>; absent when not published
@@ -60,6 +63,11 @@ In a process:
   `server.port=${PUPITRE_PORT}` in a Spring configuration.
 - Point a client at its API through its sibling: `PUPITRE_PROCESS_API_URL`
   locally or behind a proxy.
+- A command that listens on more than its main port — a gateway and its
+  backends, a dev server and its HMR socket — takes them from
+  `PUPITRE_PORT_RANGE`, never from literals: no other project can declare a
+  port of that range. One port is reserved until the owner widens the span in
+  the Pupitre app; ask for it, with the number of ports needed.
 - `PORT` and `HOST` are never set: the repository's `.env.local` keeps
   authority over them. Map explicitly when a tool only reads `PORT`:
   `PORT=$PUPITRE_PORT bun run start`.

@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
@@ -56,9 +57,21 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 		Protocol:     contract.ProtocolVersion,
 		ServerID:     s.serverID(),
 		License:      s.License().License,
-		Capabilities: s.Capabilities(),
+		Capabilities: s.announced(),
 		Config:       s.config(),
 	}, nil
+}
+
+// The commands, then the parameter fields added since, which an app only sends to an agent naming them.
+func (s *Server) announced() []string {
+	capabilities := s.Capabilities()
+
+	if _, declares := s.handlers["project.add"]; declares {
+		capabilities = append(capabilities, contract.ProjectRules.PortSpanCapability)
+		sort.Strings(capabilities)
+	}
+
+	return capabilities
 }
 
 func (s *Server) serverID() string {

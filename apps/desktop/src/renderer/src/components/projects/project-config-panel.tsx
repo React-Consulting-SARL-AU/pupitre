@@ -10,6 +10,7 @@ import type { RowProblem } from "@renderer/lib/project-ports";
 import type {
   ProcessAccess,
   ProcessProblem,
+  SpanProblem,
 } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import type { ConfigDraft, ConfigState } from "@renderer/stores/project-config";
@@ -68,6 +69,7 @@ export function ProjectConfigPanel({
   gated,
   processProblems,
   rowProblems,
+  spanProblems = null,
   ready,
   restarts,
   dropped,
@@ -85,6 +87,8 @@ export function ProjectConfigPanel({
   gated: boolean;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
+  /** Null for an agent that predates spans. */
+  spanProblems?: readonly (SpanProblem | null)[] | null;
   ready: boolean;
   restarts: readonly string[];
   dropped: readonly string[];
@@ -104,7 +108,8 @@ export function ProjectConfigPanel({
   const refused: Partial<Record<Part, boolean>> = {
     processes:
       processProblems.some(Boolean) ||
-      rowProblems.some((rows) => rows.some(Boolean)),
+      rowProblems.some((rows) => rows.some(Boolean)) ||
+      (spanProblems ?? []).some(Boolean),
   };
 
   const consequences = [
@@ -208,6 +213,7 @@ export function ProjectConfigPanel({
               problems={processProblems}
               processes={draft.processes}
               rowProblems={rowProblems}
+              spanProblems={spanProblems}
             />
           </div>
 

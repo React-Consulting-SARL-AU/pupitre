@@ -78,6 +78,7 @@ func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (Decl
 
 	warnings = r.warn(warnings, "state.project.warning.dir", r.makeFolders(project, project.Processes))
 	warnings = r.warn(warnings, "state.project.warning.pin", r.pinRuntimes(project))
+	warnings = append(warnings, r.heldPorts(project)...)
 
 	return r.answer(project.Name, warnings)
 }
@@ -174,6 +175,7 @@ type ProcessRequest struct {
 	PkgMgr    string
 	Host      string
 	Port      int
+	PortSpan  int
 	Cmd       string
 	Install   string
 	Routes    []registry.RouteRequest
@@ -195,6 +197,7 @@ func resolveProcesses(domain string, requests []ProcessRequest) ([]registry.Proc
 			PkgMgr:    request.PkgMgr,
 			Host:      request.Host,
 			Port:      request.Port,
+			PortSpan:  request.PortSpan,
 			Routes:    routes,
 			Cmd:       request.Cmd,
 			Install:   request.Install,
@@ -261,6 +264,7 @@ func (r *Reader) Update(name string, patch UpdatePatch) (Declared, error) {
 
 	if patch.Processes != nil {
 		warnings = r.warn(warnings, "state.project.warning.dir", r.makeFolders(updated, added(current, updated)))
+		warnings = append(warnings, r.heldPorts(updated)...)
 	}
 
 	if patch.Runtimes != nil {
@@ -374,6 +378,10 @@ func (r *Reader) startWith(project registry.Project, process registry.Process, c
 
 	if tmux.Running(ctx, r.options.Tmux, window) {
 		return nil
+	}
+
+	if holder := elsewhere(r.liveHolders([]int{process.Port}), process.Port, window); holder != "" {
+		return r.portHeld(window, process.Port, holder)
 	}
 
 	dir := process.Path(project.Path(r.options.Paths.Resolved().Projects))
