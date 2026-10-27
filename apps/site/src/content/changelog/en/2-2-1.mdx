@@ -1,0 +1,21 @@
+---
+title: AI agents drive the server's browser
+description: With the headless browser installed, Claude Code and Codex get a Playwright MCP server and open, click, fill and capture your project's pages themselves; the screenshot tool that could hang for minutes is gone.
+locale: en
+version: 2.2.1
+channel: stable
+date: 2026-10-27
+order: 28
+---
+
+An AI agent on your server now checks a page the way you would: it opens it, signs in, clicks and looks.
+
+## The agent
+
+- **AI agents drive the server's browser.** When the headless browser is installed, every installed MCP client — Claude Code and Codex — receives a `playwright` MCP server (`@playwright/mcp` 0.0.83). The agent opens the project's local address, signs in, clicks, fills forms and takes screenshots by itself. The browser runs headless, in an isolated profile, on the server's own Chrome, and screenshots taken without a name stay out of the repository.
+- The registration follows the browser: installing it adds the server to the AI agents, removing it takes the server away. On a server already set up, the agent lays it by itself when it restarts after the update — nothing to reinstall.
+- **The screenshot tool of Pupitre's MCP server is gone.** On a dev server's page it could wait without end — up to 30 minutes — and leave a Chrome process running behind it. The Playwright server replaces it.
+
+## Known limitations
+
+- Only Claude Code and Codex take MCP servers from Pupitre; the other AI agents do not get the browser yet.

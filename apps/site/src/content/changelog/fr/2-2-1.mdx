@@ -1,0 +1,21 @@
+---
+title: Les agents IA pilotent le navigateur du serveur
+description: Avec le navigateur headless installé, Claude Code et Codex reçoivent un serveur MCP Playwright et ouvrent, cliquent, remplissent et capturent eux-mêmes les pages de votre projet ; l'outil de capture qui pouvait bloquer de longues minutes disparaît.
+locale: fr
+version: 2.2.1
+channel: stable
+date: 2026-10-27
+order: 28
+---
+
+Un agent IA sur votre serveur vérifie désormais une page comme vous le feriez : il l'ouvre, se connecte, clique et regarde.
+
+## L'agent
+
+- **Les agents IA pilotent le navigateur du serveur.** Quand le navigateur headless est installé, chaque client MCP installé — Claude Code et Codex — reçoit un serveur MCP `playwright` (`@playwright/mcp` 0.0.83). L'agent ouvre l'adresse locale du projet, se connecte, clique, remplit les formulaires et prend des captures lui-même. Le navigateur tourne en headless, dans un profil isolé, sur le Chrome du serveur, et les captures prises sans nom restent hors du dépôt.
+- L'enregistrement suit le navigateur : l'installer ajoute le serveur aux agents IA, le retirer le leur enlève. Sur un serveur déjà installé, l'agent le pose de lui-même en redémarrant après la mise à jour — rien à réinstaller.
+- **L'outil de capture du serveur MCP de Pupitre disparaît.** Sur la page d'un serveur de dev, il pouvait attendre sans fin — jusqu'à 30 minutes — et laisser derrière lui un processus Chrome. Le serveur Playwright le remplace.
+
+## Limites connues
+
+- Seuls Claude Code et Codex reçoivent des serveurs MCP de Pupitre ; les autres agents IA n'ont pas encore le navigateur.
