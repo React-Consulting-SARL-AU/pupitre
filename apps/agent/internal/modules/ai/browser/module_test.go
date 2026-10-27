@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/sudo"
 )
@@ -403,13 +403,13 @@ func TestOnArmAnUpgradeReplacesAnOlderHeadlessShell(t *testing.T) {
 	onArm(t, fake)
 	fake.Files[headlessBinary] = []byte("old")
 	fake.Files[headlessVersionPath] = []byte("150.0.7800.1\n")
-	fake.Files[capture.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] = []byte("old")
+	fake.Files[agents.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] = []byte("old")
 
 	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
 		t.Fatal(err)
 	}
 
-	if strings.TrimSpace(string(fake.Files[headlessVersionPath])) != headlessVersion || fake.Files[capture.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] != nil {
+	if strings.TrimSpace(string(fake.Files[headlessVersionPath])) != headlessVersion || fake.Files[agents.HeadlessDir+"/chrome-headless-shell-linux-arm64/stale.pak"] != nil {
 		t.Fatalf("the folder is replaced whole by the pinned version: %v", fake.Commands())
 	}
 

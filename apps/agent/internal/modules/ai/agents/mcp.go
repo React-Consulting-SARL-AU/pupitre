@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/i18n"
@@ -21,12 +22,23 @@ const (
 type MCP struct {
 	CLI string
 	// Relative to dev's home, read through os.Root.
-	Config     string
-	Registered func(config []byte) bool
-	Add        []string
-	Remove     []string
+	Config string
 	// The settings whose permissions.allow lets the tools run without a prompt; empty for a client without that list.
 	Settings string
+
+	add        func(server Server) []string
+	remove     func(name string) []string
+	registered func(config []byte, server Server) bool
+}
+
+// A stdio MCP server as a client declares it: a name, then the command that starts it.
+type Server struct {
+	Name    string
+	Command []string
+}
+
+func pupitreServer() Server {
+	return Server{Name: MCPName, Command: []string{sudo.Binary, MCPSubcommand}}
 }
 
 func ClaudeMCP(cli string) *MCP {
@@ -34,9 +46,11 @@ func ClaudeMCP(cli string) *MCP {
 		CLI:        cli,
 		Config:     ".claude.json",
 		Settings:   ".claude/settings.json",
-		Registered: claudeRegistered,
-		Add:        []string{"mcp", "add", "--scope", "user", MCPName, "--", sudo.Binary, MCPSubcommand},
-		Remove:     []string{"mcp", "remove", "--scope", "user", MCPName},
+		registered: claudeRegistered,
+		add: func(server Server) []string {
+			return append([]string{"mcp", "add", "--scope", "user", server.Name, "--"}, server.Command...)
+		},
+		remove: func(name string) []string { return []string{"mcp", "remove", "--scope", "user", name} },
 	}
 }
 
@@ -44,39 +58,63 @@ func CodexMCP(cli string) *MCP {
 	return &MCP{
 		CLI:        cli,
 		Config:     ".codex/config.toml",
-		Registered: codexRegistered,
-		Add:        []string{"mcp", "add", MCPName, "--", sudo.Binary, MCPSubcommand},
-		Remove:     []string{"mcp", "remove", MCPName},
+		registered: codexRegistered,
+		add: func(server Server) []string {
+			return append([]string{"mcp", "add", server.Name, "--"}, server.Command...)
+		},
+		remove: func(name string) []string { return []string{"mcp", "remove", name} },
 	}
 }
 
-func mcpRegistered(ctx *modules.Context, server *MCP) bool {
-	raw, err := ctx.Sys().ReadFileIn(Home, server.Config)
+func hasServer(ctx *modules.Context, client *MCP, server Server) bool {
+	raw, err := ctx.Sys().ReadFileIn(Home, client.Config)
 
-	return err == nil && server.Registered(raw)
+	return err == nil && client.registered(raw, server)
 }
 
-// An entry under our name that runs something else is replaced: the name is Pupitre's.
+func hasName(ctx *modules.Context, client *MCP, name string) bool {
+	raw, err := ctx.Sys().ReadFileIn(Home, client.Config)
+
+	return err == nil && namedIn(raw, name)
+}
+
 func registerMCP(ctx *modules.Context, target Target) error {
 	if target.MCP == nil {
 		return nil
 	}
 
-	server := target.MCP
+	return register(ctx, target.MCP, "register-mcp", pupitreServer())
+}
 
-	return ctx.Step("register-mcp", func() (modules.Outcome, error) {
-		if mcpRegistered(ctx, server) {
+// An entry under our name that runs something else is replaced: the name is Pupitre's.
+func register(ctx *modules.Context, client *MCP, step string, server Server) error {
+	return ctx.Step(step, func() (modules.Outcome, error) {
+		if hasServer(ctx, client, server) {
 			return modules.Skipped, nil
 		}
 
-		_, _ = user.Run(ctx, User, append([]string{server.CLI}, server.Remove...)...)
+		_, _ = user.Run(ctx, User, append([]string{client.CLI}, client.remove(server.Name)...)...)
 
-		if _, err := user.Run(ctx, User, append([]string{server.CLI}, server.Add...)...); err != nil {
+		if _, err := user.Run(ctx, User, append([]string{client.CLI}, client.add(server)...)...); err != nil {
 			return modules.Failed, err
 		}
 
-		if !mcpRegistered(ctx, server) {
-			return modules.Failed, errors.New(i18n.T("module.ai.mcp.unregistered", server.Config))
+		if !hasServer(ctx, client, server) {
+			return modules.Failed, errors.New(i18n.T("module.ai.mcp.unregistered", client.Config))
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func unregister(ctx *modules.Context, client *MCP, step, name string) error {
+	return ctx.Step(step, func() (modules.Outcome, error) {
+		if !hasName(ctx, client, name) {
+			return modules.Skipped, nil
+		}
+
+		if _, err := user.Run(ctx, User, append([]string{client.CLI}, client.remove(name)...)...); err != nil {
+			return modules.Failed, err
 		}
 
 		return modules.Done, nil
@@ -88,26 +126,21 @@ func Unregister(ctx *modules.Context, target Target) error {
 		return nil
 	}
 
-	if err := disallowTools(ctx, target); err != nil {
+	if err := disallowTools(ctx, target, "disallow-mcp-tools", AllowRule); err != nil {
 		return err
 	}
 
-	server := target.MCP
+	if err := unregister(ctx, target.MCP, "unregister-mcp", MCPName); err != nil {
+		return err
+	}
 
-	return ctx.Step("unregister-mcp", func() (modules.Outcome, error) {
-		if !mcpRegistered(ctx, server) {
-			return modules.Skipped, nil
-		}
-
-		if _, err := user.Run(ctx, User, append([]string{server.CLI}, server.Remove...)...); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, nil
-	})
+	return forgetBrowser(ctx, target)
 }
 
-func claudeRegistered(config []byte) bool {
+func claudeServers(config []byte) map[string]struct {
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
+} {
 	var document struct {
 		MCPServers map[string]struct {
 			Command string   `json:"command"`
@@ -116,24 +149,54 @@ func claudeRegistered(config []byte) bool {
 	}
 
 	if json.Unmarshal(config, &document) != nil {
+		return nil
+	}
+
+	return document.MCPServers
+}
+
+func claudeRegistered(config []byte, server Server) bool {
+	found, present := claudeServers(config)[server.Name]
+
+	return present && found.Command == server.Command[0] && slices.Equal(found.Args, server.Command[1:])
+}
+
+// Claude's file is JSON and Codex's TOML: a name is declared when either reader finds its entry.
+func namedIn(config []byte, name string) bool {
+	if _, present := claudeServers(config)[name]; present {
+		return true
+	}
+
+	_, _, declared := codexServer(config, name)
+
+	return declared
+}
+
+func codexRegistered(config []byte, server Server) bool {
+	command, args, declared := codexServer(config, server.Name)
+	if !declared {
 		return false
 	}
 
-	server, found := document.MCPServers[MCPName]
+	quoted := make([]string, 0, len(server.Command)-1)
+	for _, arg := range server.Command[1:] {
+		quoted = append(quoted, strconv.Quote(arg))
+	}
 
-	return found && server.Command == sudo.Binary && slices.Equal(server.Args, []string{MCPSubcommand})
+	return command == strconv.Quote(server.Command[0]) && args == "["+strings.Join(quoted, ",")+"]"
 }
 
 // Only our table is read, line by line: a TOML parser for two keys would be the first dependency of the binary.
-func codexRegistered(config []byte) bool {
+func codexServer(config []byte, name string) (string, string, bool) {
 	command, args := "", ""
-	inside := false
+	inside, declared := false, false
 
 	for _, line := range strings.Split(string(config), "\n") {
 		trimmed := strings.TrimSpace(line)
 
 		if strings.HasPrefix(trimmed, "[") {
-			inside = trimmed == "[mcp_servers."+MCPName+"]"
+			inside = trimmed == "[mcp_servers."+name+"]"
+			declared = declared || inside
 
 			continue
 		}
@@ -151,5 +214,5 @@ func codexRegistered(config []byte) bool {
 		}
 	}
 
-	return command == `"`+sudo.Binary+`"` && args == `["`+MCPSubcommand+`"]`
+	return command, args, declared
 }

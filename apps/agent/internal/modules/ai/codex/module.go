@@ -25,7 +25,7 @@ const (
 var (
 	cli = mise.CLI{Tool: tool, Program: Program}
 
-	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true, MCP: agents.CodexMCP(cli.Path())}
+	target = agents.Declare(agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true, MCP: agents.CodexMCP(cli.Path())})
 )
 
 type Module struct{}

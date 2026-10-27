@@ -14,60 +14,60 @@ import (
 const AllowRule = "mcp__" + MCPName
 
 // The settings are the client's: only our rule is added or taken out, every other key is written back as read.
-func allowTools(ctx *modules.Context, target Target) error {
+func allowTools(ctx *modules.Context, target Target, step, rule string) error {
 	if target.MCP == nil || target.MCP.Settings == "" {
 		return nil
 	}
 
 	settings := target.MCP.Settings
 
-	return ctx.Step("allow-mcp-tools", func() (modules.Outcome, error) {
+	return ctx.Step(step, func() (modules.Outcome, error) {
 		document, err := readSettings(ctx, settings)
 		if err != nil {
 			return modules.Failed, err
 		}
 
 		allowed := allowList(document)
-		if slices.Contains(allowed, any(AllowRule)) {
+		if slices.Contains(allowed, any(rule)) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, writeAllowList(ctx, settings, document, append(allowed, AllowRule))
+		return modules.Done, writeAllowList(ctx, settings, document, append(allowed, rule))
 	})
 }
 
-func disallowTools(ctx *modules.Context, target Target) error {
+func disallowTools(ctx *modules.Context, target Target, step, rule string) error {
 	if target.MCP == nil || target.MCP.Settings == "" {
 		return nil
 	}
 
 	settings := target.MCP.Settings
 
-	return ctx.Step("disallow-mcp-tools", func() (modules.Outcome, error) {
+	return ctx.Step(step, func() (modules.Outcome, error) {
 		document, err := readSettings(ctx, settings)
 		if err != nil {
 			return modules.Failed, err
 		}
 
 		allowed := allowList(document)
-		if !slices.Contains(allowed, any(AllowRule)) {
+		if !slices.Contains(allowed, any(rule)) {
 			return modules.Skipped, nil
 		}
 
-		kept := slices.DeleteFunc(allowed, func(rule any) bool { return rule == AllowRule })
+		kept := slices.DeleteFunc(allowed, func(held any) bool { return held == rule })
 
 		return modules.Done, writeAllowList(ctx, settings, document, kept)
 	})
 }
 
-func toolsAllowed(ctx *modules.Context, target Target) bool {
+func toolsAllowed(ctx *modules.Context, target Target, rule string) bool {
 	if target.MCP == nil || target.MCP.Settings == "" {
 		return true
 	}
 
 	document, err := readSettings(ctx, target.MCP.Settings)
 
-	return err == nil && slices.Contains(allowList(document), any(AllowRule))
+	return err == nil && slices.Contains(allowList(document), any(rule))
 }
 
 // A file that does not parse is refused rather than replaced: it holds the client's own permissions.

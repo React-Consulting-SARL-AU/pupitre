@@ -45,16 +45,4 @@ var mcpCatalog = map[string]Message{
 		FR: "Processus du projet : %s.",
 		EN: "The project's processes: %s.",
 	},
-	"mcp.screenshot.target": {
-		FR: "nommez soit une URL, soit un projet",
-		EN: "name either a URL or a project",
-	},
-	"mcp.screenshot.path": {
-		FR: "le chemin de la page commence par / : %q",
-		EN: "the page's path starts with /: %q",
-	},
-	"mcp.screenshot.noPort": {
-		FR: "aucun processus du projet %s n'écoute sur un port",
-		EN: "no process of project %s listens on a port",
-	},
 }

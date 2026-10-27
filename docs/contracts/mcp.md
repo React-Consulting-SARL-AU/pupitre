@@ -25,11 +25,10 @@ The names, the arguments and the descriptions are the contract the model reads; 
 | `service_start`, `service_stop`, `service_restart` | `service` | `service.start`, `service.stop`, `service.restart` | the agent's answer |
 | `service_logs` | `service`, `lines?` | `service.logs` | the journal's lines |
 | `doctor` | — | `doctor` | the agent's answer |
-| `screenshot` | `url` or `project` (+ `process?`, `path?`), `width?`, `height?`, `mobile?`, `wait_ms?` | `project.list` for a project | the PNG as an `image` content, then the address captured |
 
 - **Waiting.** A start or a restart waits until no targeted process is `starting` any more, at most `wait_seconds` — 45 by default, under the 60 seconds Codex gives a tool call, 300 at most, 0 to return at once. A process that ends `failed` comes back with the last 40 lines of its log. `project: "all"` starts every project and returns at once.
 - **Logs.** 200 lines per process by default, 2000 at most.
-- **Screenshots.** A project is captured on its process's loopback address, `http://<host>:<port><path>`: the [access gate](../decisions/0017-access-gate.md) asks a key of whoever opens the public one. The headless browser is the one the `ai.browser` module installs; it runs as `dev`, writes the image in a private temporary folder, and the image is read back and removed. Nothing is kept on the server and no address points at it.
+- **Pages.** `pupitred mcp` shows none: since 2.2.1 the `screenshot` tool is gone ([decision 0021](../decisions/0021-browser-mcp.md)), and the instructions send the model to the `playwright` server below.
 - **Errors.** A refusal of the agent is the tool's result, with `isError` and the text `message` then `fix`. Only a call that is not JSON-RPC, names no known method or names no known tool is a protocol error.
 
 ## The session
@@ -51,6 +50,15 @@ The AI agent modules do, with the client's own CLI, so the client's file stays t
 For Claude Code, the step `allow-mcp-tools` then adds the rule `mcp__pupitre` to `permissions.allow` of `~/.claude/settings.json`, so the tools run without a prompt: they only reach the limited session, which already refuses what needs the owner. Every other key of that file is written back as read, a file that does not parse is refused rather than replaced, and the uninstall takes only that rule out (`disallow-mcp-tools`). Codex keeps no such list.
 
 The step `register-mcp` reads the file first and does nothing when `pupitre` already runs `/usr/local/bin/pupitred mcp`; an entry under that name that runs anything else is removed, then added again. The module reads as configured only once the server is declared. Its uninstall removes the entry before the CLI; the rest of the file is the client's.
+
+## The browser: Playwright MCP
+
+([Decision 0021](../decisions/0021-browser-mcp.md).) When a browser is on the machine — the one `ai.browser` installs —, the same clients are given a second server, **`playwright`**: Microsoft's Playwright MCP, which the AI agent drives itself to open a page, sign in, click, fill, read the console and take a screenshot.
+
+- **Install** (`install-browser-mcp`): mise's npm backend, `npm:@playwright/mcp` at `agents.PlaywrightVersion` (0.0.83), behind the `~/.local/share/mise/shims/playwright-mcp` shim. Nothing else is downloaded: the browser is the machine's.
+- **Declare** (`register-browser-mcp`), with the client's CLI as above: `<shim> --headless --isolated --no-sandbox --executable-path <browser> --output-dir ~/.cache/playwright-mcp`. `<browser>` is the first of Google Chrome, Chrome for Testing's headless shell (arm64) and Chromium found on the machine. The profile stays in memory; a screenshot without a name lands in the output folder, never in the project's repository.
+- **Allow** (`allow-browser-tools`): Claude Code's `permissions.allow` gains `mcp__playwright`, so the browser runs without a prompt; `disallow-browser-tools` takes it out.
+- **Follow the browser.** `ai.browser`'s Configure lays the server into every installed client; its Uninstall removes the browser, takes `playwright` out of every client (`unregister-browser-mcp`) and removes the tool (`remove-browser-mcp`). A client configured while a browser is present lays it too, and its uninstall takes it out with `pupitre`. A client reads as configured only when its `playwright` entry matches the machine — present with the pinned version and the browser found, absent without a browser —, and `ai.browser` only when every installed client agrees: the daemon's refresh below settles a server left halfway.
 
 ## Carrying an installed server forward
 

@@ -59,11 +59,19 @@ func Deploy(ctx *modules.Context, target Target) error {
 		return err
 	}
 
-	return allowTools(ctx, target)
+	if err := allowTools(ctx, target, "allow-mcp-tools", AllowRule); err != nil {
+		return err
+	}
+
+	return LayBrowser(ctx, target)
 }
 
 func Configured(ctx *modules.Context, target Target) bool {
-	if target.MCP != nil && (!mcpRegistered(ctx, target.MCP) || !toolsAllowed(ctx, target)) {
+	if target.MCP != nil && (!hasServer(ctx, target.MCP, pupitreServer()) || !toolsAllowed(ctx, target, AllowRule)) {
+		return false
+	}
+
+	if !BrowserLaid(ctx, target) {
 		return false
 	}
 

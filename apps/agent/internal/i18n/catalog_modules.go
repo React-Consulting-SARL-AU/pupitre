@@ -2,8 +2,8 @@ package i18n
 
 var moduleCatalog = map[string]Message{
 	"module.ai.browser.summary": {
-		FR: "Chrome headless et les bibliothèques dont il a besoin : l'outil screenshot du serveur MCP Pupitre s'en sert pour montrer une page à l'agent IA.",
-		EN: "Headless Chrome and the libraries it needs: the screenshot tool of the Pupitre MCP server uses it to show a page to the AI agent.",
+		FR: "Chrome headless et les bibliothèques dont il a besoin : l'agent IA le pilote lui-même à travers Playwright MCP, pour ouvrir une page, s'y connecter, cliquer et la capturer.",
+		EN: "Headless Chrome and the libraries it needs: the AI agent drives it itself through Playwright MCP, to open a page, sign in, click and capture it.",
 	},
 	"module.ai.mcp.unregistered": {
 		FR: "le serveur MCP pupitre n'apparaît pas dans ~/%s après son ajout",

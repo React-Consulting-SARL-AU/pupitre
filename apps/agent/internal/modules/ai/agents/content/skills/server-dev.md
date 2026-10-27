@@ -21,12 +21,21 @@ When your tools include the `pupitre` MCP server, use it first:
 | `project_logs` | the last lines of every process of a project, or of one |
 | `service_start`, `service_stop`, `service_restart`, `service_logs` | a service by its id, as `status` lists it |
 | `doctor` | the machine's checks, with the fix of each failure |
-| `screenshot` | opens a page in a headless browser here and hands you the image |
 
 A start that fails comes back with the end of the process's log: read it before
-anything else. To look at your work, call `screenshot` with the project's name
-(and a `path`), not its public address: the access gate asks a key of whoever
-opens that one. The image comes to you; to show it to the user, describe it.
+anything else.
+
+## Looking at a page: the `playwright` MCP server
+
+When the owner installed the Headless browser service, your tools include the
+`playwright` MCP server: a real browser on this server that you drive yourself.
+Open the project's local address — `PUPITRE_LOCAL_URL` of its process, or
+`http://127.0.0.1:<port>` from `project_list` — never its public address: the
+access gate asks a key of whoever opens that one. Sign in with the project's
+own test account (its `.env.local`, its seed data), click, fill the forms, read
+the console and the network, then take a screenshot. The image comes to you; to
+show it to the user, describe it. Without that server, ask the owner to install
+the Headless browser service from the Pupitre app.
 
 Without the MCP server, `dev` below does the same from the shell. Every `dev`
 command takes `--json`.

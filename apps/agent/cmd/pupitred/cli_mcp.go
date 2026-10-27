@@ -3,14 +3,11 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 	"time"
 
-	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/mcp"
 	"pupitre.studio/agent/internal/modules"
-	"pupitre.studio/agent/internal/state"
 )
 
 const (
@@ -31,25 +28,7 @@ func runMCP(engine *modules.Engine, stdin io.Reader, stdout, stderr io.Writer) i
 		defer remote.Close()
 	}
 
-	reader := state.FromEngine(engine, stateOptions())
-
-	// One folder per capture: the client kills the server rather than closing it, and a folder held for its life would stay.
-	toolbox := mcp.Toolbox{
-		Agent: agent,
-		Capture: func(request capture.Request) ([]byte, error) {
-			scratch, err := os.MkdirTemp("", "pupitre-capture-")
-			if err != nil {
-				return nil, err
-			}
-			defer os.RemoveAll(scratch)
-
-			request.Dir = scratch
-
-			return capture.Take(reader.Context(), request)
-		},
-		Sleep: time.Sleep,
-		Now:   time.Now,
-	}
+	toolbox := mcp.Toolbox{Agent: agent, Sleep: time.Sleep, Now: time.Now}
 
 	server := mcp.Server{Name: mcpName, Version: version, Instructions: mcp.Instructions, Tools: toolbox.Tools()}
 

@@ -1,0 +1,15 @@
+# 0021 — AI agents drive the server's browser themselves
+
+Date: 2026-10-27 · Status: accepted · Retires the `screenshot` tool of `pupitred mcp` ([mcp.md](../contracts/mcp.md))
+
+**The problem.** `pupitred mcp` carried a `screenshot` tool: Pupitre ran Chrome headless once, with `--virtual-time-budget`, and handed the image back. On a dev server that budget never runs out — the hot-reload websocket keeps the page busy — and nothing bounded the call but the 30-minute default of `sys.Exec`: on the owner's server Claude waited 22 minutes, then left an orphan Chrome behind when it gave up. And a single image is little: an agent that builds a page needs to open it, sign in, click, fill a form, read the console, then look.
+
+**The decision.** Pupitre stops capturing pages. It registers a standard browser MCP server, **Playwright MCP** (`@playwright/mcp`, pinned), with every installed AI agent that takes MCP servers — Claude Code and Codex —, on the Chrome that `ai.browser` installs. The agent drives the browser itself, end to end, on the server.
+
+- **Installed by mise**, as the npm-backed CLIs are: `npm:@playwright/mcp` at the version `agents.PlaywrightVersion` pins, behind the `playwright-mcp` shim. Raising the pin is a change of that constant; the daemon's refresh carries it to every server.
+- **Registered under the name `playwright`** with the client's own CLI, like `pupitre`: `<shim> --headless --isolated --no-sandbox --executable-path <chrome> --output-dir ~/.cache/playwright-mcp`. `--isolated` keeps the profile in memory; `--output-dir` keeps a screenshot without a name out of the project's repository. Claude's `permissions.allow` gains `mcp__playwright`, so the tools run without a prompt — what they reach, a shell as `dev` reaches already.
+- **Tied to the browser.** The registration exists exactly when a browser does: `ai.browser`'s Configure lays it into every installed client, its Uninstall takes it out of them and removes the tool; a client configured while a browser is present lays it too. Either module reads as behind when the two disagree, so the daemon's refresh ([mcp.md](../contracts/mcp.md#carrying-an-installed-server-forward)) settles a server left halfway.
+- **The pages are opened on the loopback** — `PUPITRE_LOCAL_URL`, `http://127.0.0.1:<port>` or the `<project>.localhost` host —, past the access gate; the public address asks for a key. A test account comes from the project itself (`.env.local`, seed data).
+- **`screenshot` leaves `pupitred mcp`**, and `internal/capture` with it: the server keeps what it does well — projects, services, logs, diagnosis. A browser that hangs is Playwright's to bound (60 s per navigation, the browser closed after an hour idle), and it dies with its MCP server, whose pipe it hangs on.
+
+**Consequences.** The tool list of `pupitred mcp` loses one entry; a client that cached it sees it gone at its next start. Hermes and OpenClaw, which take no MCP server from Pupitre, are unchanged. On arm64 the browser is Chrome for Testing's headless shell, which Playwright drives through `--executable-path` like any Chromium.

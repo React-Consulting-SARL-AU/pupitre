@@ -122,10 +122,6 @@ func (r *Reader) ctx() sys.Context {
 	return silent{sys: r.options.Sys}
 }
 
-func (r *Reader) Context() sys.Context {
-	return r.ctx()
-}
-
 func (r *Reader) Now() func() time.Time {
 	return r.options.Now
 }

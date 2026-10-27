@@ -1,14 +1,12 @@
 package mcp_test
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
-	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/mcp"
 	"pupitre.studio/agent/internal/protocol"
@@ -78,20 +76,13 @@ func (a *agent) commands() []string {
 }
 
 type clock struct {
-	now    time.Time
-	slept  time.Duration
-	shots  []capture.Request
-	render []byte
+	now   time.Time
+	slept time.Duration
 }
 
 func toolbox(fake *agent, at *clock) mcp.Toolbox {
 	return mcp.Toolbox{
 		Agent: fake,
-		Capture: func(request capture.Request) ([]byte, error) {
-			at.shots = append(at.shots, request)
-
-			return at.render, nil
-		},
 		Sleep: func(step time.Duration) {
 			at.slept += step
 			at.now = at.now.Add(step)
@@ -263,38 +254,15 @@ func TestAnAgentRefusalReachesTheModelWithItsFix(t *testing.T) {
 	}
 }
 
-func TestAProjectIsCapturedOnTheLoopbackPastTheGate(t *testing.T) {
-	at := &clock{render: []byte("\x89PNG")}
-
-	result := run(t, toolbox(&agent{}, at), "screenshot", `{"project":"flyleaf","process":"web","path":"/login","mobile":true,"width":400}`)
-	if result.IsError {
-		t.Fatalf("refused: %s", result.Content[0].Text)
-	}
-
-	asked := at.shots[0]
-	if asked.URL != "http://127.0.0.1:5174/login" || !asked.Mobile || asked.Size != "400,844" {
-		t.Fatalf("capture = %+v", asked)
-	}
-
-	image := result.Content[0]
-	if image.Type != "image" || image.MimeType != "image/png" || image.Data != base64.StdEncoding.EncodeToString([]byte("\x89PNG")) {
-		t.Fatalf("the image itself is the result: %+v", image)
-	}
-}
-
-func TestAScreenshotNamesOneTargetExactly(t *testing.T) {
-	at := &clock{}
-
-	for _, arguments := range []string{`{}`, `{"url":"https://example.org","project":"flyleaf"}`, `{"project":"flyleaf","path":"login"}`} {
-		if result := run(t, toolbox(&agent{}, at), "screenshot", arguments); !result.IsError {
-			t.Errorf("%s must be refused", arguments)
+func TestThePagesAreTheBrowsersToShow(t *testing.T) {
+	for _, tool := range toolbox(&agent{}, &clock{}).Tools() {
+		if tool.Name == "screenshot" {
+			t.Fatal("pages are looked at through the playwright server, not through pupitre")
 		}
 	}
 
-	run(t, toolbox(&agent{}, at), "screenshot", `{"url":"https://example.org/pricing"}`)
-
-	if len(at.shots) != 1 || at.shots[0].URL != "https://example.org/pricing" || at.shots[0].Size != "" {
-		t.Fatalf("shots = %+v", at.shots)
+	if !strings.Contains(mcp.Instructions, "playwright") {
+		t.Fatalf("the instructions must send the model to the browser: %s", mcp.Instructions)
 	}
 }
 
@@ -312,10 +280,6 @@ func TestNoToolOpensThePrivilegedSession(t *testing.T) {
 			arguments[key] = values[key]
 		}
 
-		if tool.Name == "screenshot" {
-			arguments["project"] = "flyleaf"
-		}
-
 		raw, _ := json.Marshal(arguments)
 		before := len(fake.calls)
 
@@ -323,7 +287,7 @@ func TestNoToolOpensThePrivilegedSession(t *testing.T) {
 			t.Errorf("%s refused %s: %s", tool.Name, raw, result.Content[0].Text)
 		}
 
-		if len(fake.calls) == before && tool.Name != "screenshot" {
+		if len(fake.calls) == before {
 			t.Errorf("%s never reached the agent", tool.Name)
 		}
 	}

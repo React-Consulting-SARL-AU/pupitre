@@ -23,3 +23,4 @@ One decision per file, numbered, never rewritten: a decision that changes is rep
 | [0017](./0017-access-gate.md) | Published addresses go through a gate, a project is protected by default |
 | [0018](./0018-source-available-and-free.md) | Source available under Apache 2.0 + Commons Clause, free up to three servers, licence beyond |
 | [0020](./0020-port-spans.md) | A process reserves a span of ports, from its main one on |
+| [0021](./0021-browser-mcp.md) | AI agents drive the server's browser themselves, through Playwright MCP |
