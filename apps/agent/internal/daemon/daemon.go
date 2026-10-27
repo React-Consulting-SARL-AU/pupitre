@@ -48,6 +48,8 @@ type Options struct {
 	LogPath           string
 	StateInterval     time.Duration
 	HeartbeatInterval time.Duration
+	// Lays at start what this binary ships to the installed modules; nil runs nothing.
+	Refresh func() error
 }
 
 // Turn must return without holding the daemon loop.

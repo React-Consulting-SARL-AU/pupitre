@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -774,6 +776,46 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 
 	if !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
 		t.Fatalf("a revoked server keeps its keys:\n%s", b.authorized())
+	}
+}
+
+func TestRunRefreshesOnceAtStartAndJournalsARefusal(t *testing.T) {
+	b := newBench(t, true)
+
+	var refreshes atomic.Int32
+
+	options := b.options()
+	options.StateInterval = time.Millisecond
+	options.HeartbeatInterval = time.Millisecond
+	options.Refresh = func() error {
+		refreshes.Add(1)
+
+		return errors.New("another install holds the lock")
+	}
+
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+
+	done := make(chan error, 1)
+	go func() { done <- daemon.New(options).Run(ctx) }()
+
+	deadline := time.After(5 * time.Second)
+	for b.platform.count() < 3 || !strings.Contains(b.journal(), "refresh : another install holds the lock") {
+		select {
+		case <-deadline:
+			t.Fatalf("%d state read(s), journal:\n%s", b.platform.count(), b.journal())
+		default:
+			time.Sleep(time.Millisecond)
+		}
+	}
+
+	stop()
+	if err := <-done; err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if refreshes.Load() != 1 {
+		t.Fatalf("refreshed %d times, want once at start", refreshes.Load())
 	}
 }
 

@@ -1219,3 +1219,102 @@ func (m *heldRecorder) Uninstall(ctx *modules.Context) error {
 func (m *heldRecorder) Status(ctx *modules.Context) (modules.Status, error) {
 	return modtest.Passing{ID: "tool.held"}.Status(ctx)
 }
+
+type shipped struct {
+	modtest.Passing
+}
+
+func (shipped) RefreshedOnStart() {}
+
+func configured(fake *modtest.FakeSys, id string) bool {
+	_, present := fake.Files["/etc/pupitre/demo/"+id+".conf"]
+
+	return present
+}
+
+func TestRefreshConfiguresOnlyTheShippedModulesAnUpgradeLeftBehind(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		shipped{modtest.Passing{ID: "ai.behind"}},
+		shipped{modtest.Passing{ID: "ai.current"}},
+		modtest.Passing{ID: "tool.demo"},
+	)
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"ai.behind", "ai.current", "tool.demo"}, Persist: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+	delete(fake.Files, "/etc/pupitre/demo/ai.behind.conf")
+	delete(fake.Files, "/etc/pupitre/demo/tool.demo.conf")
+
+	var events []contract.StepEvent
+	result, err := engine.Refresh(collect(&events))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(result.Failed) > 0 || !configured(fake, "ai.behind") {
+		t.Fatalf("the shipped module left behind must be configured again: %+v", result)
+	}
+
+	if configured(fake, "tool.demo") {
+		t.Fatal("refresh configured a module that ships nothing of the binary's")
+	}
+
+	for _, event := range events {
+		if event.Module != "ai.behind" {
+			t.Fatalf("refresh touched %s, which was current or not shipped", event.Module)
+		}
+	}
+
+	if report := readReport(t, engine); !reflect.DeepEqual(ids(report.Modules), []string{"ai.behind"}) {
+		t.Fatalf("report = %+v", report.Modules)
+	}
+}
+
+func TestRefreshOnACurrentMachineRunsNothingAndKeepsTheLastReport(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(shipped{modtest.Passing{ID: "ai.current"}}, shipped{modtest.Passing{ID: "ai.deferred"}})
+	engine := newEngine(t, fake, registry, licensed(contract.LicenseValid))
+
+	request := modules.Request{Modules: []string{"ai.current", "ai.deferred"}, Defer: []string{"ai.deferred"}, Persist: true}
+	if _, err := engine.Install(request, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	before, err := os.ReadFile(engine.ReportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var events []contract.StepEvent
+	if _, err := engine.Refresh(collect(&events)); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(events) > 0 || configured(fake, "ai.deferred") {
+		t.Fatalf("refresh ran on a current machine or answered for a deferred module: %+v", events)
+	}
+
+	if after, _ := os.ReadFile(engine.ReportPath); string(after) != string(before) {
+		t.Fatal("refresh with nothing to do replaced the last report")
+	}
+}
+
+func TestRefreshWaitsForALicence(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(shipped{modtest.Passing{ID: "ai.behind"}}), licensed(contract.LicenseRestricted))
+
+	_, err := engine.Refresh(nil)
+	if protocolCode(t, err) != contract.ErrorLicenseRequired {
+		t.Fatalf("refresh without a licence = %v", err)
+	}
+}
+
+func ids(reports []contract.ModuleReport) []string {
+	found := make([]string, 0, len(reports))
+	for _, report := range reports {
+		found = append(found, report.ID)
+	}
+
+	return found
+}

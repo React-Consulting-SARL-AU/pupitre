@@ -253,13 +253,27 @@ func projectsLockPath() string {
 }
 
 func newDaemon(engine *modules.Engine) *daemon.Daemon {
-	brought(newMigrator(engine), engine)
+	migrator := newMigrator(engine)
+	brought(migrator, engine)
 
 	options := daemonOptions(engine)
 	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
 	options.Backups = newBackups(engine, options.Reader)
+	options.Refresh = refresher(engine, migrator)
 
 	return daemon.New(options)
+}
+
+func refresher(engine *modules.Engine, migrator *migrate.Runner) func() error {
+	return func() error {
+		if config := migrator.State(); !config.Current() {
+			return protocol.MigrationRequired(config)
+		}
+
+		_, err := engine.Refresh(nil)
+
+		return err
+	}
 }
 
 func daemonOptions(engine *modules.Engine) daemon.Options {

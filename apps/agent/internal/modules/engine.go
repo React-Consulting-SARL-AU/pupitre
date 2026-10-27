@@ -202,6 +202,69 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 	return e.finish(r, report)
 }
 
+// However the binary was replaced, what it ships reaches the machine; a current machine runs nothing and keeps its last report.
+func (e *Engine) Refresh(sink Sink) (contract.InstallResult, error) {
+	unlock, err := e.acquire()
+	if err != nil {
+		return contract.InstallResult{}, err
+	}
+	defer unlock()
+
+	r := e.newRun(Request{}, sink)
+	defer r.close()
+
+	recalled := e.recall(r)
+	r.redactAll(recalled.Secrets)
+
+	behind := e.behindAmong(r, withoutDeferred(e.installedAmong(r, e.refreshed(), recalled), recalled.Defer), recalled)
+	if len(behind) == 0 {
+		return contract.InstallResult{}, nil
+	}
+
+	report := e.start(r, "refresh", behind)
+
+	for _, module := range behind {
+		ctx := r.context(module.Manifest(), recalled.Config[module.Manifest().ID], recalled.Secrets[module.Manifest().ID])
+		ctx.held = recalled.Config[module.Manifest().ID]
+		r.following(ctx)
+
+		execute(ctx, "configure", func() error { return module.Configure(ctx) })
+
+		report.Modules = append(report.Modules, ctx.report())
+		if ctx.failed {
+			report.Failed = append(report.Failed, ctx.manifest.ID)
+		}
+		r.settled(report)
+	}
+
+	return e.finish(r, report)
+}
+
+func (e *Engine) refreshed() []Module {
+	var found []Module
+
+	for _, module := range e.Registry.All() {
+		if _, refreshed := module.(Refreshed); refreshed {
+			found = append(found, module)
+		}
+	}
+
+	return found
+}
+
+func (e *Engine) behindAmong(r *run, installed []Module, recalled Request) []Module {
+	var behind []Module
+
+	for _, module := range installed {
+		status, err := module.Check(r.recalled(module.Manifest(), recalled))
+		if err == nil && !status.Configured {
+			behind = append(behind, module)
+		}
+	}
+
+	return behind
+}
+
 func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, error) {
 	unlock, err := e.acquire()
 	if err != nil {

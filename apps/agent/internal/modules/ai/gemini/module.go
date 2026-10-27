@@ -30,6 +30,8 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+func (Module) RefreshedOnStart() {}
+
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	if !cli.Present(ctx) {
 		return modules.Status{}, nil
