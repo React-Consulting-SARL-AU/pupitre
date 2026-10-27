@@ -83,7 +83,7 @@ func (t Toolbox) projectList() Tool {
 	return Tool{
 		Name:        "project_list",
 		Title:       "List projects",
-		Description: "Every project registered in Pupitre, its folder, its processes with their command, host, port, public routes and state.",
+		Description: "Every project registered in Pupitre, its folder, its processes with their command, host, port, the span of ports each reserves, public routes and state.",
 		InputSchema: object(nil),
 		Annotations: Annotations{ReadOnly: true, Idempotent: true},
 		Run: func(raw json.RawMessage) (Result, error) {

@@ -52,6 +52,7 @@ const PROCESS: ProcessDraft = {
   pkgmgr: "bun",
   proposed: {},
   rows: ROWS,
+  span: 1,
 };
 
 const DRAFT: Draft = {
@@ -77,6 +78,7 @@ const NO_FOLDERS: FolderState = { folders: [], path: "", status: "ready" };
 const READY: KnownState = {
   projects: [],
   serverId: "srv-1",
+  spans: true,
   status: "ready",
 };
 
@@ -98,6 +100,7 @@ const EDIT = {
   processId: () => undefined,
   processInstall: () => undefined,
   processPkgmgr: () => undefined,
+  processSpan: () => undefined,
   removeProcess: () => undefined,
   removeRow: () => undefined,
   rowLabel: () => undefined,

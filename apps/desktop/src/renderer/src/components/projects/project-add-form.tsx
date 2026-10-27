@@ -2,7 +2,10 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
-import type { ProcessProblem } from "@renderer/lib/project-processes";
+import type {
+  ProcessProblem,
+  SpanProblem,
+} from "@renderer/lib/project-processes";
 import {
   type AddStep,
   type DetectionState,
@@ -43,6 +46,7 @@ export function ProjectAddForm({
   githubModule,
   processProblems,
   rowProblems,
+  spanProblems = null,
   edit,
   onSubmit,
   onEditSource,
@@ -62,6 +66,8 @@ export function ProjectAddForm({
   processProblems: readonly (ProcessProblem | null)[];
   /** Index-aligned with `draft.processes`, then with each process's port rows. */
   rowProblems: readonly (readonly (RowProblem | null)[])[];
+  /** Index-aligned with `draft.processes`; null for an agent that predates spans. */
+  spanProblems?: readonly (SpanProblem | null)[] | null;
   edit: DraftEdits;
   onSubmit: () => void;
   onEditSource: () => void;
@@ -169,6 +175,7 @@ export function ProjectAddForm({
             problems={processProblems}
             processes={draft.processes}
             rowProblems={rowProblems}
+            spanProblems={spanProblems}
           />
 
           <Section name="start" title={t("projectAdd.section.start")}>

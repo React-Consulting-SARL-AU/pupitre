@@ -1,6 +1,6 @@
 name: Release
 
-# Jobs share nothing but the buckets and every step is idempotent, so a failed job is re-run alone.
+# Jobs share nothing but the buckets and the run's artifacts, kept a day, and every step is idempotent, so a failed job is re-run alone.
 on:
   push:
     tags: ["v*"]
@@ -240,6 +240,15 @@ jobs:
           # Remove once Azure Trusted Signing is configured.
           PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1"
 
+      # Installers and archives are already compressed.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-${{ fromJSON(needs.agent.outputs.release).version }}-${{ matrix.system }}
+          path: apps/desktop/dist/stage
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
+
   publish:
     name: Publish the app
     needs: [agent, desktop]
@@ -264,6 +273,12 @@ jobs:
 
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: app-${{ fromJSON(needs.agent.outputs.release).version }}-*
+          path: apps/desktop/dist/publish
+          merge-multiple: true
 
       - name: Sign, upload and declare
         run: bun scripts/release/index.ts app publish

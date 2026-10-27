@@ -593,6 +593,15 @@
               },
               "protected": {
                 "type": "boolean"
+              },
+              "port_span": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "held_by": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
@@ -2311,6 +2320,11 @@
                 "type": "string",
                 "minLength": 1
               },
+              "port_span": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
               "routes": {
                 "type": "array",
                 "items": {
@@ -2525,6 +2539,15 @@
               },
               "protected": {
                 "type": "boolean"
+              },
+              "port_span": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "held_by": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
@@ -2805,6 +2828,11 @@
                     "minimum": 1,
                     "maximum": 65535
                   },
+                  "port_span": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
                   "cmd": {
                     "type": "string",
                     "minLength": 1
@@ -3007,6 +3035,15 @@
               },
               "protected": {
                 "type": "boolean"
+              },
+              "port_span": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "held_by": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
@@ -7913,6 +7950,13 @@
           ".ssh/authorized_keys",
           ".claude/remote"
         ]
+      }
+    },
+    "ProjectRules": {
+      "type": "object",
+      "const": {
+        "port_span_max": 100,
+        "port_span_capability": "port_span"
       }
     },
     "KeyApprovalRules": {

@@ -1,5 +1,5 @@
 import { createHash, createPrivateKey, type KeyObject, sign } from "node:crypto"
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import {
   type Artefact,
@@ -14,9 +14,8 @@ import {
 } from "../../apps/desktop/scripts/release-artefacts"
 import { NOTES_LOCALE, readEntry } from "../release-notes"
 import { hasFlag, say, VARIABLES, variable } from "./cli"
-import { SYSTEMS, type System, WORK_INDEX } from "./desktop"
 import { type AppPublication, declareApp, platformFromEnv } from "./platform"
-import { type Bucket, bucket, get, keys, put } from "./r2"
+import { type Bucket, bucket, keys, put } from "./r2"
 
 // Runner only: the release key lives in the runner's secrets, never on a workstation.
 const ROOT = path.resolve(import.meta.dir, "../..")
@@ -64,34 +63,34 @@ interface Publish {
   base: string
   key: KeyObject | null
   bucket: Bucket
-  vault: Bucket
 }
 
-async function fetchWork(version: string, vault: Bucket): Promise<string[]> {
-  mkdirSync(WORK_DIR, { recursive: true })
+// Each system's feed travels with its installers: a missing one is a build job that handed nothing over.
+export function requireEverySystem(
+  files: readonly string[],
+  version: string
+): void {
+  const missing = FEEDS.filter((feed) => !files.includes(feed))
 
-  const files: string[] = []
+  if (missing.length > 0) {
+    throw new Error(
+      `${missing.join(", ")} missing from ${WORK_DIR}: a system left no app for ${version}.`
+    )
+  }
+}
 
-  for (const system of Object.values(SYSTEMS) as System[]) {
-    const index = path.join(WORK_DIR, `${system}-${WORK_INDEX}`)
+function stagedFiles(version: string, dryRun: boolean): string[] {
+  if (dryRun) {
+    mkdirSync(WORK_DIR, { recursive: true })
 
-    await get(vault, keys.work(version, system, WORK_INDEX), index)
-
-    const listed = vault.dryRun
-      ? []
-      : (JSON.parse(readFileSync(index, "utf8")) as string[])
-
-    for (const file of listed) {
-      await get(
-        vault,
-        keys.work(version, system, file),
-        path.join(WORK_DIR, file)
-      )
-      files.push(file)
-    }
+    return []
   }
 
-  return files.sort()
+  const files = readdirSync(WORK_DIR).sort()
+
+  requireEverySystem(files, version)
+
+  return files
 }
 
 interface Signed {
@@ -185,15 +184,10 @@ export async function publishApp(
         ? null
         : releaseKey(variable(env, "privateKey")),
     notes: readEntry(NOTES_LOCALE, version).body,
-    vault,
     version,
   }
   const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
-  const files = await fetchWork(version, vault)
-
-  if (files.length === 0 && !dryRun) {
-    throw new Error(`no system left an installer for ${version}.`)
-  }
+  const files = stagedFiles(version, dryRun)
 
   const publications: AppPublication[] = []
 

@@ -16,8 +16,8 @@ func TestMigrationNineDropsTheGallerySubdomainAndNothingElse(t *testing.T) {
 		`},"secrets":{"ai.browser":{}}}` + "\n")
 
 	result, err := runner(machine, migrate.All()...).Run()
-	if err != nil || result.Failure != nil || len(result.Applied) != 1 || result.Applied[0].ID != 9 {
-		t.Fatalf("result = %+v, err = %v, want the ninth migration alone", result, err)
+	if err != nil || result.Failure != nil || len(result.Applied) != 2 || result.Applied[0].ID != 9 {
+		t.Fatalf("result = %+v, err = %v, want the ninth migration first", result, err)
 	}
 
 	var document struct {

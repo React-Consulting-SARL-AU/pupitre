@@ -9,7 +9,7 @@ import (
 
 func intranet() registry.Project {
 	return registry.Project{Name: "intranet", Dir: "intranet", Processes: []registry.Process{
-		{ID: "server", Dir: registry.RootDir, PkgMgr: "gradle", Host: "127.0.0.1", Port: 8080, Cmd: "./gradlew bootRun", Routes: []registry.Route{
+		{ID: "server", Dir: registry.RootDir, PkgMgr: "gradle", Host: "127.0.0.1", Port: 8080, PortSpan: 10, Cmd: "./gradlew bootRun", Routes: []registry.Route{
 			route("api", 8080, "api.flyleaf.dev"),
 			route("admin-v2", 8081, ""),
 		}},
@@ -27,11 +27,15 @@ func TestAProcessReceivesTheMachineItsProjectAndItself(t *testing.T) {
 		"PUPITRE_HOST=127.0.0.1",
 		"PUPITRE_LOCAL_URL=http://127.0.0.1:8080",
 		"PUPITRE_PORT=8080",
+		"PUPITRE_PORT_LAST=8089",
+		"PUPITRE_PORT_RANGE=8080-8089",
 		"PUPITRE_PROCESS=server",
 		"PUPITRE_PROCESS_DIR=/home/dev/projects/intranet",
 		"PUPITRE_PROCESS_SERVER_PORT=8080",
+		"PUPITRE_PROCESS_SERVER_PORT_RANGE=8080-8089",
 		"PUPITRE_PROCESS_SERVER_URL=https://api.flyleaf.dev",
 		"PUPITRE_PROCESS_WEB_CLIENT_PORT=5173",
+		"PUPITRE_PROCESS_WEB_CLIENT_PORT_RANGE=5173-5173",
 		"PUPITRE_PROCESS_WEB_CLIENT_URL=http://intranet.localhost:5173",
 		"PUPITRE_PROJECT=intranet",
 		"PUPITRE_PROJECTS_DIR=/home/dev/projects",

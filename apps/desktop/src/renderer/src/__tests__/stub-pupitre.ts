@@ -3,6 +3,7 @@ import type { PupitreApi } from "../../../preload";
 
 // Calls a step fires on its own when entered, stubbed so a test only replaces the ones it looks at.
 const QUIET: Partial<PupitreApi> = {
+  agentSession: () => Promise.resolve(null),
   checkInstall: () =>
     Promise.resolve({ ok: true, result: { problems: [], warnings: [] } }),
   closeTerminal: () => undefined,

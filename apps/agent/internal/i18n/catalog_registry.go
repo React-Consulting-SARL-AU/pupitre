@@ -25,6 +25,14 @@ var registryCatalog = map[string]Message{
 		FR: "Choisissez un port entre 1024 et %d, par exemple %d.",
 		EN: "Choose a port between 1024 and %d, for example %d.",
 	},
+	"registry.span.invalid": {
+		FR: "%s réserve %d ports",
+		EN: "%s reserves %d ports",
+	},
+	"registry.span.invalid.fix": {
+		FR: "Réservez de 1 à %d ports.",
+		EN: "Reserve from 1 to %d ports.",
+	},
 	"registry.pkgmgr.unknown": {
 		FR: "gestionnaire de paquets inconnu : %s",
 		EN: "unknown package manager: %s",

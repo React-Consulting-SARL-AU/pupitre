@@ -83,6 +83,4 @@ export async function get(
 export const keys = {
   agent: (version: string, file: string) => `agent/${version}/${file}`,
   appDeclarations: (version: string) => `app/${version}/publications.json`,
-  work: (version: string, os: string, file: string) =>
-    `work/${version}/${os}/${file}`,
 }

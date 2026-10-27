@@ -43,6 +43,7 @@ func projectEnvironment(name string, port int) string {
 	return strings.Join([]string{
 		"-e 'PUPITRE=1'",
 		"-e 'PUPITRE_PROCESS_" + strings.ToUpper(name) + "_PORT=" + strconv.Itoa(port) + "'",
+		"-e 'PUPITRE_PROCESS_" + strings.ToUpper(name) + "_PORT_RANGE=" + strconv.Itoa(port) + "-" + strconv.Itoa(port) + "'",
 		"-e 'PUPITRE_PROCESS_" + strings.ToUpper(name) + "_URL=http://127.0.0.1:" + strconv.Itoa(port) + "'",
 		"-e 'PUPITRE_PROJECT=" + name + "'",
 		"-e 'PUPITRE_PROJECTS_DIR=/home/dev/projects'",

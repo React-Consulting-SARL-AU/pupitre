@@ -73,7 +73,8 @@ The project registry belongs to root and to the agent: never edit it. `dev` cann
 to do it from the Pupitre app, which detects the processes, the package manager,
 the start command and the port of a repository, and refuses a port already held
 with a free one to use instead. Give them what they need: the repository, each
-process's folder, command and port.
+process's folder, command and port, and how many ports it listens on when it
+is more than one.
 
 A project lives in `~/projects/<dir>`. One repository can carry several
 processes (an app and its API, a site and its mail preview): one project, one
@@ -86,8 +87,13 @@ tool opened on demand runs in a terminal.
 script insists on: the agent writes that name into `/etc/hosts`. No other host is
 accepted.
 
-**One port per process, between 1024 and 65535**, free across every project.
-Pin it on the command line, not in the repository's configuration, so the
+**One main port per process, between 1024 and 65535**, free across every project.
+A process that listens on more — a gateway and its backends — reserves a span
+from its main port on, which no other project can declare: it reads the span in
+`PUPITRE_PORT_RANGE` (skill `project-env`), and the owner sets its width in the
+app. `status` and `project_list` name the project that holds a process's port
+(`held_by`); `project_start` refuses that process until the port is free.
+Pin the port on the command line, not in the repository's configuration, so the
 registry stays the only source of truth:
 
 | Tool | How |

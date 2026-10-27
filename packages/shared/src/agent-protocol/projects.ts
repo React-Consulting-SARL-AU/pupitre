@@ -5,6 +5,7 @@ import {
   HostnameSchema,
   LocalhostNameSchema,
   PackageManagerSchema,
+  PortSpanSchema,
   PROJECT_ROOT_DIR,
   ProcessDirSchema,
   ProcessIdSchema,
@@ -78,6 +79,8 @@ const ProcessPatchSchema = z.strictObject({
   pkgmgr: PackageManagerSchema,
   host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
   port: PortSchema,
+  // Absent is 1, omitted there by the app like on project.add.
+  port_span: PortSpanSchema.optional(),
   cmd: z.string().min(1),
   // Empty hands the command back to the package manager.
   install: z.string().optional(),

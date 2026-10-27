@@ -61,7 +61,7 @@ The agent goes into restricted mode when it has no server token, when its last l
 
 `release.yml` chains `ci` → `agent` → `agent-arm64` → `desktop` (macOS, Windows, Linux) → `publish` → `merge`. Nothing is signed without a green CI, and `merge` opens the `staging` → `main` pull request only once the version is downloadable. The complete procedure is the `release` skill.
 
-- **A job that fell on a fluke** (runner, network, slow notarization): *Re-run failed jobs* in GitHub. Each step is idempotent: what is already in the bucket is rewritten identically, what is already declared answers 200.
+- **A job that fell on a fluke** (runner, network, slow notarization): *Re-run failed jobs* in GitHub. Each step is idempotent: what is already in the bucket is rewritten identically, what is already declared answers 200. The app's run artifacts last a day: past that, rerun the `desktop` jobs with `publish`.
 - **A fix in the chain itself**: commit on `staging`, then `gh workflow run release.yml --ref staging -f version=X.Y.Z`. Rerunning on the tag would replay the broken chain it designates.
 - **`merge` refuses** for lack of a green check on `staging`'s head: commits arrived after the tag. The version is published, `main` waits; the pull request left open is checked then merged by hand, as a merge commit.
 - **A published version is bad**: nothing is unpublished, we roll back. `gh workflow run promote.yml -f version=<previous> -f channel=stable` puts the previous version back in the channel, agent and app, and points the update feeds at its files. An app already upgraded does not go back down: it waits for the next one.

@@ -1,0 +1,30 @@
+---
+title: Un processus réserve ses ports
+description: Un processus peut réserver une plage de ports qu'aucun autre processus ne peut déclarer, un port tenu par un autre projet ne se lit plus en ligne, et les agents IA laissés en arrière par une mise à jour précédente se rattrapent au démarrage de l'agent.
+locale: fr
+version: 2.2.0
+channel: stable
+date: 2026-10-27
+order: 27
+---
+
+Un port répond désormais pour le projet qui le tient vraiment, et un processus qui écoute sur plusieurs ports peut les réserver.
+
+## L'agent
+
+- **Un port répond pour son propre projet.** L'agent sait désormais à quel projet appartient chaque port en écoute. Un processus dont le port est tenu par un autre projet — une passerelle qui écoute sur des ports que personne n'a déclarés, par exemple — ne se lit plus en ligne : il se lit arrêté ou en démarrage.
+- **Son démarrage est refusé avec la raison** : « son port est tenu par » l'autre projet, avec le correctif — arrêter ce projet, ou donner au processus un port libre, que le message nomme. Ajouter ou modifier un projet avertit de la même façon quand l'un de ses ports est déjà tenu.
+- **Un processus réserve une plage de ports**, de 1 à 100 ports à partir de son port principal. Aucun autre processus ne peut déclarer un port de cette plage, et le processus la lit dans `PUPITRE_PORT_RANGE` et `PUPITRE_PORT_LAST` — une passerelle et ses backends, ou un serveur de dev et son socket HMR, y prennent leurs ports plutôt que des valeurs écrites en dur. La mise à jour réserve un port à chaque processus existant : rien ne change tant que vous ne l'élargissez pas.
+- Les skills écrits pour les agents IA décrivent ces variables, et demandent à l'agent de vous réclamer une plage plus large plutôt que de choisir des ports lui-même.
+- **Les agents IA laissés en arrière par une mise à jour précédente se rattrapent.** Sur un serveur dont l'agent a été mis à jour par une app trop ancienne pour mettre à jour les agents IA installés, Claude gardait les anciennes instructions et ne recevait jamais le serveur MCP de Pupitre. À chaque démarrage, l'agent met désormais à jour les agents IA installés quand ils sont en retard — Claude Code, Codex, Copilot, Cursor, Gemini et OpenCode reçoivent leurs instructions, leurs skills et le serveur MCP, et le navigateur headless retire ce que l'ancienne galerie de captures avait laissé, son service compris. Un serveur déjà à jour ne lance rien. Hermes et OpenClaw, dont la configuration contient vos fournisseurs, se mettent toujours à jour depuis l'app.
+- L'agent est compilé avec Go 1.26.10, qui corrige une vulnérabilité dans la gestion des certificats de Go (`crypto/x509`, GO-2026-6809).
+
+## L'app
+
+- **Ports réservés.** Le formulaire d'un processus, à l'ajout ou à la configuration d'un projet, a un champ *Ports réservés* qui montre la plage et refuse une plage dont un autre processus tient déjà un port. Il apparaît dès que l'agent du serveur est en 2.2.0.
+- **Un processus dont le port est tenu** dit par quel projet, et qu'il ne démarrera pas tant que ce projet tourne ou qu'il n'a pas un autre port.
+
+## Limites connues
+
+- La lecture d'un dépôt ne propose pas encore de plage : chaque processus détecté part avec un port réservé, à élargir à la main.
+- Le dépôt lui-même doit lire `PUPITRE_PORT_RANGE` pour que ses backends restent dans la plage.

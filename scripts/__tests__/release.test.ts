@@ -7,7 +7,7 @@ import path from "node:path"
 import { signedAppMessage } from "../../apps/desktop/scripts/release-artefacts"
 import { compatibility } from "../../packages/shared/src/compat"
 import { helloFrom } from "../release/agent"
-import { releaseKey, signArtefact } from "../release/app"
+import { releaseKey, requireEverySystem, signArtefact } from "../release/app"
 import { appVersion } from "../release/check"
 import { argumentOf, hasFlag, required, variable } from "../release/cli"
 import {
@@ -336,6 +336,13 @@ describe("the next version", () => {
 })
 
 describe("the tags a release counts", () => {
+  // A hook exports GIT_DIR: inherited, it points these throwaway repositories' commands at the real one.
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith("GIT_")) {
+      delete process.env[key]
+    }
+  }
+
   const dir = mkdtempSync(path.join(tmpdir(), "pupitre-tags-"))
   const origin = path.join(dir, "origin.git")
   const work = path.join(dir, "work")
@@ -626,11 +633,29 @@ describe("the release key over an installer", () => {
 })
 
 describe("where a version lives in the buckets", () => {
-  it("keeps the agent, the app's declarations and each system's work under the version", () => {
+  it("keeps the agent and the app's declarations under the version", () => {
     expect(keys.agent("0.1.0", "release.json")).toBe("agent/0.1.0/release.json")
     expect(keys.appDeclarations("0.1.0")).toBe("app/0.1.0/publications.json")
-    expect(keys.work("0.1.0", "macos", "index.json")).toBe(
-      "work/0.1.0/macos/index.json"
-    )
+  })
+})
+
+describe("the app handed over by the build jobs", () => {
+  it("publishes only once every system left its feed", () => {
+    const staged = [
+      "Pupitre-0.1.0-arm64.dmg",
+      "latest-mac.yml",
+      "Pupitre-Setup-0.1.0-x64.exe",
+      "latest.yml",
+      "Pupitre-0.1.0-x86_64.AppImage",
+      "latest-linux.yml",
+    ]
+
+    expect(() => requireEverySystem(staged, "0.1.0")).not.toThrow()
+    expect(() =>
+      requireEverySystem(
+        staged.filter((file) => file !== "latest-linux.yml"),
+        "0.1.0"
+      )
+    ).toThrow("latest-linux.yml")
   })
 })

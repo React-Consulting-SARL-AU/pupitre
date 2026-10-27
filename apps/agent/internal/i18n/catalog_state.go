@@ -101,6 +101,14 @@ var stateCatalog = map[string]Message{
 		FR: "%s : le dossier %s est absent",
 		EN: "%s: the folder %s is missing",
 	},
+	"state.port.held": {
+		FR: "%s ne démarre pas : son port %d est tenu par %s",
+		EN: "%s does not start: its port %d is held by %s",
+	},
+	"state.port.held.fix": {
+		FR: "Arrêtez %s, ou donnez à %s un port libre, par exemple %d.",
+		EN: "Stop %s, or give %s a free port, for example %d.",
+	},
 	"state.project.install.failed": {
 		FR: "%s : %s a échoué",
 		EN: "%s: %s failed",
@@ -369,6 +377,10 @@ var stateCatalog = map[string]Message{
 	"state.project.warning.dir": {
 		FR: "un dossier de processus n'a pas pu être créé : %s",
 		EN: "a process folder could not be created: %s",
+	},
+	"state.project.warning.port": {
+		FR: "le port %d de %s est tenu en ce moment par %s, qui l'empêchera de démarrer ; %d est libre",
+		EN: "port %d of %s is held right now by %s, which will keep it from starting; %d is free",
 	},
 	"state.project.warning.pin": {
 		FR: "les versions épinglées des runtimes n'ont pas pu être écrites : %s",

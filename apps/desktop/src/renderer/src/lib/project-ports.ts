@@ -320,9 +320,13 @@ export function memoryOf(project: Pick<Project, "processes">): number {
   );
 }
 
+export function spanPorts(port: number, span: number): number[] {
+  return Array.from({ length: Math.max(span, 1) }, (_, at) => port + at);
+}
+
 export function portsOf(project: Pick<Project, "processes">): number[] {
   return project.processes.flatMap((process) => [
-    process.port,
+    ...spanPorts(process.port, process.port_span ?? 1),
     ...process.routes.map((route) => route.port),
   ]);
 }

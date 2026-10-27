@@ -3,6 +3,7 @@ package tmux
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -150,6 +151,15 @@ func Fingerprint(env []string) string {
 
 func (c Collection) PortUp(port int) bool {
 	return c.Listening[port]
+}
+
+// Seen by a process whose port another window holds: that answer is not its own.
+func (c Collection) Without(port int) Collection {
+	listening := maps.Clone(c.Listening)
+	delete(listening, port)
+	c.Listening = listening
+
+	return c
 }
 
 func (c Collection) PID(window string) int {

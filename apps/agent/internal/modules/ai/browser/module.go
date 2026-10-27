@@ -88,6 +88,8 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+func (Module) RefreshedOnStart() {}
+
 // What the gallery left counts as installed: an arm64 server had it without a browser, and its upgrade must still run.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	version, err := installedVersion(ctx)

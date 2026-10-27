@@ -1553,6 +1553,40 @@ describe("what project.add carries", () => {
 
     expect(sent[0]).toMatchObject({ boot: true });
   });
+
+  it("reserves a span only with an agent that announces spans, and sends it only above one", async () => {
+    const sent = sending();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    expect(useProjectAdd.getState().spans()).toBe(false);
+
+    stubPupitre({
+      ...QUIET_RUN,
+      addProject: (_serverId: string, params: ProjectAddParams) => {
+        sent.push(params as Record<string, unknown>);
+
+        return Promise.resolve({ ok: true as const, result: project(params) });
+      },
+      agentSession: () =>
+        Promise.resolve({
+          agent_version: "2.2.0",
+          capabilities: ["project.add", "port_span"],
+          license: "valid",
+          protocol: 3,
+        }),
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    expect(useProjectAdd.getState().spans()).toBe(true);
+
+    useProjectAdd.getState().setSource(SHOP);
+    useProjectAdd.getState().setProcessSpan(0, 10);
+    expect(useProjectAdd.getState().spanProblem(0)).toBeNull();
+    await useProjectAdd.getState().launch("srv-1");
+
+    const [process] = (sent[0]?.processes ?? []) as Record<string, unknown>[];
+    expect(process).toMatchObject({ port_span: 10 });
+  });
 });
 
 describe("a folder already present on the server", () => {

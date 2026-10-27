@@ -23,6 +23,11 @@ type Account interface {
 	Login(ctx *Context) (contract.Login, bool)
 }
 
+// Configure only lays what the binary ships, so the daemon replays it at start once Check finds the machine behind.
+type Refreshed interface {
+	RefreshedOnStart()
+}
+
 type Status struct {
 	Installed   bool
 	Configured  bool

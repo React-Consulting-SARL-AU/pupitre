@@ -76,3 +76,19 @@ func TestTheFourManifestsMatchTheCatalog(t *testing.T) {
 		}
 	}
 }
+
+// Hermes's Configure writes the providers and drives its service: only a gesture of the owner replays it.
+func TestTheDaemonRefreshesWhatOnlyLaysShippedFiles(t *testing.T) {
+	want := map[string]bool{claude.ID: true, codex.ID: true, browser.ID: true, hermes.ID: false}
+
+	for _, module := range registry(t).All() {
+		wanted, listed := want[module.Manifest().ID]
+		if !listed {
+			continue
+		}
+
+		if _, refreshed := module.(modules.Refreshed); refreshed != wanted {
+			t.Errorf("%s refreshed on start = %v, want %v", module.Manifest().ID, refreshed, wanted)
+		}
+	}
+}

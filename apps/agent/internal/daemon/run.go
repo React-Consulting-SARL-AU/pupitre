@@ -19,6 +19,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	d.journal.Logf("agent %s idling, platform read every %s", d.options.AgentVersion, d.options.StateInterval)
 
+	// Beside the loop: an agent CLI that hangs must not hold the heartbeat.
+	go d.refreshOnce()
+
 	d.syncOnce(ctx)
 	d.beatOnce(ctx)
 
@@ -47,6 +50,16 @@ func (d *Daemon) syncOnce(ctx context.Context) {
 
 	if synced.KeysChanged {
 		d.journal.Logf("license %s, target version %s", synced.License, orNone(synced.TargetVersion))
+	}
+}
+
+func (d *Daemon) refreshOnce() {
+	if d.options.Refresh == nil {
+		return
+	}
+
+	if err := d.options.Refresh(); err != nil {
+		d.journal.Logf("refresh : %s", err)
 	}
 }
 

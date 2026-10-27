@@ -538,7 +538,17 @@ type ProjectProcess struct {
 	EnvChanged bool `json:"env_changed,omitempty"`
 	// Nil follows the project.
 	Protected *bool `json:"protected,omitempty"`
+	PortSpan  int   `json:"port_span"`
+	// Another project's window listening on this main port right now.
+	HeldBy string `json:"held_by,omitempty"`
 }
+
+type ProjectRulesConstants struct {
+	PortSpanMax        int    `json:"port_span_max"`
+	PortSpanCapability string `json:"port_span_capability"`
+}
+
+var ProjectRules = constOf[ProjectRulesConstants]("ProjectRules")
 
 type Project struct {
 	Name      string            `json:"name"`

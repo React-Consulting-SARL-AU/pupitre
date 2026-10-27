@@ -64,6 +64,32 @@ describe("a process whose environment changed", () => {
     );
 
     expect(view.container.querySelector("[data-env-changed]")).toBeNull();
+    expect(view.container.querySelector("[data-held-by]")).toBeNull();
+
+    view.unmount();
+  });
+});
+
+describe("a process whose port another project holds", () => {
+  it("names the holder, and the span it reserves", async () => {
+    const process = {
+      ...declared(),
+      held_by: "react-box/web",
+      port_span: 10,
+      state: "stopped" as const,
+    };
+    const view = await mount(
+      <ul>
+        <ProjectProcessRow busy={false} onAct={NEVER} process={process} />
+      </ul>
+    );
+
+    expect(
+      view.container.querySelector("[data-held-by]")?.textContent
+    ).toContain(`Le port ${process.port} est tenu par react-box/web`);
+    expect(view.container.textContent).toContain(
+      `${process.port}–${process.port + 9}`
+    );
 
     view.unmount();
   });

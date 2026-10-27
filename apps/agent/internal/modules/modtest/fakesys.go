@@ -63,6 +63,7 @@ type FakeSys struct {
 	Activity   map[string]time.Time
 	Dead       map[string]int
 	Binds      map[string]int
+	Backends   map[int]string
 	Listen     map[int]bool
 	Uptimes    map[int]int
 	Firewall   Firewall
@@ -129,6 +130,7 @@ func NewFakeSys() *FakeSys {
 		Activity:     map[string]time.Time{},
 		Dead:         map[string]int{},
 		Binds:        map[string]int{},
+		Backends:     map[int]string{},
 		Listen:       map[int]bool{},
 		Uptimes:      map[int]int{},
 		Procs:        map[int]Proc{},

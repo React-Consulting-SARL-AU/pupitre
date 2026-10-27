@@ -21,6 +21,45 @@ func (f *FakeSys) Serves(window string, port int) {
 	f.Binds[window] = port
 }
 
+// A port the window's process opens beside its own, as a gateway's backends do.
+func (f *FakeSys) AlsoServes(window string, port int) {
+	f.Backends[port] = window
+
+	if _, open := f.Windows[window]; open {
+		f.Listen[port] = true
+	}
+}
+
+func (f *FakeSys) ports(window string) []int {
+	var ports []int
+
+	if port, bound := f.Binds[window]; bound {
+		ports = append(ports, port)
+	}
+
+	for port, owner := range f.Backends {
+		if owner == window {
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
+}
+
+func (f *FakeSys) holder(port int) (int, bool) {
+	for window, bound := range f.Binds {
+		if bound == port {
+			pid, open := f.Windows[window]
+
+			return pid, open
+		}
+	}
+
+	pid, open := f.Windows[f.Backends[port]]
+
+	return pid, open
+}
+
 // A second window under the name, as a start whose last stop failed leaves one.
 func (f *FakeSys) Duplicates(window string) {
 	f.Twins[window] = append(f.Twins[window], firstPanePID+len(f.Windows)+len(f.Twins)+100)
@@ -34,7 +73,7 @@ func (f *FakeSys) Splits(window string) {
 func (f *FakeSys) Dies(window string, status int) {
 	f.Dead[window] = status
 
-	if port, bound := f.Binds[window]; bound {
+	for _, port := range f.ports(window) {
 		delete(f.Listen, port)
 	}
 }
@@ -143,7 +182,7 @@ func (f *FakeSys) openWindow(name string) {
 	f.Windows[name] = firstPanePID + len(f.Windows)
 	f.Uptimes[f.Windows[name]] = 42
 
-	if port, bound := f.Binds[name]; bound {
+	for _, port := range f.ports(name) {
 		f.Listen[port] = true
 	}
 
@@ -182,9 +221,10 @@ func (f *FakeSys) closeWindow(name string) {
 	delete(f.Split, name)
 	delete(f.WindowEnv, name)
 	delete(f.Uptimes, f.Windows[name])
+	ports := f.ports(name)
 	delete(f.Windows, name)
 
-	if port, bound := f.Binds[name]; bound {
+	for _, port := range ports {
 		delete(f.Listen, port)
 	}
 
@@ -276,7 +316,13 @@ func (f *FakeSys) ss() (sys.Output, error) {
 	var out strings.Builder
 
 	for _, port := range ports {
-		fmt.Fprintf(&out, "LISTEN 0      511          127.0.0.1:%d          0.0.0.0:*\n", port)
+		fmt.Fprintf(&out, "LISTEN 0      511          127.0.0.1:%d          0.0.0.0:*", port)
+
+		if pid, open := f.holder(port); open {
+			fmt.Fprintf(&out, `    users:(("node",pid=%d,fd=23))`, pid)
+		}
+
+		out.WriteString("\n")
 	}
 
 	return sys.Output{Stdout: out.String()}, nil

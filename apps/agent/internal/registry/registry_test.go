@@ -752,6 +752,87 @@ func TestARefusedPortProposesOneNothingListensOn(t *testing.T) {
 	}
 }
 
+func spanning(name string, port, span int, routes ...registry.Route) registry.Project {
+	project := single(name, name, port, "bun run dev", routes...)
+	project.Processes[0].PortSpan = span
+
+	return project
+}
+
+func TestASpanHoldsEveryPortItCovers(t *testing.T) {
+	fake, file := loaded(t)
+
+	if err := file.Add(context(fake), spanning("gateway", 3300, 5, route("api", 3302, ""))); err != nil {
+		t.Fatalf("a route inside its own span is the span's: %v", err)
+	}
+
+	reloaded := reload(fake)
+	gateway, _ := reloaded.Get("gateway")
+	if gateway.Processes[0].PortSpan != 5 || gateway.Contract(registry.ProjectsDir).Processes[0].PortSpan != 5 {
+		t.Fatalf("the span must be written and returned: %+v", gateway.Processes[0])
+	}
+
+	for port := 3300; port <= 3304; port++ {
+		if !reloaded.Ports()[port] {
+			t.Fatalf("%d is inside the span and must count as taken", port)
+		}
+	}
+
+	err := reloaded.Add(context(fake), single("other", "other", 3303, "bun run dev"))
+	if err == nil {
+		t.Fatal("a port inside another process's span must be refused")
+	}
+
+	failure := protocolError(t, err)
+	if !strings.Contains(failure.Message, "3303") || !strings.Contains(failure.Message, "gateway") || failure.Remedy == nil || failure.Remedy.PortFree != 3305 {
+		t.Fatalf("the refusal must name the span's holder and the first port past it: %+v", failure)
+	}
+}
+
+func TestASpanOverlappingAnotherProposesWhereTheWholeSpanFits(t *testing.T) {
+	fake, file := loaded(t)
+
+	err := file.Add(context(fake), spanning("gateway", 3005, 10))
+	if err == nil {
+		t.Fatal("3005 to 3014 covers the route web holds on 3010")
+	}
+
+	if failure := protocolError(t, err); failure.Remedy == nil || failure.Remedy.PortFree != 3011 {
+		t.Fatalf("the free port must leave room for ten: %+v", failure.Remedy)
+	}
+
+	if got := file.FreeSpan(3005, 10, map[int]bool{3015: true}); got != 3016 {
+		t.Fatalf("a listening port inside the block pushes it further: got %d, want 3016", got)
+	}
+}
+
+func TestASpanStaysWithinItsBounds(t *testing.T) {
+	fake, file := loaded(t)
+
+	for label, project := range map[string]registry.Project{
+		"too wide":           spanning("wide", 3300, registry.PortSpanMax+1),
+		"past the last port": spanning("edge", 65530, 10),
+	} {
+		if err := file.Add(context(fake), project); err == nil {
+			t.Errorf("%s: must be refused", label)
+		} else if protocolError(t, err).Fix == "" {
+			t.Errorf("%s: a refused span must carry a fix", label)
+		}
+	}
+
+	if err := file.Add(context(fake), single("plain", "plain", 3300, "bun run dev")); err != nil {
+		t.Fatal(err)
+	}
+
+	if plain, _ := reload(fake).Get("plain"); plain.Processes[0].PortSpan != 1 {
+		t.Fatalf("a process that names no span holds one port: %+v", plain.Processes[0])
+	}
+
+	if api, _ := reload(fake).Get("api"); api.Processes[0].PortSpan != 1 {
+		t.Fatalf("a row of the repository's registry holds one port: %+v", api.Processes[0])
+	}
+}
+
 func TestPathIsAbsoluteAndInsideTheProjectsRoot(t *testing.T) {
 	_, file := loaded(t)
 

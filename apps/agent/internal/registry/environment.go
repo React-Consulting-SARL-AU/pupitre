@@ -50,6 +50,7 @@ func (p Project) Environment(projects, domain string) Environment {
 	for _, process := range p.Processes {
 		prefix := "PUPITRE_PROCESS_" + envName(process.ID)
 		env[prefix+"_PORT"] = strconv.Itoa(process.Port)
+		env[prefix+"_PORT_RANGE"] = process.PortRange()
 		env[prefix+"_URL"] = process.URL()
 	}
 
@@ -63,6 +64,8 @@ func (p Project) ProcessEnvironment(projects, domain string, process Process) En
 	env["PUPITRE_PROCESS_DIR"] = process.Path(p.Path(projects))
 	env["PUPITRE_HOST"] = process.Host
 	env["PUPITRE_PORT"] = strconv.Itoa(process.Port)
+	env["PUPITRE_PORT_LAST"] = strconv.Itoa(process.SpanEnd())
+	env["PUPITRE_PORT_RANGE"] = process.PortRange()
 	env["PUPITRE_URL"] = process.URL()
 	env["PUPITRE_LOCAL_URL"] = process.LocalURL()
 
@@ -77,6 +80,10 @@ func (p Project) ProcessEnvironment(projects, domain string, process Process) En
 	}
 
 	return env
+}
+
+func (p Process) PortRange() string {
+	return strconv.Itoa(p.Port) + "-" + strconv.Itoa(p.SpanEnd())
 }
 
 func routeURL(process Process, route Route) string {

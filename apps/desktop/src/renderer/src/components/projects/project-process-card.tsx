@@ -2,18 +2,22 @@ import { Collapsible } from "@base-ui-components/react/collapsible";
 import {
   PACKAGE_MANAGERS,
   type PackageManager,
+  PORT_SPAN_MAX,
 } from "@pupitre/shared/agent-protocol/state";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
-import type {
-  ProcessDraft,
-  ProcessProblem,
+import {
+  type ProcessDraft,
+  type ProcessProblem,
+  type SpanProblem,
+  spanRange,
 } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import { ChevronRight, X } from "lucide-react";
 import { useState } from "react";
-import { Field, fieldControlClass } from "../ui/field";
+import { Field, fieldAria, fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
+import { NumberField } from "../ui/number-field";
 import { Panel } from "../ui/panel";
 import { Select } from "../ui/select";
 import type { PortEdits } from "./project-port-row";
@@ -25,6 +29,7 @@ export interface ProcessEdits {
   processPkgmgr: (process: number, value: PackageManager) => void;
   processCmd: (process: number, value: string) => void;
   processInstall: (process: number, value: string) => void;
+  processSpan: (process: number, value: number) => void;
   rowLabel: (process: number, row: number, value: string) => void;
   rowPort: (process: number, row: number, value: number) => void;
   rowPublish: (process: number, row: number, value: boolean) => void;
@@ -68,6 +73,14 @@ const PROBLEM_TEXT: Record<
   idTaken: "projectAdd.processes.idTaken",
 };
 
+const SPAN_TEXT: Record<
+  SpanProblem,
+  "projectAdd.processes.span" | "projectAdd.processes.spanTaken"
+> = {
+  span: "projectAdd.processes.span",
+  spanTaken: "projectAdd.processes.spanTaken",
+};
+
 function portsSummary(draft: ProcessDraft): string {
   return draft.rows
     .map((row) =>
@@ -81,6 +94,8 @@ export function ProjectProcessCard({
   draft,
   problem,
   rowProblems,
+  spans,
+  spanProblem,
   exposure,
   placeholder,
   removable,
@@ -91,6 +106,9 @@ export function ProjectProcessCard({
   draft: ProcessDraft;
   problem: ProcessProblem | null;
   rowProblems: readonly (RowProblem | null)[];
+  /** False for an agent that predates spans. */
+  spans: boolean;
+  spanProblem: SpanProblem | null;
   exposure: Exposure | null;
   placeholder: string;
   removable: boolean;
@@ -104,7 +122,11 @@ export function ProjectProcessCard({
   const scope = `project.processes.${index}`;
   const field = problem ? PROBLEM_FIELD[problem] : null;
   const problemText = problem ? t(PROBLEM_TEXT[problem]) : undefined;
-  const refused = problem !== null || rowProblems.some(Boolean);
+  const refused =
+    problem !== null || spanProblem !== null || rowProblems.some(Boolean);
+  const spanText = spanProblem
+    ? t(SPAN_TEXT[spanProblem], { max: String(PORT_SPAN_MAX) })
+    : undefined;
   // A fold hiding a refusal would leave the reader with a submit button that does nothing.
   const open = opened || refused;
   const summary = [draft.dir, draft.cmd].filter(Boolean).join(" · ");
@@ -242,6 +264,43 @@ export function ProjectProcessCard({
               />
             </Field>
           </div>
+
+          {spans ? (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                help={
+                  spanText
+                    ? undefined
+                    : t("projectAdd.processes.spanHelp", {
+                        range: spanRange(draft),
+                      })
+                }
+                label={t("projectAdd.processes.spanLabel")}
+                name={`${scope}.span`}
+                problem={spanText}
+              >
+                <NumberField
+                  {...fieldAria({
+                    help: !spanText,
+                    name: `${scope}.span`,
+                    problem: Boolean(spanText),
+                  })}
+                  decrementLabel={t("common.decrease", {
+                    label: t("projectAdd.processes.spanLabel"),
+                  })}
+                  id={`${scope}.span`}
+                  incrementLabel={t("common.increase", {
+                    label: t("projectAdd.processes.spanLabel"),
+                  })}
+                  max={PORT_SPAN_MAX}
+                  min={1}
+                  onChange={(next) => edit.processSpan(index, next)}
+                  value={draft.span}
+                  wrong={Boolean(spanText)}
+                />
+              </Field>
+            </div>
+          ) : null}
 
           <ProjectPorts
             edit={portEditsOf(edit, index)}
