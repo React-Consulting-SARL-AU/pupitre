@@ -12,8 +12,10 @@ const machineHeader = `# Contexte machine — serveur de développement distant
   ` + "`project_logs`" + `, ` + "`project_restart`" + `…), ou à défaut avec ` + "`dev`" + ` (` + "`dev status`" + `, ` + "`dev up <projet>`" + `,
   ` + "`dev logs <projet>`" + `), jamais avec un ` + "`bun run dev`" + ` lancé à la main : cela double les
   processus et bloque les ports.
-- Pour voir une page, appelle l'outil ` + "`screenshot`" + ` du serveur MCP ` + "`" + MCPName + "`" + ` : l'image te
-  revient directement. Nomme le projet plutôt que son adresse publique, que protège une clé.
+- Pour voir une page, pilote le navigateur du serveur MCP ` + "`" + PlaywrightName + "`" + ` quand le service
+  Navigateur headless est installé : ouvre l'adresse locale du projet (` + "`PUPITRE_LOCAL_URL`" + `), jamais
+  son adresse publique, que protège une clé ; connecte-toi avec un compte de test du projet, clique,
+  remplis, lis la console, capture.
 - Ports, hôtes, adresses et domaine d'un projet sont dans son environnement, en ` + "`PUPITRE_*`" + ` :
   lis-les, ne les écris jamais en dur (skill ` + "`project-env`" + `).
 - Les secrets d'un projet sont dans son ` + "`.env.local`" + `, écrit par l'agent : jamais dans un

@@ -122,7 +122,7 @@ func TestClaudeReadsOurServerOnly(t *testing.T) {
 		`{"mcpServers":{"playwright":{"command":"npx"}}}`:                                       false,
 		`not json`: false,
 	} {
-		if got := claudeRegistered([]byte(config)); got != want {
+		if got := claudeRegistered([]byte(config), pupitreServer()); got != want {
 			t.Errorf("%s: got %v, want %v", config, got, want)
 		}
 	}
@@ -134,7 +134,7 @@ func TestCodexReadsOurTableOnly(t *testing.T) {
 	stale := "[mcp_servers.pupitre]\ncommand = \"/opt/old/pupitred\"\nargs = [\"mcp\"]\n"
 
 	for config, want := range map[string]bool{ours: true, theirs: false, stale: false, "": false} {
-		if got := codexRegistered([]byte(config)); got != want {
+		if got := codexRegistered([]byte(config), pupitreServer()); got != want {
 			t.Errorf("%q: got %v, want %v", config, got, want)
 		}
 	}

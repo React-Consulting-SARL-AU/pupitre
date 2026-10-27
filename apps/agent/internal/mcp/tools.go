@@ -2,16 +2,13 @@ package mcp
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
-	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/i18n"
@@ -34,13 +31,13 @@ const (
 
 // Read by the model like the tools' descriptions: one language for the whole contract.
 const Instructions = "Pupitre drives this server's projects and services. Start, stop and restart a dev server with these tools, " +
-	"never by hand: a second process would take its port. Read its logs with project_logs, and look at a page with screenshot."
+	"never by hand: a second process would take its port. Read its logs with project_logs. To look at a page, drive the playwright " +
+	"MCP server's browser on the project's local address."
 
 type Toolbox struct {
-	Agent   devcli.Caller
-	Capture func(capture.Request) ([]byte, error)
-	Sleep   func(time.Duration)
-	Now     func() time.Time
+	Agent devcli.Caller
+	Sleep func(time.Duration)
+	Now   func() time.Time
 }
 
 func (t Toolbox) Tools() []Tool {
@@ -58,7 +55,6 @@ func (t Toolbox) Tools() []Tool {
 		t.serviceAction("service_restart", "Restart a service", "service.restart", "Restart one of the server's services by its id, as status lists it."),
 		t.serviceLogs(),
 		t.doctor(),
-		t.screenshot(),
 	}
 }
 
@@ -304,120 +300,6 @@ func (t Toolbox) doctor() Tool {
 			return t.relay("doctor", nil)
 		},
 	}
-}
-
-func (t Toolbox) screenshot() Tool {
-	return Tool{
-		Name:  "screenshot",
-		Title: "Take a screenshot",
-		Description: "Open a page in a headless browser on this server and return the image. Name a project to capture its dev process on the loopback, " +
-			"past the access gate, or give a full http(s) URL. The image is returned here and kept nowhere.",
-		InputSchema: object(map[string]any{
-			"url":     map[string]any{"type": "string", "description": "A full http:// or https:// address. Leave empty when naming a project."},
-			"project": map[string]any{"type": "string", "description": "A project whose running process is captured on 127.0.0.1."},
-			"process": processProperty,
-			"path":    map[string]any{"type": "string", "description": "With a project, the page to open, starting with /. Default /."},
-			"width":   integer("Viewport width in pixels. Default 1440, or 390 on mobile.", 320, 3840),
-			"height":  integer("Viewport height in pixels. Default 900, or 844 on mobile.", 320, 4320),
-			"mobile":  map[string]any{"type": "boolean", "description": "Emulate a phone: its viewport and its user agent."},
-			"wait_ms": integer(fmt.Sprintf("Extra time to let the page render, in milliseconds, at most %d.", capture.MaxWait), 0, capture.MaxWait),
-		}),
-		Annotations: Annotations{ReadOnly: true, OpenWorld: true},
-		Run: func(raw json.RawMessage) (Result, error) {
-			var asked struct {
-				URL     string `json:"url"`
-				Project string `json:"project"`
-				Process string `json:"process"`
-				Path    string `json:"path"`
-				Width   int    `json:"width"`
-				Height  int    `json:"height"`
-				Mobile  bool   `json:"mobile"`
-				Wait    int    `json:"wait_ms"`
-			}
-
-			if err := decode(raw, &asked); err != nil {
-				return Result{}, err
-			}
-
-			address, err := t.address(asked.URL, asked.Project, asked.Process, asked.Path)
-			if err != nil {
-				return Result{}, err
-			}
-
-			request := capture.Request{URL: address, Mobile: asked.Mobile, Wait: asked.Wait}
-			if asked.Width > 0 || asked.Height > 0 {
-				request.Size = size(asked.Width, asked.Height, asked.Mobile)
-			}
-
-			image, err := t.Capture(request)
-			if err != nil {
-				return Result{}, err
-			}
-
-			return Result{Content: []Content{
-				{Type: "image", Data: base64.StdEncoding.EncodeToString(image), MimeType: "image/png"},
-				{Type: "text", Text: address},
-			}}, nil
-		},
-	}
-}
-
-func (t Toolbox) address(url, project, process, path string) (string, error) {
-	if (url == "") == (project == "") {
-		return "", errors.New(i18n.T("mcp.screenshot.target"))
-	}
-
-	if url != "" {
-		return url, nil
-	}
-
-	if path == "" {
-		path = "/"
-	}
-
-	if !strings.HasPrefix(path, "/") {
-		return "", errors.New(i18n.T("mcp.screenshot.path", path))
-	}
-
-	found, err := t.project(project)
-	if err != nil {
-		return "", err
-	}
-
-	processes, err := chosen(found, process)
-	if err != nil {
-		return "", err
-	}
-
-	for _, candidate := range processes {
-		if candidate.Port > 0 {
-			host := candidate.Host
-			if host == "" {
-				host = "127.0.0.1"
-			}
-
-			return "http://" + host + ":" + strconv.Itoa(candidate.Port) + path, nil
-		}
-	}
-
-	return "", errors.New(i18n.T("mcp.screenshot.noPort", project))
-}
-
-func size(width, height int, mobile bool) string {
-	fallback := strings.Split(capture.DesktopSize, ",")
-	if mobile {
-		fallback = strings.Split(capture.MobileSize, ",")
-	}
-
-	if width <= 0 {
-		width, _ = strconv.Atoi(fallback[0])
-	}
-
-	if height <= 0 {
-		height, _ = strconv.Atoi(fallback[1])
-	}
-
-	return strconv.Itoa(width) + "," + strconv.Itoa(height)
 }
 
 type settled struct {

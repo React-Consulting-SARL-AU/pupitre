@@ -16,7 +16,7 @@ const (
 	configDir = agents.Home + "/.claude"
 )
 
-var target = agents.Target{ConfigDir: configDir, ContextFile: "CLAUDE.md", Skills: true, Subagents: true, MCP: agents.ClaudeMCP(BinPath)}
+var target = agents.Declare(agents.Target{ConfigDir: configDir, ContextFile: "CLAUDE.md", Skills: true, Subagents: true, MCP: agents.ClaudeMCP(BinPath)})
 
 type Module struct{}
 

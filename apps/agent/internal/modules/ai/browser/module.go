@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/exposure"
 	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
@@ -105,7 +106,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{
 		Installed:  true,
 		Version:    version,
-		Configured: version != "" && !left,
+		Configured: version != "" && !left && agents.BrowserLaidEverywhere(ctx),
 	}, nil
 }
 
@@ -206,8 +207,13 @@ func installPlaywrightLibraries(ctx *modules.Context) error {
 	})
 }
 
+// Every AI client already on the machine is given the browser through Playwright MCP.
 func (Module) Configure(ctx *modules.Context) error {
-	return retireGallery(ctx)
+	if err := retireGallery(ctx); err != nil {
+		return err
+	}
+
+	return agents.LayBrowserEverywhere(ctx)
 }
 
 // A server whose install found no browser gets one now: arm64 had none before the headless shell.
@@ -304,7 +310,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return ctx.Step("remove-browser", func() (modules.Outcome, error) {
+	if err := ctx.Step("remove-browser", func() (modules.Outcome, error) {
 		if headlessInstalled(ctx) != "" {
 			return modules.Done, removeHeadless(ctx)
 		}
@@ -315,7 +321,16 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		}
 
 		return modules.Done, apt.Remove(ctx, pkg)
-	})
+	}); err != nil {
+		return err
+	}
+
+	// The browser gone, laying it again takes playwright out of every client.
+	if err := agents.LayBrowserEverywhere(ctx); err != nil {
+		return err
+	}
+
+	return agents.RemoveBrowserServer(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {

@@ -57,16 +57,4 @@ var cliCatalog = map[string]Message{
 		FR: "premier état non lu, l'agent réessaiera : %s",
 		EN: "first state not read, the agent will retry: %s",
 	},
-	"capture.url.invalid": {
-		FR: "adresse refusée : %q — seule une URL en http:// ou https:// se capture",
-		EN: "address refused: %q — only an http:// or https:// URL can be captured",
-	},
-	"capture.browser.none": {
-		FR: "aucun navigateur headless installé : ajoutez le service Navigateur headless depuis l'app Pupitre",
-		EN: "no headless browser installed: add the Headless browser service from the Pupitre app",
-	},
-	"capture.failed": {
-		FR: "capture impossible : %s",
-		EN: "the capture failed: %s",
-	},
 }

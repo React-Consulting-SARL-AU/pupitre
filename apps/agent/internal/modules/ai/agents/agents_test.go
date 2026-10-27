@@ -66,7 +66,7 @@ func TestTheContextNamesWhatTheAgentNeedsToKnow(t *testing.T) {
 
 	written := string(fake.Files[demo.ConfigDir+"/DEMO.md"])
 
-	for _, want := range []string{ProjectsDir, SkillsDir, "`dev`", "`" + MCPName + "`", "`screenshot`", "serveur Linux"} {
+	for _, want := range []string{ProjectsDir, SkillsDir, "`dev`", "`" + MCPName + "`", "`" + PlaywrightName + "`", "PUPITRE_LOCAL_URL", "serveur Linux"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("the context lacks %q:\n%s", want, written)
 		}

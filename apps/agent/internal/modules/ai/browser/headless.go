@@ -3,8 +3,8 @@ package browser
 import (
 	"strings"
 
-	"pupitre.studio/agent/internal/capture"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
@@ -15,8 +15,8 @@ const (
 	headlessURL     = "https://storage.googleapis.com/chrome-for-testing-public/" + headlessVersion + "/linux-arm64/chrome-headless-shell-linux-arm64.zip"
 	headlessArchive = "chrome-headless-shell-linux-arm64.zip"
 
-	headlessBinary      = capture.HeadlessDir + "/chrome-headless-shell-linux-arm64/chrome-headless-shell"
-	headlessVersionPath = capture.HeadlessDir + "/VERSION"
+	headlessBinary      = agents.HeadlessDir + "/chrome-headless-shell-linux-arm64/chrome-headless-shell"
+	headlessVersionPath = agents.HeadlessDir + "/VERSION"
 )
 
 // Pinned beside the version: Chrome for Testing publishes no checksum, so the agent carries the one it was released with.
@@ -47,11 +47,11 @@ func installHeadless(ctx *modules.Context) error {
 		return err
 	}
 
-	if err := ctx.Sys().MkdirAll(capture.HeadlessDir, 0o755); err != nil {
+	if err := ctx.Sys().MkdirAll(agents.HeadlessDir, 0o755); err != nil {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"unzip", "-q", "-o", staged, "-d", capture.HeadlessDir}}); err != nil {
+	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"unzip", "-q", "-o", staged, "-d", agents.HeadlessDir}}); err != nil {
 		return err
 	}
 
@@ -59,7 +59,7 @@ func installHeadless(ctx *modules.Context) error {
 }
 
 func removeHeadless(ctx *modules.Context) error {
-	_, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-rf", capture.HeadlessDir}})
+	_, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-rf", agents.HeadlessDir}})
 
 	return err
 }

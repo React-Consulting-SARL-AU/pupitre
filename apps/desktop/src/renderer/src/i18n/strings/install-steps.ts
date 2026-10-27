@@ -9,6 +9,7 @@ export const installSteps = {
 
     "install.step.warning": "Warning",
     "install.step.add-repository": "Add the package repository",
+    "install.step.allow-browser-tools": "Let Claude Code drive the browser",
     "install.step.allow-loopback": "Allow local connections",
     "install.step.allow-mcp-tools": "Let Claude Code use the Pupitre tools",
     "install.step.apply-config": "Apply the configuration",
@@ -34,6 +35,8 @@ export const installSteps = {
     "install.step.declare": "Declare the backup",
     "install.step.declare-mode": "Record the exposure mode",
     "install.step.disable-firewall": "Turn the firewall off",
+    "install.step.disallow-browser-tools":
+      "Withdraw Claude Code's use of the browser",
     "install.step.disallow-mcp-tools":
       "Withdraw Claude Code's use of the Pupitre tools",
     "install.step.disable-service": "Turn the service off",
@@ -61,6 +64,7 @@ export const installSteps = {
     "install.step.install-agent-unit": "Install the agent's service",
     "install.step.install-backend": "Install the remote backend",
     "install.step.install-browser": "Install the browser",
+    "install.step.install-browser-mcp": "Install Playwright MCP",
     "install.step.install-build-dependencies": "Install the build dependencies",
     "install.step.install-bun": "Install Bun",
     "install.step.install-bundler": "Install Bundler",
@@ -99,6 +103,7 @@ export const installSteps = {
     "install.step.prune": "Delete the old backups",
     "install.step.raise-system-limits": "Raise the system limits",
     "install.step.record-release": "Record the installed release",
+    "install.step.register-browser-mcp": "Connect the browser to the AI agent",
     "install.step.register-mcp": "Connect the Pupitre MCP server",
     "install.step.register-ssh-key": "Register the SSH key on GitHub",
     "install.step.reload-service": "Reload the service",
@@ -107,6 +112,7 @@ export const installSteps = {
     "install.step.remove-backend": "Remove the remote backend",
     "install.step.remove-bashrc-block": "Clean up .bashrc",
     "install.step.remove-browser": "Remove the browser",
+    "install.step.remove-browser-mcp": "Remove Playwright MCP",
     "install.step.remove-caddy": "Remove Caddy",
     "install.step.remove-cli": "Remove the CLI",
     "install.step.remove-cloudflared": "Remove cloudflared",
@@ -169,6 +175,8 @@ export const installSteps = {
     "install.step.store-token": "Store the token",
     "install.step.sync-firewall": "Sync the firewall",
     "install.step.unlink-neonctl": "Unlink neonctl",
+    "install.step.unregister-browser-mcp":
+      "Disconnect the browser from the AI agent",
     "install.step.unregister-mcp": "Disconnect the Pupitre MCP server",
     "install.step.upgrade-backend": "Update the remote backend",
     "install.step.upgrade-browser": "Update the browser",
@@ -219,6 +227,8 @@ export const installSteps = {
 
     "install.step.warning": "Avertissement",
     "install.step.add-repository": "Ajouter le dépôt de paquets",
+    "install.step.allow-browser-tools":
+      "Autoriser Claude Code à piloter le navigateur",
     "install.step.allow-loopback": "Autoriser les connexions locales",
     "install.step.allow-mcp-tools":
       "Autoriser Claude Code à utiliser les outils Pupitre",
@@ -246,6 +256,8 @@ export const installSteps = {
     "install.step.declare": "Déclarer la sauvegarde",
     "install.step.declare-mode": "Enregistrer le mode d'exposition",
     "install.step.disable-firewall": "Désactiver le pare-feu",
+    "install.step.disallow-browser-tools":
+      "Retirer à Claude Code le pilotage du navigateur",
     "install.step.disallow-mcp-tools":
       "Retirer à Claude Code l'usage des outils Pupitre",
     "install.step.disable-service": "Désactiver le service",
@@ -273,6 +285,7 @@ export const installSteps = {
     "install.step.install-agent-unit": "Installer le service de l'agent",
     "install.step.install-backend": "Installer le backend distant",
     "install.step.install-browser": "Installer le navigateur",
+    "install.step.install-browser-mcp": "Installer Playwright MCP",
     "install.step.install-build-dependencies":
       "Installer les dépendances de compilation",
     "install.step.install-bun": "Installer Bun",
@@ -312,6 +325,8 @@ export const installSteps = {
     "install.step.prune": "Supprimer les anciennes sauvegardes",
     "install.step.raise-system-limits": "Relever les limites du système",
     "install.step.record-release": "Enregistrer la version installée",
+    "install.step.register-browser-mcp":
+      "Brancher le navigateur sur l'agent IA",
     "install.step.register-mcp": "Brancher le serveur MCP Pupitre",
     "install.step.register-ssh-key": "Enregistrer la clé SSH sur GitHub",
     "install.step.reload-service": "Recharger le service",
@@ -320,6 +335,7 @@ export const installSteps = {
     "install.step.remove-backend": "Retirer le backend distant",
     "install.step.remove-bashrc-block": "Nettoyer .bashrc",
     "install.step.remove-browser": "Retirer le navigateur",
+    "install.step.remove-browser-mcp": "Retirer Playwright MCP",
     "install.step.remove-caddy": "Retirer Caddy",
     "install.step.remove-cli": "Retirer la CLI",
     "install.step.remove-cloudflared": "Retirer cloudflared",
@@ -382,6 +398,8 @@ export const installSteps = {
     "install.step.store-token": "Enregistrer le token",
     "install.step.sync-firewall": "Synchroniser le pare-feu",
     "install.step.unlink-neonctl": "Délier neonctl",
+    "install.step.unregister-browser-mcp":
+      "Débrancher le navigateur de l'agent IA",
     "install.step.unregister-mcp": "Débrancher le serveur MCP Pupitre",
     "install.step.upgrade-backend": "Mettre à jour le backend distant",
     "install.step.upgrade-browser": "Mettre à jour le navigateur",

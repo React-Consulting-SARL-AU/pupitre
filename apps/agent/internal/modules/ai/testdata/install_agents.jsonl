@@ -43,6 +43,10 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"ok","step":"register-mcp"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"allow-mcp-tools"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"ok","step":"allow-mcp-tools"}
+< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"disallow-browser-tools"}
+< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"skip","step":"disallow-browser-tools"}
+< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"unregister-browser-mcp"}
+< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"skip","step":"unregister-browser-mcp"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"ok","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"install-cli"}
@@ -55,6 +59,8 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"ok","step":"write-skills"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"register-mcp"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"ok","step":"register-mcp"}
+< {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"unregister-browser-mcp"}
+< {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"skip","step":"unregister-browser-mcp"}
 < {"event":"step","id":1,"module":"ai.hermes","ms":0,"status":"start","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.hermes","ms":0,"status":"skip","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.hermes","ms":0,"status":"start","step":"install-cli"}
@@ -96,6 +102,10 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"retire-gallery-address"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"retire-shot-command"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"retire-shot-command"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"disallow-browser-tools"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"disallow-browser-tools"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"unregister-browser-mcp"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"unregister-browser-mcp"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"install-cli"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"install-cli"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"write-context"}
@@ -110,6 +120,10 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"register-mcp"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"allow-mcp-tools"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"allow-mcp-tools"}
+< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"disallow-browser-tools"}
+< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"disallow-browser-tools"}
+< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"unregister-browser-mcp"}
+< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"unregister-browser-mcp"}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"start","step":"install-mise"}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"skip","step":"install-mise"}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"start","step":"install-cli"}
@@ -122,6 +136,8 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"skip","step":"write-skills"}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"start","step":"register-mcp"}
 < {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"skip","step":"register-mcp"}
+< {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"start","step":"unregister-browser-mcp"}
+< {"event":"step","id":2,"module":"ai.codex","ms":0,"status":"skip","step":"unregister-browser-mcp"}
 < {"event":"step","id":2,"module":"ai.hermes","ms":0,"status":"start","step":"install-mise"}
 < {"event":"step","id":2,"module":"ai.hermes","ms":0,"status":"skip","step":"install-mise"}
 < {"event":"step","id":2,"module":"ai.hermes","ms":0,"status":"start","step":"install-cli"}
