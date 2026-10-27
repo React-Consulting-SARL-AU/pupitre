@@ -336,6 +336,13 @@ describe("the next version", () => {
 })
 
 describe("the tags a release counts", () => {
+  // A hook exports GIT_DIR: inherited, it points these throwaway repositories' commands at the real one.
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith("GIT_")) {
+      delete process.env[key]
+    }
+  }
+
   const dir = mkdtempSync(path.join(tmpdir(), "pupitre-tags-"))
   const origin = path.join(dir, "origin.git")
   const work = path.join(dir, "work")
