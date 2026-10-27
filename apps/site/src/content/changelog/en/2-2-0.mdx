@@ -1,0 +1,30 @@
+---
+title: A process reserves its ports
+description: A process can reserve a range of ports that no other process can declare, a port held by another project no longer reads as online, and AI agents left behind by an earlier update catch up when the agent starts.
+locale: en
+version: 2.2.0
+channel: stable
+date: 2026-10-27
+order: 27
+---
+
+A port now answers for the project that really holds it, and a process that listens on several ports can reserve them.
+
+## The agent
+
+- **A port answers for its own project.** The agent now tells which project each listening port belongs to. A process whose port another project holds — a gateway listening on ports nobody declared, for instance — no longer reads as online: it reads as stopped or starting.
+- **Starting it is refused with the reason**: "its port is held by" the other project, with the fix — stop that project, or give the process a free port, which the message names. Adding or changing a project warns the same way when one of its ports is already held.
+- **A process reserves a range of ports**, from 1 to 100 ports starting at its main one. No other process can declare a port of that range, and the process reads it in `PUPITRE_PORT_RANGE` and `PUPITRE_PORT_LAST` — a gateway and its backends, or a dev server and its HMR socket, take their ports there rather than from literals. The update reserves one port for every existing process: nothing changes until you widen it.
+- The skills written for AI agents describe these variables, and tell the agent to ask you for a wider range rather than pick ports itself.
+- **AI agents left behind by an earlier update catch up.** On a server whose agent was updated by an app too old to update the installed AI agents, Claude kept the old instructions and never received Pupitre's MCP server. At each start, the agent now brings the installed AI agents up to date when they are behind — Claude Code, Codex, Copilot, Cursor, Gemini and OpenCode receive their instructions, skills and MCP server, and the headless browser retires what the old screenshot gallery left, its service included. A server already up to date runs nothing. Hermes and OpenClaw, whose configuration holds your providers, still update from the app.
+- The agent is built with Go 1.26.10, which fixes a vulnerability in Go's certificate handling (`crypto/x509`, GO-2026-6809).
+
+## The app
+
+- **Reserved ports.** The process form, when adding or configuring a project, has a *Reserved ports* field that shows the range and refuses a range another process already holds. It appears once the server's agent is 2.2.0.
+- **A process whose port is held** says by which project, and that it will not start until that project stops or the process gets another port.
+
+## Known limitations
+
+- Reading a repository does not propose a range yet: every detected process starts with one reserved port, to widen by hand.
+- The repository itself has to read `PUPITRE_PORT_RANGE` for its backends to stay inside the range.
