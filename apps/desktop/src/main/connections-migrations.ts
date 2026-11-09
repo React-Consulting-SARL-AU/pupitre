@@ -1,6 +1,6 @@
 import type { JsonObject, StoreMigration } from "./store-migrations";
 
-/** Every shape change of `connections/<provider>.json` adds an entry: see docs/contracts/config-migrations.md. */
+/** Every shape change of `<provider>.json` adds an entry: see docs/contracts/config-migrations.md. */
 export const CONNECTIONS_MIGRATIONS: readonly StoreMigration[] = [
   {
     apply: accountNamed,

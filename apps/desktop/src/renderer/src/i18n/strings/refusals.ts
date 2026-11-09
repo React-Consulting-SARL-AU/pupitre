@@ -1,6 +1,8 @@
 export const refusals = {
   en: {
     "refusal.project.command.unknown": "Unknown project command: {cmd}.",
+    "refusal.service.unknown":
+      "This server does not run the service {service}.",
     "refusal.module.undeclared":
       "This server does not offer the service {module}.",
     "refusal.harden.account":
@@ -420,6 +422,8 @@ export const refusals = {
   },
   fr: {
     "refusal.project.command.unknown": "Commande de projet inconnue : {cmd}.",
+    "refusal.service.unknown":
+      "Ce serveur ne fait pas tourner le service {service}.",
     "refusal.module.undeclared":
       "Ce serveur ne propose pas le service {module}.",
     "refusal.harden.account":
