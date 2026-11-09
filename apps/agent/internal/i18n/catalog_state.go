@@ -129,6 +129,10 @@ var stateCatalog = map[string]Message{
 		FR: "Déboguer ne vaut que pour un projet lancé par la stack.",
 		EN: "Debugging only applies to a project the stack starts.",
 	},
+	"state.attach.service.fix": {
+		FR: "Son journal se lit avec service.logs.",
+		EN: "Its journal is read with service.logs.",
+	},
 	"state.debug.undeclared": {
 		FR: "%s n'expose aucun port de débogage",
 		EN: "%s exposes no debug port",

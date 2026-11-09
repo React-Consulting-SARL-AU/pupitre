@@ -17,7 +17,8 @@ export interface TerminalDeps {
 
 export interface TerminalCommand {
   kind: TerminalKind;
-  command: string;
+  /** The arguments after `tmux`, quoted for the remote shell. */
+  tmux: string;
   session: string | null;
 }
 
@@ -82,29 +83,21 @@ export function isAgentKind(kind: TerminalKind): kind is AgentKind {
   return (AGENT_KINDS as readonly string[]).includes(kind);
 }
 
-/** Status line off on this session only: the app draws its own bar under every terminal. */
 function loginShell(session: string, dir: string | null): TerminalCommand {
   const where = dir && FOLDER_OK.test(dir) ? ["-c", dir] : [];
 
   return {
-    command: [
-      "tmux",
-      "new-session",
-      "-A",
-      "-s",
-      session,
-      ...where,
-      // Quoted so the remote shell hands tmux a literal ";" instead of splitting the line.
-      "';'",
-      "set-option",
-      "-t",
-      session,
-      "status",
-      "off",
-    ].join(" "),
     kind: "shell",
     session,
+    tmux: ["new-session", "-A", "-s", session, ...where].join(" "),
   };
+}
+
+const TMUX_LINE = /^tmux (new-session|attach-session) /;
+
+/** The contract promises a tmux line; anything else would run as is on the server, so it is refused. */
+export function tmuxArguments(command: string): string | null {
+  return TMUX_LINE.test(command) ? command.slice("tmux ".length) : null;
 }
 
 /** The base is always one the agent gave; the renderer only ever names the rest. */
@@ -187,14 +180,18 @@ export async function terminalCommand(
     project: named,
   });
 
-  return answer.ok
-    ? {
-        ok: true,
-        result: {
-          command: answer.result.command,
-          kind,
-          session: answer.result.session,
-        },
-      }
-    : answer;
+  if (!answer.ok) {
+    return answer;
+  }
+
+  const tmux = tmuxArguments(answer.result.command);
+
+  if (tmux === null) {
+    return refuse("internal", "refusal.agent.shape", { cmd: "agent.open" });
+  }
+
+  return {
+    ok: true,
+    result: { kind, session: answer.result.session, tmux },
+  };
 }

@@ -308,7 +308,7 @@ A rollback is done by promoting the previous version: `electron-updater` does no
 
 ### What is built where
 
-A native module is not compiled for another system: `node-pty` imposes one runner per OS, and that is the reason for the matrix `macos-15`, `windows-2025`, `ubuntu-24.04` in `release.yml` — and the reason the release is not done from a Mac. From a Mac, `bun --cwd=apps/desktop run build:linux` stops on `node-gyp does not support cross-compiling native modules` — it is not a configuration error.
+Each system signs its own build: notarization needs macOS and Trusted Signing needs Windows, which is the reason for the matrix `macos-15`, `windows-2025`, `ubuntu-24.04` in `release.yml` — and the reason the release is not done from a Mac. The app carries no native module since its terminals speak to tmux in control mode over `ssh` ([the terminals](./desktop.md#the-terminals)).
 
 | System | What comes out | What signs it |
 | --- | --- | --- |

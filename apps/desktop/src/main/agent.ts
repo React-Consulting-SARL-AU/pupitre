@@ -61,12 +61,13 @@ function isLanguage(value: unknown): value is Language {
   return value === "fr" || value === "en";
 }
 
-/** Results that end up in a pty's command line or a local path: weighed in every build. */
+/** Results that end up in an ssh command line or a local path: weighed in every build. */
 const ARGV_RESULTS: ReadonlySet<CommandName> = new Set<CommandName>([
   "agent.open",
   "completions",
   "db.shell",
   "fs.stat",
+  "project.attach",
   "project.list",
 ]);
 

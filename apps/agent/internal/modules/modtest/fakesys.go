@@ -51,7 +51,9 @@ type FakeSys struct {
 	Tools        map[string]string
 	Versions     map[string][]string
 	Sessions     map[string]bool
-	Windows      map[string]int
+	// Sessions holding a window linked from another, by session name.
+	Views   map[string]FakeView
+	Windows map[string]int
 	// Extra windows opened under one name, by pid: tmux keeps each and refuses the name as ambiguous.
 	Twins    map[string][]int
 	Provides map[string]string
@@ -89,6 +91,12 @@ type FakeSys struct {
 	Signers map[string][]string
 }
 
+type FakeView struct {
+	Window   string
+	Attached int
+	Created  time.Time
+}
+
 // Units as ps prints them: RSS in kilobytes, Etimes in seconds.
 type Proc struct {
 	PID    int
@@ -122,6 +130,7 @@ func NewFakeSys() *FakeSys {
 		Tools:        map[string]string{},
 		Versions:     map[string][]string{},
 		Sessions:     map[string]bool{},
+		Views:        map[string]FakeView{},
 		Windows:      map[string]int{},
 		Twins:        map[string][]int{},
 		Provides:     map[string]string{},

@@ -1,3 +1,5 @@
+import { SCROLLBACK_MAX, SCROLLBACK_MIN } from "@shared/terminals";
+
 // A closed list: a face xterm cannot measure draws every cell at the wrong width.
 export const TERMINAL_FONT_FAMILIES = [
   "jetbrains",
@@ -25,9 +27,6 @@ export interface TerminalSettings {
 export const FONT_SIZE_MIN = 9;
 export const FONT_SIZE_MAX = 24;
 export const FONT_STEP = 1;
-
-export const SCROLLBACK_MIN = 1000;
-export const SCROLLBACK_MAX = 100_000;
 
 export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   cursorBlink: true,

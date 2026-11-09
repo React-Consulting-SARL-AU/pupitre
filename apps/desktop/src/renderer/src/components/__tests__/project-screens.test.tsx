@@ -158,7 +158,7 @@ describe("a project's tabs", () => {
     );
 
     expect(html).toContain("Vue d&#x27;ensemble");
-    expect(html).toContain("Logs");
+    expect(html).toContain("Console");
     expect(html).toContain("Terminaux");
     expect(html).toContain("Agents");
     expect(html).not.toContain("Claude");
@@ -267,6 +267,7 @@ describe("a project overview", () => {
         onCheckGit={NOOP}
         onCheckout={RESOLVED}
         onConfigure={NOOP}
+        onConsole={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
         onSync={NOOP}
@@ -299,6 +300,7 @@ describe("a project overview", () => {
         onCheckGit={NOOP}
         onCheckout={RESOLVED}
         onConfigure={NOOP}
+        onConsole={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
         onSync={NOOP}

@@ -86,7 +86,6 @@
     "@parcel/watcher",
     "electron",
     "electron-builder",
-    "esbuild",
-    "node-pty"
+    "esbuild"
   ]
 }

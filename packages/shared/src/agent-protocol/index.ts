@@ -68,6 +68,7 @@ import {
   ProjectActionResultSchema,
   ProjectAddParamsSchema,
   ProjectAddResultSchema,
+  ProjectAttachResultSchema,
   ProjectBranchesResultSchema,
   ProjectCheckoutParamsSchema,
   ProjectCheckoutResultSchema,
@@ -267,6 +268,10 @@ export const COMMANDS = {
   "project.debug": {
     params: ProcessParamsSchema,
     result: ProjectDebugResultSchema,
+  },
+  "project.attach": {
+    params: ProcessParamsSchema,
+    result: ProjectAttachResultSchema,
   },
   "agent.open": {
     params: AgentOpenParamsSchema,
@@ -468,6 +473,7 @@ export const LIMITED_COMMANDS = [
   "project.diff",
   "project.url",
   "project.debug",
+  "project.attach",
   "agent.open",
   "sessions.list",
   "sessions.clean",

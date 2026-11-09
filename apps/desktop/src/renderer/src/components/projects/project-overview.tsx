@@ -22,6 +22,7 @@ export function ProjectOverview({
   busy,
   onAct,
   onCheckout,
+  onConsole,
   onCheckGit,
   onSync,
   onReadEnv,
@@ -37,6 +38,7 @@ export function ProjectOverview({
   busy: boolean;
   onAct: Gesture<[ProjectAction, string]>;
   onCheckout: (branch: string) => Promise<void>;
+  onConsole: (process: string) => void;
   onCheckGit: () => void;
   onSync: () => void;
   onReadEnv: () => void;
@@ -101,6 +103,7 @@ export function ProjectOverview({
                 busy={busy}
                 key={process.id}
                 onAct={onAct}
+                onConsole={onConsole}
                 process={process}
               />
             ))}

@@ -141,5 +141,5 @@ gh workflow run promote.yml -f version=X.Y.Z -f channel=stable
 - A second build of the same number: the published version is the one the channel designates, a rollback promotes the previous one.
 - A secret, a certificate, a password in the repository, a log, a session transcript.
 - A publication of the agent anywhere other than the private bucket, through the platform's API.
-- A release build on a Mac: `node-pty` does not compile for another system, and Windows and Linux are only built at home.
+- A release build on a Mac: notarization and Trusted Signing each need their own system, and Windows and Linux are only built at home.
 - A change to `docs/monorepo.md` without changing the dashboard in the same pass, or the reverse.

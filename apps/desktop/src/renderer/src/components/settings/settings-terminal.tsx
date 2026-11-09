@@ -11,12 +11,11 @@ import {
   DEFAULT_TERMINAL_SETTINGS,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
-  SCROLLBACK_MAX,
-  SCROLLBACK_MIN,
   TERMINAL_FONT_FAMILIES,
   type TerminalFontFamily,
 } from "@renderer/lib/terminal-settings";
 import { useTerminalSettings } from "@renderer/stores/terminal-settings";
+import { SCROLLBACK_MAX, SCROLLBACK_MIN } from "@shared/terminals";
 import { RotateCcw } from "lucide-react";
 
 const SCROLLBACK_STEP = 1000;

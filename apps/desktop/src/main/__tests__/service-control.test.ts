@@ -98,8 +98,8 @@ describe("a database shell in a tab", () => {
 
     expect(opened.result.session).toMatch(/^db-postgres-\d+$/);
     expect(held?.kind).toBe("shell");
-    expect(held?.command).toBe(
-      `tmux new-session -A -s ${opened.result.session} 'sudo -u postgres psql app' ';' set-option -t ${opened.result.session} status off`
+    expect(held?.tmux).toBe(
+      `new-session -A -s ${opened.result.session} 'sudo -u postgres psql app'`
     );
   });
 
@@ -151,8 +151,8 @@ describe("a database shell in a tab", () => {
     expect(quoted("sudo -u postgres psql it's-shop")).toBe(
       "'sudo -u postgres psql it'\\''s-shop'"
     );
-    expect(databaseShellCommand("db-mysql-2", "sudo mysql shop").command).toBe(
-      "tmux new-session -A -s db-mysql-2 'sudo mysql shop' ';' set-option -t db-mysql-2 status off"
+    expect(databaseShellCommand("db-mysql-2", "sudo mysql shop").tmux).toBe(
+      "new-session -A -s db-mysql-2 'sudo mysql shop'"
     );
   });
 });

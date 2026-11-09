@@ -761,6 +761,26 @@ func head(ctx sys.Context, projects, dir string) string {
 	return text
 }
 
+func (r *Reader) Attach(name, id string) (contract.ProjectAttach, error) {
+	project, process, err := r.window(name, id)
+	if err != nil {
+		return contract.ProjectAttach{}, err
+	}
+
+	window := project.Window(id)
+	if process.IsService() {
+		return contract.ProjectAttach{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.service", window)).
+			WithFix(i18n.T("state.attach.service.fix"))
+	}
+
+	session, err := tmux.Attach(r.ctx(), r.options.Tmux, window)
+	if err != nil {
+		return contract.ProjectAttach{}, err
+	}
+
+	return contract.ProjectAttach{Session: session}, nil
+}
+
 const debugFlag = "-PdebugPort="
 
 // The debug port is declared per window, not guessed: a gradle row is not necessarily a JVM server.

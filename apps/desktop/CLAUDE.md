@@ -6,7 +6,7 @@ The Electron app. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · internals
 
 ## Mandatory stack
 
-Electron 44 · electron-vite (bytecode on the main process only, the preload stays JavaScript) · React 19 · Tailwind 4 on the `@pupitre/design` tokens · Base UI + shadcn/ui, `render` prop, never `asChild` · Zustand · xterm + node-pty · the system's `ssh`, never a JavaScript SSH library · Lucide only.
+Electron 44 · electron-vite (bytecode on the main process only, the preload stays JavaScript) · React 19 · Tailwind 4 on the `@pupitre/design` tokens · Base UI + shadcn/ui, `render` prop, never `asChild` · Zustand · xterm on tmux's control mode, never a local pty · the system's `ssh`, never a JavaScript SSH library · Lucide only.
 
 **Banned**: `@radix-ui/*`, `ssh2`, `node-ssh`, `axios`, any hard-coded colour.
 
@@ -21,6 +21,7 @@ Electron 44 · electron-vite (bytecode on the main process only, the preload sta
 - Never a heavy file on the agent's channel: `rsync` or `scp` on the app's SSH session, remote path validated by the main process, local path from a dialog box. → [transfers](../../docs/desktop.md#the-transfers)
 - Never an app file rewritten without a revision: `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<provider>.json` and `access/<server>.json` go through `versionedFile()` of `store-migrations.ts`, each with its registry (`servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts`), one numbered entry per change of shape. → [files](../../docs/desktop.md#the-files-the-app-keeps)
 - Never `upgrade` of the modules before `agent.upgrade`, channel closing, `agent.migrate`. → [update](../../docs/desktop.md#updating-the-agent)
+- Never a tmux client attached to a pty: every terminal speaks to tmux in control mode (`tmux-attach.ts`), so scrollback, search and links stay xterm's. → [terminals](../../docs/desktop.md#the-terminals)
 - Never an onboarding screen that acts in a `useEffect`: `stores/onboarding-machine.ts` decides, the store executes. → [onboarding](../../docs/desktop.md#the-onboarding)
 - Never a value that smells like a secret in `trace.ts`. Nothing traced in a packaged build.
 

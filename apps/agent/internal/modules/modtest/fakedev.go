@@ -14,7 +14,60 @@ import (
 const (
 	firstPanePID = 4000
 	envOption    = "@pupitre_env"
+	tmuxSession  = "pupitre"
 )
+
+// A session's own window is dropped by the caller right after: only the linked one matters.
+func (f *FakeSys) linkWindow(args []string) (sys.Output, error) {
+	source, destination := "", ""
+
+	for i := 0; i+1 < len(args); i++ {
+		switch args[i] {
+		case "-s":
+			source = args[i+1]
+		case "-t":
+			destination = exact(args[i+1])
+		}
+	}
+
+	window, _, err := f.window(source)
+	if err != nil {
+		return f.fail("tmux", err.Error())
+	}
+
+	session, _, _ := strings.Cut(destination, ":")
+	if !f.Sessions[session] {
+		return f.fail("tmux", "can't find session: "+session)
+	}
+
+	f.Views[session] = FakeView{Window: window, Created: f.Now}
+	f.mutate("tmux link-window " + window + " " + session)
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) sessionList() string {
+	names := make([]string, 0, len(f.Sessions))
+	for name := range f.Sessions {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
+	var out strings.Builder
+
+	for _, name := range names {
+		view := f.Views[name]
+		created := view.Created
+		if created.IsZero() {
+			created = f.Now
+		}
+
+		fmt.Fprintf(&out, "%s|%d|%d\n", name, view.Attached, created.Unix())
+	}
+
+	return out.String()
+}
 
 // Nothing else in the fake makes a port answer.
 func (f *FakeSys) Serves(window string, port int) {
@@ -123,6 +176,18 @@ func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 	case "new-session":
 		f.Sessions[target] = true
 		f.mutate("tmux new-session " + target)
+	case "link-window":
+		return f.linkWindow(args)
+	case "list-sessions":
+		return sys.Output{Stdout: f.sessionList()}, nil
+	case "kill-session":
+		if !f.Sessions[target] {
+			return f.fail("tmux", "can't find session: "+target)
+		}
+
+		delete(f.Sessions, target)
+		delete(f.Views, target)
+		f.mutate("tmux kill-session " + target)
 	case "new-window":
 		if !f.Sessions[target] {
 			return f.fail("tmux", "can't find session: "+target)
@@ -130,6 +195,12 @@ func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 
 		f.openWindow(name)
 	case "kill-window":
+		if session, _, _ := strings.Cut(target, ":"); f.Sessions[session] && session != tmuxSession {
+			f.mutate("tmux kill-window " + target)
+
+			break
+		}
+
 		window, twin, err := f.window(target)
 		if err != nil {
 			return f.fail("tmux", err.Error())
@@ -223,6 +294,14 @@ func (f *FakeSys) closeWindow(name string) {
 	delete(f.Uptimes, f.Windows[name])
 	ports := f.ports(name)
 	delete(f.Windows, name)
+
+	// A session left without a window ends, as tmux ends it.
+	for session, view := range f.Views {
+		if view.Window == name {
+			delete(f.Views, session)
+			delete(f.Sessions, session)
+		}
+	}
 
 	for _, port := range ports {
 		delete(f.Listen, port)
@@ -479,7 +558,7 @@ func parseTmux(args []string) (action, target, name string) {
 				name = args[i+1]
 				i++
 			}
-		case "-c", "-F", "-e":
+		case "-c", "-F", "-e", "-x", "-y":
 			i++
 		default:
 			if !strings.HasPrefix(args[i], "-") && action == "" {

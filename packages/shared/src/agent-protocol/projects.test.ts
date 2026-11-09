@@ -3,6 +3,7 @@ import {
   ProcessParamsSchema,
   ProjectActionResultSchema,
   ProjectAddParamsSchema,
+  ProjectAttachResultSchema,
   ProjectBranchesResultSchema,
   ProjectCheckoutParamsSchema,
   ProjectDebugResultSchema,
@@ -473,6 +474,11 @@ describe("project results", () => {
         debug_port: 5005,
       }).success
     ).toBe(true)
+    expect(
+      ProjectAttachResultSchema.safeParse({ session: "pupitre-view-1f2e3d4c" })
+        .success
+    ).toBe(true)
+    expect(ProjectAttachResultSchema.safeParse({}).success).toBe(false)
   })
 
   it("reject a diff without patch, an env result leaking values, a bad file stage", () => {

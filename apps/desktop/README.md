@@ -12,7 +12,7 @@ bun run dev:desktop:prod  # the same app, pointed at app.pupitre.studio: the rea
 
 Both build the agent first (`apps/agent/dist`), which the app pushes to a bare server. An account is required: the app asks for a sign-in on first launch.
 
-`node-pty` is a native module: `postinstall` recompiles it through `electron-rebuild`. Without this step, the app starts and no terminal opens. `electron` and `node-pty` are in the `trustedDependencies` of the root `package.json`, without which Bun does not run their install scripts. An install that resolves nothing new does not replay them: if `node_modules/electron/path.txt` is empty, the binary is missing, and it is put back with
+`electron` is in the `trustedDependencies` of the root `package.json`, without which Bun does not run its install script. An install that resolves nothing new does not replay them: if `node_modules/electron/path.txt` is empty, the binary is missing, and it is put back with
 
 ```bash
 cd apps/desktop && node node_modules/electron/install.js
@@ -27,7 +27,7 @@ bun run build:linux  # AppImage and .deb
 bun run build:win    # NSIS installer
 ```
 
-Each system is built on itself: `node-pty` does not compile for another. A release builds the three on its runners (`.github/workflows/release.yml`, see [`docs/monorepo.md`](../../docs/monorepo.md#what-each-release-does)). The main process is compiled to V8 bytecode, which requires the Electron binary at build time. Without a signing identity in reach, electron-builder says so and produces an unsigned artifact, which is what a build on the workstation wants.
+Each system is built on itself: notarization and Trusted Signing each need their own. A release builds the three on its runners (`.github/workflows/release.yml`, see [`docs/monorepo.md`](../../docs/monorepo.md#what-each-release-does)). The main process is compiled to V8 bytecode, which requires the Electron binary at build time. Without a signing identity in reach, electron-builder says so and produces an unsigned artifact, which is what a build on the workstation wants.
 
 ## Test
 

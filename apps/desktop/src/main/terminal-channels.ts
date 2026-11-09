@@ -1,5 +1,9 @@
 import type { AgentResponse } from "@shared/agent";
-import type { TerminalOpened } from "@shared/terminals";
+import {
+  SCROLLBACK_MAX,
+  SCROLLBACK_MIN,
+  type TerminalOpened,
+} from "@shared/terminals";
 import { app, clipboard } from "electron";
 import { agentClient } from "./agent";
 import { workRoot } from "./completion";
@@ -9,7 +13,12 @@ import { handle, listen } from "./ipc";
 import { anything, isNumber, isString, shape } from "./ipc-guard";
 import { openable } from "./navigation";
 import { awaitListening, closeForward, openForward } from "./port-forward";
-import { declaresProject, projectFolder, projectPath } from "./projects-run";
+import {
+  declaresProject,
+  projectAttach,
+  projectFolder,
+  projectPath,
+} from "./projects-run";
 import { refuseWith } from "./refusal";
 import { byId } from "./servers";
 import { forwardDeps } from "./services";
@@ -20,8 +29,9 @@ import {
   releaseForwards,
   rememberForward,
 } from "./terminal-login";
-import { terminalCommand } from "./terminal-run";
+import { isSessionName, terminalCommand } from "./terminal-run";
 import {
+  clearHistory,
   close,
   endSession,
   open,
@@ -40,12 +50,17 @@ function size(value: unknown, fallback: number): number {
   return typeof value === "number" && value > 1 ? Math.floor(value) : fallback;
 }
 
+function history(value: unknown): number {
+  return Math.min(size(value, SCROLLBACK_MIN), SCROLLBACK_MAX);
+}
+
 function registerTerminals(): void {
   handle("terminal-diagnostics", shape(), () => terminalDiagnostics());
 
   handle(
     "terminal-open",
     shape(
+      anything,
       anything,
       anything,
       anything,
@@ -64,7 +79,8 @@ function registerTerminals(): void {
       session,
       cols,
       rows,
-      dir
+      dir,
+      scrollback
     ): Promise<AgentResponse<TerminalOpened>> => {
       if (!isString(id)) {
         return refuseWith("bad_request", "refusal.terminal.unknown");
@@ -93,12 +109,13 @@ function registerTerminals(): void {
       open(
         {
           cols: size(cols, DEFAULT_COLS),
-          command: decided.result.command,
+          history: history(scrollback),
           id,
           kind: decided.result.kind,
           project: isString(project) ? project : null,
           rows: size(rows, DEFAULT_ROWS),
           serverId: String(serverId),
+          tmux: decided.result.tmux,
         },
         event.sender
       );
@@ -107,9 +124,60 @@ function registerTerminals(): void {
     }
   );
 
+  handle(
+    "process-console-open",
+    shape(isString, anything, anything, anything, anything, anything, anything),
+    async (
+      event,
+      id,
+      serverId,
+      project,
+      process,
+      cols,
+      rows,
+      scrollback
+    ): Promise<AgentResponse<TerminalOpened>> => {
+      const answer = await projectAttach(serverId, project, process, {
+        client: agentClient,
+        knows: (candidate) => byId(candidate) !== null,
+      });
+
+      if (!answer.ok) {
+        return answer;
+      }
+
+      const { session } = answer.result;
+
+      if (!isSessionName(session)) {
+        return refuseWith("internal", "refusal.agent.shape", {
+          cmd: "project.attach",
+        });
+      }
+
+      open(
+        {
+          cols: size(cols, DEFAULT_COLS),
+          history: history(scrollback),
+          id,
+          kind: "process",
+          project: String(project),
+          rows: size(rows, DEFAULT_ROWS),
+          serverId: String(serverId),
+          // Quoted: zsh, dev's shell, would read `=name` as the path of a command.
+          tmux: `attach-session -t '=${session}'`,
+        },
+        event.sender
+      );
+
+      return { ok: true, result: { session } };
+    }
+  );
+
   listen("terminal-write", shape(isString, isString), (_e, id, data) =>
     write(id, data)
   );
+
+  listen("terminal-clear", shape(isString), (_e, id) => clearHistory(id));
 
   listen("terminal-copy", shape(isString), (_e, text) => {
     if (text.length > 0) {

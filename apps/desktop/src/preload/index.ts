@@ -939,7 +939,8 @@ const api = {
     session: string | null,
     cols: number,
     rows: number,
-    dir: string | null = null
+    dir: string | null,
+    scrollback: number
   ): Promise<AgentResponse<TerminalOpened>> =>
     ipcRenderer.invoke(
       "terminal-open",
@@ -950,10 +951,33 @@ const api = {
       session,
       cols,
       rows,
-      dir
+      dir,
+      scrollback
+    ),
+  /** The process's own window, under `id`; writing, resizing and closing go through the terminal calls. */
+  openProcessConsole: (
+    id: string,
+    serverId: string,
+    project: string,
+    process: string,
+    cols: number,
+    rows: number,
+    scrollback: number
+  ): Promise<AgentResponse<TerminalOpened>> =>
+    ipcRenderer.invoke(
+      "process-console-open",
+      id,
+      serverId,
+      project,
+      process,
+      cols,
+      rows,
+      scrollback
     ),
   writeTerminal: (id: string, data: string): void =>
     ipcRenderer.send("terminal-write", id, data),
+  clearTerminalHistory: (id: string): void =>
+    ipcRenderer.send("terminal-clear", id),
   /** OSC 52 from a session: the page itself may not write the clipboard unprompted. */
   copyFromTerminal: (text: string): void =>
     ipcRenderer.send("terminal-copy", text),

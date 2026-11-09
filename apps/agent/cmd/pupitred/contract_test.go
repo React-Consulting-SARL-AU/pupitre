@@ -98,6 +98,7 @@ func answerCases(platformURL string) []answerCase {
 		{cmd: "project.up", params: web},
 		{cmd: "project.restart", params: web},
 		{cmd: "project.debug", params: map[string]any{"name": "web", "process": "web"}},
+		{cmd: "project.attach", params: map[string]any{"name": "web", "process": "web"}},
 		{cmd: "project.logs", params: map[string]any{"name": "web", "process": "web"}},
 		{cmd: "project.install", params: web},
 		{cmd: "project.branches", params: web},

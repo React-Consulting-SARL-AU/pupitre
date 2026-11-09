@@ -6,7 +6,7 @@ Pupitre is a Bun monorepo. Three surfaces and an agent: the desktop app that dri
 
 | Workspace | Runtime | Responsibility |
 | --- | --- | --- |
-| `apps/desktop` | Electron 44, React 19, node-pty, system `ssh` | Server onboarding, service catalogue, projects, terminals, agents, account |
+| `apps/desktop` | Electron 44, React 19, xterm, system `ssh` | Server onboarding, service catalogue, projects, terminals, agents, account |
 | `apps/agent` | Go, static binary, systemd | Probe, install modules, project registry, tmux control, keys, heartbeat, update |
 | `apps/web` | TanStack Start on Cloudflare Workers | `app.pupitre.studio` console, mounting of `/api/v1` (Elysia) and `/api/auth` (Better Auth), emails, Workflows |
 | `apps/site` | Astro on a Cloudflare Worker with static assets | `pupitre.studio`: marketing, public docs, blog, legal, download |
@@ -36,7 +36,7 @@ Pupitre Desktop ──── ssh, customer's key ────▶ pupitred (custo
 
 ## Desktop
 
-`apps/desktop` is the existing Electron app, extended. The main process holds a single SSH channel to each server (`ssh -F <app config>`), writes JSON requests one per line to it and reads responses and events ([protocol](./contracts/agent-protocol.md)). Terminals use node-pty and the system `ssh`. The renderer never touches the system: `contextIsolation`, an explicit preload API, validation of project names against the list the agent has just given.
+`apps/desktop` is the existing Electron app, extended. The main process holds a single SSH channel to each server (`ssh -F <app config>`), writes JSON requests one per line to it and reads responses and events ([protocol](./contracts/agent-protocol.md)). Terminals speak to tmux on the server in its control mode, over the system `ssh` ([the terminals](./desktop.md#the-terminals)). The renderer never touches the system: `contextIsolation`, an explicit preload API, validation of project names against the list the agent has just given.
 
 The app's SSH configuration lives in its data folder (`ssh/config`, `keys/<server>` in 0600). The user's `~/.ssh/config` is never rewritten; on their request, the app places a single `Include` line in it pointing to its own file, and removes it the same way, so that `ssh`, editors and coding agents reach its servers by name ([decision 0012](./decisions/0012-ssh-config-include.md)). An existing host can be designated instead.
 

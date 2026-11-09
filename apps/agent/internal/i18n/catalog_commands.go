@@ -102,6 +102,14 @@ var commandCatalog = map[string]Message{
 		FR: "Démarrez-le avec project.up : les logs commencent au premier démarrage.",
 		EN: "Start it with project.up: the journal is born at the first start.",
 	},
+	"tmux.window.none": {
+		FR: "%s n'a pas de fenêtre ouverte",
+		EN: "%s has no open window",
+	},
+	"tmux.window.none.fix": {
+		FR: "Démarrez-le avec project.up : sa fenêtre s'ouvre au démarrage.",
+		EN: "Start it with project.up: its window opens when it starts.",
+	},
 	"registry.project.versioned": {
 		FR: "%s vient du registre du dépôt, pas de ce serveur",
 		EN: "%s comes from the repository's registry, not from this server",

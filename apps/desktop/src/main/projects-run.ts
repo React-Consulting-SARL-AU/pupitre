@@ -3,6 +3,7 @@ import type {
   ProjectActionResult,
   ProjectAddParams,
   ProjectAddResult,
+  ProjectAttachResult,
   ProjectBranchesResult,
   ProjectCheckoutResult,
   ProjectDiffResult,
@@ -568,6 +569,32 @@ export async function projectEnv(
     name: call.name,
     ...(force ? { force: true } : {}),
     ...(scoped ? { process: scoped } : {}),
+  });
+}
+
+export async function projectAttach(
+  serverId: unknown,
+  name: unknown,
+  process: unknown,
+  deps: ProjectDeps
+): Promise<AgentResponse<ProjectAttachResult>> {
+  const call = target(serverId, name, deps);
+
+  if (isRefusal(call)) {
+    return call;
+  }
+
+  const scoped = processOf(process);
+
+  if (!scoped) {
+    return refuse("bad_request", "refusal.project.process.unknown", {
+      process: String(process),
+    });
+  }
+
+  return await deps.client.request(call.serverId, "project.attach", {
+    name: call.name,
+    process: scoped,
   });
 }
 

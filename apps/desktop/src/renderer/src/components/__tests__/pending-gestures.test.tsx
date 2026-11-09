@@ -62,10 +62,15 @@ describe("a long gesture keeps its button pending", () => {
 
     const view = await mount(
       <ul>
-        <ProjectProcessRow busy={false} onAct={NEVER} process={process} />
+        <ProjectProcessRow
+          busy={false}
+          onAct={NEVER}
+          onConsole={() => undefined}
+          process={process}
+        />
       </ul>
     );
-    const start = view.container.querySelector("button");
+    const start = [...view.container.querySelectorAll("button")].at(-1) ?? null;
 
     await view.click(start);
 

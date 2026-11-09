@@ -39,6 +39,10 @@ const (
 	// Read from the end: a day-long journal would otherwise be read whole at every snapshot.
 	tailBytes = 256 * 1024
 
+	// A window nobody has looked at yet takes the session's size: a full-screen program would draw at 80×24.
+	bornWidth  = "200"
+	bornHeight = "50"
+
 	// Rotated into one older copy past this size, so a process's journals stay under about twice it.
 	journalBytes  = 4 << 20
 	rotatedSuffix = ".1"
@@ -326,7 +330,7 @@ func EnsureSession(ctx sys.Context, options Options, dir string) error {
 
 	options = options.Resolved()
 
-	_, err := sys.Exec(ctx, options.tmux("new-session", "-d", "-s", options.Session, "-n", "scratch", "-c", dir))
+	_, err := sys.Exec(ctx, options.tmux("new-session", "-d", "-s", options.Session, "-n", "scratch", "-c", dir, "-x", bornWidth, "-y", bornHeight))
 
 	return err
 }

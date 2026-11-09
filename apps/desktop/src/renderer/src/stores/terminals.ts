@@ -1,6 +1,7 @@
 import type { AgentError } from "@shared/agent";
 import type { TerminalKind, TerminalSize } from "@shared/terminals";
 import { create } from "zustand";
+import { scrollbackLines } from "../lib/terminals";
 
 export type SessionState =
   | { status: "opening" }
@@ -80,7 +81,8 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
       session,
       opened.cols,
       opened.rows,
-      dir
+      dir,
+      scrollbackLines()
     );
 
     set((state) => ({

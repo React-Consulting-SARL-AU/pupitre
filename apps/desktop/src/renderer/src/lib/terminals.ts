@@ -1,6 +1,6 @@
 import { translate } from "@renderer/i18n/translate";
 import type { ResolvedTheme } from "@shared/appearance";
-import type { TerminalEnd, TerminalKind } from "@shared/terminals";
+import type { ConsoleKind, TerminalEnd } from "@shared/terminals";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
@@ -59,6 +59,11 @@ let settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS;
 let onSettingsChange: ((patch: Partial<TerminalSettings>) => void) | null =
   null;
 
+/** Asked of the server at the attach: what lies beyond would be fetched only to be dropped. */
+export function scrollbackLines(): number {
+  return settings.scrollback;
+}
+
 export function followTerminalSettings(
   handler: ((patch: Partial<TerminalSettings>) => void) | null
 ): void {
@@ -93,6 +98,8 @@ interface Live {
   fit: FitAddon;
   search: SearchAddon;
   onShortcut: ShortcutHandler | null;
+  /** Off, keys and clicks stay here: a stray Ctrl-C would stop a watched server. */
+  input: boolean;
   detach: () => void;
 }
 
@@ -151,7 +158,7 @@ function answerShortcut(id: string, shortcut: TerminalShortcut): void {
 
   switch (shortcut.kind) {
     case "clear":
-      entry.xterm.clear();
+      clearScreen(id);
       return;
     case "copy":
       copySelection(id);
@@ -184,7 +191,7 @@ function drawWithWebgl(xterm: XTerm): void {
   }
 }
 
-export function obtain(id: string, kind: TerminalKind): Live {
+export function obtain(id: string, kind: ConsoleKind): Live {
   const known = live.get(id);
 
   if (known) {
@@ -257,17 +264,25 @@ export function obtain(id: string, kind: TerminalKind): Live {
   const detachData = onTerminalData(id, (data) =>
     xterm.write(data, afterWrite)
   );
-  const detachExit = window.pupitre.onTerminalExit((payload) => {
-    if (payload.id === id) {
-      xterm.writeln(
-        `\r\n\x1b[38;5;245m— ${translate()("terminals.sessionEnded", {
-          code: payload.code,
-        })} —\x1b[0m`
-      );
+  // A process console reattaches on its own: its end is the start of the next run.
+  const detachExit =
+    kind === "process"
+      ? () => undefined
+      : window.pupitre.onTerminalExit((payload) => {
+          if (payload.id === id) {
+            xterm.writeln(
+              `\r\n\x1b[38;5;245m— ${translate()("terminals.sessionEnded", {
+                code: payload.code,
+              })} —\x1b[0m`
+            );
+          }
+        });
+
+  xterm.onData((data) => {
+    if (entry.input) {
+      window.pupitre.writeTerminal(id, data);
     }
   });
-
-  xterm.onData((data) => window.pupitre.writeTerminal(id, data));
 
   const entry: Live = {
     host,
@@ -275,6 +290,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
     fit,
     search,
     onShortcut: null,
+    input: kind !== "process",
     detach: () => {
       detachData();
       detachExit();
@@ -335,6 +351,29 @@ const writeOnlyClipboard = {
     window.pupitre.copyFromTerminal(text),
 };
 
+export function allowInput(id: string, input: boolean): void {
+  const entry = live.get(id);
+
+  if (entry) {
+    entry.input = input;
+  }
+}
+
+/** For text the app itself draws: a journal read from disk has no session to come from. */
+export function writeLocal(id: string, data: string): void {
+  live.get(id)?.xterm.write(data, () => {
+    const entry = live.get(id);
+
+    if (entry) {
+      publishScroll(id, entry.xterm);
+    }
+  });
+}
+
+export function resetScreen(id: string): void {
+  live.get(id)?.xterm.reset();
+}
+
 export function focus(id: string): void {
   live.get(id)?.xterm.focus();
 }
@@ -345,6 +384,7 @@ export function scrollToBottom(id: string): void {
 
 export function clearScreen(id: string): void {
   live.get(id)?.xterm.clear();
+  window.pupitre.clearTerminalHistory(id);
 }
 
 export function copySelection(id: string): void {

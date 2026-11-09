@@ -36,11 +36,6 @@ extraResources:
   - from: resources/probe.sh
     to: probe.sh
 
-# node-pty ships a native binary, and a .node cannot be loaded from an asar
-# archive. Without this the app starts and no terminal ever opens.
-asarUnpack:
-  - "**/node_modules/node-pty/**"
-
 # The archive carries the hashes of what it contains, and the binary refuses to
 # run anything else: swapping a file in an installed app breaks the signature
 # instead of running. The fuses are flipped just before signing, so the app is
@@ -86,7 +81,7 @@ mac:
   # identity in the keychain, electron-builder says so and builds an unsigned
   # bundle, which is what a developer building on their own machine wants.
   # Entitlements are electron-builder's own defaults — JIT, unsigned executable
-  # memory and library validation off, exactly what Chromium and node-pty need.
+  # memory and library validation off, exactly what Chromium needs.
   hardenedRuntime: true
   gatekeeperAssess: false
   notarize: true

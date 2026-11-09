@@ -9,10 +9,16 @@ export type TerminalAgent =
 
 export type TerminalKind = "shell" | TerminalAgent;
 
+/** A process's own window, watched from its project rather than opened as a tab. */
+export type ConsoleKind = TerminalKind | "process";
+
 export interface TerminalSize {
   cols: number;
   rows: number;
 }
+
+export const SCROLLBACK_MIN = 1000;
+export const SCROLLBACK_MAX = 100_000;
 
 export const TERMINAL_KINDS: readonly TerminalKind[] = [
   "shell",
