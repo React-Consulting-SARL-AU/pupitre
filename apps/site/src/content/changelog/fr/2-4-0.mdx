@@ -1,0 +1,23 @@
+---
+title: Infisical à côté de 1Password, et des terminaux qui répondent sans attendre
+description: Infisical se connecte dans les réglages de l'app comme 1Password, et un projet peut prendre son .env.local dans un projet Infisical ; une touche frappée après une pause s'affiche aussitôt, et un terminal revient au rendu GPU quand il repasse au premier plan.
+locale: fr
+version: 2.4.0
+channel: stable
+date: 2026-11-10
+order: 30
+---
+
+Infisical rejoint 1Password comme source de secrets, et les touches s'affichent aussitôt.
+
+## L'app
+
+- **Infisical à côté de 1Password.** Réglages › Connexions reçoit l'instance, le client ID et le client secret d'une identité machine en Universal Auth, et les vérifie par une connexion avant d'enregistrer. La page du service Infisical dit si l'identité du serveur se connecte, et la nomme.
+- **Une touche s'affiche aussitôt.** L'écho d'une touche frappée après une pause n'attend plus une image ; les rafales de sortie restent groupées.
+- **Les terminaux reviennent au rendu GPU.** Un terminal qui avait perdu son contexte WebGL revient sur WebGL quand il repasse au premier plan, au lieu de rester sur le rendu plus lent. Les onglets masqués ne dessinent plus.
+- **Un refus nomme le service.** Demander un service que le serveur n'exécute pas dit désormais lequel, dans les deux langues.
+
+## L'agent
+
+- **La CLI Infisical.** Le service Infisical installe l'outil en ligne de commande depuis sa version GitHub, vérifié contre les sommes de contrôle publiées, et donne au shell de développement une identité machine : `INFISICAL_DOMAIN`, `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID` et `INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET`, rangées en lecture pour root seulement dans `/etc/pupitre/env`. Une nouvelle identité est vérifiée une fois auprès de son instance, avec un avertissement si elle est refusée. Aucun jeton d'accès n'est conservé : chaque usage en demande un neuf.
+- **Le `.env.local` depuis Infisical.** Un projet doté d'un `.infisical.yaml` ou d'un `.infisical.json` voit son `.env.local` exporté depuis le projet Infisical qu'il désigne, après le modèle 1Password et avant `.env.example`. Ce fichier décide toujours de l'environnement, du dossier et des règles par branche, comme pour la CLI. L'identifiant du projet et le jeton d'accès passent par l'environnement, jamais par la ligne de commande.

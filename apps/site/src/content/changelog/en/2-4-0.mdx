@@ -1,0 +1,23 @@
+---
+title: Infisical beside 1Password, and terminals that echo at once
+description: Infisical is connected in the app's settings like 1Password, and a project can take its .env.local from an Infisical project; a key typed after a quiet moment echoes at once, and a terminal comes back on GPU rendering when it returns to the front.
+locale: en
+version: 2.4.0
+channel: stable
+date: 2026-11-10
+order: 30
+---
+
+Infisical joins 1Password as a source of secrets, and keystrokes echo at once.
+
+## The app
+
+- **Infisical beside 1Password.** Settings › Connections takes the instance, the client ID and the client secret of a Universal Auth identity, and checks them with a login before saving. The Infisical service page says whether the server's identity signs in, and names it.
+- **A keystroke echoes at once.** The echo of a key typed after a quiet moment no longer waits a frame; bursts of output are still grouped.
+- **Terminals come back on GPU rendering.** A terminal that lost its WebGL context returns to WebGL when it comes back in front, instead of staying on the slower renderer. Hidden tabs skip their painting.
+- **A refusal names the service.** Asking for a service the server does not run now says which one, in both languages.
+
+## The agent
+
+- **The Infisical CLI.** The Infisical service installs the command-line tool from its GitHub release, checked against the published checksums, and gives the dev shell a machine identity: `INFISICAL_DOMAIN`, `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID` and `INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET`, stored root-only in `/etc/pupitre/env`. A new identity is checked against its instance once, with a warning when it is refused. No access token is kept: each use asks for a fresh one.
+- **`.env.local` from Infisical.** A project with a `.infisical.yaml` or `.infisical.json` has its `.env.local` exported from the Infisical project it names, after the 1Password template and before `.env.example`. That file still decides the environment, the folder and the branch overrides, as it does for the CLI. The project id and the access token travel in the environment, never on the command line.
