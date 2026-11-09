@@ -7,6 +7,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { TerminalShortcut } from "@renderer/lib/terminal-shortcuts";
 import { useTerminalStatus } from "@renderer/lib/terminal-status";
 import {
+  drawFast,
   fitTerminal,
   focus,
   obtain,
@@ -138,6 +139,12 @@ export function TerminalPane({
       closeSearch();
     }
   }, [active, searchOpen, closeSearch]);
+
+  useEffect(() => {
+    if (active && !dormant) {
+      drawFast(id);
+    }
+  }, [active, dormant, id]);
 
   function reopen(): Promise<unknown> | undefined {
     return serverId
