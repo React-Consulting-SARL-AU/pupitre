@@ -47,7 +47,12 @@ export function versionOfTag(tag: string): string | null {
 }
 
 export function git(argv: string[], cwd?: string): string | null {
-  const result = spawnSync("git", argv, { cwd, encoding: "utf8" })
+  // Bun hands a child the environment it started with unless `env` is given.
+  const result = spawnSync("git", argv, {
+    cwd,
+    encoding: "utf8",
+    env: process.env,
+  })
 
   return result.status === 0 ? result.stdout.trim() : null
 }
