@@ -3,7 +3,7 @@ export const project = {
     "project.clean": "Clean",
     "project.tabs": "The project's pages",
     "project.tab.overview": "Overview",
-    "project.tab.logs": "Logs",
+    "project.tab.logs": "Console",
     "project.tab.diff": "Diff",
     "project.tab.files": "Files",
     "project.tab.terminals": "Terminals",
@@ -86,22 +86,25 @@ export const project = {
 
     "project.header.seeDiff": "See changed files",
     "project.header.restart": "Restart",
+    "project.header.console": "Console",
     "project.header.start": "Start",
     "project.header.stop": "Stop",
     "project.header.eyebrow": "Project",
 
-    "project.logs.journal": "Logs of {name}",
-    "project.logs.process": "Process",
-    "project.logs.follow": "Follow new lines",
-    "project.logs.waiting": "Waiting for the first lines of {name}",
-    "project.logs.search": "Search",
-    "project.logs.matches.one": "{count} line",
-    "project.logs.matches.other": "{count} lines",
-    "project.logs.noMatch": "No result",
-    "project.logs.copyAll": "Copy the logs",
-    "project.logs.copyAllHint": "Copies every line, whatever the search",
-    "project.logs.cut":
-      "Only the last {count} lines are kept: older ones have been dropped.",
+    "project.console.label": "Console of {name}",
+    "project.console.process": "Process",
+    "project.console.input": "Type into the process",
+    "project.console.opening": "Attaching to the window of {name}",
+    "project.console.stopped":
+      "{name} has no window open: this is its last journal, until it starts again.",
+    "project.console.none":
+      "{name} only runs systemd services: their journals are on the Services page.",
+    "project.console.copyAll": "Copy the output",
+    "project.console.copyAllHint":
+      "Copies everything the console holds, scrollback included",
+    "project.console.clear": "Clear the logs",
+    "project.console.clearHint":
+      "Empties this console and the window's scrollback on the server; the process keeps running.",
 
     "project.overview.addressCopied": "Address copied",
     "project.overview.copyAddress": "Copy the address",
@@ -139,7 +142,7 @@ export const project = {
     "project.clean": "Propre",
     "project.tabs": "Les pages du projet",
     "project.tab.overview": "Vue d'ensemble",
-    "project.tab.logs": "Logs",
+    "project.tab.logs": "Console",
     "project.tab.diff": "Diff",
     "project.tab.files": "Fichiers",
     "project.tab.terminals": "Terminaux",
@@ -223,23 +226,25 @@ export const project = {
 
     "project.header.seeDiff": "Voir les fichiers changés",
     "project.header.restart": "Redémarrer",
+    "project.header.console": "Console",
     "project.header.start": "Démarrer",
     "project.header.stop": "Arrêter",
     "project.header.eyebrow": "Projet",
 
-    "project.logs.journal": "Logs de {name}",
-    "project.logs.process": "Processus",
-    "project.logs.follow": "Suivre les nouvelles lignes",
-    "project.logs.waiting": "En attente des premières lignes de {name}",
-    "project.logs.search": "Rechercher",
-    "project.logs.matches.one": "{count} ligne",
-    "project.logs.matches.other": "{count} lignes",
-    "project.logs.noMatch": "Aucun résultat",
-    "project.logs.copyAll": "Copier les logs",
-    "project.logs.copyAllHint":
-      "Copie toutes les lignes, quelle que soit la recherche",
-    "project.logs.cut":
-      "Seules les {count} dernières lignes sont gardées : les plus anciennes ont été retirées.",
+    "project.console.label": "Console de {name}",
+    "project.console.process": "Processus",
+    "project.console.input": "Saisir dans le processus",
+    "project.console.opening": "Connexion à la fenêtre de {name}",
+    "project.console.stopped":
+      "{name} n'a pas de fenêtre ouverte : voici son dernier journal, jusqu'à son prochain démarrage.",
+    "project.console.none":
+      "{name} ne fait tourner que des services systemd : leurs journaux sont sur la page Services.",
+    "project.console.copyAll": "Copier la sortie",
+    "project.console.copyAllHint":
+      "Copie tout ce que la console contient, défilement compris",
+    "project.console.clear": "Effacer les logs",
+    "project.console.clearHint":
+      "Vide cette console et l'historique de la fenêtre sur le serveur ; le processus continue de tourner.",
 
     "project.overview.addressCopied": "Adresse copiée",
     "project.overview.copyAddress": "Copier l'adresse",

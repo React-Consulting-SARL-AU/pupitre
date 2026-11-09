@@ -32,9 +32,11 @@ function step(module: string, status: string): Event {
   } as unknown as Event;
 }
 
+// The snapshot store outlives a test file: one left on a server with ai.* modules would make every upgrade call upgradeModules.
 beforeEach(() => {
   useAgentUpdate.getState().forget();
   useAgentUpdate.setState({ hidden: null });
+  useSnapshot.setState({ state: { status: "idle" } });
 });
 
 describe("reading the gap", () => {

@@ -36,22 +36,9 @@ export function databaseShellCommand(
   command: string
 ): TerminalCommand {
   return {
-    command: [
-      "tmux",
-      "new-session",
-      "-A",
-      "-s",
-      session,
-      quoted(command),
-      "';'",
-      "set-option",
-      "-t",
-      session,
-      "status",
-      "off",
-    ].join(" "),
     kind: "shell",
     session,
+    tmux: ["new-session", "-A", "-s", session, quoted(command)].join(" "),
   };
 }
 
@@ -129,7 +116,7 @@ export function reservedShell(
     return null;
   }
 
-  return { command: held.command, kind: held.kind, session: held.session };
+  return { kind: held.kind, session: held.session, tmux: held.tmux };
 }
 
 export function releaseShell(id: unknown): void {

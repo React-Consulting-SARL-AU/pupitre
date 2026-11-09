@@ -3,44 +3,50 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WebContents } from "electron";
+import type { OpenTerminal } from "../terminals";
+import type { Transport } from "../tmux-attach";
 import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-terminals-"));
 
-interface FakePty {
-  emitData: (data: string) => void;
+interface FakeTransport {
+  emitData: (data: string, replay?: boolean) => void;
   emitExit: (code: number) => void;
 }
 
-const spawned: FakePty[] = [];
+const spawned: FakeTransport[] = [];
 
 mock.module("electron", () => electronStub(root));
 
-mock.module("node-pty", () => ({
-  spawn: () => {
-    let onData: (data: string) => void = () => undefined;
-    let onExit: (exit: { exitCode: number }) => void = () => undefined;
+function attach(): Transport {
+  let onData: (data: string, replay: boolean) => void = () => undefined;
+  let onExit: (code: number) => void = () => undefined;
 
-    spawned.push({
-      emitData: (data) => onData(data),
-      emitExit: (exitCode) => onExit({ exitCode }),
-    });
+  spawned.push({
+    emitData: (data, replay = false) => onData(data, replay),
+    emitExit: (code) => onExit(code),
+  });
 
-    return {
-      kill: () => undefined,
-      onData: (listener: typeof onData) => {
-        onData = listener;
-      },
-      onExit: (listener: typeof onExit) => {
-        onExit = listener;
-      },
-      resize: () => undefined,
-      write: () => undefined,
-    };
-  },
-}));
+  return {
+    clearHistory: () => undefined,
+    kill: () => undefined,
+    onData: (listener) => {
+      onData = listener;
+    },
+    onExit: (listener) => {
+      onExit = listener;
+    },
+    resize: () => undefined,
+    write: () => undefined,
+  };
+}
 
-const { closeAll, open, states } = await import("../terminals");
+const terminals = await import("../terminals");
+const { closeAll, states } = terminals;
+
+function open(request: OpenTerminal, recipient: WebContents): void {
+  terminals.open(request, recipient, attach);
+}
 
 const sent: { channel: string; payload: unknown }[] = [];
 
@@ -51,12 +57,13 @@ const window = {
 
 const REQUEST = {
   cols: 80,
-  command: "tmux new-session -A -s shell-server-t1",
+  history: 1000,
   id: "t1",
   kind: "shell" as const,
   project: null,
   rows: 24,
   serverId: "srv-1",
+  tmux: "new-session -A -s shell-server-t1",
 };
 
 afterEach(() => {
@@ -85,6 +92,15 @@ describe("a tab reopened under the same id", () => {
         .map((one) => one.payload)
     ).toEqual([{ data: "nouveau", id: "t1" }]);
     expect(states().t1).not.toBe("finished");
+  });
+
+  it("does not take the screen redrawn at the attach for work the agent just did", async () => {
+    open({ ...REQUEST, kind: "claude" }, window);
+    spawned[0]?.emitData("x".repeat(5000), true);
+
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(states().t1).toBe("idle");
   });
 
   it("still reports the end of a shell closed with no replacement", () => {

@@ -1,0 +1,27 @@
+---
+title: A live console for every process, and terminals that behave like your own
+description: Every process gets a live Console, Turbo's tabbed interface included; every terminal now shows the program's own output, so scrollback, search, selection and links work as in a native terminal.
+locale: en
+version: 2.3.0
+channel: stable
+date: 2026-11-09
+order: 29
+---
+
+Every process gets a live console, and every terminal shows the program's own output.
+
+## The app
+
+- **A Console for every process.** Each process of a project has a Console button. The Logs tab becomes Console: the process's own window, live, exactly as a terminal would show it, Turbo's tabbed interface included. It is read-only until you tick "Type into the process", so a stray Ctrl-C never stops a server; once ticked, you can move between Turbo's tasks with the arrow keys. After a restart it attaches again by itself; while the process is stopped, it shows the journal kept on the server.
+- **Clear the logs** empties the console and the window's history on the server, so the lines do not come back next time. The process keeps running.
+- **Terminals show the program's own output.** A shell, an AI agent or a database shell now talks to tmux in control mode over SSH. Scrollback, search and selection are the terminal's own, long addresses and OSC 8 links stay whole and clickable, and reopening a tab brings back its history and screen as they were. A paste is bracketed only for a program that asked for it.
+- The eraser of a terminal tab also clears the session's history on the server.
+
+## The agent
+
+- A process's window can be watched on its own, by as many readers as you like, each at their own size.
+- A full-screen program started before anyone looks draws at 200 by 50 characters instead of 80 by 24.
+
+## Known limitations
+
+- The live console needs the 2.3.0 agent: with an older one, the Console tab shows the journal and says how to update the agent.

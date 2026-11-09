@@ -143,12 +143,21 @@ The absolute path lives on the project, not on the machine: `status`, `project.l
 | `project.diff` | `{ name, path }`: the raw patch |
 | `project.url` | `{ name }` |
 | `project.debug` | `{ name, process }`: restart of a process with the JVM debug agent → `{ state, port, debug_port }` |
+| `project.attach` | `{ name, process }` → `{ session }`: a tmux session of its own, `pupitre-view-<8 hex>`, holding the process's window and nothing else, for the app to attach. `project_not_found` when the process has no window open — never started, or closed by `project.down` — with the start as remedy; `bad_request` for a `service` process. See [watching a process](#watching-a-process) |
 
 #### One process, one window, one state
 
 Each process runs in its own tmux window, named `<project>/<process>` — neither a project name nor a process identifier admits a slash, so a window reads back without ambiguity — and writes its log under `~/.pupitre/logs/<project>/<process>.log`. A process identifier is a DNS label, like a route's label.
 
 A `Process` carries its own `state`, read from its window and its main port: `online`, `starting`, `failed`, `stopped`, `down`, `external`, `service`. The window runs the command itself, in the user's login shell, and tmux keeps the pane once the command has exited: a process whose command has ended is never `starting` — it is `stopped` if it returned 0, `failed` otherwise or if a signal killed it. `starting` therefore says only one thing: the command is running and the declared port does not respond yet. `project.up` answers as soon as the window is open, with that state; what follows is read on `project.list` or `snapshot`. `project.up` and `project.restart` replace a dead pane, `project.down` closes it.
+
+The `pupitre` session is born 200 columns by 50 rows: a window nobody looks at takes the session's size, and a full-screen program — Turbo's interface, with one tab per task — would otherwise draw at 80×24 until a reader comes.
+
+#### Watching a process
+
+`project.attach` links the process's window into a session of its own, so each reader sees that window alone and sizes it to their screen — tmux's `window-size latest` gives the window to whoever looked last. Its log stays what `project.logs` reads; the session is how a reader watches it live, full-screen programs included, and types into it.
+
+The session's own first window is closed as soon as the process's is linked. The reader turns `destroy-unattached` on once attached, so the session ends with them; set any earlier, tmux would end it on the spot. A session nobody attached within a minute is closed by the next `project.attach`. A restart closes the window, which ends every session that links it: the reader asks again.
 
 **A port answers for the window it descends from.** A gateway listens on ports no registry row declares — React-Box on 3000 and on 3001 to 3006 behind it — and a second project registered on 3001 would read `external` while stopped, `online` while its own server fell back elsewhere. So the agent attributes each listening port to a project window: `ss -ltnpH` names the listening pids, the `ps` tree the `<project>/<process>` window above them. A main port another project's window holds does not count as answering for this process: it reads `stopped` or `starting`, never `external` or `online`. `project.up`, `project.restart` and the resume refuse to open the window, with `bad_request`, the holder in the message and a free port in the `fix`; a listener under no project window — a `bun run dev` typed by hand — is not the agent's to judge, and the start goes ahead as before. `project.add` and `project.update` write the line and add a warning per port another project's window holds at that moment, with a free one. The `Process` carries **`held_by`**, the `<project>/<process>` window of the other project that holds its main port right now, absent otherwise.
 
@@ -264,7 +273,7 @@ A route's `subdomain` accepts **several labels separated by dots**. A single one
 
 | Command | Parameters |
 | --- | --- |
-| `agent.open` | `{ kind: "claude" \| "codex" \| "cursor" \| "gemini" \| "copilot" \| "opencode" \| "hermes", project }`: returns the tmux command the app attaches in a terminal |
+| `agent.open` | `{ kind: "claude" \| "codex" \| "cursor" \| "gemini" \| "copilot" \| "opencode" \| "hermes", project }`: returns the tmux command the app attaches in a terminal, always `tmux new-session …`: the app runs its arguments in tmux's control mode and refuses any other line |
 | `sessions.list` | — : pid, duration, RAM, kind, command |
 | `sessions.clean` | — |
 | `processes.list` | — |

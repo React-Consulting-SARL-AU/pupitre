@@ -331,6 +331,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	}))
 
 	server.Register("project.debug", scoped(func(name, process string) (any, error) { return reader.Debug(name, process) }))
+	server.Register("project.attach", scoped(func(name, process string) (any, error) { return reader.Attach(name, process) }))
 
 	server.Register("project.pull", named(func(name string) (any, error) { return reader.Pull(name) }))
 

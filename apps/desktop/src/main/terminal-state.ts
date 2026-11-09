@@ -1,4 +1,4 @@
-import type { AgentState, TerminalKind } from "@shared/terminals";
+import type { AgentState, ConsoleKind } from "@shared/terminals";
 
 const STREAM_MS = 1200;
 const ASLEEP_MS = 5 * 60 * 1000;
@@ -7,7 +7,7 @@ const MINIMUM_WORK = 200;
 
 /** Read from the pipe, never the screen: the layouts of Claude and Codex change at every redesign. */
 export interface Activity {
-  kind: TerminalKind;
+  kind: ConsoleKind;
   /** Last byte that counted as work. */
   seenAt: number;
   /** Last byte of any kind, so a burst can be told from a lone redraw. */
@@ -20,7 +20,7 @@ export interface Activity {
   finished: boolean;
 }
 
-export function freshActivity(kind: TerminalKind, now: number): Activity {
+export function freshActivity(kind: ConsoleKind, now: number): Activity {
   return {
     bell: false,
     burst: 0,
@@ -60,7 +60,7 @@ export function noteKeystroke(activity: Activity, now: number): void {
   activity.lastByteAt = now;
 }
 
-/** The bell is not guaranteed, so an agent that produced output then went quiet is waiting too; not a shell. */
+/** The bell is not guaranteed, so an agent that produced output then went quiet is waiting too; not a shell nor a process. */
 export function stateOf(activity: Activity, now: number): AgentState {
   if (activity.finished) {
     return "finished";
@@ -72,7 +72,7 @@ export function stateOf(activity: Activity, now: number): AgentState {
     return "working";
   }
 
-  const isAgent = activity.kind !== "shell";
+  const isAgent = activity.kind !== "shell" && activity.kind !== "process";
 
   if (isAgent && (activity.bell || activity.sinceKeystroke > MINIMUM_WORK)) {
     return "attention";

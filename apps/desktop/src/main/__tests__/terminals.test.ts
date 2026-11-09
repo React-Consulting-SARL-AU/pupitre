@@ -72,10 +72,9 @@ describe("a project's terminal", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api ';' set-option -t shell-flyleaf-api-tabc1 status off",
         kind: "shell",
         session: "shell-flyleaf-api-tabc1",
+        tmux: "new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api",
       },
     });
   });
@@ -88,9 +87,8 @@ describe("a project's terminal", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s shell-server-tabc2 ';' set-option -t shell-server-tabc2 status off",
         session: "shell-server-tabc2",
+        tmux: "new-session -A -s shell-server-tabc2",
       },
     });
     expect(fake?.started()).toBe(0);
@@ -111,9 +109,8 @@ describe("a project's terminal", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api ';' set-option -t shell-flyleaf-api-tabc1 status off",
         session: "shell-flyleaf-api-tabc1",
+        tmux: "new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api",
       },
     });
   });
@@ -181,8 +178,7 @@ describe("a terminal opened in a subfolder", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s shell-flyleaf-api-tabd1 -c /home/dev/projects/flyleaf/api/src/lib ';' set-option -t shell-flyleaf-api-tabd1 status off",
+        tmux: "new-session -A -s shell-flyleaf-api-tabd1 -c /home/dev/projects/flyleaf/api/src/lib",
       },
     });
   });
@@ -205,8 +201,7 @@ describe("a terminal opened in a subfolder", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s shell-server-tabd2 -c /home/dev/projects/flyleaf ';' set-option -t shell-server-tabd2 status off",
+        tmux: "new-session -A -s shell-server-tabd2 -c /home/dev/projects/flyleaf",
       },
     });
   });
@@ -281,10 +276,9 @@ describe("an agent's tab", () => {
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command:
-          "tmux new-session -A -s claude-flyleaf-api -c /home/dev/projects/flyleaf/api claude",
         kind: "claude",
         session: "claude-flyleaf-api",
+        tmux: "new-session -A -s claude-flyleaf-api -c /home/dev/projects/flyleaf/api claude",
       },
     });
   });

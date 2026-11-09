@@ -727,6 +727,10 @@ type ProjectCheckout struct {
 	Branch string `json:"branch"`
 }
 
+type ProjectAttach struct {
+	Session string `json:"session"`
+}
+
 type ProjectDebug struct {
 	State     ProcessState `json:"state"`
 	Port      int          `json:"port"`

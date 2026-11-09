@@ -343,6 +343,8 @@ describe("the tags a release counts", () => {
     }
   }
 
+  // Bun hands a child the environment it started with unless `env` is given: deleting the keys is not enough.
+  const env = { ...process.env }
   const dir = mkdtempSync(path.join(tmpdir(), "pupitre-tags-"))
   const origin = path.join(dir, "origin.git")
   const work = path.join(dir, "work")
@@ -350,7 +352,7 @@ describe("the tags a release counts", () => {
     execFileSync(
       "git",
       ["-c", "user.name=t", "-c", "user.email=t@t", ...argv],
-      { cwd: work, encoding: "utf8" }
+      { cwd: work, encoding: "utf8", env }
     ).trim()
   const commit = (message: string): void => {
     writeFileSync(path.join(work, message), message)
@@ -358,8 +360,8 @@ describe("the tags a release counts", () => {
     git("commit", "-q", "-m", message)
   }
 
-  execFileSync("git", ["init", "-q", "--bare", origin])
-  execFileSync("git", ["init", "-q", "-b", "staging", work])
+  execFileSync("git", ["init", "-q", "--bare", origin], { env })
+  execFileSync("git", ["init", "-q", "-b", "staging", work], { env })
   git("remote", "add", "origin", origin)
   commit("one")
 

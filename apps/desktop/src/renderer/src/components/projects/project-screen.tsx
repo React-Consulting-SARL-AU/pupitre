@@ -23,10 +23,10 @@ import { ProjectAgentsPicker } from "./project-agents-picker";
 import { ProjectBody } from "./project-body";
 import type { ConfigPart } from "./project-config-panel";
 import { ProjectConfigScreen } from "./project-config-screen";
+import { ProjectConsole } from "./project-console";
 import { ProjectDiff } from "./project-diff";
 import { ProjectEditors } from "./project-editors";
 import { ProjectFiles } from "./project-files";
-import { ProjectLogs } from "./project-logs";
 import { ProjectMeta } from "./project-meta";
 import { ProjectOverview } from "./project-overview";
 import { ProjectTabBar } from "./project-tab-bar";
@@ -87,6 +87,7 @@ export function ProjectScreen({
   );
 
   const [configAt, setConfigAt] = useState<ConfigPart>("general");
+  const [consoleProcess, setConsoleProcess] = useState<string | null>(null);
 
   // Kept in the navigation store: returning reopens the same tab, and shortcuts switch it from outside.
   const setTab = useCallback(
@@ -289,8 +290,12 @@ export function ProjectScreen({
               />
             }
             logs={
-              <ProjectLogs
-                processes={project.processes.map((process) => process.id)}
+              <ProjectConsole
+                chosen={consoleProcess}
+                onChoose={setConsoleProcess}
+                processes={project.processes.filter(
+                  (process) => process.pkgmgr !== "service"
+                )}
                 project={name}
                 serverId={serverId}
               />
@@ -309,6 +314,10 @@ export function ProjectScreen({
                 onConfigure={() => {
                   setTab("configuration");
                   setConfigAt("processes");
+                }}
+                onConsole={(process) => {
+                  setConsoleProcess(process);
+                  setTab("logs");
                 }}
                 onReadEnv={readKeys}
                 onRegenerateEnv={() => readEnv(serverId, name, true)}

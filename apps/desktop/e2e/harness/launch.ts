@@ -71,6 +71,10 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       ok: false,
       error: { code: "internal", message: "no agent in this test" },
     }));
+    answer("process-console-open", () => ({
+      ok: false,
+      error: { code: "internal", message: "no agent in this test" },
+    }));
     answer("server-host-key", () => ({
       ok: true,
       result: { fingerprint: "SHA256:pupitre-e2e", status: "trusted" },

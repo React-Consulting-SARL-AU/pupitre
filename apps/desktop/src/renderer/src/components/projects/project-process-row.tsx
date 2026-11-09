@@ -7,7 +7,7 @@ import { memory, uptime } from "@renderer/lib/format";
 import { isStoppable, PROCESS_LOOK } from "@renderer/lib/project-state";
 import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import { Play, RotateCw, Square } from "lucide-react";
+import { Play, RotateCw, Square, SquareTerminal } from "lucide-react";
 
 const HEAVY_MB = 2048;
 
@@ -15,10 +15,12 @@ export function ProjectProcessRow({
   process,
   busy,
   onAct,
+  onConsole,
 }: {
   process: Process;
   busy: boolean;
   onAct: Gesture<[ProjectAction, string]>;
+  onConsole: (process: string) => void;
 }) {
   const t = useTranslations();
 
@@ -42,6 +44,15 @@ export function ProjectProcessRow({
           {process.dir === "." ? "" : ` · ${process.dir}`}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
+          {process.pkgmgr === "service" ? null : (
+            <Button
+              icon={SquareTerminal}
+              onClick={() => onConsole(process.id)}
+              size="sm"
+            >
+              {t("project.header.console")}
+            </Button>
+          )}
           <Button
             disabled={busy}
             icon={stoppable ? RotateCw : Play}

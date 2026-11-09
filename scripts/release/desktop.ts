@@ -18,7 +18,7 @@ import { hasFlag, say, variable } from "./cli"
 import { type Bucket, bucket, get, keys } from "./r2"
 import { run } from "./shell"
 
-// One system per host: node-pty, notarization and Trusted Signing cannot cross-build.
+// One system per host: notarization and Trusted Signing cannot cross-build.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const DESKTOP_DIR = path.join(ROOT, "apps/desktop")

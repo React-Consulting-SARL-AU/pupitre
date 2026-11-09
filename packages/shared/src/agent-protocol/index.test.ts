@@ -51,6 +51,7 @@ const CONTRACT_COMMANDS = [
   "project.diff",
   "project.url",
   "project.debug",
+  "project.attach",
   "agent.open",
   "sessions.list",
   "sessions.clean",

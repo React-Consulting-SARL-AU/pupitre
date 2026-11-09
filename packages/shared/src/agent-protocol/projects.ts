@@ -330,6 +330,13 @@ export const ProjectUrlResultSchema = z.object({
 
 export type ProjectUrlResult = z.infer<typeof ProjectUrlResultSchema>
 
+// A session of its own holding only the process's window: the reader sees and resizes that window alone.
+export const ProjectAttachResultSchema = z.object({
+  session: z.string(),
+})
+
+export type ProjectAttachResult = z.infer<typeof ProjectAttachResultSchema>
+
 export const ProjectDebugResultSchema = z.object({
   state: ProcessStateSchema,
   port: PortSchema,

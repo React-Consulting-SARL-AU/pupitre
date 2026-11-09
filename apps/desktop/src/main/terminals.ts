@@ -1,9 +1,6 @@
 import { spawn as spawnChild } from "node:child_process";
-import type { AgentState, TerminalEnd, TerminalKind } from "@shared/terminals";
+import type { AgentState, ConsoleKind, TerminalEnd } from "@shared/terminals";
 import type { WebContents } from "electron";
-import * as pty from "node-pty";
-
-import { current, terminalOptions } from "./platform";
 import { targetOf } from "./servers";
 import { createTerminalBatch, type TerminalBatch } from "./terminal-batch";
 import { type LoginAddress, loginAddress } from "./terminal-links";
@@ -16,9 +13,10 @@ import {
   noteOutput,
   stateOf,
 } from "./terminal-state";
+import { attachControl, type Transport } from "./tmux-attach";
 
 interface Session extends Activity {
-  proc: pty.IPty;
+  proc: Transport;
   serverId: string;
   project: string | null;
   screen: Screen;
@@ -53,12 +51,13 @@ export function states(): Record<string, AgentState> {
 export interface OpenTerminal {
   id: string;
   serverId: string;
-  kind: TerminalKind;
+  kind: ConsoleKind;
   project: string | null;
-  /** The app's own for a shell, `agent.open`'s otherwise. */
-  command: string;
+  /** The arguments after `tmux`: the app's own for a shell, `agent.open`'s or `project.attach`'s otherwise. */
+  tmux: string;
   cols: number;
   rows: number;
+  history: number;
 }
 
 function noteLogin(id: string, session: Session, recipient: WebContents): void {
@@ -84,26 +83,32 @@ function noteLogin(id: string, session: Session, recipient: WebContents): void {
 }
 
 /** Another shell now holds this tab: what the old one still says is not the tab's. */
-function replaced(id: string, proc: pty.IPty): boolean {
+function replaced(id: string, proc: Transport): boolean {
   const holder = sessions.get(id);
 
   return holder !== undefined && holder.proc !== proc;
 }
 
-/** `-tt` forces a TTY even when ssh deems none needed: without it, coding agents refuse to start. */
-export function open(request: OpenTerminal, recipient: WebContents): void {
+export function open(
+  request: OpenTerminal,
+  recipient: WebContents,
+  attach: typeof attachControl = attachControl
+): void {
   const { id } = request;
 
   close(id);
 
   const batch = batchFor(recipient);
-  const proc = pty.spawn(
-    "ssh",
-    ["-tt", ...targetOf(request.serverId), request.command],
-    terminalOptions(request, current(), process.env)
-  );
+  const proc = attach({
+    cols: request.cols,
+    history: request.history,
+    rows: request.rows,
+    target: targetOf(request.serverId),
+    tmux: request.tmux,
+    transient: request.kind === "process",
+  });
 
-  proc.onData((data) => {
+  proc.onData((data, replay) => {
     if (replaced(id, proc)) {
       return;
     }
@@ -111,10 +116,10 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     const session = sessions.get(id);
 
     if (session) {
-      noteOutput(session, data.length, Date.now());
-
-      if (data.includes(BELL)) {
-        session.bell = true;
+      // A reattached agent's whole screen is not work it just did.
+      if (!replay) {
+        noteOutput(session, data.length, Date.now());
+        session.bell ||= data.includes(BELL);
       }
 
       session.screen.write(data, () => noteLogin(id, session, recipient));
@@ -123,7 +128,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     batch.push(id, data);
   });
 
-  proc.onExit(({ exitCode }) => {
+  proc.onExit((exitCode) => {
     if (replaced(id, proc)) {
       return;
     }
@@ -163,7 +168,7 @@ export function serverOf(id: string): string | null {
 
 export function describeSession(
   id: string
-): { kind: TerminalKind; project: string | null } | null {
+): { kind: ConsoleKind; project: string | null } | null {
   const session = sessions.get(id);
 
   return session ? { kind: session.kind, project: session.project } : null;
@@ -251,12 +256,11 @@ export function resize(id: string, cols: number, rows: number): void {
   }
 
   session.screen.resize(cols, rows);
+  session.proc.resize(cols, rows);
+}
 
-  try {
-    session.proc.resize(cols, rows);
-  } catch {
-    // The process just died: the next read will report it.
-  }
+export function clearHistory(id: string): void {
+  sessions.get(id)?.proc.clearHistory();
 }
 
 export function close(id: string): void {
@@ -266,12 +270,7 @@ export function close(id: string): void {
     return;
   }
 
-  try {
-    session.proc.kill();
-  } catch {
-    // Already dead.
-  }
-
+  session.proc.kill();
   session.screen.dispose();
   // A replacement opens under the same id: what this one still held is not its bytes to deliver.
   session.batch.drop(id);
