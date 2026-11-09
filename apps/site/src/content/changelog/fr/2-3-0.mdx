@@ -1,0 +1,27 @@
+---
+title: Une console en direct pour chaque processus, et des terminaux comme les vôtres
+description: Chaque processus a sa Console en direct, interface à onglets de Turbo comprise ; chaque terminal affiche désormais la sortie du programme lui-même, et le défilement, la recherche, la sélection et les liens fonctionnent comme dans un terminal natif.
+locale: fr
+version: 2.3.0
+channel: stable
+date: 2026-11-09
+order: 29
+---
+
+Chaque processus a sa console en direct, et chaque terminal affiche la sortie du programme lui-même.
+
+## L'app
+
+- **Une Console pour chaque processus.** Chaque processus d'un projet a un bouton Console. L'onglet Logs devient Console : la fenêtre du processus, en direct, telle qu'un terminal l'afficherait, interface à onglets de Turbo comprise. La console est en lecture seule tant que « Saisir dans le processus » n'est pas cochée, pour qu'un Ctrl-C malencontreux n'arrête jamais un serveur ; une fois cochée, les flèches passent d'une tâche Turbo à l'autre. Après un redémarrage, elle se rattache toute seule ; tant que le processus est arrêté, elle affiche le journal conservé sur le serveur.
+- **Effacer les logs** vide la console et l'historique de la fenêtre sur le serveur, pour que les lignes ne reviennent pas la fois suivante. Le processus continue de tourner.
+- **Les terminaux affichent la sortie du programme.** Un shell, un agent IA ou un shell de base de données parle désormais à tmux en mode contrôle, sur SSH. Le défilement, la recherche et la sélection sont ceux du terminal, les adresses longues et les liens OSC 8 restent entiers et cliquables, et rouvrir un onglet rend son historique et son écran tels qu'ils étaient. Un collage n'est encadré que pour un programme qui l'a demandé.
+- La gomme d'un onglet de terminal efface aussi l'historique de la session sur le serveur.
+
+## L'agent
+
+- La fenêtre d'un processus peut être regardée à part, par autant de lecteurs que voulu, chacun à sa taille.
+- Un programme plein écran lancé avant que quiconque ne regarde se dessine en 200 × 50 caractères au lieu de 80 × 24.
+
+## Limites connues
+
+- La console en direct demande l'agent 2.3.0 : avec un agent plus ancien, l'onglet Console affiche le journal et dit comment mettre l'agent à jour.
