@@ -177,13 +177,14 @@ export function TerminalTabs({
         ) : null}
       </div>
 
-      {/* Hidden by opacity, never display:none (xterm would measure zero rows); isolate keeps them under dialogs. */}
+      {/* Never display:none, where xterm would measure zero rows: content-visibility keeps the layout and skips the painting of a busy tab no one sees. Isolate keeps them under dialogs. */}
       <div className="relative isolate min-h-0 flex-1">
         {sessions.map((session) => (
           <div
             className="absolute inset-0"
             key={session.id}
             style={{
+              contentVisibility: session.id === active ? "visible" : "hidden",
               opacity: session.id === active ? 1 : 0,
               pointerEvents: session.id === active ? "auto" : "none",
               zIndex: session.id === active ? 1 : 0,

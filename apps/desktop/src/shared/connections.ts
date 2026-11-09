@@ -18,6 +18,9 @@ export type ConnectionState =
 
 export type ConnectionsState = Record<ConnectionKind, ConnectionState>;
 
+/** Non-secret values given beside the token, keyed like the managed fields they fill: an instance's address, a client ID. */
+export type ConnectionSettings = Readonly<Record<string, string>>;
+
 export type ConnectionCheck =
   | { status: "answered"; account: ConnectionAccount }
   | { status: "unaskable" };
@@ -32,6 +35,7 @@ export const CONNECTION_KINDS = [
   "wrangler",
   "github",
   "1password",
+  "infisical",
   "neon",
   "vercel",
   "supabase",
@@ -44,6 +48,7 @@ export const NO_CONNECTIONS: ConnectionsState = {
   backup: { status: "absent" },
   cloudflare: { status: "absent" },
   github: { status: "absent" },
+  infisical: { status: "absent" },
   neon: { status: "absent" },
   stripe: { status: "absent" },
   supabase: { status: "absent" },

@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/modules/tool/infisical"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
@@ -59,14 +60,22 @@ func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 		return read(ctx, repo, target, template)
 	}
 
+	vault := repo.has(ctx, home+"/"+templateName)
+	infisicalProject := repo.infisicalConfig(ctx, home)
+
 	switch {
-	case repo.has(ctx, home+"/"+templateName) && installed(ctx):
+	case vault && installed(ctx):
 		return inject(ctx, name, home, repo, target)
+	case infisicalProject != "" && infisical.Ready(ctx):
+		return export(ctx, name, home, repo, target, infisicalProject)
 	case repo.has(ctx, home+"/"+exampleName):
 		return copyExample(ctx, name, home, repo, target)
-	case template:
+	case vault:
 		return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("onepassword.template.uninjectable", name, templateName)).
 			WithFix(i18n.T("onepassword.template.uninjectable.fix", exampleName))
+	case infisicalProject != "":
+		return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("infisical.config.unexportable", name, infisicalProject)).
+			WithFix(i18n.T("infisical.config.unexportable.fix", exampleName))
 	case repo.has(ctx, target):
 		return read(ctx, repo, target, false)
 	}
@@ -103,7 +112,46 @@ func (r repository) envHome(ctx *modules.Context, dir string) string {
 }
 
 func (r repository) hasTemplate(ctx *modules.Context, dir string) bool {
-	return r.has(ctx, dir+"/"+templateName) || r.has(ctx, dir+"/"+exampleName)
+	return r.has(ctx, dir+"/"+templateName) || r.has(ctx, dir+"/"+exampleName) || r.infisicalConfig(ctx, dir) != ""
+}
+
+func (r repository) infisicalConfig(ctx *modules.Context, dir string) string {
+	for _, name := range infisical.ConfigNames {
+		if r.has(ctx, dir+"/"+name) {
+			return name
+		}
+	}
+
+	return ""
+}
+
+func export(ctx *modules.Context, name, home string, repo repository, target, config string) (Result, error) {
+	raw, err := repo.read(ctx, home+"/"+config)
+	if err != nil {
+		return Result{}, err
+	}
+
+	projectID := infisical.ProjectID(config, raw)
+	if projectID == "" {
+		return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("infisical.config.project", name, config)).
+			WithFix(i18n.T("infisical.config.project.fix"))
+	}
+
+	ctx.Logf("%s: infisical secrets export in %s", name, home)
+
+	content, err := infisical.Export(ctx, home, projectID)
+	if err != nil {
+		if repo.has(ctx, home+"/"+exampleName) {
+			ctx.Warn(i18n.T("infisical.export.fallback", name, targetName, exampleName))
+
+			return copyExample(ctx, name, home, repo, target)
+		}
+
+		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("infisical.export.failed", name)).
+			WithFix(i18n.T("infisical.export.failed.fix"))
+	}
+
+	return write(ctx, target, content)
 }
 
 // The template goes in on stdin and the filled file comes back on stdout, so neither is ever journalled.

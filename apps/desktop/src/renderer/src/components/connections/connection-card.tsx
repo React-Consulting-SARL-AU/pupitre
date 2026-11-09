@@ -8,6 +8,15 @@ import { type ReactNode, useEffect, useState } from "react";
 import { ConnectionAccountChoice } from "./connection-account-choice";
 import { ConnectionConnected } from "./connection-connected";
 import type { ConnectionDescriptor } from "./connection-descriptors";
+import { ConnectionSettingField } from "./connection-setting-field";
+
+function initialSettings(
+  connection: ConnectionDescriptor
+): Record<string, string> {
+  return Object.fromEntries(
+    (connection.settings ?? []).map((setting) => [setting.key, setting.initial])
+  );
+}
 
 export function ConnectionCard({
   connection,
@@ -40,6 +49,7 @@ export function ConnectionCard({
 
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [settings, setSettings] = useState(() => initialSettings(connection));
 
   useEffect(() => {
     read();
@@ -62,11 +72,25 @@ export function ConnectionCard({
   }
 
   const ready =
-    token.trim() !== "" && (accounts === undefined || accountId !== null);
+    token.trim() !== "" &&
+    Object.values(settings).every((value) => value.trim() !== "") &&
+    (accounts === undefined || accountId !== null);
 
   async function submit(): Promise<void> {
-    if (await connect(connection.kind, token, accountId ?? undefined)) {
+    const given = connection.settings ? settings : undefined;
+
+    if (await connect(connection.kind, token, accountId ?? undefined, given)) {
       setToken("");
+      setAccountId(null);
+      setSettings(initialSettings(connection));
+    }
+  }
+
+  function retypeSetting(key: string, value: string): void {
+    setSettings((held) => ({ ...held, [key]: value }));
+
+    if (accounts) {
+      dropChoice(connection.kind);
       setAccountId(null);
     }
   }
@@ -93,6 +117,16 @@ export function ConnectionCard({
       {compact || !connection.intro ? null : (
         <p className="text-ink-3 leading-relaxed">{t(connection.intro)}</p>
       )}
+
+      {connection.settings?.map((setting) => (
+        <ConnectionSettingField
+          key={setting.key}
+          kind={connection.kind}
+          onChange={(value) => retypeSetting(setting.key, value)}
+          setting={setting}
+          value={settings[setting.key] ?? ""}
+        />
+      ))}
 
       <Field
         help={t(connection.help)}

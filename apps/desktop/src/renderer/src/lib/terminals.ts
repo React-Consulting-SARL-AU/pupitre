@@ -100,6 +100,8 @@ interface Live {
   onShortcut: ShortcutHandler | null;
   /** Off, keys and clicks stay here: a stray Ctrl-C would stop a watched server. */
   input: boolean;
+  /** Null once Chromium took the context back for a newer terminal: xterm then draws through the slow DOM renderer. */
+  webgl: WebglAddon | null;
   detach: () => void;
 }
 
@@ -180,14 +182,30 @@ function answerShortcut(id: string, shortcut: TerminalShortcut): void {
   }
 }
 
-function drawWithWebgl(xterm: XTerm): void {
+function drawWithWebgl(entry: Live): void {
   try {
     const webgl = new WebglAddon();
 
-    webgl.onContextLoss(() => webgl.dispose());
-    xterm.loadAddon(webgl);
+    webgl.onContextLoss(() => {
+      webgl.dispose();
+
+      if (entry.webgl === webgl) {
+        entry.webgl = null;
+      }
+    });
+    entry.xterm.loadAddon(webgl);
+    entry.webgl = webgl;
   } catch {
     // No WebGL context (headless run, refusing driver): xterm keeps its slower DOM renderer.
+  }
+}
+
+/** Chromium keeps about sixteen contexts and takes the oldest back: the terminal in front gets one again, at a hidden one's expense. */
+export function drawFast(id: string): void {
+  const entry = live.get(id);
+
+  if (entry && entry.webgl === null) {
+    drawWithWebgl(entry);
   }
 }
 
@@ -230,7 +248,6 @@ export function obtain(id: string, kind: ConsoleKind): Live {
   xterm.unicode.activeVersion = "11";
   xterm.registerLinkProvider(addressProvider(xterm, openInBrowser));
   xterm.open(host);
-  drawWithWebgl(xterm);
 
   // Only a shell gets completion: Claude, Codex and the dashboard handle their own input.
   const detachCompletion =
@@ -291,6 +308,7 @@ export function obtain(id: string, kind: ConsoleKind): Live {
     search,
     onShortcut: null,
     input: kind !== "process",
+    webgl: null,
     detach: () => {
       detachData();
       detachExit();
@@ -301,6 +319,7 @@ export function obtain(id: string, kind: ConsoleKind): Live {
   };
 
   live.set(id, entry);
+  drawWithWebgl(entry);
 
   return entry;
 }

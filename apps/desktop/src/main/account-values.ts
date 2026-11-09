@@ -1,7 +1,11 @@
 import type { InstallSecrets } from "@pupitre/shared/agent-protocol/install";
 import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentResponse } from "@shared/agent";
-import type { ConnectionAccount, ConnectionKind } from "@shared/connections";
+import type {
+  ConnectionAccount,
+  ConnectionKind,
+  ConnectionSettings,
+} from "@shared/connections";
 import { CONNECTION_KINDS } from "@shared/connections";
 import { refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
@@ -11,6 +15,19 @@ import type { ManagedValues } from "./tunnel-run";
 export interface HeldConnection {
   token: string;
   account: ConnectionAccount | null;
+  settings?: ConnectionSettings;
+}
+
+/** A setting given beside the token fills the field of its name; otherwise a text field is the account's identifier. */
+function managedText(
+  connection: HeldConnection,
+  keys: readonly string[]
+): [string, string][] {
+  return keys.flatMap((key) => {
+    const value = connection.settings?.[key] ?? connection.account?.id;
+
+    return value ? [[key, value] as [string, string]] : [];
+  });
 }
 
 function kindOf(value: string | undefined): ConnectionKind | null {
@@ -44,9 +61,9 @@ export function accountValues(
 
     const kind = kindOf(manifest.connection);
     const secretKeys = managedOf(manifest, "secret");
-    const accountKeys = managedOf(manifest, "text");
+    const textKeys = managedOf(manifest, "text");
 
-    if (!kind || secretKeys.length + accountKeys.length === 0) {
+    if (!kind || secretKeys.length + textKeys.length === 0) {
       continue;
     }
 
@@ -67,10 +84,10 @@ export function accountValues(
       );
     }
 
-    if (accountKeys.length > 0 && connection.account) {
-      config[manifest.id] = Object.fromEntries(
-        accountKeys.map((key) => [key, connection.account?.id])
-      );
+    const texts = managedText(connection, textKeys);
+
+    if (texts.length > 0) {
+      config[manifest.id] = Object.fromEntries(texts);
     }
   }
 

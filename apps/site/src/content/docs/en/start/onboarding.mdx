@@ -35,7 +35,7 @@ The catalogue, grouped by category. `core.system` and `core.hardening` are alway
 
 Versions, ports, accounts, secrets. Every field says what it expects and refuses what does not have the right shape, at its own height, as you fill it in. A bubble beside the caption says where to find a value: the exact permissions a token needs, the page that issues it, what it costs to get it wrong. The action sits at the bottom.
 
-A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — asks for that account here, above its own questions. You give each token once, for every server, and the app checks which account it opens as you paste it. The token stays in your computer's keychain; what a server needs of it travels on the install's secret line, over the SSH session's standard input, and is never shown again.
+A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Infisical, Neon, Vercel, Supabase, Stripe — asks for that account here, above its own questions. You give each token once, for every server, and the app checks which account it opens as you paste it. The token stays in your computer's keychain; what a server needs of it travels on the install's secret line, over the SSH session's standard input, and is never shown again.
 
 Before it runs, the app asks the server to weigh the configuration: a port something already listens on, a directory that turns out to be a file, a time zone the machine does not know. What it refuses comes back on the field it belongs to.
 

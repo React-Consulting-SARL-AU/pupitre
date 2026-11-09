@@ -34,6 +34,7 @@ const (
 	ConnectionWrangler    = "wrangler"
 	ConnectionGitHub      = "github"
 	ConnectionOnePassword = "1password"
+	ConnectionInfisical   = "infisical"
 	ConnectionNeon        = "neon"
 	ConnectionVercel      = "vercel"
 	ConnectionSupabase    = "supabase"
@@ -41,7 +42,7 @@ const (
 	ConnectionBackup      = "backup"
 )
 
-var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon, ConnectionVercel, ConnectionSupabase, ConnectionStripe, ConnectionBackup}
+var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionInfisical, ConnectionNeon, ConnectionVercel, ConnectionSupabase, ConnectionStripe, ConnectionBackup}
 
 const (
 	PatternVersionOrLatest = `^(latest|[0-9]+\.[0-9]+(\.[0-9]+)?)$`

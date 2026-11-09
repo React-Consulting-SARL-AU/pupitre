@@ -202,6 +202,7 @@ export function answerOnboarding(
         backup: { status: "absent" },
         cloudflare: { status: "absent" },
         github: { status: "absent" },
+        infisical: { status: "absent" },
         neon: { status: "absent" },
         stripe: { status: "absent" },
         supabase: { status: "absent" },

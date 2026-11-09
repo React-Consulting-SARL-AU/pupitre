@@ -72,6 +72,7 @@ import type {
   ConnectionCheck,
   ConnectionKind,
   ConnectionOutcome,
+  ConnectionSettings,
   ConnectionsState,
 } from "@shared/connections";
 import type { DevDefaults } from "@shared/dev";
@@ -391,9 +392,10 @@ const api = {
   connectAccount: (
     kind: ConnectionKind,
     token: string,
-    accountId?: string
+    accountId?: string,
+    settings?: ConnectionSettings
   ): Promise<AgentResponse<ConnectionOutcome>> =>
-    ipcRenderer.invoke("connections:connect", kind, token, accountId),
+    ipcRenderer.invoke("connections:connect", kind, token, accountId, settings),
   forgetAccount: (kind: ConnectionKind): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:forget", kind),
   verifyAccount: (

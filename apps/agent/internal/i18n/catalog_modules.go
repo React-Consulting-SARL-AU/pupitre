@@ -717,6 +717,22 @@ var moduleCatalog = map[string]Message{
 		FR: "Token d'accès Supabase",
 		EN: "Supabase access token",
 	},
+	"module.tool.infisical.summary": {
+		FR: "Le CLI Infisical, binaire de la release GitHub vérifié par son checksum, avec l'identité machine de votre organisation : les .env.local des projets qui versionnent un .infisical.json se remplissent depuis Infisical.",
+		EN: "The Infisical CLI, the GitHub release binary checked against its checksum, with your organization's machine identity: the .env.local of projects that version an .infisical.json fill in from Infisical.",
+	},
+	"module.tool.infisical.domain.label": {
+		FR: "Instance Infisical",
+		EN: "Infisical instance",
+	},
+	"module.tool.infisical.client_id.label": {
+		FR: "Client ID de l'identité machine",
+		EN: "Machine identity client ID",
+	},
+	"module.tool.infisical.client_secret.label": {
+		FR: "Client secret de l'identité machine",
+		EN: "Machine identity client secret",
+	},
 	"module.tool.stripe.summary": {
 		FR: "Le CLI Stripe, binaire de la release GitHub vérifié par son checksum, avec une clé de votre compte dans STRIPE_API_KEY : stripe listen renvoie les webhooks sur un projet de cette machine.",
 		EN: "The Stripe CLI, the GitHub release binary checked against its checksum, with a key of your account in STRIPE_API_KEY: stripe listen forwards the webhooks to a project on this machine.",

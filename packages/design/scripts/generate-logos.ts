@@ -134,6 +134,7 @@ const XML_DECLARATION_RE = /<\?xml[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>/g
 const ID_RE = /\bid="([^"]+)"/g
 const STYLE_FILL_RE = /style="([^"]*)"/g
 const HEX_FILL_RE = /fill="#[0-9a-fA-F]{3,8}"/g
+const GRADIENT_FILL_RE = /fill="url\(#[^)]+\)"/g
 
 function attributesFromStyle(markup: string): string {
   return markup.replace(STYLE_FILL_RE, (whole, declarations: string) => {
@@ -208,7 +209,9 @@ function vendorSvg(
     id.replaceAll(".", "-")
   )
   const painted = monochrome
-    ? body.replace(HEX_FILL_RE, 'fill="currentColor"')
+    ? body
+        .replace(HEX_FILL_RE, 'fill="currentColor"')
+        .replace(GRADIENT_FILL_RE, 'fill="currentColor"')
     : body
 
   return `<svg role="img" viewBox="${viewBox}"${kept}><title>${title}</title>${painted}\n`

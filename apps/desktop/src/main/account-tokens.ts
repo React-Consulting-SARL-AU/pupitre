@@ -3,6 +3,7 @@ import type {
   ConnectionAccount,
   ConnectionCheck,
   ConnectionKind,
+  ConnectionSettings,
 } from "@shared/connections";
 import { verifyToken as verifyCloudflare } from "./cloudflare-api";
 import { refuseWith } from "./refusal";
@@ -16,6 +17,8 @@ const VERCEL = "https://api.vercel.com/v2/user";
 const SUPABASE = "https://api.supabase.com/v1/profile";
 
 const STRIPE = "https://api.stripe.com/v1/account";
+
+const INFISICAL_LOGIN = "/api/v1/auth/universal-auth/login";
 
 const CALL_MS = 20_000;
 
@@ -165,6 +168,50 @@ async function stripe(
   return { id, name: named ?? id };
 }
 
+function claimsOf(accessToken: string): Record<string, unknown> {
+  const payload = accessToken.split(".")[1] ?? "";
+
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    return {};
+  }
+}
+
+/** The token is the client secret; logging in is the only question a machine identity answers, and its access token names it. */
+async function infisical(
+  clientSecret: string,
+  settings: ConnectionSettings,
+  fetcher: typeof fetch
+): Promise<ConnectionAccount> {
+  const clientId = settings.client_id ?? "";
+  const response = await fetcher(`${settings.domain}${INFISICAL_LOGIN}`, {
+    body: JSON.stringify({ clientId, clientSecret }),
+    headers: { accept: "application/json", "content-type": "application/json" },
+    method: "POST",
+    signal: AbortSignal.timeout(CALL_MS),
+  });
+
+  const body = (await response.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
+  const accessToken = text(body?.accessToken);
+
+  if (!(response.ok && accessToken)) {
+    const said = text(body?.message);
+
+    throw new TokenError(said || `HTTP ${String(response.status)}`);
+  }
+
+  const claims = claimsOf(accessToken);
+
+  return {
+    id: text(claims.identityId) || clientId,
+    name: text(claims.identityName) || clientId,
+  };
+}
+
 async function cloudflare(
   token: string,
   fetcher: typeof fetch
@@ -182,11 +229,12 @@ async function cloudflare(
   return accounts.map((one) => ({ id: one.id, name: one.name || one.id }));
 }
 
-/** Null for a provider with nothing to ask, such as a 1Password service account token. */
+/** Null for a provider with nothing to ask, such as a 1Password service account token; `settings` are those the token was given with. */
 export async function accountsOfToken(
   kind: ConnectionKind,
   token: string,
-  fetcher: typeof fetch = fetch
+  fetcher: typeof fetch = fetch,
+  settings: ConnectionSettings = {}
 ): Promise<ConnectionAccount[] | null> {
   switch (kind) {
     case "cloudflare":
@@ -202,6 +250,8 @@ export async function accountsOfToken(
       return [await supabase(token, fetcher)];
     case "stripe":
       return [await stripe(token, fetcher)];
+    case "infisical":
+      return [await infisical(token, settings, fetcher)];
     default:
       return null;
   }
@@ -223,12 +273,13 @@ export async function checkToken(
   kind: ConnectionKind,
   token: string,
   fetcher: typeof fetch = fetch,
-  held: string | null = null
+  held: string | null = null,
+  settings: ConnectionSettings = {}
 ): Promise<AgentResponse<ConnectionCheck>> {
   let accounts: ConnectionAccount[] | null;
 
   try {
-    accounts = await accountsOfToken(kind, token, fetcher);
+    accounts = await accountsOfToken(kind, token, fetcher, settings);
   } catch (failure) {
     return tokenRefusal(kind, failure, "refusal.connection.revoked");
   }

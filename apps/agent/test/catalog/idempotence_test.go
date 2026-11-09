@@ -81,6 +81,13 @@ var upstreamAnswers = map[string]func(fake *modtest.FakeSys){
 		fake.Answer("releases/download/v2.117.0/checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
 		fake.Archives[download.Dir+"/"+asset] = []string{"supabase"}
 	},
+	"tool.infisical": func(fake *modtest.FakeSys) {
+		asset := "cli_0.45.4_linux_" + arch("amd64", "arm64") + ".tar.gz"
+
+		fake.Answer("-w %{redirect_url} https://github.com/Infisical/cli/releases/latest/download/checksums.txt", "https://github.com/Infisical/cli/releases/download/v0.45.4/checksums.txt")
+		fake.Answer("releases/download/v0.45.4/checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
+		fake.Archives[download.Dir+"/"+asset] = []string{"infisical"}
+	},
 	"tool.stripe": func(fake *modtest.FakeSys) {
 		asset := "stripe_1.50.11_linux_" + arch("x86_64", "arm64") + ".tar.gz"
 

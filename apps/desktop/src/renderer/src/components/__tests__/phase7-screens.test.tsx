@@ -23,7 +23,10 @@ import {
   ConnectionConnected,
   forgetQuestion,
 } from "../connections/connection-connected";
-import { CONNECTIONS } from "../connections/connection-descriptors";
+import {
+  CONNECTIONS,
+  type ConnectionDescriptor,
+} from "../connections/connection-descriptors";
 import { ConnectionHealthLine } from "../connections/connection-health-line";
 import { OnboardingHardenFailed } from "../onboarding/onboarding-harden-failed";
 import { OnboardingRail } from "../onboarding/onboarding-rail";
@@ -385,6 +388,21 @@ describe("a connected third-party account", () => {
     expect(wrangler?.card).toContain("part sur le serveur");
     expect(wrangler?.hint).toContain("Workers Scripts · Edit");
     expect(wrangler?.hint).toContain("Aucune permission Tunnel ni DNS");
+  });
+
+  it("asks Infisical's instance and client ID before its secret, the instance on the US cloud", () => {
+    const infisical = CONNECTIONS.find((one) => one.kind === "infisical");
+    const html = renderToStaticMarkup(
+      <ConnectionCard connection={infisical as ConnectionDescriptor} />
+    );
+    const order = ["Instance", "Client ID", "Client secret"].map((label) =>
+      text(html).indexOf(label)
+    );
+
+    expect(order.every((at) => at >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(html).toContain('value="https://app.infisical.com"');
+    expect(html.match(/type="password"/g)).toHaveLength(1);
   });
 
   // Never default to the first account the provider lists.

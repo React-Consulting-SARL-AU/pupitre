@@ -831,6 +831,32 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Les secrets restent dans votre coffre. Un projet qui porte un template d’environnement voit son fichier construit depuis le coffre à son démarrage ; le serveur ne garde aucune copie du coffre. La désinstallation reprend la CLI et le token, jamais le fichier d’environnement d’un projet.",
     },
   },
+  "tool.infisical": {
+    installs: [
+      {
+        en: "The Infisical CLI, the binary Infisical publishes on GitHub for this architecture, checked against its checksum.",
+        fr: "La CLI Infisical, le binaire qu’Infisical publie sur GitHub pour cette architecture, vérifié par son checksum.",
+      },
+      {
+        en: "Your machine identity — instance, client ID and client secret — in the server’s environment file and in the dev shell, where infisical login finds it with no flag.",
+        fr: "Votre identité machine — instance, client ID et client secret — dans le fichier d’environnement du serveur et dans le shell de dev, où infisical login la trouve sans option.",
+      },
+      {
+        en: "A sign-in, at install time, that the instance really accepts the identity — rather than letting a project’s env file fail much later, far from the cause.",
+        fr: "Une connexion, à l’installation, qui vérifie que l’instance accepte bien l’identité — plutôt que de laisser le fichier d’environnement d’un projet échouer bien plus tard, loin de la cause.",
+      },
+    ],
+    asks: [
+      {
+        en: "Nothing, once your Infisical account is connected. The instance, the client ID and the client secret of a Universal Auth machine identity are given once, in the app; add that identity to each project the server should read.",
+        fr: "Rien, une fois votre compte Infisical connecté. L’instance, le client ID et le client secret d’une identité machine en Universal Auth sont donnés une seule fois, dans l’app ; ajoutez cette identité à chaque projet que le serveur doit lire.",
+      },
+    ],
+    notes: {
+      en: "Secrets stay in Infisical. A project whose repository versions an .infisical.yaml or .infisical.json gets its env file exported from that project when it starts, in the environment the file names; no access token is kept on the server. Uninstalling takes back the CLI and the identity, never a project’s environment file.",
+      fr: "Les secrets restent dans Infisical. Un projet dont le dépôt versionne un .infisical.yaml ou un .infisical.json voit son fichier d’environnement exporté depuis ce projet à son démarrage, dans l’environnement que le fichier nomme ; aucun jeton d’accès n’est gardé sur le serveur. La désinstallation reprend la CLI et l’identité, jamais le fichier d’environnement d’un projet.",
+    },
+  },
   "tool.neon": {
     installs: [
       {

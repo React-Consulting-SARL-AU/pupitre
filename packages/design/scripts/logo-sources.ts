@@ -93,6 +93,15 @@ export const VENDOR_SOURCES: readonly VendorSource[] = [
     retrieved: "2026-09-07",
   },
   {
+    id: "tool.infisical",
+    title: "Infisical",
+    source:
+      "https://github.com/Infisical/infisical/blob/4e7145dfe5dcde727471470237634029a0a37cbe/frontend/public/images/gradientLogo.svg",
+    // Published as a pale gradient for a dark page: painted in the ink so it reads on both themes.
+    monochrome: true,
+    retrieved: "2026-11-09",
+  },
+  {
     id: "bun",
     title: "Bun",
     source: "https://svgl.app/library/bun.svg",

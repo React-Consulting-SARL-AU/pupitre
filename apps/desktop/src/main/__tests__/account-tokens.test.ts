@@ -240,6 +240,67 @@ describe("a token already held, weighed again", () => {
     expect(JSON.stringify(checked)).not.toContain("cf_sans_compte");
   });
 
+  it("names an Infisical machine identity from the access token its instance hands back", async () => {
+    const claims = Buffer.from(
+      JSON.stringify({ identityId: "identity-1", identityName: "pupitre-vps" })
+    ).toString("base64url");
+    const posted: { url: string; body: string }[] = [];
+    const fetcher = ((url: string, init?: RequestInit) => {
+      posted.push({ body: String(init?.body), url: String(url) });
+
+      return Promise.resolve({
+        json: () => Promise.resolve({ accessToken: `h.${claims}.s` }),
+        ok: true,
+        status: 200,
+      } as Response);
+    }) as unknown as typeof fetch;
+
+    const accounts = await accountsOfToken(
+      "infisical",
+      "secret_de_test",
+      fetcher,
+      {
+        client_id: "client-1",
+        domain: "https://eu.infisical.com",
+      }
+    );
+
+    expect(accounts).toEqual([{ id: "identity-1", name: "pupitre-vps" }]);
+    expect(posted[0]?.url).toBe(
+      "https://eu.infisical.com/api/v1/auth/universal-auth/login"
+    );
+    expect(JSON.parse(posted[0]?.body ?? "{}")).toEqual({
+      clientId: "client-1",
+      clientSecret: "secret_de_test",
+    });
+  });
+
+  it("carries Infisical's own refusal, never the secret", async () => {
+    const { fetcher } = answering(
+      { message: "Invalid credentials", statusCode: 401 },
+      401
+    );
+
+    const checked = await checkToken(
+      "infisical",
+      "secret_de_test",
+      fetcher,
+      "identity-1",
+      { client_id: "client-1", domain: "https://app.infisical.com" }
+    );
+
+    expect(checked).toMatchObject({
+      ok: false,
+      error: {
+        phrase: {
+          id: "refusal.connection.revoked",
+          values: { kind: "infisical", reason: "Invalid credentials" },
+        },
+      },
+    });
+    expect(JSON.stringify(checked)).not.toContain("secret_de_test");
+  });
+
   it("says a silent provider cannot be queried", async () => {
     const { fetcher, seen } = answering({});
 

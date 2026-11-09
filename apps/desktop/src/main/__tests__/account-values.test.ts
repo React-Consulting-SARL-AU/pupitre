@@ -133,6 +133,44 @@ describe("an installation's account values", () => {
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
+  it("fills managed text fields from the settings given beside the token, the secret from the token", () => {
+    const infisical = [
+      manifest("tool.infisical", "infisical", [
+        {
+          key: "domain",
+          kind: "text",
+          label: "Instance",
+          managed: true,
+          required: true,
+        },
+        {
+          key: "client_id",
+          kind: "text",
+          label: "Client ID",
+          managed: true,
+          required: true,
+        },
+        { ...MANAGED, key: "client_secret", label: "Client secret" },
+      ]),
+    ];
+
+    const answer = accountValues(["tool.infisical"], infisical, () => ({
+      account: { id: "identity-1", name: "pupitre-vps" },
+      settings: { client_id: "client-1", domain: "https://eu.infisical.com" },
+      token: "secret_de_test",
+    }));
+
+    expect(answer.ok && answer.result).toEqual({
+      config: {
+        "tool.infisical": {
+          client_id: "client-1",
+          domain: "https://eu.infisical.com",
+        },
+      },
+      secrets: { "tool.infisical": { client_secret: "secret_de_test" } },
+    });
+  });
+
   it("leaves a typed field to the form, even on a module an account could serve", () => {
     const answer = accountValues(["tool.1password"], CATALOG, token);
 

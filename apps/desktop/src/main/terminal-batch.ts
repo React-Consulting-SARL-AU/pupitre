@@ -1,4 +1,4 @@
-/** A `docker build` writes hundreds of chunks a second, each a structured-clone message: they cross per frame. */
+/** A `docker build` writes hundreds of chunks a second, each a structured-clone message: a burst crosses per frame. */
 export interface TerminalBatch {
   push(id: string, chunk: string): void;
   flush(): void;
@@ -21,6 +21,7 @@ export function createTerminalBatch(
 
   let buffered = 0;
   let timer: NodeJS.Timeout | null = null;
+  let sentAt = Number.NEGATIVE_INFINITY;
 
   function flush(): void {
     if (timer) {
@@ -34,10 +35,21 @@ export function createTerminalBatch(
 
     chunks.clear();
     buffered = 0;
+    sentAt = performance.now();
   }
 
   return {
     push(id, chunk) {
+      const since = performance.now() - sentAt;
+
+      // A keystroke's echo arriving after a quiet frame would otherwise wait a whole frame for company.
+      if (!timer && since >= waitMs) {
+        send(id, chunk);
+        sentAt = performance.now();
+
+        return;
+      }
+
       let parts = chunks.get(id);
 
       if (!parts) {
@@ -55,7 +67,7 @@ export function createTerminalBatch(
       }
 
       if (!timer) {
-        timer = setTimeout(flush, waitMs);
+        timer = setTimeout(flush, Math.max(0, waitMs - since));
         timer.unref?.();
       }
     },

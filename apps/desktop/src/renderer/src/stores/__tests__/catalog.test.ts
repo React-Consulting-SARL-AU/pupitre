@@ -470,6 +470,7 @@ describe("the accounts and values read with the catalogue", () => {
             status: "connected",
           },
           github: { status: "absent" },
+          infisical: { status: "absent" },
           neon: { status: "absent" },
           stripe: { status: "absent" },
           supabase: { status: "absent" },
