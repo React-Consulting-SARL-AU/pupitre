@@ -8,6 +8,7 @@ import type {
   ConnectionCheck,
   ConnectionKind,
   ConnectionOutcome,
+  ConnectionSettings,
   ConnectionState,
   ConnectionsState,
 } from "@shared/connections";
@@ -24,6 +25,7 @@ import { agentClient } from "./agent";
 import { backupManaged, backupViewOf, type HeldBackup } from "./backups-run";
 import { declaredManifests } from "./catalog";
 import { type CloudflareApi, cloudflareApi } from "./cloudflare-api";
+import { checkedSettings, heldSettings } from "./connection-settings";
 import { createConnectionVault } from "./connection-vault";
 import { handle } from "./ipc";
 import { anything, isString, optional, shape } from "./ipc-guard";
@@ -106,7 +108,13 @@ export function keepBackup(view: BackupConnectionView, secret: string): void {
 function heldAccount(kind: ConnectionKind): HeldConnection | null {
   const token = vault.token(kind);
 
-  return token ? { account: vault.account(kind), token } : null;
+  return token
+    ? {
+        account: vault.account(kind),
+        settings: heldSettings(vault.settings(kind)),
+        token,
+      }
+    : null;
 }
 
 /** `lenient`: a machine just restored already holds its managed values, so a missing connection is left out. */
@@ -236,12 +244,13 @@ export function connectionsState(): ConnectionsState {
 async function connect(
   kind: ConnectionKind,
   token: string,
-  wanted: string | null
+  wanted: string | null,
+  settings: ConnectionSettings
 ): Promise<AgentResponse<ConnectionOutcome>> {
   let accounts: ConnectionAccount[] | null;
 
   try {
-    accounts = await accountsOfToken(kind, token);
+    accounts = await accountsOfToken(kind, token, fetch, settings);
   } catch (failure) {
     return tokenRefusal(kind, failure, "refusal.connection.call");
   }
@@ -259,7 +268,12 @@ async function connect(
     return { ok: true, result: { accounts, status: "choose" } };
   }
 
-  vault.connect(kind, token, account);
+  vault.connect(
+    kind,
+    token,
+    account,
+    Object.keys(settings).length > 0 ? { ...settings } : undefined
+  );
 
   return {
     ok: true,
@@ -276,15 +290,17 @@ async function verify(
     return refuseWith("bad_request", "refusal.connection.absent", { kind });
   }
 
+  const kept = vault.settings(kind);
   const checked = await checkToken(
     kind,
     token,
     fetch,
-    vault.account(kind)?.id ?? null
+    vault.account(kind)?.id ?? null,
+    heldSettings(kept)
   );
 
   if (checked.ok && checked.result.status === "answered") {
-    vault.connect(kind, token, checked.result.account);
+    vault.connect(kind, token, checked.result.account, kept ?? undefined);
   }
 
   return checked;
@@ -323,8 +339,8 @@ export function registerConnections(): void {
 
   handle(
     "connections:connect",
-    shape(anything, anything, optional(isString)),
-    (_event, kind, token, accountId) => {
+    shape(anything, anything, optional(isString), anything),
+    (_event, kind, token, accountId, given) => {
       if (!tokenKind(kind)) {
         return refuseWith("bad_request", "refusal.connection.kind", {
           kind: String(kind),
@@ -337,7 +353,13 @@ export function registerConnections(): void {
         });
       }
 
-      return connect(kind, token.trim(), accountId || null);
+      const settings = checkedSettings(kind, given);
+
+      if (!settings.ok) {
+        return settings;
+      }
+
+      return connect(kind, token.trim(), accountId || null, settings.result);
     }
   );
 

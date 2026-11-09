@@ -59,6 +59,7 @@ behind text.
 | `db-mailpit.svg` | `db.mailpit` | Mailpit | https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg | trademark, nominative use | 2026-09-13 |
 | `ai-openclaw.svg` | `ai.openclaw` | OpenClaw | https://svgl.app/library/openclaw.svg | trademark, nominative use | 2026-09-13 |
 | `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | trademark, nominative use | 2026-09-07 |
+| `tool-infisical.svg` | `tool.infisical` | Infisical | https://github.com/Infisical/infisical/blob/4e7145dfe5dcde727471470237634029a0a37cbe/frontend/public/images/gradientLogo.svg | trademark, nominative use | 2026-11-09 |
 
 ## Brands outside the catalogue
 

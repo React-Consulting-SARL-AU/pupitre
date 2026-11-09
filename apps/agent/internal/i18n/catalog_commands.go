@@ -166,6 +166,38 @@ var commandCatalog = map[string]Message{
 		FR: "%s : 1Password n'a pas répondu, %s copié depuis %s, valeurs à compléter",
 		EN: "%s: 1Password did not answer, %s copied from %s, values left to fill in",
 	},
+	"infisical.config.unexportable": {
+		FR: "%s : le dépôt versionne un %s mais Infisical n'est pas installé ou n'a pas d'identité machine sur la machine",
+		EN: "%s: the repository versions a %s but Infisical is not installed or holds no machine identity on the machine",
+	},
+	"infisical.config.unexportable.fix": {
+		FR: "Connectez Infisical dans les réglages de l'app et installez tool.infisical, ou versionnez un %s à côté pour un démarrage sans coffre.",
+		EN: "Connect Infisical in the app's settings and install tool.infisical, or version a %s next to it for a start without a vault.",
+	},
+	"infisical.config.project": {
+		FR: "%s : %s ne nomme aucun projet Infisical",
+		EN: "%s: %s names no Infisical project",
+	},
+	"infisical.config.project.fix": {
+		FR: "Lancez infisical init à la racine du dépôt, ou renseignez l'identifiant du projet (project-id, ou workspaceId dans un .infisical.json).",
+		EN: "Run infisical init at the repository's root, or fill in the project's identifier (project-id, or workspaceId in an .infisical.json).",
+	},
+	"infisical.export.failed": {
+		FR: "%s : Infisical n'a pas rendu les secrets du projet",
+		EN: "%s: Infisical did not hand back the project's secrets",
+	},
+	"infisical.export.failed.fix": {
+		FR: "Vérifiez que l'identité machine est ajoutée au projet avec un rôle qui lit les secrets, et que l'environnement du fichier de projet existe.",
+		EN: "Check that the machine identity is added to the project with a role that reads secrets, and that the project file's environment exists.",
+	},
+	"infisical.export.fallback": {
+		FR: "%s : Infisical n'a pas répondu, %s copié depuis %s, valeurs à compléter",
+		EN: "%s: Infisical did not answer, %s copied from %s, values left to fill in",
+	},
+	"infisical.login.empty": {
+		FR: "infisical login n'a rendu aucun jeton d'accès",
+		EN: "infisical login handed back no access token",
+	},
 	"selfupdate.target.none": {
 		FR: "la plateforme n'annonce aucune version cible pour ce serveur",
 		EN: "the platform announces no target version for this server",

@@ -433,6 +433,7 @@ export function answerSecondComputer(app: ElectronApplication): Promise<void> {
           : { status: "absent" },
         cloudflare: { status: "absent" },
         github: { status: "absent" },
+        infisical: { status: "absent" },
         neon: { status: "absent" },
         stripe: { status: "absent" },
         supabase: { status: "absent" },

@@ -81,6 +81,7 @@ export const MODULE_IDS = [
   "exposure.tailscale",
   "tool.github",
   "tool.1password",
+  "tool.infisical",
   "tool.neon",
   "tool.wrangler",
   "tool.vercel",
@@ -224,6 +225,7 @@ export const CONNECTION_KINDS = [
   "wrangler",
   "github",
   "1password",
+  "infisical",
   "neon",
   "vercel",
   "supabase",
@@ -232,6 +234,14 @@ export const CONNECTION_KINDS = [
 ] as const
 
 export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
+
+// Infisical's US cloud, which the CLI also falls back on; EU cloud and self-hosted instances replace it.
+export const INFISICAL_DEFAULT_DOMAIN = "https://app.infisical.com"
+
+// It ends up in the dev shell's environment file, so it never carries a quote or a space.
+export const INFISICAL_CLIENT_ID_PATTERN = "^[A-Za-z0-9-]+$"
+
+export const INFISICAL_CLIENT_ID_MAX = 128
 
 export type ConnectionKind = z.infer<typeof ConnectionKindSchema>
 

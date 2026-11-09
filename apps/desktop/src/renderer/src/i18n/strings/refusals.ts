@@ -257,6 +257,14 @@ export const refusals = {
     "refusal.connection.kind": "Unknown account: {kind}.",
     "refusal.connection.kind.fix":
       "Connect one of the accounts the settings list.",
+    "refusal.connection.infisical.domain":
+      "This Infisical instance is not an address.",
+    "refusal.connection.infisical.domain.fix":
+      "Type the instance's address with its scheme: https://app.infisical.com, https://eu.infisical.com or your own.",
+    "refusal.connection.infisical.clientId":
+      "This client ID is not one Infisical gives.",
+    "refusal.connection.infisical.clientId.fix":
+      "Copy the client ID from the machine identity's Universal Auth section: letters, digits and dashes.",
     "refusal.cloudflare.zone.unknown":
       "No zone of the connected account carries {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
@@ -687,6 +695,14 @@ export const refusals = {
     "refusal.connection.kind": "Compte inconnu : {kind}.",
     "refusal.connection.kind.fix":
       "Connectez l'un des comptes que les réglages listent.",
+    "refusal.connection.infisical.domain":
+      "Cette instance Infisical n'est pas une adresse.",
+    "refusal.connection.infisical.domain.fix":
+      "Tapez l'adresse de l'instance avec son schéma : https://app.infisical.com, https://eu.infisical.com ou la vôtre.",
+    "refusal.connection.infisical.clientId":
+      "Ce client ID n'est pas un de ceux qu'Infisical donne.",
+    "refusal.connection.infisical.clientId.fix":
+      "Copiez le client ID depuis la section Universal Auth de l'identité machine : lettres, chiffres et tirets.",
     "refusal.cloudflare.zone.unknown":
       "Aucune zone du compte connecté ne porte {domain}.",
     "refusal.cloudflare.zone.unknown.fix":

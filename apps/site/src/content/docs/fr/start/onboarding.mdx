@@ -35,7 +35,7 @@ Le catalogue, groupé par catégorie. `core.system` et `core.hardening` sont tou
 
 Versions, ports, comptes, secrets. Chaque champ dit ce qu’il attend et refuse ce qui n’a pas la forme voulue, à sa hauteur, au moment où vous le remplissez. Une bulle à côté du libellé dit où trouver une valeur : les permissions exactes d’un token, la page qui le délivre, ce qu’il en coûte de se tromper. L’action est en bas.
 
-Un module qui passe par un de vos comptes — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — demande ce compte ici, au-dessus de ses propres questions. Vous donnez chaque token une fois, pour tous vos serveurs, et l’app vérifie le compte qu’il ouvre au moment où vous le collez. Le token reste dans le trousseau de votre ordinateur ; ce qu’un serveur en a besoin voyage sur la ligne de secrets de l’installation, par l’entrée standard de la session SSH, et n’est jamais réaffiché.
+Un module qui passe par un de vos comptes — Cloudflare, GitHub, 1Password, Infisical, Neon, Vercel, Supabase, Stripe — demande ce compte ici, au-dessus de ses propres questions. Vous donnez chaque token une fois, pour tous vos serveurs, et l’app vérifie le compte qu’il ouvre au moment où vous le collez. Le token reste dans le trousseau de votre ordinateur ; ce qu’un serveur en a besoin voyage sur la ligne de secrets de l’installation, par l’entrée standard de la session SSH, et n’est jamais réaffiché.
 
 Avant de lancer, l’app demande au serveur de peser la configuration : un port que quelque chose écoute déjà, un dossier qui est un fichier, un fuseau que la machine ignore. Ce qu’il refuse revient sur le champ concerné.
 

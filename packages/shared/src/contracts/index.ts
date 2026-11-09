@@ -58,6 +58,9 @@ import {
 } from "../backup"
 import {
   FieldSchema,
+  INFISICAL_CLIENT_ID_MAX,
+  INFISICAL_CLIENT_ID_PATTERN,
+  INFISICAL_DEFAULT_DOMAIN,
   MANDATORY_MODULE_IDS,
   ManifestSchema,
   MODULE_IDS,
@@ -189,6 +192,14 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
   FieldFormats: {
     type: "object",
     const: FORMAT_PATTERNS,
+  },
+  Infisical: {
+    type: "object",
+    const: {
+      default_domain: INFISICAL_DEFAULT_DOMAIN,
+      client_id_pattern: INFISICAL_CLIENT_ID_PATTERN,
+      client_id_max: INFISICAL_CLIENT_ID_MAX,
+    },
   },
   Backup: {
     type: "object",

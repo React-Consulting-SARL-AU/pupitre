@@ -309,6 +309,43 @@ describe("a service's account", () => {
     expect(html).toContain('type="password"');
   });
 
+  it("always states whether Infisical is connected, and asks for its identity when it is not", () => {
+    stubPupitre({});
+
+    const INFISICAL: Manifest = {
+      ...WRANGLER,
+      connection: "infisical",
+      id: "tool.infisical",
+      name: "Infisical",
+    };
+
+    const absent = renderToStaticMarkup(
+      <ServiceAccount
+        installed={[INFISICAL]}
+        manifest={INFISICAL}
+        serverName="atelier"
+      />
+    );
+
+    expect(tag(absent, "data-service-account", "signed_out")).not.toBe("");
+    expect(text(absent)).toContain("non connecté");
+    expect(absent).toContain('data-connection="infisical"');
+    expect(text(absent)).toContain("Client ID");
+    expect(absent).toContain('value="https://app.infisical.com"');
+
+    const answered = renderToStaticMarkup(
+      <ServiceAccount
+        installed={[INFISICAL]}
+        login={{ account: "pupitre-vps", state: "signed_in" }}
+        manifest={INFISICAL}
+        serverName="atelier"
+      />
+    );
+
+    expect(tag(answered, "data-service-account", "signed_in")).not.toBe("");
+    expect(text(answered)).toContain("pupitre-vps");
+  });
+
   it("does not exist for a module without an account", () => {
     const html = renderToStaticMarkup(
       <ServiceAccount installed={[]} manifest={null} serverName={null} />

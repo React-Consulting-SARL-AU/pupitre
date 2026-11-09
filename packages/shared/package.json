@@ -25,6 +25,7 @@
     "./backup": "./src/backup/index.ts",
     "./backup/crypto": "./src/backup/crypto.ts",
     "./catalog": "./src/catalog/index.ts",
+    "./catalog/formats": "./src/catalog/formats.ts",
     "./catalog/validate": "./src/catalog/validate.ts",
     "./compat": "./src/compat/index.ts",
     "./contracts/json-schema": "./src/contracts/json-schema.ts",

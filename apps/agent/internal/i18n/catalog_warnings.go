@@ -81,6 +81,10 @@ var warningCatalog = map[string]Message{
 		FR: "op est installé mais le token n'ouvre aucun coffre : les .env.local retomberont sur le .env.example des dépôts",
 		EN: "op is installed but the token opens no vault: .env.local files will fall back on the repositories' .env.example",
 	},
+	"warn.infisical.identity.refused": {
+		FR: "le CLI Infisical est installé mais %s refuse l'identité machine : les .env.local retomberont sur le .env.example des dépôts",
+		EN: "the Infisical CLI is installed but %s refuses the machine identity: .env.local files will fall back on the repositories' .env.example",
+	},
 	"warn.github.key.refused": {
 		FR: "clé du serveur non enregistrée sur GitHub : il manque probablement le droit admin:public_key au token",
 		EN: "the server's key was not registered on GitHub: the token is probably missing the admin:public_key right",

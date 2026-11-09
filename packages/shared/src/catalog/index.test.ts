@@ -295,6 +295,7 @@ describe("module ids", () => {
       "exposure.tailscale",
       "tool.github",
       "tool.1password",
+      "tool.infisical",
       "tool.neon",
       "tool.wrangler",
       "tool.vercel",

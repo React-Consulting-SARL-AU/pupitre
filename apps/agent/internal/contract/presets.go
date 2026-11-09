@@ -6,6 +6,12 @@ var Presets = constOf[[]Preset]("Presets")
 
 var MandatoryModules = constOf[[]string]("MandatoryModules")
 
+var Infisical = constOf[struct {
+	DefaultDomain   string `json:"default_domain"`
+	ClientIDPattern string `json:"client_id_pattern"`
+	ClientIDMax     int    `json:"client_id_max"`
+}]("Infisical")
+
 func constOf[T any](name string) T {
 	var exported struct {
 		Const T `json:"const"`

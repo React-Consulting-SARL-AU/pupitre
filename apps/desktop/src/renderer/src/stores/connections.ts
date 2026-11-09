@@ -4,6 +4,7 @@ import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionAccount,
   ConnectionKind,
+  ConnectionSettings,
   ConnectionsState,
 } from "@shared/connections";
 import { NO_CONNECTIONS } from "@shared/connections";
@@ -30,7 +31,8 @@ interface ConnectionStore {
   connect: (
     kind: ConnectionKind,
     token: string,
-    accountId?: string
+    accountId?: string,
+    settings?: ConnectionSettings
   ) => Promise<boolean>;
   dropChoice: (kind: ConnectionKind) => void;
   forget: (kind: ConnectionKind) => Promise<void>;
@@ -83,10 +85,15 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
     set({ state: await window.pupitre.connectionsState() });
   },
 
-  async connect(kind, token, accountId) {
+  async connect(kind, token, accountId, settings) {
     set((held) => ({ busy: kind, problems: without(held.problems, kind) }));
 
-    const answer = await window.pupitre.connectAccount(kind, token, accountId);
+    const answer = await window.pupitre.connectAccount(
+      kind,
+      token,
+      accountId,
+      settings
+    );
 
     if (!answer.ok) {
       set((held) => ({

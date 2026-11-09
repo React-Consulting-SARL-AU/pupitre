@@ -1448,6 +1448,7 @@
                   "wrangler",
                   "github",
                   "1password",
+                  "infisical",
                   "neon",
                   "vercel",
                   "supabase",
@@ -1600,6 +1601,7 @@
                   "wrangler",
                   "github",
                   "1password",
+                  "infisical",
                   "neon",
                   "vercel",
                   "supabase",
@@ -1693,6 +1695,7 @@
             "wrangler",
             "github",
             "1password",
+            "infisical",
             "neon",
             "vercel",
             "supabase",
@@ -1834,6 +1837,7 @@
             "wrangler",
             "github",
             "1password",
+            "infisical",
             "neon",
             "vercel",
             "supabase",
@@ -1945,6 +1949,7 @@
             "wrangler",
             "github",
             "1password",
+            "infisical",
             "neon",
             "vercel",
             "supabase",
@@ -2056,6 +2061,7 @@
             "wrangler",
             "github",
             "1password",
+            "infisical",
             "neon",
             "vercel",
             "supabase",
@@ -7114,6 +7120,7 @@
             "wrangler",
             "github",
             "1password",
+            "infisical",
             "neon",
             "vercel",
             "supabase",
@@ -7787,6 +7794,7 @@
         "exposure.tailscale",
         "tool.github",
         "tool.1password",
+        "tool.infisical",
         "tool.neon",
         "tool.wrangler",
         "tool.vercel",
@@ -7873,6 +7881,7 @@
             "exposure.tailscale",
             "tool.github",
             "tool.1password",
+            "tool.infisical",
             "tool.neon",
             "tool.wrangler",
             "tool.vercel",
@@ -7915,6 +7924,14 @@
         "size": "^[0-9]+[KkMmGg]?[Bb]?$",
         "timezone": "^(UTC|[A-Za-z][A-Za-z_+-]*(/[A-Za-z0-9][A-Za-z0-9_+-]*){1,2})$",
         "url": "^https?://[^\\s]+$"
+      }
+    },
+    "Infisical": {
+      "type": "object",
+      "const": {
+        "default_domain": "https://app.infisical.com",
+        "client_id_pattern": "^[A-Za-z0-9-]+$",
+        "client_id_max": 128
       }
     },
     "Backup": {

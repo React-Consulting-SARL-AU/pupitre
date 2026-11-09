@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/modules/tool/infisical"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
@@ -360,6 +361,126 @@ func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+const exported = "DATABASE_URL='postgres://dev:motdepasse@127.0.0.1/flyleaf'\nAUTH_SECRET='au-secret'\n"
+
+// A repository that names an Infisical project at its root, on a machine whose identity is configured and that has no op.
+func infisicalMachine() *modtest.FakeSys {
+	fake := machine()
+	delete(fake.Packages, pkg)
+	delete(fake.Files, home+"/"+templateName)
+	fake.Files[root+"/.infisical.json"] = []byte(`{"workspaceId":"63ee5410a45f7a1ed39ba118","defaultEnvironment":"dev"}`)
+	fake.Files[infisical.BinPath] = []byte("binary")
+	fake.Files[env.Path] = []byte("INFISICAL_UNIVERSAL_AUTH_CLIENT_ID=client\nINFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET=" + token + "\nINFISICAL_DOMAIN=https://app.infisical.com\n")
+	fake.Answer("infisical login", "access-token")
+	fake.Answer("secrets export", exported)
+
+	return fake
+}
+
+func TestEnvExportsFromInfisicalWhenTheRepositoryNamesAProject(t *testing.T) {
+	fake := infisicalMachine()
+	ctx := newContext(t, fake, nil)
+
+	result, err := Env(ctx, "flyleaf", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Path != root+"/"+targetName || !result.Written || !result.Template || strings.Join(result.Keys, ",") != "DATABASE_URL,AUTH_SECRET" {
+		t.Fatalf("the project's file at the root is the environment's home: %+v", result)
+	}
+
+	if string(fake.Files[root+"/"+targetName]) != exported || fake.Modes[root+"/"+targetName] != 0o600 {
+		t.Fatalf("unexpected file (%o):\n%s", fake.Modes[root+"/"+targetName], fake.Files[root+"/"+targetName])
+	}
+
+	for _, call := range fake.Calls {
+		if strings.Contains(strings.Join(call.Argv, " "), "secrets export") {
+			if call.Dir != root || !slices.Contains(call.Env, "INFISICAL_PROJECT_ID=63ee5410a45f7a1ed39ba118") {
+				t.Fatalf("the CLI runs beside its file, the project handed over: %+v", call)
+			}
+
+			return
+		}
+	}
+
+	t.Fatalf("infisical never exported: %v", fake.Commands())
+}
+
+func TestEnvPrefersTheOnePasswordTemplateWhenBothAreVersioned(t *testing.T) {
+	fake := infisicalMachine()
+	fake.Packages[pkg] = "2.32.0"
+	fake.Files[root+"/"+templateName] = []byte("DATABASE_URL={{ op://{{OP_VAULT}}/{{OP_ITEM}}/url }}\n")
+	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
+
+	if _, err := Env(ctx, "flyleaf", "web", false); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(fake.Files[root+"/"+targetName]) != injected {
+		t.Fatalf("op inject runs first:\n%s", fake.Files[root+"/"+targetName])
+	}
+}
+
+func TestEnvFallsBackOnTheExampleWhenInfisicalDoesNotAnswer(t *testing.T) {
+	fake := infisicalMachine()
+	delete(fake.Answers, "secrets export")
+	fake.Refuse("secrets export", "")
+	fake.Files[root+"/"+exampleName] = []byte(example)
+	ctx := newContext(t, fake, nil)
+
+	result, err := Env(ctx, "flyleaf", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !result.Written || string(fake.Files[root+"/"+targetName]) != example {
+		t.Fatalf("the example is the fallback: %+v", result)
+	}
+
+	delete(fake.Files, root+"/"+exampleName)
+	delete(fake.Files, root+"/"+targetName)
+
+	_, err = Env(ctx, "flyleaf", "web", false)
+
+	failure, isProtocol := err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorInternal || failure.Fix == "" {
+		t.Fatalf("without an example the refusal says what to check, got %#v", err)
+	}
+}
+
+func TestEnvRefusesAnInfisicalProjectItCannotExport(t *testing.T) {
+	fake := infisicalMachine()
+	delete(fake.Files, infisical.BinPath)
+	ctx := newContext(t, fake, nil)
+
+	_, err := Env(ctx, "flyleaf", "web", false)
+
+	failure, isProtocol := err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Fix, "tool.infisical") {
+		t.Fatalf("want a bad_request that names the module to install, got %#v", err)
+	}
+}
+
+func TestEnvRefusesAnInfisicalFileThatNamesNoProject(t *testing.T) {
+	fake := infisicalMachine()
+	fake.Files[root+"/.infisical.json"] = []byte(`{"defaultEnvironment":"dev"}`)
+	ctx := newContext(t, fake, nil)
+
+	_, err := Env(ctx, "flyleaf", "web", false)
+
+	failure, isProtocol := err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Fix, "infisical init") {
+		t.Fatalf("want a bad_request that says how to name the project, got %#v", err)
+	}
+
+	for _, line := range fake.Commands() {
+		if strings.Contains(line, "infisical") {
+			t.Fatalf("nothing is asked of Infisical without a project: %s", line)
+		}
+	}
+}
 
 func TestLoginAsksOpWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	bare := machine()

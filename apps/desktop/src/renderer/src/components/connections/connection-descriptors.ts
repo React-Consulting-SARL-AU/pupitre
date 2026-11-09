@@ -1,5 +1,14 @@
+import { INFISICAL_DEFAULT_DOMAIN } from "@pupitre/shared/catalog";
 import type { ConnectionKind } from "@shared/connections";
 import type { DictionaryKey } from "../../i18n/en";
+
+/** A non-secret value asked beside the token, keyed like the managed field it fills on the server. */
+export interface ConnectionSettingDescriptor {
+  key: string;
+  label: DictionaryKey;
+  help: DictionaryKey;
+  initial: string;
+}
 
 export interface ConnectionDescriptor {
   kind: ConnectionKind;
@@ -13,6 +22,7 @@ export interface ConnectionDescriptor {
   url: string;
   /** False when the provider cannot be asked who the token belongs to. */
   named: boolean;
+  settings?: readonly ConnectionSettingDescriptor[];
 }
 
 export const CONNECTIONS: readonly ConnectionDescriptor[] = [
@@ -59,6 +69,31 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     hint: "connections.1password.tokenHint",
     label: "connections.1password.tokenLabel",
     url: "https://developer.1password.com/docs/service-accounts/get-started",
+  },
+  {
+    intro: "connections.infisical.intro",
+    kind: "infisical",
+    logo: "tool.infisical",
+    named: true,
+    title: "connections.infisical.title",
+    help: "connections.infisical.tokenHelp",
+    hint: "connections.infisical.tokenHint",
+    label: "connections.infisical.tokenLabel",
+    url: "https://infisical.com/docs/documentation/platform/identities/universal-auth",
+    settings: [
+      {
+        key: "domain",
+        label: "connections.infisical.domainLabel",
+        help: "connections.infisical.domainHelp",
+        initial: INFISICAL_DEFAULT_DOMAIN,
+      },
+      {
+        key: "client_id",
+        label: "connections.infisical.clientIdLabel",
+        help: "connections.infisical.clientIdHelp",
+        initial: "",
+      },
+    ],
   },
   {
     kind: "neon",

@@ -35,7 +35,7 @@ The app streams the session output as the agent reads it. The scrollback is the 
 
 ## Environment files
 
-If `tool.1password` is installed, a project that carries an `.env.local` template gets its file generated from your vault when it starts. Without it, you manage environment files yourself, in the folder, like anywhere else.
+If `tool.1password` is installed, a project that carries an `.env.local` template gets its file generated from your vault when it starts. If `tool.infisical` is installed, a project whose repository versions an `.infisical.yaml` or `.infisical.json` gets its file exported from the Infisical project it names, in the environment the file sets. Without either, you manage environment files yourself, in the folder, like anywhere else.
 
 ## Variables from Pupitre
 

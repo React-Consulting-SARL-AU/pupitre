@@ -30,7 +30,7 @@ describe("the third-party account and tunnel channels", () => {
   it("refuse one argument too many", () => {
     expect(refused("connections:state", OWN_PAGE, "extra")).toBe(true);
     expect(
-      refused("connections:connect", OWN_PAGE, "github", "t", "a", "extra")
+      refused("connections:connect", OWN_PAGE, "github", "t", "a", {}, "extra")
     ).toBe(true);
     expect(refused("connections:forget", OWN_PAGE, "github", "extra")).toBe(
       true

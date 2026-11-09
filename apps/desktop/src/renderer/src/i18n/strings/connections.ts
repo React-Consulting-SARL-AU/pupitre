@@ -58,6 +58,21 @@ export const connections = {
     "connections.1password.tokenHint":
       "A service account token, not your main password. Create it in Developer › Service Accounts, and grant it only the vault that holds your projects' secrets.",
 
+    "connections.infisical.title": "Infisical account",
+    "connections.infisical.intro":
+      "The infisical command and a machine identity, to produce a project's .env.local from the Infisical project its repository names.",
+    "connections.infisical.domainLabel": "Instance",
+    "connections.infisical.domainHelp":
+      "https://app.infisical.com for the US cloud, https://eu.infisical.com for the EU cloud, or your own instance's address.",
+    "connections.infisical.clientIdLabel": "Client ID",
+    "connections.infisical.clientIdHelp":
+      "Shown in the machine identity's Universal Auth section.",
+    "connections.infisical.tokenLabel": "Client secret",
+    "connections.infisical.tokenHelp":
+      "Kept in this computer's keychain. Pupitre signs in once to name the identity.",
+    "connections.infisical.tokenHint":
+      "A machine identity with Universal Auth, not your own account. Create it in Access Control › Machine Identities, add it to each project with a role that reads secrets, then create a client secret.",
+
     "connections.neon.title": "Neon account",
     "connections.neon.tokenLabel": "API key",
     "connections.neon.tokenHelp": "Kept in this computer's keychain.",
@@ -158,6 +173,21 @@ export const connections = {
       "Gardé dans le trousseau de cet ordinateur. Le serveur dit à l'installation s'il ouvre un coffre.",
     "connections.1password.tokenHint":
       "Un token de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets.",
+
+    "connections.infisical.title": "Compte Infisical",
+    "connections.infisical.intro":
+      "La commande infisical et une identité machine, pour produire le .env.local d'un projet depuis le projet Infisical que son dépôt nomme.",
+    "connections.infisical.domainLabel": "Instance",
+    "connections.infisical.domainHelp":
+      "https://app.infisical.com pour le cloud US, https://eu.infisical.com pour le cloud EU, ou l'adresse de votre propre instance.",
+    "connections.infisical.clientIdLabel": "Client ID",
+    "connections.infisical.clientIdHelp":
+      "Affiché dans la section Universal Auth de l'identité machine.",
+    "connections.infisical.tokenLabel": "Client secret",
+    "connections.infisical.tokenHelp":
+      "Gardé dans le trousseau de cet ordinateur. Pupitre se connecte une fois pour nommer l'identité.",
+    "connections.infisical.tokenHint":
+      "Une identité machine en Universal Auth, pas votre propre compte. Créez-la dans Access Control › Machine Identities, ajoutez-la à chaque projet avec un rôle qui lit les secrets, puis créez un client secret.",
 
     "connections.neon.title": "Compte Neon",
     "connections.neon.tokenLabel": "Clé d'API",

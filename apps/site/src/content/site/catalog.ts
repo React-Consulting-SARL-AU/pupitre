@@ -329,6 +329,14 @@ export const CATALOG: CatalogGroup[] = [
         },
       },
       {
+        id: "tool.infisical",
+        name: { en: "Infisical", fr: "Infisical" },
+        detail: {
+          en: "CLI and machine identity, checked at install time, so a project builds its env file from the Infisical project it names.",
+          fr: "CLI et identité machine, vérifiée à l’installation, pour qu’un projet construise son fichier d’environnement depuis le projet Infisical qu’il nomme.",
+        },
+      },
+      {
         id: "tool.neon",
         name: { en: "Neon", fr: "Neon" },
         detail: {
