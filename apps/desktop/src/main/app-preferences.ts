@@ -16,7 +16,7 @@ const STARTUP_PLATFORMS: NodeJS.Platform[] = ["darwin", "win32"];
 let preferences: PreferencesStore | null = null;
 
 /** Read lazily: the data folder is settled only after the command line is. */
-function preferencesOf(): PreferencesStore {
+export function preferencesOf(): PreferencesStore {
   preferences ??= preferencesStore(
     join(app.getPath("userData"), "preferences.json")
   );

@@ -32,6 +32,7 @@ export function CompletionList({ id, frame }: Props) {
         <span
           aria-hidden
           className="pointer-events-none absolute whitespace-pre text-ink-4"
+          data-completion-ghost
           style={{
             left,
             top,

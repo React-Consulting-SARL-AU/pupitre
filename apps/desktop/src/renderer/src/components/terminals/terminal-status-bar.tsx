@@ -37,8 +37,8 @@ export function TerminalStatusBar({
     []
   );
 
-  async function copyAll(): Promise<void> {
-    await copyWholeOutput(id);
+  function copyAll(): void {
+    copyWholeOutput(id);
     setCopied(true);
 
     if (timer.current) {

@@ -69,3 +69,36 @@ The server reaches a machine already installed without a reinstallation:
 3. On `ai.browser`, the same `upgrade` retires what the screenshot gallery left before 2.1.0 — its `pupitre-shots` service, `/etc/pupitre/shots.env` and the exposure's route with it, the `shot` link — and keeps `~/shots`, which holds the customer's captures. Migration 9 of the agent's registry drops the `subdomain` field from `install.json`.
 
 **The daemon catches up whatever the route.** An agent replaced by an app older than this step, by `binary install`, or an app whose snapshot was not ready, leaves the modules behind, and the snapshot still reads them `configured`: that flag only says no question waits. So `pupitred daemon`, at each start and once its configuration is current, runs `Configure` — never the CLI's upgrade — on the installed modules that only lay what the binary ships (`modules.Refreshed`: `ai.claude`, `ai.codex`, `ai.copilot`, `ai.cursor`, `ai.gemini`, `ai.opencode`, `ai.browser`) and whose `Check` finds them behind, deferred ones excepted. A current machine runs nothing and keeps its last report; a refusal (lock held, licence, migration owed) goes to the journal, and the next start tries again. `ai.hermes` and `ai.openclaw` are left out: their `Configure` writes the providers and drives a service, which only a gesture of the owner replays.
+
+## On the laptop
+
+([Decision 0022](../decisions/0022-local-agents-through-mcp.md).) The switch Réglages › Agents IA declares two kinds of servers to the AI agents installed on the owner's computer. The names, the arguments and the texts are typed in `packages/shared/src/desktop-mcp`.
+
+| Entry | Command | Reaches |
+| --- | --- | --- |
+| `pupitre-<ssh name>`, one per machine | `ssh -F ~/.pupitre/<folder>/ssh/config -o BatchMode=yes <alias> /usr/local/bin/pupitred mcp` (a host of the user's own `~/.ssh/config`: no `-F`) | this page's server, on that machine, app closed or not |
+| `pupitre` | `nc -U <socket>`, the socket `mcp.sock` in the shorter of `~/.pupitre/<folder>` and the data folder | the app, while it is open and the switch is on |
+
+The machine name is the server's SSH name prefixed by `pupitre-` (an alias `pupitre-<id>` stays as it is); any character a client refuses becomes `-`.
+
+**The app's tools.** Same session as above (versions, methods, one message per line, closed arguments, a refusal is the tool's result). Every tool but `servers` takes `server`, the id `servers` lists.
+
+| Tool | Arguments | Runs |
+| --- | --- | --- |
+| `servers` | — | the app's server list: `{ id, name, entry }`, `entry` the machine's server above |
+| `catalog` | `server` | `catalog` |
+| `project_list` | `server` | `project.list` |
+| `project_detect` | `server`, `repo` + `branch?` or `dir` | `project.detect` |
+| `module_install` | `server`, `modules`, `config?` | `install.check`, then — allowed — the app's install flow |
+| `module_uninstall` | `server`, `modules` | — allowed — `uninstall` |
+| `project_add` | `server`, `project` (the params of `project.add`) | — allowed — `project.add` |
+| `project_update` | `server`, `name`, `patch` | — allowed — `project.update` |
+| `project_remove` | `server`, `name` | — allowed — `project.remove` |
+
+- **Allowed** means a native dialog of the app answered *Autoriser*: its title names the gesture, its object and the machine (« Modifier le projet shop sur atelier ? »), its body what the change does — for `project_update`, only what differs from the project as `project.list` reads it (a command that changes and its restart, an address added or gone, addresses opened to anyone, an install command dropped from the patch), for `module_install` the catalogue's names and the values sent. *Refuser*, five minutes without an answer, or the test harness return a refusal that tells the model to ask the owner.
+- **Unattended.** Réglages › Agents IA › *Appliquer leurs modifications sans me demander* (`preferences.json` `localAgentsUnattended`, off by default) runs the changes without the dialog. Secrets, the usage guard and the closed arguments still apply.
+- **Secrets.** A `config` that names a field the catalogue marks `secret` is refused before anything is asked, the field named, never its value. The app's vault fills secrets.
+- **Refusals.** An agent's refusal comes back as `code: message` then its `fix`; the app's own refusals are worded from its English dictionary.
+- **Usage right.** Changes pass the account's usage guard, as the screens do; reads do not.
+
+**Declaring.** Claude Code: `claude mcp add --scope user <name> -- <command> <args>` and `claude mcp remove --scope user <name>`, the current entries read from `~/.claude.json` `mcpServers`. Codex: `codex mcp add` / `remove`, the current entries read from `codex mcp list --json`. Claude Desktop: `claude_desktop_config.json`, only `mcpServers.pupitre*` written, every other key kept, a file that does not parse refused. An entry whose command or arguments changed is removed then added. The clients are looked for in `~/.local/bin`, `~/.claude/local`, `~/.bun/bin`, `~/.npm-global/bin`, `/opt/homebrew/bin`, `/usr/local/bin` then `PATH`; one not found is skipped and reported. Nothing is added to a client's permissions. The settings page reads every client back rather than trusting what it asked: each shows the `pupitre*` entries it holds. Windows, and a system without `nc`, are not offered the switch.

@@ -33,6 +33,7 @@ import { registerInstall } from "./install";
 import { trustPage } from "./ipc-guard";
 import { registerKeyApprovals } from "./key-approvals";
 import { openDeepLink, pageGone, registerLinks } from "./links";
+import { closeLocalAgents, registerLocalAgents } from "./mcp";
 import { menuTemplate } from "./menu";
 import { openable, ownPage, type PageRules } from "./navigation";
 import { current, windowChrome } from "./platform";
@@ -74,6 +75,7 @@ function releaseEverything(): void {
   closeAll();
   forgetServiceCredentials();
   agentClient.closeAll();
+  closeLocalAgents();
 }
 
 /** The renderer holds the theme choice and corrects this over `appearance:set` before the first paint. */
@@ -250,6 +252,7 @@ function registerChannels(): void {
   registerCompletions();
   registerLinks(bringToFront);
   registerPreferences();
+  registerLocalAgents();
 }
 
 app

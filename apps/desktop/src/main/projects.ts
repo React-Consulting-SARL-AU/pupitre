@@ -39,16 +39,18 @@ function isPlainCommand(cmd: unknown): cmd is PlainProjectCommand {
   return PLAIN.includes(cmd as PlainProjectCommand);
 }
 
+export const projectDeps: ProjectDeps = {
+  client: agentClient,
+  knows: (serverId) => Boolean(byId(serverId)),
+  release: (serverId, hostname) => releaseHostname(serverId, hostname),
+};
+
 export function registerProjects({
   root,
 }: {
   root: (serverId: string) => Promise<string | null>;
 }): void {
-  const deps: ProjectDeps = {
-    client: agentClient,
-    knows: (serverId) => Boolean(byId(serverId)),
-    release: (serverId, hostname) => releaseHostname(serverId, hostname),
-  };
+  const deps = projectDeps;
 
   handle("project:list", shape(anything), (_event, serverId) =>
     listProjects(serverId, deps)

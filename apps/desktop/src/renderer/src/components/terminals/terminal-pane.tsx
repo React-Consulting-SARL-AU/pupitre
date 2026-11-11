@@ -22,6 +22,7 @@ import type { AgentState, TerminalKind } from "@shared/terminals";
 import { ArrowDown } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { CompletionList } from "./completion-list";
+import { TerminalContextMenu } from "./terminal-context-menu";
 import { TerminalDormantNotice } from "./terminal-dormant-notice";
 import { TerminalEndedBar } from "./terminal-ended-bar";
 import { TerminalLoginBar } from "./terminal-login-bar";
@@ -172,13 +173,15 @@ export function TerminalPane({
       ) : null}
 
       <div className="relative min-h-0 flex-1 bg-sunken" ref={stage}>
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
-        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
-        <div
-          className="h-full w-full cursor-text px-2 py-1"
-          onMouseDown={() => focus(id)}
-          ref={host}
-        />
+        <TerminalContextMenu id={id}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
+          <div
+            className="h-full w-full cursor-text px-2 py-1"
+            onMouseDown={() => focus(id)}
+            ref={host}
+          />
+        </TerminalContextMenu>
 
         {kind === "shell" ? <CompletionList frame={stage} id={id} /> : null}
 

@@ -86,7 +86,7 @@ function userData(): string {
 }
 
 /** A scenario run gets a throwaway home, so no suite leaves a line or a link beside the real ~/.ssh/config. */
-function home(): string {
+export function home(): string {
   return HARNESSED ? join(userData(), "home") : app.getPath("home");
 }
 
@@ -216,9 +216,19 @@ export function read(): Configuration {
 }
 
 /** A file from a newer version is left whole for a rollback; the change still holds for this run and its SSH file. */
+const savedListeners = new Set<() => void>();
+
+export function onServersSaved(listener: () => void): void {
+  savedListeners.add(listener);
+}
+
 function save(config: Configuration): void {
   serversFile().write({ ...config });
   writeSshConfig(config.servers, paths(), sshHosts());
+
+  for (const listener of savedListeners) {
+    listener();
+  }
 }
 
 /** The patch reads again at write time, so a caller that awaited in between never erases a newer write. */

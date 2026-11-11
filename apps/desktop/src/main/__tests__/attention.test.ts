@@ -80,8 +80,10 @@ describe("the notifications preference", () => {
 
     expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({
       launchAtLogin: false,
+      localAgents: false,
+      localAgentsUnattended: false,
       notifications: false,
-      version: 2,
+      version: 4,
     });
     expect(preferencesStore(file).read().notifications).toBe(false);
   });
@@ -98,6 +100,8 @@ describe("the notifications preference", () => {
 
     expect(store.read()).toEqual({
       launchAtLogin: false,
+      localAgents: false,
+      localAgentsUnattended: false,
       notifications: false,
     });
     expect(existsSync(`${file}.r1`)).toBe(true);
@@ -106,10 +110,58 @@ describe("the notifications preference", () => {
 
     expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({
       launchAtLogin: true,
+      localAgents: false,
+      localAgentsUnattended: false,
       notifications: false,
-      version: 2,
+      version: 4,
     });
     expect(preferencesStore(file).read().launchAtLogin).toBe(true);
+  });
+
+  it("carries a second-revision file, which said nothing about local agents", () => {
+    const file = join(
+      mkdtempSync(join(tmpdir(), "pupitre-prefs-")),
+      "preferences.json"
+    );
+
+    writeFileSync(
+      file,
+      JSON.stringify({ launchAtLogin: true, notifications: true, version: 2 })
+    );
+
+    const store = preferencesStore(file);
+
+    expect(store.read().localAgents).toBe(false);
+
+    store.set({ localAgents: true });
+
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({
+      launchAtLogin: true,
+      localAgents: true,
+      localAgentsUnattended: false,
+      notifications: true,
+      version: 4,
+    });
+  });
+
+  it("carries a third-revision file, which said nothing about unattended changes", () => {
+    const file = join(
+      mkdtempSync(join(tmpdir(), "pupitre-prefs-")),
+      "preferences.json"
+    );
+
+    writeFileSync(
+      file,
+      JSON.stringify({
+        launchAtLogin: false,
+        localAgents: true,
+        notifications: true,
+        version: 3,
+      })
+    );
+
+    expect(preferencesStore(file).read().localAgentsUnattended).toBe(false);
+    expect(existsSync(`${file}.r3`)).toBe(true);
   });
 
   it("reads a file from a newer version without rewriting it", () => {

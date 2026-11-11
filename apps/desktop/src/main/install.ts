@@ -23,8 +23,10 @@ import { prepareAgent } from "./enrollment-run";
 import { ed25519Fingerprint } from "./host-keys";
 import { inspect } from "./inspection";
 import {
+  type CheckDeps,
   type EnrollmentGrant,
   enrolAgent,
+  type InstallDeps,
   type InstallUpdate,
   runCheck,
   runInstall,
@@ -172,6 +174,29 @@ async function sendAgent(
   return enrolled.ok ? sent : enrolled;
 }
 
+export function installDeps(): InstallDeps {
+  return {
+    client: agentClient,
+    declared: declaredModules,
+    deliver,
+    deviceKey: accountDeviceKey,
+    enrollment: enrollmentGrant,
+    forgetSecrets,
+    identity: (id) => agentClient.session(id)?.server_id ?? null,
+    managed: (id, asked) => managedValues(id, asked, restoring(id)),
+    probe: inspect,
+    secrets: readSecrets,
+  };
+}
+
+export function checkDeps(): CheckDeps {
+  return {
+    client: agentClient,
+    declared: declaredModules,
+    weighed: weighedValues,
+  };
+}
+
 export function registerInstall(): void {
   handle(
     "install:start",
@@ -208,18 +233,7 @@ export function registerInstall(): void {
         call.modules,
         config,
         update,
-        {
-          client: agentClient,
-          deviceKey: accountDeviceKey,
-          identity: (id) => agentClient.session(id)?.server_id ?? null,
-          declared: declaredModules,
-          deliver,
-          enrollment: enrollmentGrant,
-          forgetSecrets,
-          managed: (id, asked) => managedValues(id, asked, restoring(id)),
-          probe: inspect,
-          secrets: readSecrets,
-        },
+        installDeps(),
         defer
       );
     }
@@ -246,11 +260,7 @@ export function registerInstall(): void {
         call.serverId,
         call.modules,
         config,
-        {
-          client: agentClient,
-          declared: declaredModules,
-          weighed: weighedValues,
-        },
+        checkDeps(),
         defer
       );
     }

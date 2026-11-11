@@ -20,6 +20,7 @@ export interface CompletionState {
   line: string;
   token: string;
   candidates: Candidate[];
+  /** -1 until the arrows enter the list: nothing is chosen for the reader. */
   selection: number;
   /** Inline suggestion: the rest of the latest history entry starting like the line. */
   ghost: string;
@@ -32,7 +33,7 @@ export const NOTHING: CompletionState = {
   line: "",
   token: "",
   candidates: [],
-  selection: 0,
+  selection: -1,
   ghost: "",
   cursor: null,
   closed: false,
@@ -345,6 +346,8 @@ interface Tracked {
   dir: string;
   state: CompletionState;
   closedFor: string | null;
+  /** Set by a key that edits or moves back, so what was erased is not drawn again as a suggestion. */
+  quiet: boolean;
   paths: Map<string, string[]>;
   timer: ReturnType<typeof setTimeout> | null;
 }
@@ -557,7 +560,7 @@ export function recompute(id: string): void {
 
   const { xterm } = item;
 
-  if (!item.typing || xterm.buffer.active.type !== "normal") {
+  if (item.quiet || !item.typing || xterm.buffer.active.type !== "normal") {
     publish(id, item, NOTHING);
     return;
   }
@@ -594,8 +597,8 @@ export function recompute(id: string): void {
 
   const sameLine = line === item.state.line;
   const selection = sameLine
-    ? Math.min(item.state.selection, Math.max(0, candidates.length - 1))
-    : 0;
+    ? Math.min(item.state.selection, candidates.length - 1)
+    : -1;
 
   publish(id, item, {
     line,
@@ -635,18 +638,8 @@ export function accept(id: string, candidate: Candidate): void {
   item.xterm.focus();
 }
 
-function navigate(id: string, item: Tracked, step: number): void {
-  const { state } = item;
-  const total = state.candidates.length;
-
-  if (total === 0) {
-    return;
-  }
-
-  publish(id, item, {
-    ...state,
-    selection: (state.selection + step + total) % total,
-  });
+function choose(id: string, item: Tracked, selection: number): void {
+  publish(id, item, { ...item.state, selection });
 }
 
 function dismiss(id: string, item: Tracked): void {
@@ -654,59 +647,129 @@ function dismiss(id: string, item: Tracked): void {
   publish(id, item, { ...item.state, closed: true });
 }
 
-// Keys are only taken while something shows; otherwise Tab and the arrows stay the shell's.
+function quieten(id: string, item: Tracked): void {
+  item.quiet = true;
+  publish(id, item, NOTHING);
+}
+
+export type KeyAction =
+  | { kind: "pass" }
+  | { kind: "quiet" }
+  | { kind: "type" }
+  | { kind: "accept"; index: number }
+  | { kind: "ghost" }
+  | { kind: "choose"; index: number }
+  | { kind: "dismiss"; pass: boolean };
+
+export type KeyChord = Pick<
+  KeyboardEvent,
+  "key" | "shiftKey" | "altKey" | "ctrlKey" | "metaKey"
+>;
+
+const PASS: KeyAction = { kind: "pass" };
+const QUIET: KeyAction = { kind: "quiet" };
+const TYPE: KeyAction = { kind: "type" };
+const EDITING_KEYS = new Set(["Backspace", "Delete", "ArrowLeft", "Home"]);
+
+interface Showing {
+  state: CompletionState;
+  list: boolean;
+  ghost: boolean;
+  chosen: boolean;
+}
+
+function tabAction(
+  { state, list, ghost, chosen }: Showing,
+  key: KeyChord
+): KeyAction {
+  if (key.shiftKey || !(list || ghost)) {
+    return PASS;
+  }
+
+  if (chosen) {
+    return { index: state.selection, kind: "accept" };
+  }
+
+  return ghost ? { kind: "ghost" } : { index: 0, kind: "accept" };
+}
+
+function enterAction({ state, list, ghost, chosen }: Showing): KeyAction {
+  if (chosen) {
+    return { index: state.selection, kind: "accept" };
+  }
+
+  return list || ghost ? { kind: "dismiss", pass: true } : PASS;
+}
+
+const ON_KEY: Record<string, (showing: Showing, key: KeyChord) => KeyAction> = {
+  ArrowDown: ({ state, list }) =>
+    list
+      ? {
+          index: (state.selection + 1) % state.candidates.length,
+          kind: "choose",
+        }
+      : PASS,
+  ArrowRight: ({ ghost, chosen }, key) =>
+    ghost && !chosen && !(key.altKey || key.metaKey || key.ctrlKey)
+      ? { kind: "ghost" }
+      : PASS,
+  ArrowUp: ({ state, chosen }) =>
+    chosen ? { index: state.selection - 1, kind: "choose" } : PASS,
+  Enter: enterAction,
+  Escape: ({ list, ghost }) =>
+    list || ghost ? { kind: "dismiss", pass: false } : PASS,
+  Tab: tabAction,
+};
+
+/** Keys are only taken while something shows; otherwise Tab and the arrows stay the shell's. */
+export function keyAction(state: CompletionState, key: KeyChord): KeyAction {
+  if (EDITING_KEYS.has(key.key) || (key.ctrlKey && key.key.length === 1)) {
+    return QUIET;
+  }
+
+  if (key.key.length === 1 && !key.metaKey) {
+    return TYPE;
+  }
+
+  const list = !state.closed && state.candidates.length > 0;
+  const ghost = !state.closed && state.ghost.length > 0;
+  const showing = { chosen: list && state.selection >= 0, ghost, list, state };
+
+  return ON_KEY[key.key]?.(showing, key) ?? PASS;
+}
+
 function handleKey(id: string, item: Tracked, ev: KeyboardEvent): boolean {
   if (ev.type !== "keydown") {
     return true;
   }
 
-  const { state } = item;
-  const list = !state.closed && state.candidates.length > 0;
-  const ghost = !state.closed && state.ghost.length > 0;
+  const action = keyAction(item.state, ev);
 
-  switch (ev.key) {
-    case "Tab":
-      if (ev.shiftKey) {
-        return true;
-      }
-      if (list) {
-        accept(id, state.candidates[state.selection]);
-        return false;
-      }
-      if (ghost) {
-        sendToTerminal(id, state.ghost);
-        return false;
-      }
+  switch (action.kind) {
+    case "quiet":
+      quieten(id, item);
       return true;
-    case "ArrowDown":
-      if (list) {
-        navigate(id, item, 1);
-        return false;
-      }
+    case "type":
+      item.quiet = false;
       return true;
-    case "ArrowUp":
-      if (list) {
-        navigate(id, item, -1);
-        return false;
+    case "accept": {
+      const candidate = item.state.candidates[action.index];
+
+      if (candidate) {
+        accept(id, candidate);
       }
-      return true;
-    case "ArrowRight":
-      if (ghost && !(ev.altKey || ev.metaKey || ev.ctrlKey)) {
-        sendToTerminal(id, state.ghost);
-        return false;
-      }
-      return true;
-    case "Escape":
-      if (list || ghost) {
-        dismiss(id, item);
-        return false;
-      }
-      return true;
-    case "Enter":
-      if (list || ghost) {
-        dismiss(id, item);
-      }
-      return true;
+
+      return false;
+    }
+    case "ghost":
+      sendToTerminal(id, item.state.ghost);
+      return false;
+    case "choose":
+      choose(id, item, action.index);
+      return false;
+    case "dismiss":
+      dismiss(id, item);
+      return action.pass;
     default:
       return true;
   }
@@ -722,6 +785,7 @@ export function attach(id: string, xterm: XTerm): () => void {
     dir: "",
     state: NOTHING,
     closedFor: null,
+    quiet: false,
     paths: new Map(),
     timer: null,
   };
@@ -738,6 +802,7 @@ export function attach(id: string, xterm: XTerm): () => void {
       item.column = xterm.buffer.active.cursorX;
       item.typing = true;
       item.closedFor = null;
+      item.quiet = false;
     } else if (code === "C") {
       rememberCommand(readLine(item) ?? "");
       item.typing = false;

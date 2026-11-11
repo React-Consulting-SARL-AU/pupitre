@@ -29,6 +29,7 @@
     "./catalog/validate": "./src/catalog/validate.ts",
     "./compat": "./src/compat/index.ts",
     "./contracts/json-schema": "./src/contracts/json-schema.ts",
+    "./desktop-mcp": "./src/desktop-mcp/index.ts",
     "./i18n": "./src/i18n/locale.ts",
     "./keys": "./src/keys/index.ts",
     "./legal": "./src/legal/index.ts",

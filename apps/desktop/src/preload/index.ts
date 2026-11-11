@@ -44,6 +44,7 @@ import type {
   EnrollResult,
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
+import type { LocalAgentsState } from "@pupitre/shared/desktop-mcp";
 import type { PendingKeyApproval } from "@pupitre/shared/keys";
 import type { AccessCopyForm, AccessHeld } from "@shared/access";
 import type {
@@ -799,6 +800,14 @@ const api = {
     ipcRenderer.invoke("ssh-share:state"),
   setSshShare: (shared: boolean): Promise<SshShareState> =>
     ipcRenderer.invoke("ssh-share:set", shared),
+
+  /** The MCP entries in the computer's AI agents change on request only, never on their own. */
+  localAgentsState: (): Promise<LocalAgentsState> =>
+    ipcRenderer.invoke("local-agents:state"),
+  setLocalAgents: (enabled: boolean): Promise<LocalAgentsState> =>
+    ipcRenderer.invoke("local-agents:set", enabled),
+  setLocalAgentsUnattended: (unattended: boolean): Promise<LocalAgentsState> =>
+    ipcRenderer.invoke("local-agents:unattended", unattended),
 
   /** Runs before a server is declared, so it takes the form, not an id; a password goes with `addServer`. */
   reachServer: (target: ServerKnock): Promise<ServerReach> =>
