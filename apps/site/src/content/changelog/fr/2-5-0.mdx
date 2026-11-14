@@ -1,0 +1,27 @@
+---
+title: Les agents IA de votre ordinateur pilotent vos serveurs, et les ports du serveur arrivent sur votre ordinateur
+description: Claude Code, Claude Desktop et Codex sur votre ordinateur configurent, mettent à jour, redémarrent et lisent les projets de vos serveurs à travers Pupitre, et ouvrent un port du serveur sur votre ordinateur ; une redirection peut rester ouverte d'un lancement à l'autre, et une adresse devient publique d'un geste.
+locale: fr
+version: 2.5.0
+channel: stable
+date: 2026-11-14
+order: 31
+---
+
+Les agents IA de votre ordinateur travaillent désormais avec vos serveurs, et un port du serveur peut venir sur votre ordinateur et y rester.
+
+## L'app
+
+- **Les agents IA de cet ordinateur.** Réglages › Agents IA déclare Pupitre à Claude Code, Claude Desktop et Codex : un serveur par machine, qui lance, redémarre et lit ses projets et services même app fermée, et un pour l'app, qui les configure. Une modification demandée par un agent — installer un service, déclarer ou changer un projet — attend votre réponse dans une fenêtre qui ne montre que ce qui change, sauf si vous les laissez appliquer sans demander. Aucun secret n'y passe. La page relit chaque client et dit s'il est branché.
+- **Un port du serveur sur votre ordinateur.** Chaque adresse d'un projet s'atteint depuis cet ordinateur : la redirection prend le numéro du port du serveur quand il est libre ici, si bien qu'une app, un simulateur ou un navigateur qui appelle `localhost:<port>` atteint le serveur sans rien changer. Un agent de votre ordinateur peut ouvrir, lister et fermer ces redirections lui-même.
+- **Des redirections gardées ouvertes.** Une redirection épinglée revient à chaque ouverture de l'app et après une coupure, sur le même port local, jusqu'à ce que vous la fermiez. Le panneau des ports locaux dit quand l'une se reconnecte.
+- **Publique d'un geste.** Une adresse publiée montre si elle demande la clé Pupitre ; le cadenas la rend publique, après confirmation, ou la protège à nouveau — pour une app mobile ou un webhook qui ne peut pas envoyer la clé.
+- **Terminaux.** La complétion d'un onglet shell ne présélectionne plus de suggestion et ne redessine plus ce qui vient d'être effacé. Un clic droit dans un terminal ou la console d'un processus ouvre un menu : copier, coller, tout sélectionner, rechercher, copier toute la sortie, effacer.
+
+## L'agent
+
+- **Les agents savent où tourne le code.** Le serveur MCP de la machine dit à un agent quels projets y tournent — dépôt, branche, ports, adresses, et si chaque adresse demande la clé — : un agent qui travaille dans un clone sur votre ordinateur sait que son code tourne sur le serveur.
+- **Récupérer et redémarrer.** `project_pull` récupère les commits poussés sur la branche du projet et redémarre les processus qui tournaient, y compris un processus en échec ; `project_git_status` dit où en est le dossier.
+- **Des journaux lisibles.** Les journaux lus par un agent sont la dernière image qu'afficherait un terminal : les barres de progression de Gradle, npm ou cargo n'enterrent plus l'erreur.
+- **Les démarrages lents.** Un processus encore en démarrage à la fin de l'attente — une JVM, un build Gradle — dit à l'agent d'attendre encore, au lieu de passer pour un échec.
+- **Go 1.26.11.** L'agent est compilé avec Go 1.26.11, qui corrige une vulnérabilité de `net/http` (GO-2026-6859).

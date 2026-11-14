@@ -1,0 +1,27 @@
+---
+title: AI agents on your computer drive your servers, and server ports reach your computer
+description: Claude Code, Claude Desktop and Codex on your computer can set up, pull, restart and read your servers' projects through Pupitre, and open a server's port on your computer; a forward can stay open across restarts, and an address can be made public in one gesture.
+locale: en
+version: 2.5.0
+channel: stable
+date: 2026-11-14
+order: 31
+---
+
+The AI agents on your computer now work with your servers, and a server's port can be brought to your computer and kept there.
+
+## The app
+
+- **AI agents on this computer.** Settings › AI agents declares Pupitre to Claude Code, Claude Desktop and Codex: one server per machine, which runs, restarts and reads its projects and services even with the app closed, and one for the app, which sets them up. A change an agent asks for — installing a service, declaring or changing a project — waits for your answer in a dialog that lists only what differs, unless you let them apply changes without asking. Secrets never go through it. The page reads each client back and says whether it is connected.
+- **A server's port on your computer.** Each address of a project can be reached from this computer: the forward takes the server's own port number when it is free here, so an app, a simulator or a browser pointed at `localhost:<port>` reaches the server unchanged. An agent on your computer can open, list and close these forwards itself.
+- **Forwards kept open.** A pinned forward comes back each time the app opens and after the connection drops, on the same local port, until you close it. The local ports panel says when one is reconnecting.
+- **Public in one gesture.** A published address shows whether it asks for the Pupitre key; the lock makes it public, after a confirmation, or protects it again — for a mobile app or a webhook that cannot send the key.
+- **Terminals.** Completion in a shell tab no longer preselects a suggestion nor redraws what was just erased. A right click in a terminal or a process console opens a menu: copy, paste, select all, search, copy the whole output, clear.
+
+## The agent
+
+- **Agents know where the code runs.** The server's MCP server tells an agent which projects run there — repository, branch, ports, addresses, and whether each address asks for the key — so an agent working in a clone on your computer knows its code runs on the server.
+- **Pull and restart.** `project_pull` fetches the commits pushed to the project's branch and restarts the processes that were running, a failed one included; `project_git_status` reads where the folder stands.
+- **Readable logs.** Logs read by an agent are the last frame a terminal would show: Gradle, npm or cargo progress bars no longer bury the error.
+- **Slow starts.** A process still starting when the wait ends — a JVM, a Gradle build — tells the agent to wait again rather than read as a failure.
+- **Go 1.26.11.** The agent is built with Go 1.26.11, which fixes a vulnerability in `net/http` (GO-2026-6859).
