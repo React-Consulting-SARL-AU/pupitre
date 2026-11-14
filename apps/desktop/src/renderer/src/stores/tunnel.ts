@@ -1,6 +1,6 @@
 import type { TunnelStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { AgentError, AgentResponse } from "@shared/agent";
-import type { PortForward } from "@shared/services";
+import type { PortForward, PortForwardOpening } from "@shared/services";
 import { create } from "zustand";
 
 export type TunnelState =
@@ -24,9 +24,11 @@ interface TunnelStore {
   forward: (
     serverId: string,
     remotePort: number,
-    label: string
-  ) => Promise<void>;
+    label: string,
+    opening?: PortForwardOpening
+  ) => Promise<AgentError | null>;
   closeForward: (id: string) => Promise<void>;
+  keepForward: (id: string, keep: boolean) => Promise<void>;
   forget: () => void;
 }
 
@@ -108,26 +110,33 @@ export const useTunnel = create<TunnelStore>((set, get) => {
       set({ forwards: await window.pupitre.portForwards() });
     },
 
-    async forward(serverId, remotePort, label) {
+    async forward(serverId, remotePort, label, opening) {
       set({ problem: null });
 
       const answer = await window.pupitre.openPortForward(
         serverId,
         remotePort,
-        label
+        label,
+        opening
       );
 
       if (!answer.ok) {
         set({ problem: answer.error });
 
-        return;
+        return answer.error;
       }
 
       set({ forwards: await window.pupitre.portForwards() });
+
+      return null;
     },
 
     async closeForward(id) {
       set({ forwards: await window.pupitre.closePortForward(id) });
+    },
+
+    async keepForward(id, keep) {
+      set({ forwards: await window.pupitre.keepPortForward(id, keep) });
     },
 
     // Forwards belong to this computer, not to a server, so they survive a switch.

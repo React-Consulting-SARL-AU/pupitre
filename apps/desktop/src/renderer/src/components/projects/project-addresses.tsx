@@ -1,52 +1,38 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
-import { IconButton } from "@renderer/components/ui/icon-button";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { openAddress } from "@renderer/lib/open-address";
-import { routeLabel } from "@renderer/lib/project-addresses";
-import { isRunning } from "@renderer/lib/project-state";
-import { Check, Copy, ExternalLink, Plus } from "lucide-react";
+import { addressLines } from "@renderer/lib/project-addresses";
+import type { Gesture } from "@renderer/lib/use-pending";
+import type { AgentError } from "@shared/agent";
+import type { PortForward } from "@shared/services";
+import { Plus } from "lucide-react";
 import { useState } from "react";
+import { ErrorNotice } from "../ui/error-notice";
+import { ProjectAddressRow } from "./project-address-row";
 
 const COPY_MS = 1600;
 
-interface Line {
-  label: string;
-  host: string;
-  port: number;
-  live: boolean;
-  hostname?: string;
-}
-
-function linesOf(project: Project, mainLabel: string): Line[] {
-  const count = project.processes.length;
-
-  return project.processes.flatMap((process) => {
-    const routes =
-      process.routes.length > 0
-        ? process.routes
-        : [{ label: mainLabel, port: process.port }];
-
-    return routes.map((route) => ({
-      host: process.host,
-      label: routeLabel(count, process.id, route.label),
-      live: isRunning(process.state),
-      port: route.port,
-      ...("hostname" in route && route.hostname
-        ? { hostname: route.hostname }
-        : {}),
-    }));
-  });
-}
-
 export function ProjectAddresses({
   project,
+  forwards,
+  problem,
   onPublish,
+  onReach,
+  onCloseForward,
+  onKeepForward,
+  onTurnAccess,
 }: {
   project: Project;
+  /** This server's forwards on the owner's computer. */
+  forwards: readonly PortForward[];
+  problem: AgentError | null;
   onPublish: () => void;
+  onReach: Gesture<[number, string]>;
+  onCloseForward: Gesture<[string]>;
+  onKeepForward: Gesture<[string, boolean]>;
+  onTurnAccess: (process: string) => Promise<void>;
 }) {
   const t = useTranslations();
 
@@ -58,7 +44,7 @@ export function ProjectAddresses({
     setTimeout(() => setCopied(null), COPY_MS);
   }
 
-  const lines = linesOf(project, t("project.addresses.mainLabel"));
+  const lines = addressLines(project, t("project.addresses.mainLabel"));
 
   return (
     <Section
@@ -75,60 +61,29 @@ export function ProjectAddresses({
         className="flex flex-col gap-1.5"
         data-addresses={lines.length}
       >
-        {lines.map((route) => {
-          const url = route.hostname ? `https://${route.hostname}` : null;
-          const openable = url !== null && route.live;
-          const shown = url
-            ? url.replace("https://", "")
-            : `${route.host}:${route.port}`;
+        {lines.map((line) => {
+          const forward =
+            forwards.find((held) => held.remotePort === line.port) ?? null;
 
           return (
-            <li
-              className="flex items-center gap-2"
-              data-published={url ? "true" : "false"}
-              key={`${route.label}-${route.port}`}
-            >
-              <span className="w-20 shrink-0 truncate font-data text-caption text-ink-4 uppercase">
-                {route.label}
-              </span>
-
-              {openable ? (
-                <button
-                  className="min-w-0 flex-1 truncate text-left font-data text-control text-ink hover:underline"
-                  onClick={() => openAddress(url)}
-                  type="button"
-                >
-                  {shown}
-                </button>
-              ) : (
-                <span className="min-w-0 flex-1 truncate font-data text-control text-ink-3">
-                  {shown}
-                </span>
-              )}
-
-              {openable ? (
-                <IconButton
-                  icon={ExternalLink}
-                  label={t("project.addresses.open", { hostname: shown })}
-                  onClick={() => openAddress(url)}
-                  variant="discreet"
-                />
-              ) : null}
-
-              <IconButton
-                icon={copied === (url ?? shown) ? Check : Copy}
-                label={
-                  copied === (url ?? shown)
-                    ? t("project.overview.addressCopied")
-                    : t("project.overview.copyAddress")
-                }
-                onClick={() => copy(url ?? shown)}
-                variant="discreet"
-              />
-            </li>
+            <ProjectAddressRow
+              copied={copied}
+              forward={forward}
+              key={`${line.label}-${line.port}`}
+              line={line}
+              onCloseForward={() => forward && onCloseForward(forward.id)}
+              onCopy={copy}
+              onKeepForward={(keep) =>
+                forward && onKeepForward(forward.id, keep)
+              }
+              onReach={() => onReach(line.port, line.process)}
+              onTurnAccess={() => onTurnAccess(line.process)}
+            />
           );
         })}
       </Panel>
+
+      {problem ? <ErrorNotice error={problem} name="forward" /> : null}
     </Section>
   );
 }

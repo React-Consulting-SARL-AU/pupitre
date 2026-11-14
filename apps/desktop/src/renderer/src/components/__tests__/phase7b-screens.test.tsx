@@ -184,6 +184,7 @@ describe("local forwards", () => {
         forwards={[FORWARD, { ...FORWARD, id: "f2", movedFrom: 55_000 }]}
         nameOf={() => "Atelier"}
         onClose={later}
+        onKeep={later}
       />
     );
 
@@ -193,12 +194,39 @@ describe("local forwards", () => {
     expect(text(html)).toContain("Atelier · db.postgres");
     expect(html).toContain("Fermer la redirection du port 5432");
     expect(text(html)).toContain("Son port habituel, 55000");
+    expect(html).toContain("Garder ouverte la redirection du port 5432");
+  });
+
+  it("say which ones are kept, and which ones are coming back", () => {
+    const html = renderToStaticMarkup(
+      <ForwardsList
+        forwards={[
+          { ...FORWARD, kept: true },
+          { ...FORWARD, id: "f2", kept: true, reconnecting: true },
+        ]}
+        nameOf={() => "Atelier"}
+        onClose={later}
+        onKeep={later}
+      />
+    );
+
+    expect(html).toContain('data-kept="true"');
+    expect(text(html)).toContain("Gardée ouverte");
+    expect(text(html)).toContain("Connexion perdue, réouverture…");
+    expect(html).toContain(
+      "Ne plus garder ouverte la redirection du port 5432"
+    );
   });
 
   it("draw nothing when none is open", () => {
     expect(
       renderToStaticMarkup(
-        <ForwardsList forwards={[]} nameOf={() => null} onClose={later} />
+        <ForwardsList
+          forwards={[]}
+          nameOf={() => null}
+          onClose={later}
+          onKeep={later}
+        />
       )
     ).toBe("");
   });

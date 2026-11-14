@@ -22,12 +22,16 @@ The names, the arguments and the descriptions are the contract the model reads; 
 | `project_restart` | `project`, `process?`, `wait_seconds?` | `project.restart`, then the same | the same |
 | `project_stop` | `project`, `process?` | `project.down` | the agent's answer |
 | `project_logs` | `project`, `process?`, `lines?` | `project.list`, `project.logs` per process | each process's lines under a `── project/process · state` header |
+| `project_pull` | `project`, `restart?`, `wait_seconds?` | `project.list`, `project.pull`, `project.git_status`, then `project.restart` per process that was not stopped and the wait of `project_start` | `{ pulled, branch?, commit?, dirty?, restarted[], project, state, processes[…], logs? }` |
+| `project_git_status` | `project` | `project.git_status` | the agent's answer |
 | `service_start`, `service_stop`, `service_restart` | `service` | `service.start`, `service.stop`, `service.restart` | the agent's answer |
 | `service_logs` | `service`, `lines?` | `service.logs` | the journal's lines |
 | `doctor` | — | `doctor` | the agent's answer |
 
-- **Waiting.** A start or a restart waits until no targeted process is `starting` any more, at most `wait_seconds` — 45 by default, under the 60 seconds Codex gives a tool call, 300 at most, 0 to return at once. A process that ends `failed` comes back with the last 40 lines of its log. `project: "all"` starts every project and returns at once.
-- **Logs.** 200 lines per process by default, 2000 at most.
+- **Waiting.** A start or a restart waits until no targeted process is `starting` any more, at most `wait_seconds` — 45 by default, under the 60 seconds Codex gives a tool call, 300 at most, 0 to return at once. A process that ends `failed` comes back with the last 40 lines of its log. A process still `starting` at the limit — a JVM, a Gradle build — comes back with a `note` that tells the model to call `project_start` again, which never restarts a process starting or online: it only waits once more. `project: "all"` starts every project and returns at once.
+- **Pulling.** `project_pull` is the step after a push from a clone on another computer: `git pull --rebase --autostash` in the project's folder, through the agent's `project.pull` and under its install lock, then a restart of the processes that were not `stopped` — a `failed` one included, since a fix is what was just pulled — and the same wait. `restart: false` only pulls. A refused pull restarts nothing.
+- **Logs.** 200 lines per process by default, 2000 at most. A process under tmux believes it writes to a terminal, so Gradle, npm or cargo redraw their progress in place and the log holds every frame. Every line the model reads — `project_logs`, the tail of a failed process — is the last frame a screen would show: colours and titles dropped, cursor moves and erasures applied (`internal/mcp/screen.go`), blank runs read as one empty line.
+- **Instructions.** `initialize` answers with the fixed text, followed by the machine's projects read once at the session's start: name, folder, repository, branch, and each process's host, port, public address and whether that address asks for the access key. A model working in a clone on the laptop learns that its code runs there, and that a mobile app cannot reach an address behind the gate. No state is written there — it would be stale by the first call. Past 30 projects the rest is a count; an agent that does not answer leaves the fixed text.
 - **Pages.** `pupitred mcp` shows none: since 2.2.1 the `screenshot` tool is gone ([decision 0021](../decisions/0021-browser-mcp.md)), and the instructions send the model to the `playwright` server below.
 - **Errors.** A refusal of the agent is the tool's result, with `isError` and the text `message` then `fix`. Only a call that is not JSON-RPC, names no known method or names no known tool is a protocol error.
 
@@ -81,7 +85,7 @@ The server reaches a machine already installed without a reinstallation:
 
 The machine name is the server's SSH name prefixed by `pupitre-` (an alias `pupitre-<id>` stays as it is); any character a client refuses becomes `-`.
 
-**The app's tools.** Same session as above (versions, methods, one message per line, closed arguments, a refusal is the tool's result). Every tool but `servers` takes `server`, the id `servers` lists.
+**The app's tools.** Same session as above (versions, methods, one message per line, closed arguments, a refusal is the tool's result). Every tool but `servers` and `forward_list` takes `server`, the id `servers` lists.
 
 | Tool | Arguments | Runs |
 | --- | --- | --- |
@@ -94,7 +98,11 @@ The machine name is the server's SSH name prefixed by `pupitre-` (an alias `pupi
 | `project_add` | `server`, `project` (the params of `project.add`) | — allowed — `project.add` |
 | `project_update` | `server`, `name`, `patch` | — allowed — `project.update` |
 | `project_remove` | `server`, `name` | — allowed — `project.remove` |
+| `forward_list` | — | the forwards this computer holds: `{ address, local_port, remote_port, server, server_name, label, kept, reconnecting? }` |
+| `forward_open` | `server`, `port`, `local_port?`, `keep?` | the app's `ssh -L`, then a wait until the local port answers: `{ address, local_port, remote_port, server, kept }` |
+| `forward_close` | `server`, `port` | closes every forward to that port of that server, kept ones included |
 
+- **Forwards.** A server's ports stay on its loopback; `forward_open` brings one to this computer for an app, a simulator or a browser that calls `localhost:<port>`. Without `local_port` it takes the server's own number when it is free here, otherwise the one it took last time or a free one; an imposed `local_port` that something holds here is refused. `keep` writes it among the kept forwards ([desktop](../desktop.md#what-remains-when-the-app-closes)): it comes back with every window and after every drop. The forward is named after the project process that listens on that port. A forward that does not listen within 8 s is closed — unless kept, which keeps trying — and the refusal sends the model to the machine's own `status`. These three tools change only this computer and open nothing to the internet: they run at once, without the owner's dialog (`LOCAL_TOOLS`).
 - **Allowed** means a native dialog of the app answered *Autoriser*: its title names the gesture, its object and the machine (« Modifier le projet shop sur atelier ? »), its body what the change does — for `project_update`, only what differs from the project as `project.list` reads it (a command that changes and its restart, an address added or gone, addresses opened to anyone, an install command dropped from the patch), for `module_install` the catalogue's names and the values sent. *Refuser*, five minutes without an answer, or the test harness return a refusal that tells the model to ask the owner.
 - **Unattended.** Réglages › Agents IA › *Appliquer leurs modifications sans me demander* (`preferences.json` `localAgentsUnattended`, off by default) runs the changes without the dialog. Secrets, the usage guard and the closed arguments still apply.
 - **Secrets.** A `config` that names a field the catalogue marks `secret` is refused before anything is asked, the field named, never its value. The app's vault fills secrets.

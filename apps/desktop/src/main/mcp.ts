@@ -45,6 +45,12 @@ import {
 } from "./mcp-clients-run";
 import { lineSession } from "./mcp-session";
 import { appMcpTools, type McpMachine, type McpRequest } from "./mcp-tools-run";
+import {
+  awaitListening,
+  closeForward,
+  forwards,
+  openForward,
+} from "./port-forward";
 import { projectDeps } from "./projects";
 import {
   addProject,
@@ -53,6 +59,7 @@ import {
   updateProject,
 } from "./projects-run";
 import { home, onServersSaved, paths, read, sshNameOf } from "./servers";
+import { forwardDeps } from "./services";
 import { ensureLink } from "./ssh-config";
 import { trace } from "./trace";
 import { usageRefusal } from "./usage-guard";
@@ -272,6 +279,7 @@ const tools = appMcpTools({
   catalog: catalogOf,
   check: (serverId, modules, config) =>
     runCheck(serverId, modules, config, checkDeps()),
+  closeForward,
   confirm,
   detect: (serverId, params) =>
     agentClient.request(serverId, "project.detect", params),
@@ -279,7 +287,11 @@ const tools = appMcpTools({
     guarded(() =>
       runInstall(serverId, modules, config, () => undefined, installDeps())
     ),
+  forwards: () => forwards(),
+  listening: (port) => awaitListening(port),
   machines,
+  openForward: (serverId, port, opening, label) =>
+    openForward(serverId, port, label, forwardDeps, opening),
   projects: (serverId) => listProjects(serverId, projectDeps),
   removeProject: (serverId, name) =>
     guarded(() => onProject("project.remove", serverId, name, projectDeps)),

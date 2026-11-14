@@ -405,6 +405,10 @@ export const refusals = {
     "refusal.forward.port.none": "No local port could be reserved.",
     "refusal.forward.port.none.fix":
       "Close a few connections on this computer, then try again.",
+    "refusal.forward.port.taken":
+      "Port {port} is already taken on this computer.",
+    "refusal.forward.port.taken.fix":
+      "Stop what listens on {port} here, or open the forward on another local port.",
     "refusal.platform.unreachable": "The console did not answer.",
     "refusal.platform.unreachable.fix":
       "Check your connection. Pupitre stays usable for seven days offline.",
@@ -848,6 +852,10 @@ export const refusals = {
     "refusal.forward.port.none": "Aucun port local n'a pu être réservé.",
     "refusal.forward.port.none.fix":
       "Fermez quelques connexions sur cet ordinateur, puis réessayez.",
+    "refusal.forward.port.taken":
+      "Le port {port} est déjà pris sur cet ordinateur.",
+    "refusal.forward.port.taken.fix":
+      "Arrêtez ce qui écoute sur {port} ici, ou ouvrez la redirection sur un autre port local.",
     "refusal.platform.unreachable": "La console n'a pas répondu.",
     "refusal.platform.unreachable.fix":
       "Vérifiez votre connexion. Pupitre reste utilisable sept jours hors ligne.",

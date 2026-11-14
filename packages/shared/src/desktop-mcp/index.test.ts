@@ -5,6 +5,7 @@ import {
   CONFIRMED_TOOLS,
   isAppMcpTool,
   isPupitreMcpName,
+  LOCAL_TOOLS,
   machineMcpName,
 } from "./index"
 
@@ -41,6 +42,30 @@ describe("APP_MCP_TOOLS", () => {
     for (const tool of CONFIRMED_TOOLS) {
       expect(isAppMcpTool(tool)).toBe(true)
     }
+  })
+
+  it("never asks the owner about a change that stays on this computer", () => {
+    for (const tool of LOCAL_TOOLS) {
+      expect(isAppMcpTool(tool)).toBe(true)
+      expect(CONFIRMED_TOOLS.has(tool)).toBe(false)
+    }
+  })
+
+  it("forwards a port, never a range nor a hostname", () => {
+    expect(
+      APP_MCP_TOOLS.forward_open.safeParse({ port: 8081, server: "s1" }).success
+    ).toBe(true)
+    expect(
+      APP_MCP_TOOLS.forward_open.safeParse({ port: 70_000, server: "s1" })
+        .success
+    ).toBe(false)
+    expect(
+      APP_MCP_TOOLS.forward_open.safeParse({
+        host: "10.0.0.2",
+        port: 8081,
+        server: "s1",
+      }).success
+    ).toBe(false)
   })
 
   it("refuses an unknown argument", () => {

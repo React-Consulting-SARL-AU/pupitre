@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { ModuleConfigSchema } from "../agent-protocol/install"
+import { PortSchema } from "../agent-protocol/ports"
 import {
   ProjectAddParamsSchema,
   ProjectUpdateParamsSchema,
@@ -62,6 +63,26 @@ export const APP_MCP_TOOLS = {
     server: ServerArgSchema,
     name: ProjectNameSchema,
   }),
+  forward_list: z.strictObject({}),
+  forward_open: z.strictObject({
+    server: ServerArgSchema,
+    port: PortSchema.describe(
+      "The port on the server, as project_list or status gives it"
+    ),
+    local_port: PortSchema.optional().describe(
+      "The port on this computer. Default: the server's own number when it is free here, another one otherwise"
+    ),
+    keep: z
+      .boolean()
+      .optional()
+      .describe(
+        "Open it again each time the app starts and after the connection drops, until closed"
+      ),
+  }),
+  forward_close: z.strictObject({
+    server: ServerArgSchema,
+    port: PortSchema.describe("The port on the server"),
+  }),
 } as const
 
 export type AppMcpTool = keyof typeof APP_MCP_TOOLS
@@ -72,7 +93,9 @@ export const APP_MCP_INSTRUCTIONS =
   "Call servers first. To start, stop or restart a project or a service, or to read its logs, use the MCP server named in that " +
   "machine's entry, never this one. A change here may wait for the owner to allow it in the Pupitre app; a refused one is not retried " +
   "without asking them. Secrets are never " +
-  "passed here: the owner fills them in the app."
+  "passed here: the owner fills them in the app. " +
+  "A server's ports stay on its loopback: when something on this computer must reach one — an app, a simulator or a browser " +
+  "that calls localhost:<port> — open a forward with forward_open, with keep when it should outlive this session."
 
 export const APP_MCP_TEXTS: Record<
   AppMcpTool,
@@ -82,6 +105,22 @@ export const APP_MCP_TEXTS: Record<
     description:
       "The modules this server can install, with their state, their configuration fields and their current values.",
     title: "Service catalogue",
+  },
+  forward_close: {
+    description:
+      "Close the forwards this computer holds to a server's port, kept ones included: they no longer come back.",
+    title: "Close a forward",
+  },
+  forward_list: {
+    description:
+      "The forwards this computer holds: each server port reachable here, its local address, and whether it is kept.",
+    title: "Forwards on this computer",
+  },
+  forward_open: {
+    description:
+      "Make a server's port reachable on this computer over the app's SSH connection (ssh -L), and answer once it listens with its local address. " +
+      "The server's port stays closed to the internet. Nothing is asked of the owner.",
+    title: "Open a forward",
   },
   module_install: {
     description:
@@ -138,6 +177,12 @@ export const CONFIRMED_TOOLS: ReadonlySet<AppMcpTool> = new Set<AppMcpTool>([
   "project_add",
   "project_update",
   "project_remove",
+])
+
+/** The tools that change only this computer: they run at once, never asking the owner. */
+export const LOCAL_TOOLS: ReadonlySet<AppMcpTool> = new Set<AppMcpTool>([
+  "forward_open",
+  "forward_close",
 ])
 
 export function isAppMcpTool(name: string): name is AppMcpTool {

@@ -24,8 +24,10 @@ import {
   type AppMcpArgs,
   type AppMcpTool,
   CONFIRMED_TOOLS,
+  LOCAL_TOOLS,
 } from "@pupitre/shared/desktop-mcp";
 import type { AgentError, AgentResponse, ErrorPhrase } from "@shared/agent";
+import type { PortForward } from "@shared/services";
 import {
   addLines,
   type ChangeLine,
@@ -37,6 +39,7 @@ import {
   updateLines,
 } from "./mcp-changes-run";
 import { type McpResult, type McpTool, refusal, text } from "./mcp-session";
+import type { ForwardOptions } from "./port-forward";
 
 /** What the owner reads before a change runs, worded in the app's language. */
 export interface McpRequest {
@@ -93,6 +96,16 @@ export interface McpToolDeps {
     serverId: string,
     name: string
   ) => Promise<AgentResponse<ProjectRemoveResult>>;
+  forwards: () => PortForward[];
+  openForward: (
+    serverId: string,
+    port: number,
+    opening: ForwardOptions,
+    label: string
+  ) => Promise<AgentResponse<PortForward>>;
+  closeForward: (id: string) => void;
+  /** `ssh -L` listens only once authenticated: the model gets an address that answers. */
+  listening: (port: number) => Promise<boolean>;
   /** True once the owner allowed it in the app; false when refused, unanswered or with no window to ask in. */
   confirm: (request: McpRequest) => Promise<boolean>;
   /** The owner chose to let changes run without asking. */
@@ -133,7 +146,7 @@ function secretKeysIn(
   );
 }
 
-type MachineTool = Exclude<AppMcpTool, "servers">;
+type MachineTool = Exclude<AppMcpTool, "servers" | "forward_list">;
 
 interface Call<T extends MachineTool> {
   args: AppMcpArgs<T>;
@@ -273,11 +286,118 @@ async function detectProject({
   return answered(await deps.detect(machine.id, params), deps);
 }
 
+function openedView(forward: PortForward) {
+  return {
+    address: `127.0.0.1:${forward.localPort}`,
+    kept: forward.kept === true,
+    local_port: forward.localPort,
+    remote_port: forward.remotePort,
+    server: forward.serverId,
+    ...(forward.reconnecting ? { reconnecting: true } : {}),
+  };
+}
+
+function forwardView(forward: PortForward, machines: readonly McpMachine[]) {
+  return {
+    ...openedView(forward),
+    label: forward.label,
+    server_name:
+      machines.find((machine) => machine.id === forward.serverId)?.name ?? "",
+  };
+}
+
+/** Named after the process that listens there, so the app's list of forwards reads like the project. */
+async function forwardLabel(
+  deps: McpToolDeps,
+  serverId: string,
+  port: number
+): Promise<string> {
+  const listed = await deps.projects(serverId);
+  const projects = listed.ok ? listed.result.projects : [];
+
+  for (const project of projects) {
+    const process = project.processes.find(
+      (candidate) =>
+        candidate.port === port ||
+        candidate.routes.some((route) => route.port === port)
+    );
+
+    if (process) {
+      return `${project.name}/${process.id}`;
+    }
+  }
+
+  return String(port);
+}
+
+async function openForwardFor({
+  args,
+  machine,
+  deps,
+}: Call<"forward_open">): Promise<McpResult> {
+  const keep = args.keep === true;
+  const opening: ForwardOptions =
+    args.local_port === undefined
+      ? { keep, preferRemote: true }
+      : { keep, localPort: args.local_port };
+
+  const opened = await deps.openForward(
+    machine.id,
+    args.port,
+    opening,
+    await forwardLabel(deps, machine.id, args.port)
+  );
+
+  if (!opened.ok) {
+    return answered(opened, deps);
+  }
+
+  const forward = opened.result;
+
+  if (!(await deps.listening(forward.localPort))) {
+    if (!forward.kept) {
+      deps.closeForward(forward.id);
+    }
+
+    return refusal(
+      `the forward to port ${args.port} on ${machine.name} did not come up: the app's SSH connection to the machine failed. ` +
+        `Call status on the ${machine.entry} MCP server to check that the machine answers.`
+    );
+  }
+
+  return json(openedView(forward));
+}
+
+function closeForwardsTo({
+  args,
+  machine,
+  deps,
+}: Call<"forward_close">): Promise<McpResult> {
+  const matching = deps
+    .forwards()
+    .filter(
+      (forward) =>
+        forward.serverId === machine.id && forward.remotePort === args.port
+    );
+
+  for (const forward of matching) {
+    deps.closeForward(forward.id);
+  }
+
+  return Promise.resolve(
+    text(
+      `${matching.length} forward(s) to port ${args.port} on ${machine.name} closed.`
+    )
+  );
+}
+
 const RUNNERS: {
   [T in MachineTool]: (call: Call<T>) => Promise<McpResult>;
 } = {
   catalog: async ({ machine, deps }) =>
     answered(await deps.catalog(machine.id), deps),
+  forward_close: closeForwardsTo,
+  forward_open: openForwardFor,
   module_install: installModules,
   module_uninstall: (call) =>
     confirmed(
@@ -346,6 +466,14 @@ async function runTool<T extends AppMcpTool>(
     return json(deps.machines());
   }
 
+  if (tool === "forward_list") {
+    const machines = deps.machines();
+
+    return json(
+      deps.forwards().map((forward) => forwardView(forward, machines))
+    );
+  }
+
   const args = parsed.data as AppMcpArgs<MachineTool>;
   const machine = deps.machines().find((known) => known.id === args.server);
 
@@ -364,13 +492,13 @@ async function runTool<T extends AppMcpTool>(
 
 export function appMcpTools(deps: McpToolDeps): McpTool[] {
   return (Object.keys(APP_MCP_TOOLS) as AppMcpTool[]).map((name) => {
-    const changes = CONFIRMED_TOOLS.has(name);
+    const changes = CONFIRMED_TOOLS.has(name) || LOCAL_TOOLS.has(name);
 
     return {
       annotations: {
         destructiveHint:
           name === "module_uninstall" || name === "project_remove",
-        idempotentHint: !changes,
+        idempotentHint: !CONFIRMED_TOOLS.has(name),
         openWorldHint: false,
         readOnlyHint: !changes,
       },

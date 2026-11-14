@@ -104,8 +104,11 @@ describe("the service channels", () => {
       refused("service:db-url", OWN_PAGE, "srv", "pg", null, "extra")
     ).toBe(true);
     expect(
-      refused("service:forward-open", OWN_PAGE, "srv", 5432, "pg", "extra")
+      refused("service:forward-open", OWN_PAGE, "srv", 5432, "pg", {}, "extra")
     ).toBe(true);
+    expect(refused("service:forward-keep", OWN_PAGE, "f1", true, "extra")).toBe(
+      true
+    );
     expect(
       refused("service:db-shell", OWN_PAGE, "srv", "pg", null, "extra")
     ).toBe(true);
@@ -140,6 +143,11 @@ describe("the service channels", () => {
     expect(refused("service:forget", OWN_PAGE, "srv", 3)).toBe(true);
     expect(refused("service:forward-close", OWN_PAGE, 3)).toBe(true);
     expect(refused("service:forwards", OWN_PAGE, 3)).toBe(true);
+    expect(
+      refused("service:forward-open", OWN_PAGE, "srv", 5432, "pg", "keep")
+    ).toBe(true);
+    expect(refused("service:forward-keep", OWN_PAGE, 3, true)).toBe(true);
+    expect(refused("service:forward-keep", OWN_PAGE, "f1", "yes")).toBe(true);
   });
 
   it("refuse a log without a token or followed by anything other than a boolean", () => {

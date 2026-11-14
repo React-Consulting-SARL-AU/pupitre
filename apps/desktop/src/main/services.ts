@@ -10,8 +10,11 @@ import {
   closeForward,
   closeForwards,
   type ForwardDeps,
+  type ForwardOptions,
   forwards,
+  keepForward,
   openForward,
+  reopenKeptForwards,
   watchForwards,
 } from "./port-forward";
 import { relayTo } from "./relay";
@@ -51,6 +54,24 @@ export const forwardDeps: ForwardDeps = {
 
 function isStringOrNull(value: unknown): value is string | null {
   return value === null || isString(value);
+}
+
+function isOpeningOrNull(
+  value: unknown
+): value is Record<string, unknown> | null {
+  return value === null || (typeof value === "object" && !Array.isArray(value));
+}
+
+/** The window chooses how a forward is opened, never which local port it imposes. */
+function openingOf(value: Record<string, unknown> | null): ForwardOptions {
+  return {
+    keep: value?.keep === true,
+    preferRemote: value?.preferRemote === true,
+  };
+}
+
+export function reopenKept(): Promise<void> {
+  return reopenKeptForwards(forwardDeps);
 }
 
 export function forgetServiceCredentials(serverId?: string): void {
@@ -109,13 +130,19 @@ export function registerServices(): void {
 
   handle(
     "service:forward-open",
-    shape(anything, anything, anything),
-    (_event, serverId, remotePort, label) =>
-      openForward(serverId, remotePort, label, forwardDeps)
+    shape(anything, anything, anything, isOpeningOrNull),
+    (_event, serverId, remotePort, label, opening) =>
+      openForward(serverId, remotePort, label, forwardDeps, openingOf(opening))
   );
 
   handle("service:forward-close", shape(isString), (_event, id) =>
     closeForward(id)
+  );
+
+  handle(
+    "service:forward-keep",
+    shape(isString, isBoolean),
+    (_event, id, keep) => keepForward(id, keep)
   );
 
   handle("service:forwards", shape(isStringOrNull), (_event, serverId) =>

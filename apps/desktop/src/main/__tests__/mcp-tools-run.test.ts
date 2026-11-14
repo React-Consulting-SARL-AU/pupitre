@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { AgentResponse } from "@shared/agent";
+import type { PortForward } from "@shared/services";
 import { dialogTextIn } from "../dialogs";
 import type { McpResult } from "../mcp-session";
 import {
@@ -37,6 +38,7 @@ function recorder(
     },
     catalog: () => ok({ modules: [] } as never),
     check: () => ok({ problems: [], warnings: [] }),
+    closeForward: nobodyCalls,
     confirm: (request) => {
       asked.push(request);
 
@@ -48,7 +50,10 @@ function recorder(
 
       return ok({ installed: modules } as never);
     },
+    forwards: () => [],
+    listening: () => Promise.resolve(true),
     machines: () => [{ entry: "pupitre-atelier", id: "s1", name: "Atelier" }],
+    openForward: nobodyCalls,
     projects: () => ok({ projects: [] } as never),
     removeProject: (serverId, name) => {
       ran.push(`remove ${serverId} ${name}`);
@@ -108,6 +113,7 @@ describe("the app's MCP tools", () => {
       "catalog",
       "project_list",
       "project_detect",
+      "forward_list",
     ]);
   });
 
@@ -361,5 +367,121 @@ describe("the app's MCP tools", () => {
     expect(said(result)).toBe(
       "privilege_required: No sudo password here.\nEnter it in Settings."
     );
+  });
+});
+
+describe("the forwards a local agent opens", () => {
+  const FORWARD: PortForward = {
+    id: "f1",
+    kept: false,
+    label: "8081",
+    localPort: 8081,
+    remotePort: 8081,
+    serverId: "s1",
+  };
+
+  function forwarding(listening = true): {
+    deps: McpToolDeps;
+    opened: { serverId: string; port: number; opening: object }[];
+    closed: string[];
+  } {
+    const opened: { serverId: string; port: number; opening: object }[] = [];
+    const closed: string[] = [];
+    const { deps } = recorder({
+      closeForward: (id) => {
+        closed.push(id);
+      },
+      forwards: () => [
+        FORWARD,
+        { ...FORWARD, id: "f2", localPort: 55_001 },
+        { ...FORWARD, id: "f3", remotePort: 5432, localPort: 5432 },
+      ],
+      listening: () => Promise.resolve(listening),
+      openForward: (serverId, port, opening) => {
+        opened.push({ opening, port, serverId });
+
+        return ok({
+          ...FORWARD,
+          kept: opening.keep === true,
+          remotePort: port,
+        });
+      },
+    });
+
+    return { closed, deps, opened };
+  }
+
+  it("opens on the server's own port number by default, and answers once it listens", async () => {
+    const { deps, opened } = forwarding();
+    const result = await call(deps, "forward_open", {
+      port: 8081,
+      server: "s1",
+    });
+
+    expect(opened).toEqual([
+      {
+        opening: { keep: false, preferRemote: true },
+        port: 8081,
+        serverId: "s1",
+      },
+    ]);
+    expect(JSON.parse(said(result))).toEqual({
+      address: "127.0.0.1:8081",
+      kept: false,
+      local_port: 8081,
+      remote_port: 8081,
+      server: "s1",
+    });
+  });
+
+  it("takes the local port and the keeping it is given", async () => {
+    const { deps, opened } = forwarding();
+
+    await call(deps, "forward_open", {
+      keep: true,
+      local_port: 9000,
+      port: 8081,
+      server: "s1",
+    });
+
+    expect(opened[0]?.opening).toEqual({ keep: true, localPort: 9000 });
+  });
+
+  it("closes a forward that never listened, and says why", async () => {
+    const { deps, closed } = forwarding(false);
+    const result = await call(deps, "forward_open", {
+      port: 8081,
+      server: "s1",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(said(result)).toContain("pupitre-atelier");
+    expect(closed).toEqual(["f1"]);
+  });
+
+  it("closes every forward to a server's port", async () => {
+    const { deps, closed } = forwarding();
+    const result = await call(deps, "forward_close", {
+      port: 8081,
+      server: "s1",
+    });
+
+    expect(closed).toEqual(["f1", "f2"]);
+    expect(said(result)).toContain("2");
+  });
+
+  it("lists every forward with its server's name", async () => {
+    const { deps } = forwarding();
+    const listed = JSON.parse(said(await call(deps, "forward_list", {})));
+
+    expect(listed[0]).toEqual({
+      address: "127.0.0.1:8081",
+      kept: false,
+      label: "8081",
+      local_port: 8081,
+      remote_port: 8081,
+      server: "s1",
+      server_name: "Atelier",
+    });
   });
 });

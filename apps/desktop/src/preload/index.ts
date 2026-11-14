@@ -105,6 +105,7 @@ import type {
 import type {
   DatabaseShell,
   PortForward,
+  PortForwardOpening,
   ServiceDetail,
 } from "@shared/services";
 import type { DeepLink, MenuCommand } from "@shared/shell";
@@ -668,11 +669,20 @@ const api = {
   openPortForward: (
     serverId: string,
     remotePort: number,
-    label: string
+    label: string,
+    opening?: PortForwardOpening
   ): Promise<AgentResponse<PortForward>> =>
-    ipcRenderer.invoke("service:forward-open", serverId, remotePort, label),
+    ipcRenderer.invoke(
+      "service:forward-open",
+      serverId,
+      remotePort,
+      label,
+      opening ?? null
+    ),
   closePortForward: (id: string): Promise<PortForward[]> =>
     ipcRenderer.invoke("service:forward-close", id),
+  keepPortForward: (id: string, keep: boolean): Promise<PortForward[]> =>
+    ipcRenderer.invoke("service:forward-keep", id, keep),
   portForwards: (serverId?: string): Promise<PortForward[]> =>
     ipcRenderer.invoke("service:forwards", serverId ?? null),
   /** Pushed whole on every change: a forward can die on its own. */

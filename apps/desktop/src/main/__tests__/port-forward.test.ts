@@ -12,7 +12,9 @@ import {
   closeForwards,
   type ForwardDeps,
   forwards,
+  keepForward,
   openForward,
+  reopenKeptForwards,
   watchForwards,
 } from "../port-forward";
 
@@ -44,6 +46,7 @@ function deps(): { deps: ForwardDeps; spawned: string[][]; born: Fake[] } {
   return {
     born,
     deps: {
+      listening: () => Promise.resolve(true),
       freePort: () => {
         port += 1;
 
@@ -243,8 +246,9 @@ describe("a redirection's local port, from one run to the next", () => {
     expect(again.ok && again.result.movedFrom).toBeUndefined();
     expect(taken).toEqual([55_001]);
     expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({
+      kept: [],
       ports: { [SERVER]: { "5432": 55_001 } },
-      version: 1,
+      version: 2,
     });
   });
 
@@ -312,5 +316,244 @@ describe("a redirection's local port, from one run to the next", () => {
 
     expect(two.ok).toBe(true);
     expect(seen).toEqual([1, 2, 1, 0]);
+  });
+});
+
+describe("a forward's local port, when the caller has one in mind", () => {
+  it("takes the server's own number when it is free here", async () => {
+    const harness = deps();
+
+    harness.deps.portFree = (port) => Promise.resolve(port === 8081);
+
+    const same = await openForward(
+      SERVER,
+      8081,
+      "intranet/server",
+      harness.deps,
+      {
+        preferRemote: true,
+      }
+    );
+    const other = await openForward(
+      SERVER,
+      3001,
+      "intranet/client",
+      harness.deps,
+      {
+        preferRemote: true,
+      }
+    );
+
+    expect(same.ok && same.result.localPort).toBe(8081);
+    expect(other.ok && other.result.localPort).toBe(55_001);
+  });
+
+  it("refuses an imposed port something else holds on this computer", async () => {
+    const harness = deps();
+
+    harness.deps.portFree = () => Promise.resolve(false);
+
+    const answer = await openForward(
+      SERVER,
+      8081,
+      "intranet/server",
+      harness.deps,
+      {
+        localPort: 8081,
+      }
+    );
+
+    expect(answer.ok).toBe(false);
+    expect(answer.ok ? null : answer.error.phrase?.id).toBe(
+      "refusal.forward.port.taken"
+    );
+    expect(harness.spawned).toEqual([]);
+  });
+});
+
+describe("a kept forward", () => {
+  function memoryFile(): string {
+    return join(
+      mkdtempSync(join(tmpdir(), "pupitre-forwards-")),
+      "forwards.json"
+    );
+  }
+
+  function later(): {
+    later: (run: () => void, ms: number) => void;
+    waits: number[];
+    fire: () => void;
+  } {
+    const queued: (() => void)[] = [];
+    const waits: number[] = [];
+
+    return {
+      fire: () => {
+        for (const run of queued.splice(0)) {
+          run();
+        }
+      },
+      later: (run, ms) => {
+        queued.push(run);
+        waits.push(ms);
+      },
+      waits,
+    };
+  }
+
+  it("is written down, and opened again at the next start on its port", async () => {
+    const file = memoryFile();
+    const harness = deps();
+
+    harness.deps.memory = forwardMemory(file);
+    harness.deps.portFree = () => Promise.resolve(true);
+
+    const answer = await openForward(
+      SERVER,
+      8081,
+      "intranet/server",
+      harness.deps,
+      {
+        keep: true,
+        preferRemote: true,
+      }
+    );
+
+    expect(answer.ok && answer.result.kept).toBe(true);
+    expect(readForwardMemory(file).kept).toEqual([
+      {
+        label: "intranet/server",
+        localPort: 8081,
+        remotePort: 8081,
+        serverId: SERVER,
+      },
+    ]);
+
+    closeForwards();
+
+    const next = deps();
+
+    next.deps.memory = forwardMemory(file);
+    next.deps.portFree = () => Promise.resolve(true);
+    await reopenKeptForwards(next.deps);
+
+    expect(next.spawned[0]).toContain("8081:127.0.0.1:8081");
+    expect(forwards(SERVER)[0]?.kept).toBe(true);
+  });
+
+  it("comes back after its connection drops, and waits longer each time it fails", async () => {
+    const harness = deps();
+    const clock = later();
+
+    harness.deps.later = clock.later;
+    harness.deps.portFree = () => Promise.resolve(true);
+
+    await openForward(SERVER, 8081, "intranet/server", harness.deps, {
+      keep: true,
+      localPort: 8081,
+    });
+
+    harness.born[0]?.emit("exit", 255);
+
+    expect(forwards(SERVER)[0]?.reconnecting).toBe(true);
+
+    clock.fire();
+    harness.born[1]?.emit("exit", 255);
+    clock.fire();
+
+    expect(harness.spawned).toHaveLength(3);
+    expect(harness.spawned[2]).toContain("8081:127.0.0.1:8081");
+    expect(clock.waits[1]).toBeGreaterThan(clock.waits[0] ?? 0);
+  });
+
+  it("stops coming back once closed by hand, and is forgotten", async () => {
+    const file = memoryFile();
+    const harness = deps();
+    const clock = later();
+
+    harness.deps.memory = forwardMemory(file);
+    harness.deps.later = clock.later;
+    harness.deps.portFree = () => Promise.resolve(true);
+
+    const answer = await openForward(
+      SERVER,
+      8081,
+      "intranet/server",
+      harness.deps,
+      {
+        keep: true,
+        localPort: 8081,
+      }
+    );
+
+    closeForward(answer.ok ? answer.result.id : "");
+    clock.fire();
+
+    expect(harness.spawned).toHaveLength(1);
+    expect(readForwardMemory(file).kept).toEqual([]);
+  });
+
+  it("is let go when its server is gone", async () => {
+    const file = memoryFile();
+    const harness = deps();
+    const clock = later();
+    let known = true;
+
+    harness.deps.memory = forwardMemory(file);
+    harness.deps.later = clock.later;
+    harness.deps.portFree = () => Promise.resolve(true);
+    harness.deps.resolve = () => (known ? ["pupitre-srv-1"] : null);
+
+    await openForward(SERVER, 8081, "intranet/server", harness.deps, {
+      keep: true,
+      localPort: 8081,
+    });
+
+    known = false;
+    closeForwards(SERVER);
+    clock.fire();
+
+    expect(forwards(SERVER)).toEqual([]);
+    expect(readForwardMemory(file).kept).toEqual([]);
+  });
+
+  it("restarts with its server's new settings rather than closing", async () => {
+    const harness = deps();
+    const clock = later();
+
+    harness.deps.later = clock.later;
+    harness.deps.portFree = () => Promise.resolve(true);
+
+    await openForward(SERVER, 8081, "intranet/server", harness.deps, {
+      keep: true,
+      localPort: 8081,
+    });
+    await openForward(SERVER, 5432, "db.postgres", harness.deps);
+
+    closeForwards(SERVER);
+    clock.fire();
+
+    expect(forwards(SERVER).map((forward) => forward.remotePort)).toEqual([
+      8081,
+    ]);
+    expect(harness.spawned).toHaveLength(3);
+  });
+
+  it("can be kept or let go once open", async () => {
+    const file = memoryFile();
+    const harness = deps();
+
+    harness.deps.memory = forwardMemory(file);
+
+    const answer = await openForward(SERVER, 5432, "db.postgres", harness.deps);
+    const id = answer.ok ? answer.result.id : "";
+
+    keepForward(id, true);
+    expect(readForwardMemory(file).kept).toHaveLength(1);
+    expect(forwards(SERVER)[0]?.kept).toBe(true);
+
+    keepForward(id, false);
+    expect(readForwardMemory(file).kept).toEqual([]);
+    expect(forwards(SERVER)[0]?.kept).toBe(false);
   });
 });

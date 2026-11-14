@@ -43,7 +43,11 @@ import { forgetProjects } from "./projects-run";
 import { registerReenroll } from "./reenroll";
 import { registerServerChannels } from "./server-channels";
 import { sshPathsWritten } from "./servers";
-import { forgetServiceCredentials, registerServices } from "./services";
+import {
+  forgetServiceCredentials,
+  registerServices,
+  reopenKept,
+} from "./services";
 import { registerSignInCancel } from "./sign-in-cancel";
 import { registerSudo } from "./sudo";
 import { registerTerminalChannels } from "./terminal-channels";
@@ -197,6 +201,9 @@ function createWindow(): void {
   } else {
     window.loadFile(PAGE.indexFile);
   }
+
+  // The window's closing released every forward: the kept ones come back with it.
+  reopenKept().catch(failed);
 }
 
 function installMenu(): void {

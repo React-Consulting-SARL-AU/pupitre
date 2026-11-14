@@ -5,8 +5,11 @@ import type {
   ProjectGitStatusResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
+import type { Project } from "@pupitre/shared/agent-protocol/state";
 import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
+import { accessTurned } from "../lib/process-access";
+import { useSnapshot } from "./snapshot";
 
 export type GitState =
   | { status: "idle" }
@@ -58,6 +61,12 @@ interface ProjectStore {
   readEnv: (serverId: string, name: string, force?: boolean) => Promise<void>;
   checkout: (serverId: string, name: string, branch: string) => Promise<void>;
   sync: (serverId: string, name: string) => Promise<void>;
+  /** A protected process becomes public, a public one protected. */
+  turnAccess: (
+    serverId: string,
+    project: Project,
+    processId: string
+  ) => Promise<void>;
   clearDiff: () => void;
   close: () => void;
 }
@@ -191,6 +200,24 @@ export const useProject = create<ProjectStore>((set, get) => ({
 
     if (answer.ok) {
       await get().readGit(serverId, name);
+    }
+  },
+
+  async turnAccess(serverId, project, processId) {
+    const params = accessTurned(project, processId);
+
+    if (!params) {
+      return;
+    }
+
+    set({ problem: null });
+
+    const answer = await window.pupitre.updateProject(serverId, params);
+
+    set({ problem: answer.ok ? null : answer.error });
+
+    if (answer.ok) {
+      await useSnapshot.getState().read(serverId);
     }
   },
 

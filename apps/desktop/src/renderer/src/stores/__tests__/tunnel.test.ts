@@ -163,6 +163,34 @@ describe("the app's tunnel", () => {
 
     expect(useTunnel.getState().forwards).toEqual([]);
   });
+
+  it("passes how the forward is opened, and keeps it on request", async () => {
+    const openings: unknown[] = [];
+    const kept: [string, boolean][] = [];
+
+    stubPupitre({
+      keepPortForward: (id, keep) => {
+        kept.push([id, keep]);
+
+        return Promise.resolve([{ ...FORWARD, kept: keep }]);
+      },
+      openPortForward: (_server, _port, _label, opening) => {
+        openings.push(opening);
+
+        return Promise.resolve({ ok: true, result: FORWARD });
+      },
+      portForwards: () => Promise.resolve([FORWARD]),
+    });
+
+    await useTunnel
+      .getState()
+      .forward(SERVER, 8081, "intranet/server", { preferRemote: true });
+    await useTunnel.getState().keepForward("f1", true);
+
+    expect(openings).toEqual([{ preferRemote: true }]);
+    expect(kept).toEqual([["f1", true]]);
+    expect(useTunnel.getState().forwards[0]?.kept).toBe(true);
+  });
 });
 
 describe("this computer's forward list", () => {

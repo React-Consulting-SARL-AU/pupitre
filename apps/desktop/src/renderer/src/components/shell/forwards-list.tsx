@@ -11,10 +11,12 @@ export function ForwardsList({
   forwards,
   nameOf,
   onClose,
+  onKeep,
 }: {
   forwards: readonly PortForward[];
   nameOf: (serverId: string) => string | null;
   onClose: (id: string) => Promise<void>;
+  onKeep: (id: string, keep: boolean) => Promise<void>;
 }) {
   const t = useTranslations();
 
@@ -54,6 +56,7 @@ export function ForwardsList({
               forward={forward}
               key={forward.id}
               onClose={() => onClose(forward.id)}
+              onKeep={(keep) => onKeep(forward.id, keep)}
               serverName={nameOf(forward.serverId)}
             />
           ))}
