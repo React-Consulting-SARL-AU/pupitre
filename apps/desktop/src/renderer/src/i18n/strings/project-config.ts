@@ -12,6 +12,14 @@ export const projectConfig = {
     "project.addresses.mainLabel": "main",
     "project.addresses.open": "Open {hostname}",
     "project.addresses.publishAnother": "Publish another port",
+    "project.addresses.guarded":
+      "{hostname} asks for the Pupitre key: make it public",
+    "project.addresses.public":
+      "{hostname} is public: protect it with the Pupitre key",
+    "project.addresses.publicQuestion":
+      "Anyone who knows {hostname} reaches {process}, with no key: a mobile app or a webhook can call it, and so can anyone else.",
+    "project.addresses.publicConfirm": "Make it public",
+    "project.addresses.publicTitle": "Make {hostname} public?",
     "project.config.installHelp":
       "Left empty, the command of {pkgmgr} is what installs the dependencies.",
     "project.config.branchHelp": "The branch the next sync brings.",
@@ -43,6 +51,14 @@ export const projectConfig = {
     "project.addresses.mainLabel": "principal",
     "project.addresses.open": "Ouvrir {hostname}",
     "project.addresses.publishAnother": "Publier un autre port",
+    "project.addresses.guarded":
+      "{hostname} demande la clé Pupitre : la rendre publique",
+    "project.addresses.public":
+      "{hostname} est publique : la protéger par la clé Pupitre",
+    "project.addresses.publicQuestion":
+      "Quiconque connaît {hostname} atteint {process}, sans clé : une app mobile ou un webhook peut l'appeler, et n'importe qui d'autre aussi.",
+    "project.addresses.publicConfirm": "La rendre publique",
+    "project.addresses.publicTitle": "Rendre {hostname} publique ?",
     "project.config.installHelp":
       "Laissée vide, c'est la commande de {pkgmgr} qui installe les dépendances.",
     "project.config.branchHelp":

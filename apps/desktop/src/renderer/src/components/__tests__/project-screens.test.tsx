@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import type { Project } from "@pupitre/shared/agent-protocol/state";
+import type { PortForward } from "@shared/services";
 import { renderToStaticMarkup } from "react-dom/server";
 import { mount } from "../../__tests__/dom";
 import {
@@ -272,6 +274,7 @@ describe("a project overview", () => {
         onRegenerateEnv={() => Promise.resolve()}
         onSync={NOOP}
         project={PROJECT}
+        serverId="srv-1"
         switching={false}
         syncing={false}
       />
@@ -305,6 +308,7 @@ describe("a project overview", () => {
         onRegenerateEnv={() => Promise.resolve()}
         onSync={NOOP}
         project={PROJECT}
+        serverId="srv-1"
         switching={false}
         syncing={false}
       />
@@ -315,23 +319,34 @@ describe("a project overview", () => {
   });
 });
 
+function addresses(
+  project: Project,
+  forwards: readonly PortForward[] = []
+): string {
+  return renderToStaticMarkup(
+    <ProjectAddresses
+      forwards={forwards}
+      onCloseForward={NOOP}
+      onKeepForward={NOOP}
+      onPublish={NOOP}
+      onReach={NOOP}
+      onTurnAccess={RESOLVED}
+      problem={null}
+      project={project}
+    />
+  );
+}
+
 describe("a project's addresses", () => {
   it("show an unnamed port on the loopback, and a named port as a link", () => {
-    const html = renderToStaticMarkup(
-      <ProjectAddresses onPublish={NOOP} project={STOPPED} />
-    );
-    const bare = renderToStaticMarkup(
-      <ProjectAddresses
-        onPublish={NOOP}
-        project={{
-          ...STOPPED,
-          processes: STOPPED.processes.map((process) => ({
-            ...process,
-            routes: [],
-          })),
-        }}
-      />
-    );
+    const html = addresses(STOPPED);
+    const bare = addresses({
+      ...STOPPED,
+      processes: STOPPED.processes.map((process) => ({
+        ...process,
+        routes: [],
+      })),
+    });
 
     expect(html).toContain("127.0.0.1:3100");
     expect(html).toContain('data-published="false"');
@@ -341,27 +356,64 @@ describe("a project's addresses", () => {
   });
 
   it("only offer to open a web name while its process is running", () => {
-    const online = renderToStaticMarkup(
-      <ProjectAddresses onPublish={NOOP} project={PROJECT} />
-    );
-    const halted = renderToStaticMarkup(
-      <ProjectAddresses
-        onPublish={NOOP}
-        project={{
-          ...PROJECT,
-          processes: PROJECT.processes.map((process) => ({
-            ...process,
-            state: "stopped" as const,
-          })),
-          state: "stopped",
-        }}
-      />
-    );
+    const online = addresses(PROJECT);
+    const halted = addresses({
+      ...PROJECT,
+      processes: PROJECT.processes.map((process) => ({
+        ...process,
+        state: "stopped" as const,
+      })),
+      state: "stopped",
+    });
 
     expect(online).toContain('data-tooltip="Ouvrir flyleaf.example.org"');
     expect(halted).toContain("flyleaf.example.org");
     expect(halted).toContain('data-published="true"');
     expect(halted).not.toContain("Ouvrir ");
+  });
+
+  it("offer each port on this computer, and show the forward once open", () => {
+    const forward: PortForward = {
+      id: "f1",
+      kept: true,
+      label: "atlas-web/atlas-web",
+      localPort: 3100,
+      remotePort: 3100,
+      serverId: "srv-1",
+    };
+    const closed = addresses(STOPPED);
+    const opened = addresses(STOPPED, [forward]);
+
+    expect(closed).toContain(
+      'data-tooltip="Accéder au port 3100 depuis cet ordinateur"'
+    );
+    expect(opened).not.toContain("Accéder au port 3100");
+    expect(opened).toContain('data-forwarded="true"');
+    expect(opened).toContain('data-kept="true"');
+    expect(opened).toContain("Sur cet ordinateur");
+    expect(opened).toContain(
+      'data-tooltip="Ne plus garder ouverte la redirection du port 3100"'
+    );
+  });
+
+  it("tell a protected name from a public one, and say nothing without a gate", () => {
+    const gated = addresses({
+      ...PROJECT,
+      processes: PROJECT.processes.map((process) => ({
+        ...process,
+        protected: false,
+      })),
+      protected: true,
+    });
+    const guarded = addresses({ ...PROJECT, protected: true });
+
+    expect(guarded).toContain('data-guarded="true"');
+    expect(guarded).toContain(
+      'data-tooltip="flyleaf.example.org demande la clé Pupitre : la rendre publique"'
+    );
+    expect(gated).toContain('data-guarded="false"');
+    expect(gated).toContain("flyleaf.example.org est publique");
+    expect(addresses(PROJECT)).not.toContain("data-guarded");
   });
 });
 

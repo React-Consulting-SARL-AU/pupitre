@@ -55,7 +55,7 @@ export const CatalogResultSchema = z.object({
 
 export type CatalogResult = z.infer<typeof CatalogResultSchema>
 
-const ModuleConfigSchema = z.record(
+export const ModuleConfigSchema = z.record(
   z.string(),
   z.record(z.string(), z.unknown())
 )
@@ -119,6 +119,8 @@ export const UninstallParamsSchema = z.strictObject({
 export const UninstallResultSchema = z.object({
   failed: z.array(z.string()),
 })
+
+export type UninstallResult = z.infer<typeof UninstallResultSchema>
 
 export const HardenParamsSchema = z.strictObject({
   user: z.literal("dev"),

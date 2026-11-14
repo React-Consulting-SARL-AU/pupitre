@@ -8,6 +8,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { SettingsAbout } from "./settings-about";
+import { SettingsAgents } from "./settings-agents";
 import { SettingsAppearance } from "./settings-appearance";
 import { SettingsConnections } from "./settings-connections";
 import { SettingsNotifications } from "./settings-notifications";
@@ -22,6 +23,7 @@ export type SettingsSection =
   | "appearance"
   | "terminal"
   | "ssh"
+  | "agents"
   | "notifications"
   | "startup"
   | "about";
@@ -33,6 +35,7 @@ const SECTIONS: readonly SettingsSection[] = [
   "appearance",
   "terminal",
   "ssh",
+  "agents",
   "notifications",
   "startup",
   "about",
@@ -93,6 +96,8 @@ export function SettingsScreen({
               {section === "terminal" ? <SettingsTerminal /> : null}
 
               {section === "ssh" ? <SettingsSsh /> : null}
+
+              {section === "agents" ? <SettingsAgents /> : null}
 
               {section === "notifications" ? <SettingsNotifications /> : null}
 

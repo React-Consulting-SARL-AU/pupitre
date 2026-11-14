@@ -19,11 +19,12 @@ type call struct {
 
 // Answers project.list from a script of states, one step per poll, and every other command from a table.
 type agent struct {
-	calls   []call
-	states  [][]contract.ProcessState
-	listed  int
-	answers map[string]any
-	refuse  map[string]error
+	calls    []call
+	states   [][]contract.ProcessState
+	listed   int
+	answers  map[string]any
+	refuse   map[string]error
+	declared []contract.Project
 }
 
 func (a *agent) Call(cmd string, params any, _ func(string, map[string]any)) (any, error) {
@@ -36,6 +37,10 @@ func (a *agent) Call(cmd string, params any, _ func(string, map[string]any)) (an
 
 	if err := a.refuse[cmd]; err != nil {
 		return nil, err
+	}
+
+	if cmd == "project.list" && a.declared != nil {
+		return map[string]any{"projects": a.declared}, nil
 	}
 
 	if cmd == "project.list" {
@@ -174,6 +179,10 @@ func TestTheWaitStopsAtItsLimit(t *testing.T) {
 		t.Fatalf("slept %s, report %s", at.slept, result.Content[0].Text)
 	}
 
+	if !strings.Contains(result.Content[0].Text, "project_start again") {
+		t.Fatalf("a process still starting tells the model how to keep waiting: %s", result.Content[0].Text)
+	}
+
 	none := &agent{states: fake.states}
 	if run(t, toolbox(none, &clock{}), "project_start", `{"project":"flyleaf","wait_seconds":0}`); slices.Contains(none.commands()[1:], "project.up") {
 		t.Fatal("one start only")
@@ -211,6 +220,140 @@ func TestLogsReadEveryProcessUnlessOneIsNamed(t *testing.T) {
 
 	if len(big.calls) != 2 || big.calls[1].params["lines"] != mcp.MaxLines || big.calls[1].params["process"] != "web" {
 		t.Fatalf("calls = %+v", big.calls)
+	}
+}
+
+func TestLogsReadAsTheTerminalLastShowedThem(t *testing.T) {
+	redrawn := []string{"<==> 16% EXECUTING [1s]\x1b[0K", "\x1b[1A\x1b[2K\x1b[31;1m> Task :server:compileGroovy\x1b[0;39m FAILED"}
+	fake := &agent{
+		states:  [][]contract.ProcessState{{contract.ProcessFailed, contract.ProcessOnline}},
+		answers: map[string]any{"project.logs": map[string]any{"lines": redrawn}},
+	}
+
+	logs := run(t, toolbox(fake, &clock{}), "project_logs", `{"project":"flyleaf","process":"api"}`).Content[0].Text
+	restarted := run(t, toolbox(fake, &clock{}), "project_restart", `{"project":"flyleaf","process":"api"}`).Content[0].Text
+
+	for _, text := range []string{logs, restarted} {
+		if strings.Contains(text, "\x1b") || strings.Contains(text, "\\u001b") || strings.Contains(text, "EXECUTING") {
+			t.Fatalf("terminal sequences reached the model: %q", text)
+		}
+
+		if !strings.Contains(text, "Task :server:compileGroovy FAILED") {
+			t.Fatalf("the last frame is lost: %q", text)
+		}
+	}
+}
+
+func intranet() []contract.Project {
+	public := false
+
+	return []contract.Project{{
+		Name:      "intranet",
+		Path:      "/home/dev/projects/intranet",
+		Repo:      "https://github.com/eapc-dev/intranet.git",
+		Branch:    "feat/member-messaging",
+		State:     contract.ProjectState(contract.ProcessFailed),
+		Protected: true,
+		Processes: []contract.ProjectProcess{
+			{ID: "server", Host: "127.0.0.1", Port: 8081, State: contract.ProcessFailed, URL: "https://api-intranet.example.dev"},
+			{ID: "client", Host: "127.0.0.1", Port: 3001, State: contract.ProcessOnline, URL: "https://intranet.example.dev", Protected: &public},
+			{ID: "worker", Host: "127.0.0.1", Port: 3002, State: contract.ProcessStopped},
+		},
+	}}
+}
+
+func TestTheInstructionsNameEachProjectAndWhereItsCodeComesFrom(t *testing.T) {
+	text := toolbox(&agent{declared: intranet()}, &clock{}).Instructions()
+
+	for _, expected := range []string{
+		mcp.Instructions,
+		"intranet",
+		"https://github.com/eapc-dev/intranet.git",
+		"feat/member-messaging",
+		"project_pull",
+		"server: 127.0.0.1:8081, https://api-intranet.example.dev, behind Pupitre's access gate",
+		"client: 127.0.0.1:3001, https://intranet.example.dev, public",
+	} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("instructions miss %q:\n%s", expected, text)
+		}
+	}
+
+	if !strings.HasSuffix(text, "- worker: 127.0.0.1:3002") {
+		t.Fatalf("a process without an address names only its port:\n%s", text)
+	}
+
+	if strings.Contains(text, "failed") || strings.Contains(text, "online") {
+		t.Fatalf("a state read at the session's start would be stale by the first call:\n%s", text)
+	}
+
+	unreachable := &agent{refuse: map[string]error{"project.list": protocol.NewError(contract.ErrorLicenseRequired, "a licence is required")}}
+	if got := toolbox(unreachable, &clock{}).Instructions(); got != mcp.Instructions {
+		t.Fatalf("an agent that does not answer leaves the fixed text: %s", got)
+	}
+}
+
+func TestPullingRestartsWhatWasRunning(t *testing.T) {
+	fake := &agent{
+		declared: intranet(),
+		answers: map[string]any{
+			"project.pull":       map[string]any{"pulled": true, "state": "failed"},
+			"project.git_status": map[string]any{"repo": true, "current": "feat/member-messaging", "subject": "fix: rename the private markRead", "dirty": false},
+		},
+	}
+
+	result := run(t, toolbox(fake, &clock{}), "project_pull", `{"project":"intranet"}`)
+	if result.IsError {
+		t.Fatalf("refused: %s", result.Content[0].Text)
+	}
+
+	var restarted []string
+	for _, made := range fake.calls {
+		if made.cmd == "project.restart" {
+			restarted = append(restarted, made.params["process"].(string))
+		}
+	}
+
+	if !slices.Equal(restarted, []string{"server", "client"}) {
+		t.Fatalf("restarted %v, want the processes that were not stopped", restarted)
+	}
+
+	if fake.commands()[1] != "project.pull" || fake.calls[1].params["name"] != "intranet" {
+		t.Fatalf("calls = %v", fake.commands())
+	}
+
+	text := result.Content[0].Text
+	for _, expected := range []string{`"pulled": true`, `"branch": "feat/member-messaging"`, `"commit": "fix: rename the private markRead"`, `"restarted": [`} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("report misses %s: %s", expected, text)
+		}
+	}
+}
+
+func TestPullingWithoutARestartLeavesTheProcesses(t *testing.T) {
+	fake := &agent{declared: intranet()}
+
+	run(t, toolbox(fake, &clock{}), "project_pull", `{"project":"intranet","restart":false}`)
+
+	if slices.Contains(fake.commands(), "project.restart") {
+		t.Fatalf("calls = %v", fake.commands())
+	}
+
+	refused := &agent{declared: intranet(), refuse: map[string]error{"project.pull": protocol.NewError(contract.ErrorInternal, "git pull failed").WithFix("Commit or drop the changes.")}}
+	result := run(t, toolbox(refused, &clock{}), "project_pull", `{"project":"intranet"}`)
+
+	if !result.IsError || slices.Contains(refused.commands(), "project.restart") || !strings.Contains(result.Content[0].Text, "Commit or drop") {
+		t.Fatalf("a refused pull restarts nothing: %v, %+v", refused.commands(), result)
+	}
+}
+
+func TestGitStatusIsTheAgents(t *testing.T) {
+	fake := &agent{answers: map[string]any{"project.git_status": map[string]any{"behind": 2}}}
+
+	result := run(t, toolbox(fake, &clock{}), "project_git_status", `{"project":"flyleaf"}`)
+
+	if fake.calls[0].cmd != "project.git_status" || fake.calls[0].params["name"] != "flyleaf" || !strings.Contains(result.Content[0].Text, `"behind": 2`) {
+		t.Fatalf("calls = %+v, result %+v", fake.calls, result)
 	}
 }
 

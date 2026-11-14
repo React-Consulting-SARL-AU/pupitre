@@ -10,18 +10,39 @@ const MAX_PORT = 65_535;
 const LISTEN_TIMEOUT_MS = 8000;
 const LISTEN_RETRY_MS = 150;
 
+const RETRY_FIRST_MS = 2000;
+const RETRY_MAX_MS = 60_000;
+// A connection that held this long dropped for a reason of its own: the next try starts short again.
+const STABLE_MS = 30_000;
+
 export interface ForwardDeps {
   resolve: (serverId: string) => string[] | null;
   spawn?: (args: string[]) => ChildProcess;
   freePort?: () => Promise<number | null>;
   portFree?: (port: number) => Promise<boolean>;
+  listening?: (port: number) => Promise<boolean>;
+  later?: (run: () => void, ms: number) => void;
+  now?: () => number;
   /** Reusing last time's local port keeps a desktop client's saved connection working. */
   memory?: ForwardMemory;
+}
+
+export interface ForwardOptions {
+  /** Imposed: a sign-in that calls back `localhost:54545` only works on 54545. */
+  localPort?: number;
+  /** The server's own number when it is free here: an app pointed at `localhost:8081` reaches the server unchanged. */
+  preferRemote?: boolean;
+  keep?: boolean;
 }
 
 interface Held {
   forward: PortForward;
   child: ChildProcess;
+  deps: ForwardDeps;
+  failures: number;
+  since: number;
+  /** Bumped at each new `ssh`: the exit of one already replaced changes nothing. */
+  generation: number;
 }
 
 const open = new Map<string, Held>();
@@ -85,10 +106,23 @@ function sshForward(args: string[]): ChildProcess {
   return spawnChild("ssh", args, { stdio: ["ignore", "ignore", "pipe"] });
 }
 
+function later(run: () => void, ms: number): void {
+  setTimeout(run, ms);
+}
+
 export function forwards(serverId?: string): PortForward[] {
   return [...open.values()]
     .map((entry) => entry.forward)
     .filter((forward) => !serverId || forward.serverId === serverId);
+}
+
+function kept(forward: PortForward) {
+  return {
+    label: forward.label,
+    localPort: forward.localPort,
+    remotePort: forward.remotePort,
+    serverId: forward.serverId,
+  };
 }
 
 export function closeForward(id: unknown): PortForward[] {
@@ -102,22 +136,58 @@ export function closeForward(id: unknown): PortForward[] {
     return forwards();
   }
 
-  held.child.kill();
   open.delete(id);
+  held.child.kill();
+
+  if (held.forward.kept) {
+    held.deps.memory?.release(held.forward.serverId, held.forward.remotePort);
+  }
+
   changed();
 
   return forwards();
 }
 
+export function keepForward(id: unknown, keep: unknown): PortForward[] {
+  const held = typeof id === "string" ? open.get(id) : undefined;
+
+  if (!held || typeof keep !== "boolean") {
+    return forwards();
+  }
+
+  held.forward = { ...held.forward, kept: keep };
+
+  if (keep) {
+    held.deps.memory?.keep(kept(held.forward));
+  } else {
+    held.deps.memory?.release(held.forward.serverId, held.forward.remotePort);
+  }
+
+  changed();
+
+  return forwards();
+}
+
+/** Without a server, on the way out: everything closes. For one server, a kept forward restarts on its new settings. */
 export function closeForwards(serverId?: string): void {
   let dropped = false;
 
   for (const [id, entry] of open) {
-    if (!serverId || entry.forward.serverId === serverId) {
-      entry.child.kill();
-      open.delete(id);
-      dropped = true;
+    if (serverId && entry.forward.serverId !== serverId) {
+      continue;
     }
+
+    if (serverId && entry.forward.kept) {
+      entry.generation += 1;
+      entry.child.kill();
+      reconnect(id, entry);
+
+      continue;
+    }
+
+    open.delete(id);
+    entry.child.kill();
+    dropped = true;
   }
 
   if (dropped) {
@@ -129,12 +199,13 @@ function existing(
   serverId: string,
   remotePort: number,
   localPort?: number
-): PortForward | null {
+): Held | null {
   return (
-    forwards(serverId).find(
-      (forward) =>
-        forward.remotePort === remotePort &&
-        (localPort === undefined || forward.localPort === localPort)
+    [...open.values()].find(
+      (held) =>
+        held.forward.serverId === serverId &&
+        held.forward.remotePort === remotePort &&
+        (localPort === undefined || held.forward.localPort === localPort)
     ) ?? null
   );
 }
@@ -173,15 +244,21 @@ async function localPortFor(
   serverId: string,
   remotePort: number,
   deps: ForwardDeps,
-  imposed: number | undefined
+  options: ForwardOptions
 ): Promise<{ localPort: number | null; movedFrom?: number }> {
-  if (imposed !== undefined) {
-    return { localPort: imposed };
+  if (options.localPort !== undefined) {
+    return { localPort: options.localPort };
+  }
+
+  const free = deps.portFree ?? bindable;
+
+  if (options.preferRemote && (await free(remotePort))) {
+    return { localPort: remotePort };
   }
 
   const recalled = deps.memory?.recall(serverId, remotePort) ?? null;
 
-  if (recalled !== null && (await (deps.portFree ?? bindable)(recalled))) {
+  if (recalled !== null && (await free(recalled))) {
     return { localPort: recalled };
   }
 
@@ -192,13 +269,96 @@ async function localPortFor(
     : { localPort: borrowed, movedFrom: recalled };
 }
 
-/** `localPort` is imposed when needed: a sign-in that calls back `localhost:54545` only works on 54545. */
+function spawnFor(forward: PortForward, args: string[], deps: ForwardDeps) {
+  // Through the master a forward would live in the master, and survive the kill.
+  return (deps.spawn ?? sshForward)([
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ExitOnForwardFailure=yes",
+    "-o",
+    "ControlMaster=no",
+    "-o",
+    "ControlPath=none",
+    "-N",
+    "-L",
+    `${forward.localPort}:127.0.0.1:${forward.remotePort}`,
+    ...args,
+  ]);
+}
+
+function follow(id: string, held: Held): void {
+  const generation = held.generation;
+
+  held.child.on("exit", () => {
+    if (open.get(id) !== held || held.generation !== generation) {
+      return;
+    }
+
+    if (held.forward.kept) {
+      reconnect(id, held);
+
+      return;
+    }
+
+    open.delete(id);
+    changed();
+  });
+}
+
+function reconnect(id: string, held: Held): void {
+  const now = held.deps.now ?? Date.now;
+  const lived = now() - held.since;
+
+  held.failures = lived >= STABLE_MS ? 0 : held.failures + 1;
+  held.forward = { ...held.forward, reconnecting: true };
+  changed();
+
+  const wait = Math.min(
+    RETRY_FIRST_MS * 2 ** Math.max(held.failures - 1, 0),
+    RETRY_MAX_MS
+  );
+
+  (held.deps.later ?? later)(() => respawn(id, held), wait);
+}
+
+function respawn(id: string, held: Held): void {
+  if (open.get(id) !== held) {
+    return;
+  }
+
+  const { forward, deps } = held;
+  const args = deps.resolve(forward.serverId);
+
+  if (!args) {
+    open.delete(id);
+    deps.memory?.release(forward.serverId, forward.remotePort);
+    changed();
+
+    return;
+  }
+
+  held.generation += 1;
+  held.child = spawnFor(forward, args, deps);
+  held.since = (deps.now ?? Date.now)();
+  follow(id, held);
+
+  const generation = held.generation;
+
+  (deps.listening ?? awaitListening)(forward.localPort).then((up) => {
+    if (up && open.get(id) === held && held.generation === generation) {
+      held.forward = { ...held.forward, reconnecting: false };
+      changed();
+    }
+  });
+}
+
 export async function openForward(
   serverId: unknown,
   remotePort: unknown,
   label: unknown,
   deps: ForwardDeps,
-  options: { localPort?: number } = {}
+  options: ForwardOptions = {}
 ): Promise<AgentResponse<PortForward>> {
   if (typeof serverId !== "string") {
     return refuse("refusal.server.unknown");
@@ -222,14 +382,25 @@ export async function openForward(
   const already = existing(serverId, remotePort, options.localPort);
 
   if (already) {
-    return { ok: true, result: already };
+    if (options.keep && !already.forward.kept) {
+      keepForward(already.forward.id, true);
+    }
+
+    return { ok: true, result: already.forward };
+  }
+
+  if (
+    options.localPort !== undefined &&
+    !(await (deps.portFree ?? bindable)(options.localPort))
+  ) {
+    return refuse("refusal.forward.port.taken", { port: options.localPort });
   }
 
   const { localPort, movedFrom } = await localPortFor(
     serverId,
     remotePort,
     deps,
-    options.localPort
+    options
   );
 
   if (localPort === null) {
@@ -241,41 +412,50 @@ export async function openForward(
   const id = `f${counter.toString(36)}${Date.now().toString(36)}`;
   const forward: PortForward = {
     id,
+    kept: options.keep === true,
     label: typeof label === "string" ? label : String(remotePort),
     localPort,
     remotePort,
     serverId,
     ...(movedFrom === undefined ? {} : { movedFrom }),
   };
+  const held: Held = {
+    child: spawnFor(forward, args, deps),
+    deps,
+    failures: 0,
+    forward,
+    generation: 0,
+    since: (deps.now ?? Date.now)(),
+  };
 
-  // Through the master a forward would live in the master, and survive the kill.
-  const child = (deps.spawn ?? sshForward)([
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    "ExitOnForwardFailure=yes",
-    "-o",
-    "ControlMaster=no",
-    "-o",
-    "ControlPath=none",
-    "-N",
-    "-L",
-    `${localPort}:127.0.0.1:${remotePort}`,
-    ...args,
-  ]);
-
-  open.set(id, { child, forward });
-  child.on("exit", () => {
-    if (open.delete(id)) {
-      changed();
-    }
-  });
+  open.set(id, held);
+  follow(id, held);
 
   if (options.localPort === undefined) {
     deps.memory?.remember(serverId, remotePort, localPort);
   }
 
+  if (forward.kept) {
+    deps.memory?.keep(kept(forward));
+  }
+
   changed();
 
   return { ok: true, result: forward };
+}
+
+/** At the app's start: a forward whose server is gone is let go, one whose port is taken waits for the next start. */
+export async function reopenKeptForwards(deps: ForwardDeps): Promise<void> {
+  for (const entry of deps.memory?.kept() ?? []) {
+    if (!deps.resolve(entry.serverId)) {
+      deps.memory?.release(entry.serverId, entry.remotePort);
+
+      continue;
+    }
+
+    await openForward(entry.serverId, entry.remotePort, entry.label, deps, {
+      keep: true,
+      localPort: entry.localPort,
+    });
+  }
 }

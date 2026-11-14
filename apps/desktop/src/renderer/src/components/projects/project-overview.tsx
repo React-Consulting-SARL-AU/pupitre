@@ -6,13 +6,14 @@ import type { Gesture } from "@renderer/lib/use-pending";
 import type { BranchState, EnvState, GitState } from "@renderer/stores/project";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
-import { ProjectAddresses } from "./project-addresses";
+import { ProjectAddressesLive } from "./project-addresses-live";
 import { ProjectBranches } from "./project-branches";
 import { ProjectEnv } from "./project-env";
 import { ProjectGitState } from "./project-git-state";
 import { ProjectProcessRow } from "./project-process-row";
 
 export function ProjectOverview({
+  serverId,
   project,
   git,
   branches,
@@ -29,6 +30,7 @@ export function ProjectOverview({
   onRegenerateEnv,
   onConfigure,
 }: {
+  serverId: string;
   project: Project;
   git: GitState;
   branches: BranchState;
@@ -56,7 +58,11 @@ export function ProjectOverview({
     <div className="h-full overflow-y-auto px-8 py-6">
       <div className="grid gap-section md:grid-cols-2">
         <div className="flex flex-col gap-section">
-          <ProjectAddresses onPublish={onConfigure} project={project} />
+          <ProjectAddressesLive
+            onPublish={onConfigure}
+            project={project}
+            serverId={serverId}
+          />
 
           <Section name="env" title={t("project.overview.env")}>
             <Panel>

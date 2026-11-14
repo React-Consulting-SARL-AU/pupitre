@@ -323,6 +323,7 @@ export function ProjectScreen({
                 onRegenerateEnv={() => readEnv(serverId, name, true)}
                 onSync={sync}
                 project={project}
+                serverId={serverId}
                 switching={store.switching}
                 syncing={syncing}
               />

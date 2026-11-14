@@ -110,8 +110,10 @@ test.describe("the app's settings", () => {
 
     expect(written).toEqual({
       launchAtLogin: process.platform !== "linux",
+      localAgents: false,
+      localAgentsUnattended: false,
       notifications: false,
-      version: 2,
+      version: 4,
     });
   });
 

@@ -48,10 +48,20 @@ export interface PortForward {
   serverId: string;
   remotePort: number;
   localPort: number;
-  /** A module identifier, or a bare port. */
+  /** A module identifier, a `project/process`, or a bare port. */
   label: string;
   /** The local port this forward took last time, when something else held it now. */
   movedFrom?: number;
+  /** Opened again at every start of the app and after every drop, until closed by hand. */
+  kept?: boolean;
+  /** Its connection dropped; the app is opening it again. */
+  reconnecting?: boolean;
+}
+
+export interface PortForwardOpening {
+  /** The server's own port number on this computer when it is free. */
+  preferRemote?: boolean;
+  keep?: boolean;
 }
 
 /** The shell command the agent composed stays in the main process; only the tab id and tmux session cross. */

@@ -410,8 +410,23 @@ export function copySelection(id: string): void {
   const entry = live.get(id);
 
   if (entry?.xterm.hasSelection()) {
-    navigator.clipboard.writeText(entry.xterm.getSelection());
+    window.pupitre.copyFromTerminal(entry.xterm.getSelection());
   }
+}
+
+export function hasSelection(id: string): boolean {
+  return live.get(id)?.xterm.hasSelection() ?? false;
+}
+
+export function selectAll(id: string): void {
+  live.get(id)?.xterm.selectAll();
+}
+
+/** A program that asked for the mouse (vim, htop) owns the right click too. */
+export function tracksMouse(id: string): boolean {
+  const mode = live.get(id)?.xterm.modes.mouseTrackingMode;
+
+  return mode !== undefined && mode !== "none";
 }
 
 export async function paste(id: string): Promise<void> {
@@ -456,11 +471,11 @@ export function wholeOutput(id: string): string | null {
   return lines.join("\n").trimEnd();
 }
 
-export async function copyWholeOutput(id: string): Promise<void> {
+export function copyWholeOutput(id: string): void {
   const text = wholeOutput(id);
 
   if (text !== null) {
-    await navigator.clipboard.writeText(text);
+    window.pupitre.copyFromTerminal(text);
   }
 }
 

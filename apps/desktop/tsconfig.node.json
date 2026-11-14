@@ -24,6 +24,7 @@
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
     "src/renderer/src/__tests__/snapshot-fixtures.ts",
+    "src/renderer/src/i18n/strings/refusals.ts",
     "src/shared/**/*.ts"
   ],
   // The platform integration tests drive `@pupitre/api/testing`, whose sources

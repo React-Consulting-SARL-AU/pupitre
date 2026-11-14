@@ -7,6 +7,7 @@ export function ForwardsPanel() {
   const forwards = useTunnel((state) => state.forwards);
   const follow = useTunnel((state) => state.follow);
   const close = useTunnel((state) => state.closeForward);
+  const keep = useTunnel((state) => state.keepForward);
   const config = useServers((state) => state.config);
 
   // Followed from the always-mounted sidebar so a forward outlives the page that opened it.
@@ -19,6 +20,7 @@ export function ForwardsPanel() {
         config?.servers.find((server) => server.id === serverId)?.name ?? null
       }
       onClose={close}
+      onKeep={keep}
     />
   );
 }

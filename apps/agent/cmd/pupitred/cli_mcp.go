@@ -30,7 +30,7 @@ func runMCP(engine *modules.Engine, stdin io.Reader, stdout, stderr io.Writer) i
 
 	toolbox := mcp.Toolbox{Agent: agent, Sleep: time.Sleep, Now: time.Now}
 
-	server := mcp.Server{Name: mcpName, Version: version, Instructions: mcp.Instructions, Tools: toolbox.Tools()}
+	server := mcp.Server{Name: mcpName, Version: version, Instructions: toolbox.Instructions(), Tools: toolbox.Tools()}
 
 	if err := server.Serve(stdin, stdout); err != nil {
 		fmt.Fprintln(stderr, err)

@@ -24,6 +24,32 @@ export const settings = {
       "One line at the top of {file}, taken back when switched off:",
     "settings.ssh.servers": "Servers",
     "settings.ssh.none": "No server added by the app yet.",
+    "settings.section.agents": "AI agents",
+    "settings.agents.reading": "Reading the AI agents of this computer",
+    "settings.agents.label": "Let the AI agents of this computer drive Pupitre",
+    "settings.agents.detail":
+      "Declares Pupitre's MCP servers in Claude Code, Claude Desktop and Codex. Turning it off takes them out.",
+    "settings.agents.unsupported":
+      "Needs nc, which this system does not provide.",
+    "settings.agents.unattended": "Apply their changes without asking me",
+    "settings.agents.unattendedDetail":
+      "Installing or uninstalling a module, declaring, changing or removing a project then runs with no confirmation window. Secrets stay refused.",
+    "settings.agents.clients": "MCP clients",
+    "settings.agents.client.claude-code": "Claude Code",
+    "settings.agents.client.claude-desktop": "Claude Desktop",
+    "settings.agents.client.codex": "Codex",
+    "settings.agents.state.connected": "Connected",
+    "settings.agents.state.off": "Not connected",
+    "settings.agents.state.absent": "Not installed on this computer",
+    "settings.agents.state.left": "Pupitre entries left behind",
+    "settings.agents.effect.session": "Applies to new sessions",
+    "settings.agents.effect.relaunch":
+      "Applies once Claude Desktop is relaunched",
+    "settings.agents.entries": "Declared MCP servers",
+    "settings.agents.entry.app":
+      "This app: install modules, declare and change projects. Answers while Pupitre is open.",
+    "settings.agents.entry.machine":
+      "{server}: start, stop and read the logs of its projects and services. Answers even with Pupitre closed.",
     "settings.notifications.reading": "Reading the preference",
     "settings.notifications.label": "Notify me when a session is waiting",
     "settings.notifications.detail":
@@ -110,6 +136,34 @@ export const settings = {
       "Une ligne en tête de {file}, retirée quand l'option s'éteint :",
     "settings.ssh.servers": "Serveurs",
     "settings.ssh.none": "Aucun serveur ajouté par l'app pour l'instant.",
+    "settings.section.agents": "Agents IA",
+    "settings.agents.reading": "Lecture des agents IA de cet ordinateur",
+    "settings.agents.label":
+      "Laisser les agents IA de cet ordinateur piloter Pupitre",
+    "settings.agents.detail":
+      "Déclare les serveurs MCP de Pupitre dans Claude Code, Claude Desktop et Codex. Éteindre les retire.",
+    "settings.agents.unsupported": "Demande nc, que ce système ne fournit pas.",
+    "settings.agents.unattended":
+      "Appliquer leurs modifications sans me demander",
+    "settings.agents.unattendedDetail":
+      "Installer ou désinstaller un module, déclarer, modifier ou supprimer un projet se fait alors sans fenêtre de confirmation. Les secrets restent refusés.",
+    "settings.agents.clients": "Clients MCP",
+    "settings.agents.client.claude-code": "Claude Code",
+    "settings.agents.client.claude-desktop": "Claude Desktop",
+    "settings.agents.client.codex": "Codex",
+    "settings.agents.state.connected": "Branché",
+    "settings.agents.state.off": "Non branché",
+    "settings.agents.state.absent": "Non installé sur cet ordinateur",
+    "settings.agents.state.left": "Entrées Pupitre restées en place",
+    "settings.agents.effect.session":
+      "Pris en compte par les nouvelles sessions",
+    "settings.agents.effect.relaunch":
+      "Pris en compte au prochain lancement de Claude Desktop",
+    "settings.agents.entries": "Serveurs MCP déclarés",
+    "settings.agents.entry.app":
+      "Cette app : installer des modules, déclarer et modifier des projets. Répond tant que Pupitre est ouvert.",
+    "settings.agents.entry.machine":
+      "{server} : démarrer, arrêter et lire les journaux de ses projets et services. Répond même Pupitre fermé.",
     "settings.section.about": "À propos",
     "settings.help.title": "Aide",
     "settings.help.docs": "Documentation",

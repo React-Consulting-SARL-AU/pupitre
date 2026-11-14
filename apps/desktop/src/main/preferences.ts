@@ -8,9 +8,18 @@ import { type JsonObject, versionedFile } from "./store-migrations";
 export interface Preferences {
   notifications: boolean;
   launchAtLogin: boolean;
+  /** The MCP servers declared to the AI agents installed on this computer. */
+  localAgents: boolean;
+  /** Their changes run without the allow dialog. */
+  localAgentsUnattended: boolean;
 }
 
-const DEFAULTS: Preferences = { launchAtLogin: false, notifications: true };
+const DEFAULTS: Preferences = {
+  launchAtLogin: false,
+  localAgents: false,
+  localAgentsUnattended: false,
+  notifications: true,
+};
 
 export interface PreferencesStore {
   read: () => Preferences;
@@ -23,6 +32,14 @@ function preferencesOf(document: JsonObject): Preferences {
       typeof document.launchAtLogin === "boolean"
         ? document.launchAtLogin
         : DEFAULTS.launchAtLogin,
+    localAgents:
+      typeof document.localAgents === "boolean"
+        ? document.localAgents
+        : DEFAULTS.localAgents,
+    localAgentsUnattended:
+      typeof document.localAgentsUnattended === "boolean"
+        ? document.localAgentsUnattended
+        : DEFAULTS.localAgentsUnattended,
     notifications:
       typeof document.notifications === "boolean"
         ? document.notifications

@@ -26,6 +26,7 @@ import { useProcessConsole } from "@renderer/stores/process-console";
 import { useTerminals } from "@renderer/stores/terminals";
 import { ArrowDown, Eraser, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { TerminalContextMenu } from "../terminals/terminal-context-menu";
 import { TerminalSearchBar } from "../terminals/terminal-search-bar";
 
 function toggleSearch(id: string): void {
@@ -223,13 +224,15 @@ export function ProjectConsole({
       ) : null}
 
       <div className="relative min-h-0 flex-1 bg-sunken">
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
-        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
-        <div
-          className="h-full w-full px-2 py-1"
-          onMouseDown={() => focus(id)}
-          ref={host}
-        />
+        <TerminalContextMenu id={id}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
+          <div
+            className="h-full w-full px-2 py-1"
+            onMouseDown={() => focus(id)}
+            ref={host}
+          />
+        </TerminalContextMenu>
 
         {searchOpen ? (
           <TerminalSearchBar id={id} onClose={closeSearch} />

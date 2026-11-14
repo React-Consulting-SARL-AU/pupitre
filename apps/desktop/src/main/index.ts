@@ -33,6 +33,7 @@ import { registerInstall } from "./install";
 import { trustPage } from "./ipc-guard";
 import { registerKeyApprovals } from "./key-approvals";
 import { openDeepLink, pageGone, registerLinks } from "./links";
+import { closeLocalAgents, registerLocalAgents } from "./mcp";
 import { menuTemplate } from "./menu";
 import { openable, ownPage, type PageRules } from "./navigation";
 import { current, windowChrome } from "./platform";
@@ -42,7 +43,11 @@ import { forgetProjects } from "./projects-run";
 import { registerReenroll } from "./reenroll";
 import { registerServerChannels } from "./server-channels";
 import { sshPathsWritten } from "./servers";
-import { forgetServiceCredentials, registerServices } from "./services";
+import {
+  forgetServiceCredentials,
+  registerServices,
+  reopenKept,
+} from "./services";
 import { registerSignInCancel } from "./sign-in-cancel";
 import { registerSudo } from "./sudo";
 import { registerTerminalChannels } from "./terminal-channels";
@@ -74,6 +79,7 @@ function releaseEverything(): void {
   closeAll();
   forgetServiceCredentials();
   agentClient.closeAll();
+  closeLocalAgents();
 }
 
 /** The renderer holds the theme choice and corrects this over `appearance:set` before the first paint. */
@@ -195,6 +201,9 @@ function createWindow(): void {
   } else {
     window.loadFile(PAGE.indexFile);
   }
+
+  // The window's closing released every forward: the kept ones come back with it.
+  reopenKept().catch(failed);
 }
 
 function installMenu(): void {
@@ -250,6 +259,7 @@ function registerChannels(): void {
   registerCompletions();
   registerLinks(bringToFront);
   registerPreferences();
+  registerLocalAgents();
 }
 
 app
