@@ -7,6 +7,11 @@ export interface ModuleDoc {
   notes?: Localized
 }
 
+const AI_ACCESS_ASK: Localized = {
+  en: "Whether AI agents may read and change it through Pupitre’s MCP server. On by default, and it applies without a restart.",
+  fr: "Si les agents IA peuvent la lire et la modifier par le serveur MCP de Pupitre. Activé par défaut, et appliqué sans redémarrage.",
+}
+
 export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "core.system": {
     installs: [
@@ -318,6 +323,7 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Le mot de passe applicatif et le mot de passe distant. Les deux peuvent être générés pour vous et ne sont jamais réaffichés.",
       },
       { en: "The buffer pool size.", fr: "La taille du buffer pool." },
+      AI_ACCESS_ASK,
     ],
     notes: {
       en: "Nothing listens on a public interface. A database client on your laptop reaches the server through a tunnel the app opens on the SSH session it already holds — one click on the service page.",
@@ -358,6 +364,7 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "The shared buffers size.",
         fr: "La taille de la mémoire partagée.",
       },
+      AI_ACCESS_ASK,
     ],
     notes: {
       en: "Uninstalling takes back the packages and the configuration. The cluster’s data directory stays where PostgreSQL wrote it.",
@@ -395,6 +402,7 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "The cache size in megabytes. Zero follows the machine.",
         fr: "La taille du cache en mégaoctets. Zéro suit la machine.",
       },
+      AI_ACCESS_ASK,
     ],
   },
   "db.mailpit": {
@@ -448,6 +456,7 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "What gets evicted once the ceiling is reached. Without a ceiling, nothing is.",
         fr: "Ce qui est évincé une fois le plafond atteint. Sans plafond, rien ne l’est.",
       },
+      AI_ACCESS_ASK,
     ],
     notes: {
       en: "The install ends by checking that the password actually opens the server, rather than assuming it. Uninstalling takes back the package and the configuration; what Redis wrote under /var/lib/redis stays.",

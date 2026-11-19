@@ -3,6 +3,7 @@ package postgres
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/db/query"
 )
 
 const ID = "db.postgres"
@@ -25,6 +26,7 @@ func manifest() contract.Manifest {
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.app_password.label"), Required: true, Generate: true},
 			{Key: "remote_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.remote_password.label"), Help: i18n.T("module.db.postgres.remote_password.help"), Required: true, Generate: true},
 			{Key: "shared_buffers", Kind: contract.FieldText, Label: i18n.T("module.db.postgres.shared_buffers.label"), Help: i18n.T("module.db.postgres.shared_buffers.help"), HintText: i18n.T("module.db.postgres.shared_buffers.hint"), Format: contract.FormatSize, Required: false},
+			query.AccessField(),
 		},
 		Runs:      true,
 		Mandatory: false,

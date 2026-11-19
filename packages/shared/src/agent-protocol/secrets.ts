@@ -62,6 +62,29 @@ export const DbUrlResultSchema = z.object({
   url: z.string(),
 })
 
+// Under the minute Codex grants a tool call, so the model reads a timeout rather than a dropped call.
+export const DB_QUERY = {
+  timeout_ms: 45_000,
+  output_max_bytes: 64_000,
+  query_max_length: 100_000,
+} as const
+
+// Redis answers queries only: it has no dump, shell or address of its own in the protocol.
+export const DB_QUERY_ENGINES = [...DB_ENGINES, "redis"] as const
+
+export const DbQueryParamsSchema = DbParamsSchema.extend({
+  engine: z.enum(DB_QUERY_ENGINES),
+  query: z.string().min(1).max(DB_QUERY.query_max_length),
+})
+
+export const DbQueryResultSchema = z.object({
+  output: z.string(),
+  truncated: z.boolean(),
+  failed: z.boolean(),
+})
+
+export type DbQueryResult = z.infer<typeof DbQueryResultSchema>
+
 const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
 
 const TunnelStateSchema = z.enum(TUNNEL_STATES)

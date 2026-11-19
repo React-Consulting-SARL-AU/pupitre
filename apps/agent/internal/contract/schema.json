@@ -322,6 +322,7 @@
         "backup_unsupported",
         "backup_corrupt",
         "privilege_required",
+        "access_refused",
         "internal"
       ]
     },
@@ -417,6 +418,7 @@
         "secrets.sync",
         "db.shell",
         "db.url",
+        "db.query",
         "tunnel.status",
         "tunnel.sync",
         "tunnel.restart",
@@ -4723,6 +4725,53 @@
         "url"
       ]
     },
+    "DbQueryParams": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "mysql",
+            "postgres",
+            "mongodb",
+            "redis"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100000
+        }
+      },
+      "required": [
+        "engine",
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "DbQueryResult": {
+      "type": "object",
+      "properties": {
+        "output": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "failed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "output",
+        "truncated",
+        "failed"
+      ]
+    },
     "TunnelStatusParams": {
       "type": "object",
       "properties": {},
@@ -8007,6 +8056,14 @@
       "const": {
         "port_span_max": 100,
         "port_span_capability": "port_span"
+      }
+    },
+    "DbQuery": {
+      "type": "object",
+      "const": {
+        "timeout_ms": 45000,
+        "output_max_bytes": 64000,
+        "query_max_length": 100000
       }
     },
     "KeyApprovalRules": {

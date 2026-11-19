@@ -300,6 +300,7 @@ A route's `subdomain` accepts **several labels separated by dots**. A single one
 | `service.secret` | `{ id, key }`: reveals the value of a credential of module `id`; see [The value of a credential](#the-value-of-a-credential) |
 | `secrets.sync` | `{ project }` |
 | `db.dump` / `db.import` / `db.shell` / `db.url` | `{ engine, name? }` |
+| `db.query` | `{ engine, name?, query }` → `{ output, truncated, failed }`: `engine` is one of `DB_QUERY_ENGINES`, the other `db.*` engines and `redis`, whose `name` is an index; the statement through the engine's client, as `dev` with the application account, bounded by `DbQuery` (`packages/shared`); `access_refused` when the module's `ai_access` is off. See [the MCP server](./mcp.md) |
 | `tunnel.status` / `tunnel.sync` / `tunnel.restart` | — ; each route carries `protected`. See [The access gate](#the-access-gate) |
 | `access.list` | — → `{ keys: [{ id, name, projects, created_at }] }`, without fingerprint |
 | `access.create` | `{ id, name, hash, projects }`: `hash` is the SHA-256 fingerprint of the whole key, `projects` a list or `null` for the whole server → the listed key; an `id` already taken refuses with `bad_request` |
@@ -407,6 +408,7 @@ The limited session answers the commands of `LIMITED_COMMANDS` (`packages/shared
 | `hello`, `ping`, `probe`, `catalog`, `report`, `snapshot`, `status`, `service.status`, `module.config`, `completions`, `doctor`, `diag`, `backup.status`, `backup.contents`, `keys.list`, `tunnel.status`, `db.url`, `db.shell` | reads that return no secret root holds: `module.config` omits the secret fields, `service.status` names only variables, `db.url` and `db.shell` return an address without a password and a line to type |
 | `project.*`, `agent.open`, `sessions.*`, `processes.list`, `process.kill`, `fs.*`, `secrets.sync` | `dev`'s work on what belongs to `dev`: processes run as `dev`, `fs.*` sees only its folder through `os.Root`, `process.kill` targets only a `dev` process, the templates are read in the project root, the 1Password token is also in `dev`'s environment |
 | `service.start`, `service.stop`, `service.restart`, `service.logs`, `tunnel.sync`, `tunnel.restart` | an already configured unit, stopped or relaunched; the tunnel publishes only the registry's routes, under the server's domain |
+| `db.query` | a statement on a development database, played by a client that runs as `dev` — psql's `\!` or mongosh's `require` give `dev` nothing it lacked —, with the application account rather than the superuser, so no `COPY … TO PROGRAM`; the owner closes it per database with `ai_access` |
 | `platform.sync`, `keys.sync` | what the daemon does every 30 seconds: a key enters only on a signed approval |
 | `agent.upgrade`, `agent.migrate` | an Ed25519-signed binary above the floor, a forward migration — without `allow_downgrade`, which makes the command privileged |
 

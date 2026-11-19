@@ -146,6 +146,26 @@ var commandCatalog = map[string]Message{
 		FR: "Choisissez mysql, postgres ou mongodb.",
 		EN: "Pick mysql, postgres or mongodb.",
 	},
+	"db.query.engine.fix": {
+		FR: "Choisissez postgres, mysql, mongodb ou redis.",
+		EN: "Pick postgres, mysql, mongodb or redis.",
+	},
+	"db.redis.index.invalid": {
+		FR: "base Redis inconnue : %s",
+		EN: "unknown Redis database: %s",
+	},
+	"db.redis.index.invalid.fix": {
+		FR: "Une base Redis est un numéro de 0 à %d ; sans numéro, la 0.",
+		EN: "A Redis database is a number from 0 to %d; without one, 0.",
+	},
+	"db.query.refused": {
+		FR: "%s refuse les requêtes des agents IA",
+		EN: "%s refuses AI agents' queries",
+	},
+	"db.query.refused.fix": {
+		FR: "Le propriétaire du serveur active « Accès des agents IA » dans les réglages de %s, dans l'app Pupitre.",
+		EN: "The server's owner turns on \"AI agents' access\" in the settings of %s, in the Pupitre app.",
+	},
 	"onepassword.template.uninjectable": {
 		FR: "%s : le dépôt versionne un %s mais 1Password n'est pas installé sur la machine",
 		EN: "%s: the repository versions a %s but 1Password is not installed on the machine",

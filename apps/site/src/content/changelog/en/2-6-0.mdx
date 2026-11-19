@@ -1,0 +1,26 @@
+---
+title: AI agents read and change your servers' databases
+description: Claude Code and Codex query the server's PostgreSQL, MySQL, MariaDB, MongoDB and Redis databases through Pupitre, without asking you for a password or sudo; each database can turn it off.
+locale: en
+version: 2.6.0
+channel: stable
+date: 2026-11-19
+order: 32
+---
+
+An AI agent on the server, or on your computer through Pupitre, now works with the server's databases directly, instead of asking you to paste a password or the sudo password.
+
+## The agent
+
+- **Queries from the MCP server.** The new `db_query` tool runs SQL on PostgreSQL, MySQL and MariaDB, a mongosh script on MongoDB, and commands on Redis. The agent reads what the database's own client prints, as in a terminal, including `psql` commands such as `\dt`.
+- **With the application account.** Pupitre opens the database for the agent with the application account, never the superuser, and runs the client as `dev`. The agent never sees a password and never needs sudo.
+- **Bounded answers.** Statements run in order and stop at the first error, which comes back with the engine's own message. An answer past 64 kB is cut with a line telling the agent to narrow its query; a statement still running after 45 seconds is stopped.
+
+## The app
+
+- **AI agents' access.** PostgreSQL, MySQL, MongoDB and Redis gain an "AI agents' access" setting. It is on by default, since the server's databases are for development; turned off, the agent gets a refusal that says where to turn it back on. The change applies without restarting the database.
+
+## Known limitations
+
+- There is no read-only access yet: an agent that may query a database may also change it.
+- The setting says what you want from your agents; it does not hide the database from what already runs as `dev`, your projects included.

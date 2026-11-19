@@ -15,6 +15,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
+	"pupitre.studio/agent/internal/modules/db/query"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
@@ -51,7 +52,8 @@ const (
 	loopback        = "127.0.0.1"
 	defaultDatabase = "admin"
 
-	appPasswordKey = "MONGODB_APP_PASSWORD"
+	appPasswordKey   = "MONGODB_APP_PASSWORD"
+	queryPasswordKey = "PUPITRE_MONGODB_PASSWORD"
 
 	userReady = "pupitre-user-ready"
 
@@ -532,6 +534,24 @@ func Import(ctx *modules.Context, name string) ([]string, error) {
 	}
 
 	return importDumps(ctx, dumps.Options{Only: name, Force: name != ""})
+}
+
+// mongosh reads a script only from argv or a file, so the password rides the environment and a first --eval signs in with it:
+// the statement's own --eval then reports its errors at its own lines.
+func Query(ctx *modules.Context, name, statement string) (query.Result, error) {
+	if err := requireInstalled(ctx); err != nil {
+		return query.Result{}, err
+	}
+
+	signIn := `db.getSiblingDB("` + authDatabase + `").auth(` + strconv.Quote(appUser(ctx)) + `, process.env.` + queryPasswordKey + `);`
+
+	return query.Run(ctx, query.Client{
+		Argv: []string{
+			"mongosh", "--quiet", "--norc", fmt.Sprintf("mongodb://%s:%d/%s", loopback, port(ctx), database(name)),
+			"--eval", signIn, "--eval", statement,
+		},
+		Env: []string{queryPasswordKey + "=" + ctx.Secret("app_password")},
+	}), nil
 }
 
 func requireInstalled(ctx *modules.Context) error {

@@ -22,6 +22,7 @@ export const PROTOCOL_ERROR_CODES = [
   "backup_unsupported",
   "backup_corrupt",
   "privilege_required",
+  "access_refused",
   "internal",
 ] as const
 

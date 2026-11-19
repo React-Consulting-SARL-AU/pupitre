@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/modules/db/mongodb"
 	"pupitre.studio/agent/internal/modules/db/mysql"
 	"pupitre.studio/agent/internal/modules/db/postgres"
+	"pupitre.studio/agent/internal/modules/db/redis"
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
@@ -19,6 +20,7 @@ func registry(t *testing.T) *modules.Registry {
 	registry.Register(mysql.Module{})
 	registry.Register(postgres.Module{})
 	registry.Register(mongodb.Module{})
+	registry.Register(redis.Module{})
 
 	return registry
 }

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test"
 import {
+  DB_QUERY,
   DbDumpResultSchema,
   DbImportResultSchema,
   DbParamsSchema,
+  DbQueryParamsSchema,
+  DbQueryResultSchema,
   DbShellResultSchema,
   DbUrlResultSchema,
   SecretEventSchema,
@@ -90,6 +93,56 @@ describe("databases", () => {
       }).success
     ).toBe(true)
     expect(DbDumpResultSchema.safeParse({ size_bytes: 1 }).success).toBe(false)
+  })
+
+  it("query one database with a statement of bounded length", () => {
+    expect(
+      DbQueryParamsSchema.safeParse({
+        engine: "postgres",
+        name: "flyleaf",
+        query: "SELECT 1",
+      }).success
+    ).toBe(true)
+    expect(
+      DbQueryParamsSchema.safeParse({ engine: "postgres", query: "" }).success
+    ).toBe(false)
+    expect(
+      DbQueryParamsSchema.safeParse({
+        engine: "redis",
+        name: "1",
+        query: "GET session:42",
+      }).success
+    ).toBe(true)
+    expect(DbParamsSchema.safeParse({ engine: "redis" }).success).toBe(false)
+    expect(
+      DbQueryParamsSchema.safeParse({
+        engine: "mysql",
+        query: "x".repeat(DB_QUERY.query_max_length + 1),
+      }).success
+    ).toBe(false)
+    expect(
+      DbQueryParamsSchema.safeParse({
+        engine: "mongodb",
+        query: "db.users.find()",
+        password: "hunter2",
+      }).success
+    ).toBe(false)
+  })
+
+  it("answer a query with the client's output, cut and failed or not", () => {
+    expect(
+      DbQueryResultSchema.safeParse({
+        output: " ?column? \n----------\n        1\n(1 row)\n",
+        truncated: false,
+        failed: false,
+      }).success
+    ).toBe(true)
+    expect(DbQueryResultSchema.safeParse({ output: "" }).success).toBe(false)
+  })
+
+  it("keep a query under the time an MCP client waits for a tool", () => {
+    expect(DB_QUERY.timeout_ms).toBeLessThan(60_000)
+    expect(DB_QUERY.output_max_bytes).toBeGreaterThan(0)
   })
 })
 

@@ -12,6 +12,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
+	"pupitre.studio/agent/internal/modules/db/query"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
@@ -466,6 +467,25 @@ func Import(ctx *modules.Context, name string) ([]string, error) {
 	}
 
 	return importDumps(ctx, dumps.Options{Only: name, Force: name != ""})
+}
+
+// The app role, never the superuser: COPY … TO PROGRAM would hand the caller the postgres account.
+func Query(ctx *modules.Context, name, statement string) (query.Result, error) {
+	if err := requireInstalled(ctx); err != nil {
+		return query.Result{}, err
+	}
+
+	return query.Run(ctx, query.Client{
+		Argv: []string{
+			"psql", "--no-psqlrc", "--no-password", "--pset=pager=off", "--set=ON_ERROR_STOP=1",
+			"--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)), "--username=" + appRole(ctx), "--dbname=" + database(name),
+		},
+		Stdin: statement,
+		Env: []string{
+			"PGPASSWORD=" + ctx.Secret("app_password"),
+			fmt.Sprintf("PGOPTIONS=-c statement_timeout=%d", query.Timeout().Milliseconds()),
+		},
+	}), nil
 }
 
 func requireInstalled(ctx *modules.Context) error {

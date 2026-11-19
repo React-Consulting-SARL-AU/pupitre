@@ -127,6 +127,7 @@ func answerCases(platformURL string) []answerCase {
 		{cmd: "db.import", params: map[string]any{"engine": "mysql"}},
 		{cmd: "db.shell", params: map[string]any{"engine": "mysql", "name": "shop"}},
 		{cmd: "db.url", params: map[string]any{"engine": "mysql", "name": "shop"}},
+		{cmd: "db.query", params: map[string]any{"engine": "mysql", "name": "shop", "query": "SELECT 1"}},
 		{cmd: "tunnel.status"},
 		{cmd: "tunnel.sync"},
 		{cmd: "tunnel.restart"},

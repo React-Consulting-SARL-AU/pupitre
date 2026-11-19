@@ -12,6 +12,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
+	"pupitre.studio/agent/internal/modules/db/query"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
@@ -415,6 +416,22 @@ func Import(ctx *modules.Context, name string) ([]string, error) {
 	}
 
 	return importDumps(ctx, dumps.Options{Only: name, Force: name != ""})
+}
+
+// The app account on the loopback: root answers only on its socket, to root.
+func Query(ctx *modules.Context, name, statement string) (query.Result, error) {
+	if err := requireInstalled(ctx); err != nil {
+		return query.Result{}, err
+	}
+
+	return query.Run(ctx, query.Client{
+		Argv: []string{
+			"mysql", "--no-defaults", "--protocol=tcp", "--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
+			"--user=" + appAccount(ctx), "--table", "--database=" + database(name),
+		},
+		Stdin: statement,
+		Env:   []string{"MYSQL_PWD=" + ctx.Secret("app_password")},
+	}), nil
 }
 
 func requireInstalled(ctx *modules.Context) error {

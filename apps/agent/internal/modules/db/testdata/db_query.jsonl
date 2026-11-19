@@ -1,0 +1,26 @@
+# db.query plays the statement through the engine's own client, as dev and with the app account, and refuses a database whose owner turned AI agents' access off.
+@package postgresql-17 17.2-1.pgdg24.04+1
+@package mysql-server 8.0.36-0ubuntu0.24.04.1
+@package redis-server 5:7.0.15-1build2
+@file /etc/pupitre/install.json {"modules":["db.postgres","db.mysql","db.redis"],"config":{"db.mysql":{"ai_access":false}},"secrets":{"db.postgres":{"app_password":"hunter2"},"db.redis":{"password":"hunter3"}}}
+@answer --dbname=shop count\n-------\n3\n(1 row)
+@failline --dbname=postgres ERROR:  relation "ordres" does not exist
+@answer --no-raw (integer) 1\n(error) WRONGTYPE Operation against a key holding the wrong kind of value
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":3}}
+> {"id":2,"cmd":"db.query","params":{"engine":"postgres","name":"shop","query":"SELECT count(*) FROM orders"}}
+> {"id":3,"cmd":"db.query","params":{"engine":"postgres","query":"SELECT * FROM ordres"}}
+> {"id":4,"cmd":"db.query","params":{"engine":"mysql","name":"shop","query":"SELECT 1"}}
+> {"id":5,"cmd":"db.query","params":{"engine":"mongodb","query":"db.users.find()"}}
+> {"id":6,"cmd":"db.query","params":{"engine":"postgres","name":"shop; drop","query":"SELECT 1"}}
+> {"id":7,"cmd":"db.query","params":{"engine":"redis","name":"2","query":"SADD tags a\nLPUSH tags b"}}
+> {"id":8,"cmd":"db.query","params":{"engine":"redis","name":"shop","query":"DBSIZE"}}
+> {"id":9,"cmd":"db.dump","params":{"engine":"redis"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":3,"license":"dev","capabilities":["catalog","db.dump","db.import","db.query","db.shell","db.url","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"output":"count\n-------\n3\n(1 row)\n","truncated":false,"failed":false}}
+< {"id":3,"ok":true,"result":{"output":"ERROR:  relation \"ordres\" does not exist","truncated":false,"failed":true}}
+< {"id":4,"ok":false,"error":{"code":"access_refused","message":"MySQL 8 or MariaDB refuses AI agents' queries","fix":"The server's owner turns on \"AI agents' access\" in the settings of MySQL 8 or MariaDB, in the Pupitre app."}}
+< {"id":5,"ok":false,"error":{"code":"service_not_found","message":"MongoDB is not installed on this server","fix":"Install db.mongodb from the app's catalogue."}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"database name refused: shop; drop","fix":"A database name is letters, digits, dashes and underscores, 64 characters at most."}}
+< {"id":7,"ok":true,"result":{"output":"(integer) 1\n(error) WRONGTYPE Operation against a key holding the wrong kind of value\n","truncated":false,"failed":true}}
+< {"id":8,"ok":false,"error":{"code":"bad_request","message":"unknown Redis database: shop","fix":"A Redis database is a number from 0 to 15; without one, 0."}}
+< {"id":9,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/engine: must be one of mysql, postgres, mongodb"}}

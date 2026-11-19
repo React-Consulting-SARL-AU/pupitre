@@ -1,0 +1,26 @@
+---
+title: Les agents IA lisent et modifient les bases de vos serveurs
+description: Claude Code et Codex interrogent les bases PostgreSQL, MySQL, MariaDB, MongoDB et Redis du serveur par Pupitre, sans vous demander de mot de passe ni sudo ; chaque base peut le couper.
+locale: fr
+version: 2.6.0
+channel: stable
+date: 2026-11-19
+order: 32
+---
+
+Un agent IA sur le serveur, ou sur votre ordinateur par Pupitre, travaille désormais directement avec les bases du serveur, au lieu de vous demander de coller un mot de passe ou celui de sudo.
+
+## L'agent
+
+- **Des requêtes depuis le serveur MCP.** Le nouvel outil `db_query` joue du SQL sur PostgreSQL, MySQL et MariaDB, un script mongosh sur MongoDB et des commandes sur Redis. L'agent lit ce qu'affiche le client de la base, comme dans un terminal, y compris les commandes de `psql` comme `\dt`.
+- **Avec le compte applicatif.** Pupitre ouvre la base pour l'agent avec le compte applicatif, jamais le superutilisateur, et lance le client en `dev`. L'agent ne voit aucun mot de passe et n'a jamais besoin de sudo.
+- **Des réponses bornées.** Les instructions passent dans l'ordre et s'arrêtent à la première erreur, qui revient avec le message du moteur. Une réponse de plus de 64 Ko est coupée, avec une ligne qui demande à l'agent de resserrer sa requête ; une instruction qui tourne encore après 45 secondes est arrêtée.
+
+## L'app
+
+- **Accès des agents IA.** PostgreSQL, MySQL, MongoDB et Redis gagnent un réglage « Accès des agents IA ». Il est activé par défaut, puisque les bases du serveur servent au développement ; désactivé, l'agent reçoit un refus qui dit où le réactiver. Le changement s'applique sans redémarrer la base.
+
+## Limites connues
+
+- Il n'y a pas encore d'accès en lecture seule : un agent qui peut interroger une base peut aussi la modifier.
+- Le réglage dit ce que vous attendez de vos agents ; il ne cache pas la base à ce qui tourne déjà en `dev`, vos projets compris.
