@@ -1,0 +1,93 @@
+---
+title: Databases and AI agents
+description: How Claude Code and Codex read and change the server's PostgreSQL, MySQL, MariaDB, MongoDB and Redis databases, without a password or sudo, and how to turn it off.
+locale: en
+section: daily
+sectionOrder: 2
+order: 8
+---
+
+An AI agent working on the server, or on your laptop through the [MCP server](/docs/daily/mcp/), queries the server's databases with the `db_query` tool. It asks you for neither the database's password nor sudo: Pupitre opens the database for it, with the application account. You have nothing to set up; ask it what you want to know or change.
+
+## The engines
+
+| Engine | What the agent sends | Default database |
+| --- | --- | --- |
+| PostgreSQL | SQL, and `psql` commands such as `\dt` or `\d table` | `postgres` |
+| MySQL, MariaDB | SQL | `mysql` |
+| MongoDB | a mongosh script | `admin` |
+| Redis | one command per line | database `0`, or a number from 0 to 15 |
+
+The agent names the database to open. Without a name it opens the default one, from which it can list the others.
+
+## What the agent gets back
+
+The text the database's client prints, as in a terminal. For example, on PostgreSQL:
+
+```text
+CREATE TABLE
+INSERT 0 3
+ id | name  |    city
+----+-------+------------
+  1 | Ada   | Londres
+  2 | Grace | New York
+  3 | Zoé   | Casablanca
+(3 rows)
+```
+
+On MySQL or MariaDB:
+
+```text
++----+----------+-------+
+| id | customer | total |
++----+----------+-------+
+|  1 | Ada      | 12.50 |
+|  2 | Grace    |  7.00 |
++----+----------+-------+
+```
+
+On MongoDB, the value of the script's last expression:
+
+```text
+[ { _id: 'free', count: 1 }, { _id: 'pro', count: 1 } ]
+```
+
+On Redis, one reply per command:
+
+```text
+OK
+"Ada Lovelace"
+(integer) 1
+(integer) 3600
+```
+
+- **An error stops the rest.** In SQL, statements run in order up to the first error; the ones after it do not run. The agent gets what succeeded, then the engine's error, for example `ERROR 1146 (42S02) at line 2: Table 'shop.missing' doesn't exist`. Redis answers each command, and an `(error)` reply marks the query as failed.
+- **A statement that prints nothing**, such as `CREATE DATABASE` on MySQL, answers that it ran without printing anything.
+- **Past 64 kB**, the answer is cut, and the agent reads that it should narrow its query, with `LIMIT` or fewer columns.
+- **Past 45 seconds**, PostgreSQL cancels the statement itself (`canceling statement due to statement timeout`). The other engines are stopped five seconds later.
+
+## Turning access off
+
+Each database has an **AI agents' access** setting, in its settings in the app. It is on by default, since the server's databases are for development. Off, the agent gets a refusal that says where to turn it back on. The change applies without restarting the database.
+
+## What the agent can do, and what it cannot
+
+- **With the application account, never the superuser.** On PostgreSQL it therefore has neither `COPY … TO PROGRAM` nor the right to create a table in the `postgres` database: it creates its own database, which it owns. On Redis, the default user has every right on the data, but Redis refuses to change its protected settings, such as the folder it writes to.
+- **As `dev`.** The database's client runs as `dev`, the agent's account. A `\!` in `psql`, a `system` in `mysql` or a `require` in mongosh runs a command as `dev`, nothing more.
+- **This setting is not a wall.** What runs as `dev`, your projects included, can find the application account's password. The setting says what you want from your agents; it does not hide the database from `dev`.
+- **Dumping or importing a whole database** stays your gesture, in the app.
+
+## What was checked
+
+On Ubuntu 24.04 with PostgreSQL 17, MySQL 8.0, MariaDB 10.11, MongoDB 8.0 with mongosh 2.14, and Redis 7.0, through the MCP server run as `dev`:
+
+- creating a database and a table, inserting, updating, reading, rolling a transaction back;
+- `psql`'s `\dt` and `\d`, `SHOW DATABASES` and `DESCRIBE` on MySQL;
+- `insertMany`, `find`, `aggregate`, `updateOne` and a multi-line script on MongoDB;
+- strings, expiries, hashes, `SCAN` and numbered databases on Redis;
+- stopping at the first error, and the statements after it not running;
+- a 100,000-row answer, cut at 64 kB;
+- a long statement, cancelled by PostgreSQL at 45 seconds, and its MySQL client stopped at 50;
+- a shell command run from each client, which runs as `dev`;
+- `COPY … TO PROGRAM` refused on PostgreSQL, a protected setting refused on Redis;
+- access turned off then back on, without restarting the database.

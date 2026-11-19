@@ -2,6 +2,7 @@ package mcp_test
 
 import (
 	"encoding/json"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -386,6 +387,62 @@ func TestServiceToolsNameTheServiceById(t *testing.T) {
 	}
 }
 
+func TestAQueryReachesTheDatabaseNamedByItsEngine(t *testing.T) {
+	fake := &agent{answers: map[string]any{"db.query": map[string]any{"output": " ?column? \n----------\n        1\n", "truncated": false, "failed": false}}}
+
+	result := run(t, toolbox(fake, &clock{}), "db_query", `{"engine":"postgres","database":"shop","query":"SELECT 1"}`)
+
+	want := map[string]any{"engine": "postgres", "name": "shop", "query": "SELECT 1"}
+	if fake.calls[0].cmd != "db.query" || !maps.Equal(fake.calls[0].params, want) {
+		t.Fatalf("calls = %+v", fake.calls)
+	}
+
+	if result.IsError || result.Content[0].Text != " ?column? \n----------\n        1\n" {
+		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestARefusedStatementIsAnErrorWithTheEngineSentence(t *testing.T) {
+	fake := &agent{answers: map[string]any{"db.query": map[string]any{"output": `ERROR:  relation "ordres" does not exist`, "truncated": false, "failed": true}}}
+
+	result := run(t, toolbox(fake, &clock{}), "db_query", `{"engine":"postgres","query":"SELECT * FROM ordres"}`)
+
+	if !result.IsError || !strings.Contains(result.Content[0].Text, `relation "ordres" does not exist`) {
+		t.Fatalf("result = %+v", result)
+	}
+
+	if _, named := fake.calls[0].params["name"]; named {
+		t.Fatalf("no database named, the engine's default: %+v", fake.calls[0].params)
+	}
+}
+
+func TestACutOutputSaysSo(t *testing.T) {
+	fake := &agent{answers: map[string]any{"db.query": map[string]any{"output": "row 1\nrow 2", "truncated": true, "failed": false}}}
+
+	result := run(t, toolbox(fake, &clock{}), "db_query", `{"engine":"mysql","query":"SELECT * FROM orders"}`)
+
+	text := result.Content[0].Text
+	if result.IsError || !strings.HasPrefix(text, "row 1\nrow 2\n") || !strings.Contains(text, "LIMIT") {
+		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestAStatementThatPrintsNothingStillAnswers(t *testing.T) {
+	fake := &agent{answers: map[string]any{"db.query": map[string]any{"output": "", "truncated": false, "failed": false}}}
+
+	result := run(t, toolbox(fake, &clock{}), "db_query", `{"engine":"mysql","query":"CREATE DATABASE shop"}`)
+
+	if result.IsError || strings.TrimSpace(result.Content[0].Text) == "" {
+		t.Fatalf("an empty text reaches the model as no answer at all: %+v", result)
+	}
+}
+
+func TestTheInstructionsSendDatabaseWorkToTheQueryTool(t *testing.T) {
+	if !strings.Contains(mcp.Instructions, "db_query") || !strings.Contains(mcp.Instructions, "sudo") {
+		t.Fatalf("the instructions must spare the owner a password: %s", mcp.Instructions)
+	}
+}
+
 func TestAnAgentRefusalReachesTheModelWithItsFix(t *testing.T) {
 	fake := &agent{refuse: map[string]error{
 		"status": protocol.NewError(contract.ErrorLicenseRequired, "a licence is required").WithFix("Ask the owner."),
@@ -413,7 +470,7 @@ func TestNoToolOpensThePrivilegedSession(t *testing.T) {
 	fake := &agent{}
 	box := toolbox(fake, &clock{})
 
-	values := map[string]any{"project": "flyleaf", "service": "db.postgres"}
+	values := map[string]any{"project": "flyleaf", "service": "db.postgres", "engine": "postgres", "query": "SELECT 1"}
 
 	for _, tool := range box.Tools() {
 		arguments := map[string]any{}

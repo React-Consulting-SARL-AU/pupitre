@@ -35,7 +35,8 @@ const (
 // Read by the model like the tools' descriptions: one language for the whole contract.
 const Instructions = "Pupitre drives this server's projects and services. Start, stop and restart a dev server with these tools, " +
 	"never by hand: a second process would take its port. Read its logs with project_logs. To look at a page, drive the playwright " +
-	"MCP server's browser on the project's local address."
+	"MCP server's browser on the project's local address. Read and change the server's databases with db_query, never by asking " +
+	"the owner for a password or for sudo."
 
 type Toolbox struct {
 	Agent devcli.Caller
@@ -59,6 +60,7 @@ func (t Toolbox) Tools() []Tool {
 		t.serviceAction("service_stop", "Stop a service", "service.stop", "Stop one of the server's services by its id, as status lists it."),
 		t.serviceAction("service_restart", "Restart a service", "service.restart", "Restart one of the server's services by its id, as status lists it."),
 		t.serviceLogs(),
+		t.dbQuery(),
 		t.doctor(),
 	}
 }
@@ -455,6 +457,76 @@ func (t Toolbox) serviceLogs() Tool {
 			}
 
 			return Text(strings.Join(logged.Lines, "\n")), nil
+		},
+	}
+}
+
+func (t Toolbox) dbQuery() Tool {
+	return Tool{
+		Name:  "db_query",
+		Title: "Query a database",
+		Description: "Run SQL on the server's PostgreSQL or MySQL/MariaDB, a mongosh script on its MongoDB, or commands on its Redis, " +
+			"as the application account, and read what the engine's client prints. SQL statements may follow one another and stop at the first error. " +
+			"A mongosh script answers with its last expression: end a find with .toArray(). Redis takes one command per line, each answered in turn. " +
+			"The owner can turn this off per database in the Pupitre app.",
+		InputSchema: object(map[string]any{
+			"engine": map[string]any{"type": "string", "description": "postgres, mysql (MySQL or MariaDB), mongodb or redis."},
+			"database": map[string]any{
+				"type": "string",
+				"description": "The database, as the engine names it; for redis its number, 0 to 15. " +
+					"Left out: postgres, mysql, admin or 0, from which the others are listed.",
+			},
+			"query": map[string]any{
+				"type":        "string",
+				"description": "SQL for postgres and mysql, a mongosh script for mongodb, commands one per line for redis.",
+				"minLength":   1,
+				"maxLength":   contract.DbQuery.QueryMaxLength,
+			},
+		}, "engine", "query"),
+		Annotations: Annotations{Destructive: true},
+		Run: func(raw json.RawMessage) (Result, error) {
+			var asked struct {
+				Engine   string `json:"engine"`
+				Database string `json:"database"`
+				Query    string `json:"query"`
+			}
+
+			if err := decode(raw, &asked); err != nil {
+				return Result{}, err
+			}
+
+			params := map[string]any{"engine": asked.Engine, "query": asked.Query}
+			if asked.Database != "" {
+				params["name"] = asked.Database
+			}
+
+			answer, err := t.call("db.query", params)
+			if err != nil {
+				return Result{}, err
+			}
+
+			queried, err := as[struct {
+				Output    string `json:"output"`
+				Truncated bool   `json:"truncated"`
+				Failed    bool   `json:"failed"`
+			}](answer)
+			if err != nil {
+				return Result{}, err
+			}
+
+			text := queried.Output
+			if strings.TrimSpace(text) == "" {
+				text = "The statement ran and printed nothing."
+			}
+
+			if queried.Truncated {
+				text = strings.TrimRight(text, "\n") + fmt.Sprintf("\n[Cut at %d bytes: narrow the query with LIMIT, fewer columns or a projection.]", contract.DbQuery.OutputMaxBytes)
+			}
+
+			result := Text(text)
+			result.IsError = queried.Failed
+
+			return result, nil
 		},
 	}
 }

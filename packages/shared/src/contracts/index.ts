@@ -26,7 +26,7 @@ import {
   InstallSecretsSchema,
 } from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
-import { SecretEventSchema } from "../agent-protocol/secrets"
+import { DB_QUERY, SecretEventSchema } from "../agent-protocol/secrets"
 import {
   PORT_SPAN_CAPABILITY,
   PORT_SPAN_MAX,
@@ -228,6 +228,10 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
       port_span_max: PORT_SPAN_MAX,
       port_span_capability: PORT_SPAN_CAPABILITY,
     },
+  },
+  DbQuery: {
+    type: "object",
+    const: DB_QUERY,
   },
   // No namespace nor header: they name the product, so the agent holds them itself, checked against the fixtures.
   KeyApprovalRules: {

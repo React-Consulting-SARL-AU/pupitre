@@ -1,0 +1,93 @@
+---
+title: Bases de données et agents IA
+description: Comment Claude Code et Codex lisent et modifient les bases PostgreSQL, MySQL, MariaDB, MongoDB et Redis du serveur, sans mot de passe ni sudo, et comment le couper.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 8
+---
+
+Un agent IA qui travaille sur le serveur, ou sur votre poste à travers le [serveur MCP](/fr/docs/daily/mcp/), interroge les bases du serveur avec l’outil `db_query`. Il ne vous demande ni le mot de passe de la base ni sudo : Pupitre ouvre la base pour lui, avec le compte applicatif. Vous n’avez rien à régler, demandez-lui simplement ce que vous voulez savoir ou changer.
+
+## Les moteurs
+
+| Moteur | Ce que l’agent envoie | Base par défaut |
+| --- | --- | --- |
+| PostgreSQL | du SQL, et les commandes de `psql` comme `\dt` ou `\d table` | `postgres` |
+| MySQL, MariaDB | du SQL | `mysql` |
+| MongoDB | un script mongosh | `admin` |
+| Redis | une commande par ligne | la base `0`, ou un numéro de 0 à 15 |
+
+L’agent nomme la base à ouvrir. Sans nom, il ouvre celle par défaut, d’où il peut lister les autres.
+
+## Ce que l’agent reçoit
+
+Le texte que le client de la base affiche, comme dans un terminal. Par exemple, sur PostgreSQL :
+
+```text
+CREATE TABLE
+INSERT 0 3
+ id | name  |    city
+----+-------+------------
+  1 | Ada   | Londres
+  2 | Grace | New York
+  3 | Zoé   | Casablanca
+(3 rows)
+```
+
+Sur MySQL ou MariaDB :
+
+```text
++----+----------+-------+
+| id | customer | total |
++----+----------+-------+
+|  1 | Ada      | 12.50 |
+|  2 | Grace    |  7.00 |
++----+----------+-------+
+```
+
+Sur MongoDB, la valeur de la dernière expression du script :
+
+```text
+[ { _id: 'free', count: 1 }, { _id: 'pro', count: 1 } ]
+```
+
+Sur Redis, une réponse par commande :
+
+```text
+OK
+"Ada Lovelace"
+(integer) 1
+(integer) 3600
+```
+
+- **Une erreur arrête la suite.** En SQL, les instructions passent dans l’ordre jusqu’à la première erreur ; celles qui la suivent ne sont pas jouées. L’agent reçoit ce qui a réussi, puis l’erreur du moteur, par exemple `ERROR 1146 (42S02) at line 2: Table 'shop.missing' doesn't exist`. Redis répond à chaque commande, et une réponse `(error)` marque la requête en échec.
+- **Une instruction qui n’affiche rien**, comme `CREATE DATABASE` sur MySQL, répond qu’elle s’est déroulée sans rien afficher.
+- **Au-delà de 64 Ko**, la réponse est coupée, et l’agent lit qu’il doit resserrer sa requête, avec `LIMIT` ou moins de colonnes.
+- **Au-delà de 45 secondes**, PostgreSQL annule l’instruction lui-même (`canceling statement due to statement timeout`). Les autres moteurs sont arrêtés cinq secondes plus tard.
+
+## Couper l’accès
+
+Chaque base a un réglage **Accès des agents IA**, dans ses réglages de l’app. Il est activé par défaut, puisque les bases du serveur servent au développement. Désactivé, l’agent reçoit un refus qui dit où le réactiver. Le changement s’applique sans redémarrer la base.
+
+## Ce que l’agent peut faire, et ce qu’il ne peut pas
+
+- **Avec le compte applicatif, jamais le superutilisateur.** Sur PostgreSQL, il n’a donc ni `COPY … TO PROGRAM` ni le droit de créer une table dans la base `postgres` : il crée sa propre base, qui lui appartient. Sur Redis, l’utilisateur par défaut a tous les droits sur les données, mais Redis refuse de changer ses réglages protégés, comme le dossier où il écrit.
+- **En tant que `dev`.** Le client de la base tourne sous le compte `dev`, celui de l’agent. Un `\!` de `psql`, un `system` de `mysql` ou un `require` de mongosh lancent une commande en `dev`, rien de plus.
+- **Ce réglage n’est pas une barrière.** Ce qui tourne en `dev`, vos projets compris, peut retrouver le mot de passe du compte applicatif. Le réglage dit ce que vous voulez de vos agents ; il ne cache pas la base à `dev`.
+- **Exporter ou importer une base entière** reste votre geste, dans l’app.
+
+## Ce qui a été vérifié
+
+Sur Ubuntu 24.04 avec PostgreSQL 17, MySQL 8.0, MariaDB 10.11, MongoDB 8.0 avec mongosh 2.14, et Redis 7.0, par le serveur MCP lancé en `dev` :
+
+- créer une base, une table, insérer, modifier, lire, annuler une transaction ;
+- les commandes `\dt` et `\d` de `psql`, `SHOW DATABASES` et `DESCRIBE` sur MySQL ;
+- `insertMany`, `find`, `aggregate`, `updateOne` et un script sur plusieurs lignes avec MongoDB ;
+- chaînes, durées de vie, hashes, `SCAN` et bases numérotées sur Redis ;
+- l’arrêt à la première erreur, et le fait que les instructions suivantes ne passent pas ;
+- une réponse de 100 000 lignes, coupée à 64 Ko ;
+- une instruction trop longue, annulée par PostgreSQL à 45 secondes, et son client MySQL arrêté à 50 ;
+- une commande shell lancée depuis chaque client, qui tourne en `dev` ;
+- `COPY … TO PROGRAM` refusé sur PostgreSQL, un réglage protégé refusé sur Redis ;
+- l’accès coupé puis rétabli, sans redémarrage de la base.

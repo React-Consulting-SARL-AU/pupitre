@@ -3,6 +3,7 @@ package redis
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/db/query"
 )
 
 const ID = "db.redis"
@@ -23,6 +24,7 @@ func manifest() contract.Manifest {
 			{Key: "persistence", Kind: contract.FieldBoolean, Label: i18n.T("module.db.redis.persistence.label"), Help: i18n.T("module.db.redis.persistence.help"), Required: false, Default: true},
 			{Key: "maxmemory_mb", Kind: contract.FieldNumber, Label: i18n.T("module.db.redis.maxmemory_mb.label"), Help: i18n.T("module.db.redis.maxmemory_mb.help"), Required: false, Default: 0, Min: 0, Max: 262144},
 			{Key: "maxmemory_policy", Kind: contract.FieldSelect, Label: i18n.T("module.db.redis.maxmemory_policy.label"), Help: i18n.T("module.db.redis.maxmemory_policy.help"), Required: true, Default: DefaultPolicy, Options: policies},
+			query.AccessField(),
 		},
 		Runs:      true,
 		Mandatory: false,

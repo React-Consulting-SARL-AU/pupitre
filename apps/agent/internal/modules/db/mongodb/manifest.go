@@ -3,6 +3,7 @@ package mongodb
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/db/query"
 )
 
 const ID = "db.mongodb"
@@ -23,6 +24,7 @@ func manifest() contract.Manifest {
 			{Key: "app_user", Kind: contract.FieldText, Label: i18n.T("module.db.mongodb.app_user.label"), Help: i18n.T("module.db.mongodb.app_user.help"), Format: contract.FormatIdentifier, Required: true, Default: defaultAppUser},
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.mongodb.app_password.label"), Help: i18n.T("module.db.mongodb.app_password.help"), Required: true, Generate: true},
 			{Key: "cache_mb", Kind: contract.FieldNumber, Label: i18n.T("module.db.mongodb.cache_mb.label"), Help: i18n.T("module.db.mongodb.cache_mb.help"), HintText: i18n.T("module.db.mongodb.cache_mb.hint"), Required: false, Default: 0, Min: 0, Max: 262144},
+			query.AccessField(),
 		},
 		Runs:      true,
 		Mandatory: false,

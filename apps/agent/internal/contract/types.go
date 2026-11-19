@@ -551,6 +551,14 @@ type ProjectRulesConstants struct {
 
 var ProjectRules = constOf[ProjectRulesConstants]("ProjectRules")
 
+type DbQueryConstants struct {
+	TimeoutMS      int `json:"timeout_ms"`
+	OutputMaxBytes int `json:"output_max_bytes"`
+	QueryMaxLength int `json:"query_max_length"`
+}
+
+var DbQuery = constOf[DbQueryConstants]("DbQuery")
+
 type Project struct {
 	Name      string            `json:"name"`
 	Dir       string            `json:"dir"`

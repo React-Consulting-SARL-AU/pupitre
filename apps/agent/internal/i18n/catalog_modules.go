@@ -137,6 +137,14 @@ var moduleCatalog = map[string]Message{
 		FR: "Fuseau horaire",
 		EN: "Timezone",
 	},
+	"module.db.ai_access.help": {
+		FR: "Claude, Codex et les autres agents du serveur ou de votre poste lisent et modifient cette base par le serveur MCP de Pupitre, sans son mot de passe ni sudo.",
+		EN: "Claude, Codex and the other agents on the server or your laptop read and change this database through Pupitre's MCP server, without its password or sudo.",
+	},
+	"module.db.ai_access.label": {
+		FR: "Accès des agents IA",
+		EN: "AI agents' access",
+	},
 	"module.db.mongodb.app_password.help": {
 		FR: "Celui que vos applications et votre poste utilisent, à travers le tunnel SSH.",
 		EN: "The one your applications and your laptop use, through the SSH tunnel.",
