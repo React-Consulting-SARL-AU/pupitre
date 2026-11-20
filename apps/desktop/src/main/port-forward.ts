@@ -318,8 +318,39 @@ function reconnect(id: string, held: Held): void {
     RETRY_FIRST_MS * 2 ** Math.max(held.failures - 1, 0),
     RETRY_MAX_MS
   );
+  const generation = held.generation;
 
-  (held.deps.later ?? later)(() => respawn(id, held), wait);
+  (held.deps.later ?? later)(() => {
+    if (held.generation === generation) {
+      respawn(id, held);
+    }
+  }, wait);
+}
+
+/** After a sleep a kept forward's `ssh` may hold a dead connection, or wait up to a minute for its next try. */
+export function reviveKeptForwards(): void {
+  for (const [id, held] of open) {
+    if (!held.forward.kept) {
+      continue;
+    }
+
+    const { child } = held;
+
+    held.generation += 1;
+    held.failures = 0;
+
+    if (exited(child)) {
+      respawn(id, held);
+    } else {
+      // The new `ssh` binds the same local port: it starts once the old one let go.
+      child.once("exit", () => respawn(id, held));
+      child.kill();
+    }
+  }
+}
+
+function exited(child: ChildProcess): boolean {
+  return typeof child.exitCode === "number" || Boolean(child.signalCode);
 }
 
 function respawn(id: string, held: Held): void {

@@ -3,7 +3,14 @@ import "./dev-data";
 import { fileURLToPath } from "node:url";
 import { windowBackground } from "@shared/appearance";
 import type { MenuCommand } from "@shared/shell";
-import { app, BrowserWindow, Menu, nativeTheme, session } from "electron";
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  nativeTheme,
+  powerMonitor,
+  session,
+} from "electron";
 import { registerAccess } from "./access";
 import { registerAccount } from "./account";
 import {
@@ -11,10 +18,13 @@ import {
   registerAgentChannels,
   registerLanguage,
   registerPlatformSync,
+  restChannels,
 } from "./agent";
 import { registerAgentUpdate } from "./agent-update";
 import { registerPreferences, watchAttention } from "./app-preferences";
 import { registerAppearance } from "./appearance";
+import { backgroundNeeds, hideTray, showTray } from "./background";
+import { backgroundNeeded, startsInBackground } from "./background-run";
 import { registerBackups } from "./backups";
 import { broadcast, broadcastTo } from "./broadcast";
 import { registerCatalog } from "./catalog";
@@ -38,6 +48,7 @@ import { menuTemplate } from "./menu";
 import { openable, ownPage, type PageRules } from "./navigation";
 import { current, windowChrome } from "./platform";
 import { buildKind, platformUrl } from "./platform-url";
+import { reviveKeptForwards } from "./port-forward";
 import { registerProjects } from "./projects";
 import { forgetProjects } from "./projects-run";
 import { registerReenroll } from "./reenroll";
@@ -45,6 +56,7 @@ import { registerServerChannels } from "./server-channels";
 import { sshPathsWritten } from "./servers";
 import {
   forgetServiceCredentials,
+  forgetServiceSecrets,
   registerServices,
   reopenKept,
 } from "./services";
@@ -74,12 +86,27 @@ function settle(serverId: string): void {
   closeFor(serverId);
 }
 
+/** What only the window used; the forwards and the agents' socket outlive it in the background. */
+function releaseWindow(): void {
+  closeAll();
+  forgetServiceSecrets();
+  agentClient.closeAll();
+}
+
 /** Runs on every way out and is harmless twice: a leftover `ssh -L` would keep its local port. */
 function releaseEverything(): void {
-  closeAll();
+  releaseWindow();
   forgetServiceCredentials();
-  agentClient.closeAll();
   closeLocalAgents();
+}
+
+/** Never under the harness: a scenario must leave no icon in the menu bar. */
+function rests(): boolean {
+  return !HARNESSED && backgroundNeeded(backgroundNeeds());
+}
+
+function spokenLanguage(): string {
+  return language || app.getLocale();
 }
 
 /** The renderer holds the theme choice and corrects this over `appearance:set` before the first paint. */
@@ -100,8 +127,46 @@ if (!(HARNESSED || app.requestSingleInstanceLock())) {
   app.quit();
 }
 
+function toBackground(): void {
+  releaseWindow();
+  restChannels(true);
+  app.dock?.hide();
+  showTray(spokenLanguage, { open: showWindow, quit: () => app.quit() });
+  trace("app", "background", { ...backgroundNeeds() });
+}
+
+function showWindow(): void {
+  if (window) {
+    bringToFront();
+
+    return;
+  }
+
+  restChannels(false);
+  hideTray();
+  app.dock?.show().catch(failed);
+  createWindow();
+}
+
+/** Cmd+Q sends the app to the background while something there still needs it; the menu bar icon quits for good. */
+function quitOrRest(): void {
+  if (window && rests()) {
+    window.close();
+
+    return;
+  }
+
+  app.quit();
+}
+
 function bringToFront(): void {
-  if (HARNESSED || !window) {
+  if (HARNESSED) {
+    return;
+  }
+
+  if (!window) {
+    showWindow();
+
     return;
   }
 
@@ -140,6 +205,7 @@ const PAGE: PageRules = {
   indexFile: beside("../renderer/index.html"),
 };
 
+/** Called with each window, never at start: touching the default session starts a renderer process. */
 function hardenSession(): void {
   session.defaultSession.setPermissionRequestHandler((_c, _p, callback) =>
     callback(false)
@@ -148,6 +214,7 @@ function hardenSession(): void {
 }
 
 function createWindow(): void {
+  hardenSession();
   window = new BrowserWindow({
     width: 1280,
     height: 840,
@@ -176,6 +243,7 @@ function createWindow(): void {
   tracesTo((entry) => window?.webContents.send("trace", entry));
   broadcastTo(window.webContents);
   window.on("closed", () => {
+    window = null;
     tracesTo(null);
     broadcastTo(null);
     pageGone();
@@ -207,7 +275,7 @@ function createWindow(): void {
 }
 
 function installMenu(): void {
-  const spoken = language || app.getLocale();
+  const spoken = spokenLanguage();
 
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
@@ -218,6 +286,7 @@ function installMenu(): void {
         newAgent: () => relayMenu("new-agent"),
         newTerminal: () => relayMenu("new-terminal"),
         preferences: () => relayMenu("preferences"),
+        quit: quitOrRest,
         shortcuts: () => relayMenu("shortcuts"),
         signOut: () => relayMenu("sign-out"),
       })
@@ -273,7 +342,6 @@ app
       platform: current(),
     });
 
-    hardenSession();
     trustPage(PAGE);
     installMenu();
 
@@ -289,7 +357,20 @@ app
       bringToFront,
       focused: () => window?.isFocused() ?? false,
     });
-    createWindow();
+    powerMonitor.on("resume", reviveKeptForwards);
+
+    const launch = {
+      argv: process.argv,
+      platform: process.platform,
+      wasOpenedAtLogin: app.getLoginItemSettings().wasOpenedAtLogin === true,
+    };
+
+    if (!HARNESSED && startsInBackground(launch, backgroundNeeds())) {
+      reopenKept().catch(failed);
+      toBackground();
+    } else {
+      createWindow();
+    }
 
     const opened = deepLinkArgument(process.argv);
 
@@ -299,7 +380,7 @@ app
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+        showWindow();
       }
     });
   })
@@ -312,6 +393,12 @@ app.on("before-quit", () => {
 app.on("will-quit", releaseEverything);
 
 app.on("window-all-closed", () => {
+  if (rests()) {
+    toBackground();
+
+    return;
+  }
+
   releaseEverything();
 
   if (process.platform !== "darwin") {

@@ -15,6 +15,7 @@ import {
   keepForward,
   openForward,
   reopenKeptForwards,
+  reviveKeptForwards,
   watchForwards,
 } from "../port-forward";
 
@@ -464,6 +465,36 @@ describe("a kept forward", () => {
     expect(harness.spawned).toHaveLength(3);
     expect(harness.spawned[2]).toContain("8081:127.0.0.1:8081");
     expect(clock.waits[1]).toBeGreaterThan(clock.waits[0] ?? 0);
+  });
+
+  it("starts again at once when the computer wakes, without a second try from the pending wait", async () => {
+    const harness = deps();
+    const clock = later();
+
+    harness.deps.later = clock.later;
+    harness.deps.portFree = () => Promise.resolve(true);
+
+    await openForward(SERVER, 8081, "intranet/server", harness.deps, {
+      keep: true,
+      localPort: 8081,
+    });
+    await openForward(SERVER, 3001, "intranet/client", harness.deps, {
+      localPort: 3001,
+    });
+
+    harness.born[0]?.emit("exit", 255);
+    reviveKeptForwards();
+
+    expect(harness.born[0]?.killed).toBe(true);
+    expect(harness.spawned).toHaveLength(2);
+
+    harness.born[0]?.emit("exit", 255);
+    clock.fire();
+
+    expect(harness.born[1]?.killed).toBe(false);
+    expect(harness.spawned).toHaveLength(3);
+    expect(harness.spawned[2]).toContain("8081:127.0.0.1:8081");
+    expect(forwards(SERVER)).toHaveLength(2);
   });
 
   it("stops coming back once closed by hand, and is forgotten", async () => {

@@ -28,7 +28,7 @@ export const settings = {
     "settings.agents.reading": "Reading the AI agents of this computer",
     "settings.agents.label": "Let the AI agents of this computer drive Pupitre",
     "settings.agents.detail":
-      "Declares Pupitre's MCP servers in Claude Code, Claude Desktop and Codex. Turning it off takes them out.",
+      "Declares Pupitre's MCP servers in Claude Code, Claude Desktop and Codex, and keeps Pupitre running in the background once its window is closed. Turning it off takes them out.",
     "settings.agents.unsupported":
       "Needs nc, which this system does not provide.",
     "settings.agents.unattended": "Apply their changes without asking me",
@@ -57,7 +57,7 @@ export const settings = {
     "settings.startup.reading": "Reading the preference",
     "settings.startup.label": "Open Pupitre at login",
     "settings.startup.detail":
-      "The window comes up with the session; the servers are reached only once it is used.",
+      "Opens in the background when AI agents or a kept forward need Pupitre, with its window otherwise; the servers are reached only once used.",
     "settings.startup.unsupported":
       "This system keeps no standard list of applications to open at login: add Pupitre from your desktop's own settings.",
     "settings.about.reading": "Reading the version",
@@ -141,7 +141,7 @@ export const settings = {
     "settings.agents.label":
       "Laisser les agents IA de cet ordinateur piloter Pupitre",
     "settings.agents.detail":
-      "Déclare les serveurs MCP de Pupitre dans Claude Code, Claude Desktop et Codex. Éteindre les retire.",
+      "Déclare les serveurs MCP de Pupitre dans Claude Code, Claude Desktop et Codex, et garde Pupitre actif en arrière-plan une fois sa fenêtre fermée. Éteindre les retire.",
     "settings.agents.unsupported": "Demande nc, que ce système ne fournit pas.",
     "settings.agents.unattended":
       "Appliquer leurs modifications sans me demander",
@@ -176,7 +176,7 @@ export const settings = {
     "settings.startup.reading": "Lecture de la préférence",
     "settings.startup.label": "Ouvrir Pupitre à la connexion",
     "settings.startup.detail":
-      "La fenêtre s'ouvre avec la session ; les serveurs ne sont joints qu'au premier usage.",
+      "S'ouvre en arrière-plan quand des agents IA ou une redirection gardée ont besoin de Pupitre, avec sa fenêtre sinon ; les serveurs ne sont joints qu'au premier usage.",
     "settings.startup.unsupported":
       "Ce système ne tient pas de liste standard des applications à ouvrir à la connexion : ajoutez Pupitre depuis les réglages de votre bureau.",
     "settings.about.reading": "Lecture de la version",

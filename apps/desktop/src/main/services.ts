@@ -75,9 +75,14 @@ export function reopenKept(): Promise<void> {
 }
 
 export function forgetServiceCredentials(serverId?: string): void {
+  forgetServiceSecrets(serverId);
+  closeForwards(serverId);
+}
+
+/** The forwards stay: a window closed into the background keeps them for the agents of this computer. */
+export function forgetServiceSecrets(serverId?: string): void {
   forgetCredentials(serverId);
   forgetServices(serverId);
-  closeForwards(serverId);
   forgetShells(serverId);
 }
 

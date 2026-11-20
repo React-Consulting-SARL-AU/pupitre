@@ -11,6 +11,8 @@ export interface MenuActions {
   checkUpdates: () => void;
   signOut: () => void;
   help: (link: HelpLink) => void;
+  /** Decides whether quitting sends the app to the background: the `quit` role would always end it. */
+  quit: () => void;
 }
 
 const NOTHING: MenuActions = {
@@ -20,6 +22,7 @@ const NOTHING: MenuActions = {
   newAgent: () => undefined,
   newTerminal: () => undefined,
   preferences: () => undefined,
+  quit: () => undefined,
   shortcuts: () => undefined,
   signOut: () => undefined,
 };
@@ -49,6 +52,12 @@ export function menuTemplate(
     id: "sign-out",
     label: text("signOut"),
   };
+  const quit: MenuItemConstructorOptions = {
+    accelerator: "CmdOrCtrl+Q",
+    click: actions.quit,
+    id: "quit",
+    label: text("quit"),
+  };
 
   const appMenu: MenuItemConstructorOptions = {
     role: "appMenu",
@@ -66,7 +75,7 @@ export function menuTemplate(
       { role: "hideOthers" },
       { role: "unhide" },
       { type: "separator" },
-      { role: "quit" },
+      quit,
     ],
   };
 
@@ -100,7 +109,7 @@ export function menuTemplate(
             signOut,
             { type: "separator" } as MenuItemConstructorOptions,
           ]),
-      { role: platform === "darwin" ? "close" : "quit" },
+      platform === "darwin" ? { role: "close" } : quit,
     ],
   };
 

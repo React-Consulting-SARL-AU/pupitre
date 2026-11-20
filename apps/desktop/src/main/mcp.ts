@@ -440,6 +440,10 @@ function syncQuietly(): void {
   );
 }
 
+export function localAgentsListening(): boolean {
+  return listening !== null;
+}
+
 export function closeLocalAgents(): void {
   if (listening) {
     close();

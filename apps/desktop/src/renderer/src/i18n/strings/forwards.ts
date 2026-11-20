@@ -10,7 +10,7 @@ export const forwards = {
     "forwards.moved":
       "Its usual port, {from}, was taken by something else on this computer.",
     "forwards.keep":
-      "Keep port {port} open: it comes back with the app and after a drop",
+      "Keep port {port} open: it comes back with the app and after a drop, and stays open with the window closed",
     "forwards.unkeep": "Stop keeping the forward of port {port} open",
     "forwards.reconnecting": "Connection lost, opening again…",
     "forwards.reach": "Reach port {port} from this computer",
@@ -27,7 +27,7 @@ export const forwards = {
     "forwards.moved":
       "Son port habituel, {from}, était pris par autre chose sur cet ordinateur.",
     "forwards.keep":
-      "Garder ouvert le port {port} : il revient avec l'app et après une coupure",
+      "Garder ouvert le port {port} : il revient avec l'app et après une coupure, et reste ouvert fenêtre fermée",
     "forwards.unkeep": "Ne plus garder ouverte la redirection du port {port}",
     "forwards.reconnecting": "Connexion perdue, réouverture…",
     "forwards.reach": "Accéder au port {port} depuis cet ordinateur",

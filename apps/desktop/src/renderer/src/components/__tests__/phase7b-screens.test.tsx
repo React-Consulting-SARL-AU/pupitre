@@ -196,7 +196,7 @@ describe("local forwards", () => {
     expect(html).toContain("Fermer la redirection du port 5432");
     expect(text(html)).toContain("Son port habituel, 55000");
     expect(html).toContain(
-      "Garder ouvert le port 5432 : il revient avec l&#x27;app et après une coupure"
+      "Garder ouvert le port 5432 : il revient avec l&#x27;app et après une coupure, et reste ouvert fenêtre fermée"
     );
   });
 

@@ -47,6 +47,12 @@ function target(serverId: string, purpose: ChannelPurpose): SshTarget | null {
 }
 
 let language = "en";
+let resting = false;
+
+/** With no window, a channel opened for an agent of this computer closes again once idle. */
+export function restChannels(rest: boolean): void {
+  resting = rest;
+}
 
 /** The agent gets it on the next `hello`. */
 export function rememberLanguage(locale: string): void {
@@ -79,6 +85,7 @@ export const agentClient = createAgentClient({
   locale: () => language,
   // The account's usage right, asked once for every channel; the server's own right is the agent's to refuse.
   gate: () => usageError(() => account.guard()),
+  rests: () => resting,
   spawn: sshSpawn(target),
   sudoHeld: (serverId) => sudoPasswordFor(serverId) !== null,
   validateResults: !app.isPackaged,

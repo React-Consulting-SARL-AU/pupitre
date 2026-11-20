@@ -1029,6 +1029,25 @@ describe("the privileged channel", () => {
     agent.closeAll();
   });
 
+  it("closes the passwordless session too once idle while the app rests, and reopens it on the next call", async () => {
+    const changes: string[] = [];
+    const { agent, echo } = echoClient({
+      idleMs: 20,
+      onChannel: (_server, state) => changes.push(state),
+      rests: () => true,
+    });
+
+    await agent.call(SERVER, "snapshot");
+    expect(await until(() => echo.killed() === 1)).toBe(true);
+
+    await agent.call(SERVER, "snapshot");
+
+    expect(echo.started()).toBe(2);
+    expect(changes).toEqual(["open", "open"]);
+
+    agent.closeAll();
+  });
+
   // A second sudo prompt means the password was refused and the hello is being read as the next attempt.
   it("cuts at the second sudo prompt and says so, without replaying the same password", async () => {
     const opened: ReturnType<typeof scripted>[] = [];

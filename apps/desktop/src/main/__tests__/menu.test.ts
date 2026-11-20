@@ -76,6 +76,7 @@ describe("the application menu", () => {
       newAgent: () => called.push("agent"),
       newTerminal: () => called.push("terminal"),
       preferences: () => called.push("preferences"),
+      quit: () => called.push("quit"),
       shortcuts: () => called.push("shortcuts"),
       signOut: () => called.push("sign-out"),
     });
@@ -91,6 +92,7 @@ describe("the application menu", () => {
       "help-docs",
       "help-support",
       "help-legal",
+      "quit",
     ]) {
       (byId(menu, id)?.click as (() => void) | undefined)?.();
     }
@@ -106,7 +108,20 @@ describe("the application menu", () => {
       "help:docs",
       "help:support",
       "help:legal",
+      "quit",
     ]);
+  });
+
+  it("quits through the app's own gesture, which may keep it in the background", () => {
+    for (const platform of ["darwin", "win32"] as const) {
+      const menu = menuTemplate(platform, true, "fr-FR");
+
+      expect(roles(menu)).not.toContain("quit");
+      expect(byId(menu, "quit")).toMatchObject({
+        accelerator: "CmdOrCtrl+Q",
+        label: "Quitter Pupitre",
+      });
+    }
   });
 
   it("leads from Help to the documentation, support and terms, in the system language", () => {
