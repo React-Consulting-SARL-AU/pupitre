@@ -26,6 +26,9 @@ export function ForwardsList({
     return null;
   }
 
+  const spansServers =
+    new Set(forwards.map((forward) => forward.serverId)).size > 1;
+
   return (
     <section
       aria-label={t("forwards.panel")}
@@ -57,7 +60,7 @@ export function ForwardsList({
               key={forward.id}
               onClose={() => onClose(forward.id)}
               onKeep={(keep) => onKeep(forward.id, keep)}
-              serverName={nameOf(forward.serverId)}
+              serverName={spansServers ? nameOf(forward.serverId) : null}
             />
           ))}
         </ul>

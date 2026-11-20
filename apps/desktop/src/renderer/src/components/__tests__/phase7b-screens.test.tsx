@@ -190,11 +190,42 @@ describe("local forwards", () => {
 
     expect(html).toContain('data-forwards="2"');
     expect(text(html)).toContain("Ports locaux");
-    expect(text(html)).toContain("127.0.0.1:55001");
-    expect(text(html)).toContain("Atelier · db.postgres");
+    expect(text(html)).toContain("localhost:55001 → :5432");
+    expect(text(html)).toContain("db.postgres");
+    expect(text(html)).not.toContain("Atelier");
     expect(html).toContain("Fermer la redirection du port 5432");
     expect(text(html)).toContain("Son port habituel, 55000");
-    expect(html).toContain("Garder ouverte la redirection du port 5432");
+    expect(html).toContain(
+      "Garder ouvert le port 5432 : il revient avec l&#x27;app et après une coupure"
+    );
+  });
+
+  it("name the server only when they reach several", () => {
+    const html = renderToStaticMarkup(
+      <ForwardsList
+        forwards={[FORWARD, { ...FORWARD, id: "f2", serverId: "other" }]}
+        nameOf={(serverId) => (serverId === "other" ? "Forge" : "Atelier")}
+        onClose={later}
+        onKeep={later}
+      />
+    );
+
+    expect(text(html)).toContain("Atelier · db.postgres");
+    expect(text(html)).toContain("Forge · db.postgres");
+  });
+
+  it("show a bare local address when the port is the server's own", () => {
+    const html = renderToStaticMarkup(
+      <ForwardsList
+        forwards={[{ ...FORWARD, localPort: 5432 }]}
+        nameOf={() => "Atelier"}
+        onClose={later}
+        onKeep={later}
+      />
+    );
+
+    expect(text(html)).toContain("localhost:5432");
+    expect(text(html)).not.toContain("→");
   });
 
   it("say which ones are kept, and which ones are coming back", () => {
@@ -211,7 +242,7 @@ describe("local forwards", () => {
     );
 
     expect(html).toContain('data-kept="true"');
-    expect(text(html)).toContain("Gardée ouverte");
+    expect(text(html)).not.toContain("Gardée ouverte");
     expect(text(html)).toContain("Connexion perdue, réouverture…");
     expect(html).toContain(
       "Ne plus garder ouverte la redirection du port 5432"

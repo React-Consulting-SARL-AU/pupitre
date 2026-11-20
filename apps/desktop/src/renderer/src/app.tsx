@@ -405,7 +405,7 @@ export function App() {
   };
 
   return (
-    <div className="relative grid h-full grid-cols-[224px_1fr]">
+    <div className="relative grid h-full grid-cols-[256px_1fr]">
       <AppPalette
         onClose={closePalette}
         onSwitchServer={switchServer}
