@@ -1,0 +1,23 @@
+---
+title: Pupitre stays in the background for your AI agents and kept ports
+description: With its window closed, Pupitre keeps answering the AI agents of your computer and keeps your kept ports open, from an icon in the menu bar, at a fraction of the memory.
+locale: en
+version: 2.7.0
+channel: stable
+date: 2026-11-20
+order: 33
+---
+
+Claude Code, Claude Desktop and Codex no longer need Pupitre's window open to work through it, and a port you keep open stays open when you close the window.
+
+## The app
+
+- **A background mode.** When the AI agents of this computer may drive Pupitre, or a port is kept open, closing the window or pressing Cmd+Q sends Pupitre to the background instead of quitting it. Its icon leaves the Dock for the menu bar, whose menu reopens the window, lists what Pupitre holds — the agents' access and each port with its local address — and quits it for good. With nothing to hold, closing the window does what it always did.
+- **Light in the background.** Without its window, Pupitre keeps only what the agents and the ports need: about 65 MB of memory and no work while idle. A connection opened to a server for an agent closes again after a minute without use.
+- **At login.** With "Open Pupitre at login" on and something to hold, Pupitre starts in the background without opening its window.
+- **After sleep.** Kept ports open again as soon as the computer wakes, instead of waiting up to a minute for their next try.
+- **A tighter sidebar for local ports.** The sidebar is wider and each local port fits on two lines: its name, then `localhost:<port>`, with the server's port only when it differs. Keeping a port open is said in the pin's bubble.
+
+## Known limitations
+
+- On Windows, a login item set before this version opens the window as before: turn "Open Pupitre at login" off and on again to start in the background.
