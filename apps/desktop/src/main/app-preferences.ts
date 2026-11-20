@@ -3,6 +3,7 @@ import type { StartupState } from "@shared/startup";
 import { app, Notification } from "electron";
 import { currentLanguage } from "./agent";
 import { attentionWatcher } from "./attention";
+import { BACKGROUND_ARGUMENT } from "./background-run";
 import { broadcast } from "./broadcast";
 import { dialogTextIn } from "./dialogs";
 import { HARNESSED } from "./harness";
@@ -36,7 +37,10 @@ function setStartup(enabled: boolean): StartupState {
   preferencesOf().set({ launchAtLogin: enabled });
 
   if (!HARNESSED && STARTUP_PLATFORMS.includes(process.platform)) {
-    app.setLoginItemSettings({ openAtLogin: enabled });
+    app.setLoginItemSettings({
+      args: [BACKGROUND_ARGUMENT],
+      openAtLogin: enabled,
+    });
   }
 
   return startupState();

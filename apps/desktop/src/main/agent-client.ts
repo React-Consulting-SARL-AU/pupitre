@@ -121,6 +121,8 @@ export interface AgentClientOptions {
   /** Results that become a local command argument or path, refused in every build when off-contract. */
   enforcedResults?: ReadonlySet<CommandName>;
   idleMs?: number;
+  /** Every channel, not only the root one, closes once idle: nothing on screen is waiting on it. */
+  rests?: () => boolean;
   sudoHeld?: (serverId: string) => boolean;
 }
 
@@ -162,8 +164,8 @@ const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
 
 const WORK_CHANNEL_MS = 60_000;
 
-/** Kept open so a later gesture reuses root without asking sudo again, but never forever. */
-const PRIVILEGED_IDLE_MS = 60_000;
+/** Kept open so a later gesture reuses the session, root without asking sudo again, but never forever. */
+const IDLE_MS = 60_000;
 
 /** sudo prints this before each password read: a second one means the first password was refused. */
 export const SUDO_PROMPT = "pupitre-sudo:";
@@ -474,7 +476,7 @@ class AgentChannel {
 
   /** An idle root session is closed quietly, without announcing a lost link; the next gesture reopens it. */
   private restLater(): void {
-    if (this.purpose !== "privileged") {
+    if (this.purpose !== "privileged" && !this.options.rests()) {
       return;
     }
 
@@ -1090,7 +1092,8 @@ export class AgentClient {
       now: options.now ?? Date.now,
       validateResults: options.validateResults ?? false,
       enforcedResults: options.enforcedResults ?? new Set(),
-      idleMs: options.idleMs ?? PRIVILEGED_IDLE_MS,
+      idleMs: options.idleMs ?? IDLE_MS,
+      rests: options.rests ?? (() => false),
       sudoHeld: options.sudoHeld ?? (() => true),
     };
   }

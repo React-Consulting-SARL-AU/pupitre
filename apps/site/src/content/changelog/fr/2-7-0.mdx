@@ -1,0 +1,23 @@
+---
+title: Pupitre reste en arrière-plan pour vos agents IA et vos ports gardés
+description: Fenêtre fermée, Pupitre continue de répondre aux agents IA de votre ordinateur et garde vos ports ouverts, depuis une icône dans la barre des menus, pour une fraction de la mémoire.
+locale: fr
+version: 2.7.0
+channel: stable
+date: 2026-11-20
+order: 33
+---
+
+Claude Code, Claude Desktop et Codex n'ont plus besoin de la fenêtre de Pupitre pour travailler à travers lui, et un port que vous gardez ouvert le reste quand vous fermez la fenêtre.
+
+## L'app
+
+- **Un mode arrière-plan.** Quand les agents IA de cet ordinateur peuvent piloter Pupitre, ou qu'un port est gardé ouvert, fermer la fenêtre ou taper Cmd+Q envoie Pupitre en arrière-plan au lieu de le quitter. Son icône passe du Dock à la barre des menus, dont le menu rouvre la fenêtre, liste ce que Pupitre garde — l'accès des agents et chaque port avec son adresse locale — et le quitte pour de bon. S'il n'y a rien à garder, fermer la fenêtre fait comme avant.
+- **Léger en arrière-plan.** Sans sa fenêtre, Pupitre ne garde que ce dont les agents et les ports ont besoin : environ 65 Mo de mémoire et aucun travail au repos. Une connexion ouverte vers un serveur pour un agent se referme après une minute sans usage.
+- **À la connexion.** Avec « Ouvrir Pupitre à la connexion » activé et quelque chose à garder, Pupitre démarre en arrière-plan sans ouvrir sa fenêtre.
+- **Après la veille.** Les ports gardés se rouvrent dès le réveil de l'ordinateur, au lieu d'attendre jusqu'à une minute leur prochain essai.
+- **Des ports locaux plus compacts.** La barre latérale est plus large et chaque port local tient sur deux lignes : son nom, puis `localhost:<port>`, avec le port du serveur seulement quand il diffère. Garder un port ouvert se dit dans la bulle de l'épingle.
+
+## Limites connues
+
+- Sur Windows, une ouverture à la connexion activée avant cette version ouvre la fenêtre comme avant : désactivez puis réactivez « Ouvrir Pupitre à la connexion » pour démarrer en arrière-plan.
